@@ -4,7 +4,7 @@ import Header from "../components/Header";
 import NFTCard from "../components/NFTCard";
 import RealTimeData from "../components/RealTimeData";
 import Footer from "../components/Footer";
- 
+
 function App() {
   const contexts = useContext(ICOContent);
   const {

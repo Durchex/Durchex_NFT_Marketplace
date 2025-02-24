@@ -2,7 +2,6 @@ import LOGO from "../assets/LOGO.png";
 import { Link, useLocation } from "react-router-dom";
 import { FiSearch, FiShoppingBag } from "react-icons/fi";
 
-
 export default function Navbar() {
   const location = useLocation();
 

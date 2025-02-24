@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { Image } from "lucide-react";
 import Header2 from "../components/Header2";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Image, ArrowLeft } from "lucide-react";
 
 function App() {
   const [price, setPrice] = useState("");
   const [listOnMarketplace, setListOnMarketplace] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
-
+  const navigate = useNavigate();
   const calculateFee = (price) => {
     return price * 0.02; // 2% fee
   };
@@ -16,7 +17,6 @@ function App() {
   };
 
   const handleFileChange = (file) => {
-    // Optional: Add file validation
     const validTypes = [
       "image/jpeg",
       "image/png",
@@ -48,7 +48,15 @@ function App() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-6xl px-6 py8">
-        <h1 className="mb-8 text-3xl font-bold">Create your NFT</h1>
+        {/* Back Navigation Icon */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-3 flex items-center text-gray-300 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          <span>Back</span>
+        </button>
+        <h1 className="mb-3 text-3xl font-bold">Create your NFT</h1>
 
         <div className="grid grid-cols-2 gap-8">
           {/* Left Column */}
@@ -140,7 +148,7 @@ function App() {
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div>
               <p className="mb-2">Choose collection</p>
               <input
@@ -148,13 +156,13 @@ function App() {
                 placeholder="Start typing to show your collection"
                 className="w-full rounded-lg border-b border-[#4A4554] bg-transparent px-4 py-2 text-white"
               />
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg bg-transparent border">
+              <div className="mt-4 grid grid-cols-2 gap-4 ">
+                <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg bg-transparent border border-[#4A4554]">
                   <div className="mb-2 text-2xl">+</div>
                   <p className="text-sm font-medium">Create new</p>
                   <p className="text-xs text-gray-500">ERC - 1155</p>
                 </div>
-                <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg bg-transparent border">
+                <div className="flex h-[150px] cursor-pointer flex-col items-center justify-center rounded-lg bg-transparent border border-[#4A4554]">
                   <div className="mb-2 h-12 w-12 rounded-full bg-gray-100" />
                   <p className="text-sm font-medium">Happy Pigeons area</p>
                   <p className="text-xs text-gray-500">HaPa</p>
@@ -167,7 +175,7 @@ function App() {
               <input
                 type="text"
                 placeholder="NFT name"
-                className="w-full rounded-lg bg-transparent border px-4 py-2 text-white"
+                className="w-full rounded-lg bg-transparent border border-[#4A4554] px-4 py-2 text-white"
               />
             </div>
 
@@ -175,7 +183,7 @@ function App() {
               <p className="mb-2">Description</p>
               <textarea
                 placeholder="Write something..."
-                className="h-[100px] w-full rounded-lg bg-transparent border px-4 py-2 text-white"
+                className="h-[100px] w-full rounded-lg bg-transparent border border-[#4A4554] px-4 py-2 text-white"
               />
             </div>
 
@@ -184,7 +192,7 @@ function App() {
               <input
                 type="number"
                 placeholder="1"
-                className="w-full rounded-lg bg-transparent border px-4 py-2 text-white"
+                className="w-full rounded-lg bg-transparent border border-[#4A4554] px-4 py-2 text-white"
               />
             </div>
 
@@ -193,7 +201,7 @@ function App() {
               <input
                 type="text"
                 placeholder="1-50%"
-                className="w-full rounded-lg bg-transparent border px-4 py-2 text-white"
+                className="w-full rounded-lg bg-transparent border border-[#4A4554] px-4 py-2 text-white"
               />
             </div>
 
