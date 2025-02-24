@@ -135,7 +135,7 @@ function App() {
           {allNfts?.map((item) => (
             <div
               key={item}
-              className="bg-gray-800 rounded-lg aspect-square flex items-end relative"
+              className="bg-gray-200 rounded-lg aspect-square flex items-end relative"
             >
               <span className="text-xl text-blue-900  absolute left-5 font-bold  bottom-2">
                 {item.name}
