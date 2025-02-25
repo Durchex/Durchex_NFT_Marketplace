@@ -69,7 +69,7 @@ function App() {
 
     fetching(getActiveListings, true);
     fetching(getAllListings, false);
-  }, [fetchMetadataFromPinata, getActiveListings, getAllListings, tokenURI]); // Add missing dependencies here
+  }, [fetchMetadataFromPinata, getActiveListings, getAllListings, tokenURI]);
 
   // useEffect(() => {
   //   const fetching = async (functions, trading) => {
@@ -131,11 +131,11 @@ function App() {
       <Header />
 
       <main className="mx-auto mt8 px4 overflow-x-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {allNfts?.map((item) => (
             <div
               key={item}
-              className="bg-gray-200 rounded-lg aspect-square flex items-end relative"
+              className="bg-gray-600 rounded-lg aspectsquare flex items-end relative"
             >
               <span className="text-xl text-blue-900  absolute left-5 font-bold  bottom-2">
                 {item.name}
@@ -147,11 +147,31 @@ function App() {
               />
             </div>
           ))}
+        </div> */}
+        {/* Sliding effect for allNfts */}
+        <div className="sliding-container">
+          <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {allNfts?.map((item) => (
+              <div
+                key={item.itemId}
+                className="bg-gray-600 rounded-lg aspectsquare flex items-end relative slide-item"
+              >
+                <span className="text-xl text-blue-900 absolute left-5 font-bold bottom-2">
+                  {item.name}
+                </span>
+                <img
+                  className="w-full h-96 object-cover"
+                  src={item.image}
+                  alt={item.name}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         <RealTimeData />
 
-        <h2 className="text-3xl font-bold p-6">Trending collections</h2>
+        {/* <h2 className="text-3xl font-bold p-6">Trending collections</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
           {TradingNFTs.slice(0, 7).map((nft, index) => (
             <NFTCard key={index} {...nft} />
@@ -163,6 +183,31 @@ function App() {
           {TradingNFTs.slice(0, 7).map((nft, index) => (
             <NFTCard key={index} {...nft} />
           ))}
+        </div> */}
+        {/* Sliding effect for Trending collections */}
+
+        
+        <h2 className="text-3xl font-bold p-6">Trending collections</h2>
+        <div className="sliding-container">
+          <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
+            {TradingNFTs.slice(0, 7).map((nft, index) => (
+              <div key={index} className="slide-item">
+                <NFTCard {...nft} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sliding effect for Minting now */}
+        <h2 className="text-3xl font-bold p-6">Minting now</h2>
+        <div className="sliding-container">
+          <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
+            {TradingNFTs.slice(0, 7).map((nft, index) => (
+              <div key={index} className="slide-item">
+                <NFTCard {...nft} />
+              </div>
+            ))}
+          </div>
         </div>
       </main>
       <Footer />

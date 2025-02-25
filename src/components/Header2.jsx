@@ -5,7 +5,6 @@ import { FiSearch, FiShoppingBag } from "react-icons/fi";
 export default function Navbar() {
   const location = useLocation();
 
-  // Navigation items array
   const navItems = [
     { name: "Explore", path: "/" },
     { name: "Create", path: "/studio" },

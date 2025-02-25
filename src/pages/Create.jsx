@@ -94,7 +94,7 @@ const Create = () => {
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
-              className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-purple-500 transition-colors"
+              className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center cursor-pointer transition-colors"
             >
               <Palette className="h-12 w-12 mx-auto mb-4 text-gray-500" />
               <p className="text-gray-300 mb-2">
