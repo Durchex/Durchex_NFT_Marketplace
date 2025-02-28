@@ -173,9 +173,15 @@ const Create = () => {
                 onChange={handleInputChange}
                 className="w-full bg-transparent border border-[#4A4554] rounded-lg py-3 px-4 text-white appearance-none cursor-pointer"
               >
-                <option value="Polygon">Polygon</option>
-                <option value="Ethereum">Ethereum</option>
-                <option value="Binance">Binance</option>
+                <option className="text-black" value="Polygon">
+                  Polygon
+                </option>
+                <option className="text-black" value="Ethereum">
+                  Ethereum
+                </option>
+                <option className="text-black" value="Binance">
+                  Binance
+                </option>
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <svg

@@ -186,7 +186,6 @@ function App() {
         </div> */}
         {/* Sliding effect for Trending collections */}
 
-        
         <h2 className="text-3xl font-bold p-6">Trending collections</h2>
         <div className="sliding-container">
           <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
