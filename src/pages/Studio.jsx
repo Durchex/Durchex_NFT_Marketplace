@@ -12,7 +12,7 @@ export default function Studio() {
               <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
+                  className="h-6 w-6 text-black"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

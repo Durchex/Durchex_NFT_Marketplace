@@ -110,7 +110,9 @@ export default function Navbar() {
           </button>
 
           {/* Profile Icon */}
+          <Link to="/profile">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tl from-violet-700 via-blue-400 to-fuchsia-700"></div>
+          </Link>
         </div>
       </div>
     </nav>

@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import MyNfts from "./pages/MyNfts";
 import ListNft from "./pages/ListNft";
 import Studio from "./pages/Studio";
+import Profile from "./pages/Profile";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/createnftcollection" element={<CreateNFTCollection />} />
         <Route path="/nft/:id" element={<NftInfo />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/profile" element={<Profile/>}/>
       </Routes>
     </BrowserRouter>
   );
