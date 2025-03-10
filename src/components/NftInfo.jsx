@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 import {
   Heart,
   Share2,
@@ -31,8 +32,8 @@ function App() {
     <div className="min-h-screen bg-[#0e0e16] text-white">
       <Header />
       <div className="p-6 bg-gradient-to-b from-[#1D0E35] to-[#0e0e16]">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gray-700 rounded-md"></div>
+        <div className="items-center gap-4">
+          <div className="w-16 h-14 bg-gray-700 rounded-md"></div>
           <div>
             <h1 className="text-2xl font-bold">Happy Cows</h1>
             <p className="text-sm text-gray-400">Joseph Okeyo</p>
@@ -46,52 +47,48 @@ function App() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-4 mt-8 text-sm">
-          <div>
-            <p className="text-gray-400">Total Volume</p>
-            <p className="font-semibold">3,645 ETH</p>
+        <div className="flex justify-between">
+          <div className="flex gap-20 mt-8 text-md">
+            <div>
+              <p className="text-gray-400">Total Volume</p>
+              <p className="font-semibold">3,645 ETH</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Floor Price</p>
+              <p className="font-semibold">0.12 ETH</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Items</p>
+              <p className="font-semibold">6.2k</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Latest Supply</p>
+              <p className="font-semibold">
+                24/552 <span className="text-green-500">23%</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400">Created</p>
+              <p className="font-semibold">14.12.2024</p>
+            </div>
           </div>
-          <div>
-            <p className="text-gray-400">Floor Price</p>
-            <p className="font-semibold">0.12 ETH</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Items</p>
-            <p className="font-semibold">6.2k</p>
-          </div>
-          <div>
-            <p className="text-gray-400">Latest Supply</p>
-            <p className="font-semibold">
-              24/552 <span className="text-green-500">23%</span>
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-400">Created</p>
-            <p className="font-semibold">14.12.2024</p>
-          </div>
-        </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-end gap-3 mt-4">
-          <button
-            onClick={toggleShareModal}
-            className="p-2 rounded-full hover:bg-gray-800"
-          >
-            <Share2 size={20} />
-          </button>
-          <button
-            onClick={toggleLike}
-            className="p-2 rounded-full hover:bg-gray-800"
-          >
-            <Heart
-              size={20}
-              fill={isLiked ? "#ef4444" : "none"}
-              stroke={isLiked ? "#ef4444" : "currentColor"}
-            />
-          </button>
-          <button className="bg-[#F2ECFE] text-black px-4 py-2 rounded-lg font-medium">
-            Place Bid for collection
-          </button>
+          {/* Action buttons */}
+          <div className="flex justify-end gap-3 mt-4">
+            <button onClick={toggleShareModal} className="p-2 rounded-full">
+              <Share2 size={20} />
+            </button>
+            <button onClick={toggleLike} className="p-2 rounded-full">
+              <Heart
+                size={20}
+                fill={isLiked ? "#ef4444" : "none"}
+                stroke={isLiked ? "#ef4444" : "currentColor"}
+              />
+            </button>
+            <button className="bg-[#F2ECFE] text-black px-4 rounded-lg font-medium">
+              Place Bid for collection
+            </button>
+          </div>
         </div>
 
         {/* Description */}
@@ -176,12 +173,12 @@ function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              <select className="bg-transparent text-sm border border-[#312E38] rounded-lg px-3 py-2 focus:outline-none">
-                <option>Price: Lowest to highest</option>
-                <option>Price: Highest to lowest</option>
+              <select className="text-sm bg-[#19171C] rounded-lg px-3 py-2 focus:outline-none">
+                <option className="text-white">Price: Lowest to highest</option>
+                <option className="text-white">Price: Highest to lowest</option>
               </select>
 
-              <div className="flex items-center border border-[#312E38] rounded-lg overflow-hidden">
+              <div className="flex items-center bg-[#19171C] rounded-lg overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-2 ${viewMode === "list" ? "bg-gray-700" : ""}`}
@@ -247,6 +244,10 @@ function NFTCard({ viewMode }) {
     </div>
   );
 }
+
+NFTCard.propTypes = {
+  viewMode: PropTypes.oneOf(["grid", "list"]).isRequired,
+};
 
 export default App;
 

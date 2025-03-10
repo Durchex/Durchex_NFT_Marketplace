@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/createnftcollection" element={<CreateNFTCollection />} />
         <Route path="/nft/:id" element={<NftInfo />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/profile" element={<Profile/>}/>
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

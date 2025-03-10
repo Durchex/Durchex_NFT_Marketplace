@@ -14,13 +14,20 @@ function App() {
   const [activeTab, setActiveTab] = useState("Owned");
   const [viewMode, setViewMode] = useState("grid");
   const [isEditing, setIsEditing] = useState(false);
-  const [profileName, setProfileName] = useState("Joseph Okoye");
-  const [tempName, setTempName] = useState("Joseph Okoye");
+  const [profileName, setProfileName] = useState("Benjamin Femi");
+  const [tempName, setTempName] = useState("Benjamin Femi");
   const [nameError, setNameError] = useState("");
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState(null);
 
-  const tabs = ["Owned", "On sale", "My Collections", "Created"];
+  const tabs = [
+    "Owned", "On sale", "My Collections", "Created"
+  ];
+  // const navItems = [
+  //   { name: "Explore", path: "/" },
+  //   { name: "Create", path: "/studio" },
+  //   // { name: "Stats", path: "/stats" },
+  // ];
 
   const nftItems = [
     {
@@ -123,8 +130,8 @@ function App() {
 
       {/* Profile Header */}
       <div className="bg-purple-900/50 py-10 px-12">
-        <div className="flex items-end space-x-6 mb-6">
-          <div className="h-16 w-16 bg-gray-700 rounded-md"></div>
+        <div className="flx items-end mb-6">
+          <div className="h-16 w-16 bg-gray-700 rounded-md mb-4"></div>
           <div>
             {isEditing ? (
               <div>
@@ -132,7 +139,7 @@ function App() {
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  className="text-3xl font-bold bg-[#222] rounded px-2 py-1 text-white w-full"
+                  className="text-3xl font-bold bg-[#222] rounded px-2 py-1 text-white"
                 />
                 {nameError && (
                   <p className="text-red-500 text-sm mt-1">{nameError}</p>
@@ -182,9 +189,9 @@ function App() {
               </button>
             </div>
           )}
-          <button className="bg-[#222] rounded-lg p-2 hover:bg-[#333]">
+          {/* <button className="bg-[#222] rounded-lg p-2 hover:bg-[#333]">
             <MoreVertical className="h-5 w-5" />
-          </button>
+          </button> */}
         </div>
       </div>
 
