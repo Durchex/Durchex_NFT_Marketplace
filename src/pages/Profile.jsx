@@ -20,14 +20,7 @@ function App() {
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState(null);
 
-  const tabs = [
-    "Owned", "On sale", "My Collections", "Created"
-  ];
-  // const navItems = [
-  //   { name: "Explore", path: "/" },
-  //   { name: "Create", path: "/studio" },
-  //   // { name: "Stats", path: "/stats" },
-  // ];
+  const tabs = ["Owned", "On sale", "My Collections", "Created"];
 
   const nftItems = [
     {

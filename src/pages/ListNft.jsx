@@ -1,4 +1,3 @@
-// GROK // GROK // GROK // GROK // GROK
 import { useContext, useState } from "react";
 import { BsStars } from "react-icons/bs";
 import { Toaster } from "react-hot-toast";
@@ -132,7 +131,7 @@ function ListNft() {
 
 export default ListNft;
 
-// PREVIOUS WORK // PREVIOUS WORK // PREVIOUS WORK // PREVIOUS WORK // PREVIOUS WORK // PREVIOUS WORK
+// PREVIOUS WORK // PREVIOUS WORK // PREVIOUS WORK
 // import { useContext, useState } from "react";
 // import { BsStars } from "react-icons/bs";
 // import { Toaster } from "react-hot-toast";
