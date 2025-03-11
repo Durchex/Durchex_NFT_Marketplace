@@ -37,7 +37,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-black px-4 py-6 md:py-10 relative">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-2 z-10">
           <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8" />
