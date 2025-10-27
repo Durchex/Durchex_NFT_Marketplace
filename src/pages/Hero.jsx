@@ -1,16 +1,17 @@
 import { ICOContent } from "../Context/index";
 import { useContext, useEffect, useState } from "react";
-import Header from "../components/Header";
 import NFTCard from "../components/NFTCard";
-import RealTimeData from "../components/RealTimeData";
+import LiveMintingUpdates from "../components/LiveMintingUpdates";
 import Footer from "../components/Footer";
 import Interface from "../components/Interface";
+import RealTimeData from "../components/RealTimeData";
 
 function App() {
   const contexts = useContext(ICOContent);
   const {
     tokenURI,
     fetchMetadataFromPinata,
+    fetchAndCacheNFTMetadata,
     getAllListings,
     getActiveListings,
     // getNFTById_,
@@ -48,16 +49,9 @@ function App() {
             currentlyListed: item.currentlyListed,
           };
 
-          const url = await tokenURI(formattedItem.tokenId);
-          const parsedFile = await fetchMetadataFromPinata(url);
-          const metadata = JSON.parse(parsedFile.file);
-          formattedItem.name = metadata.name;
-          formattedItem.description = metadata.description;
-          formattedItem.image = metadata.image;
-          formattedItem.category = metadata.catogory;
-          formattedItem.properties = metadata.properties;
-          formattedItem.royalties = metadata.royalties;
-          formattedListings.push(formattedItem);
+          // Use enhanced NFT fetching with caching
+          const nftData = await fetchAndCacheNFTMetadata(formattedItem);
+          formattedListings.push(nftData);
         }
 
         trading
@@ -128,10 +122,8 @@ function App() {
   // console.log("get all nft", allNfts);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Header />
-
-      <main className="mx-auto mt8 px4 overflow-x-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <main className="mx-auto mt-8 px-4 overflow-x-auto">
         {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {allNfts?.map((item) => (
             <div
@@ -149,45 +141,16 @@ function App() {
             </div>
           ))}
         </div> */}
-        {/* Sliding effect for allNfts */}
-        <div className="sliding-container">
-          <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {allNfts?.map((item) => (
-              <div
-                key={item.itemId}
-                className="bg-gray-600 rounded-lg aspectsquare flex items-end relative slide-item"
-              >
-                <span className="text-xl text-blue-900 absolute left-5 font-bold bottom-2">
-                  {item.name}
-                </span>
-                <img
-                  className="w-full h-96 object-cover"
-                  src={item.image}
-                  alt={item.name}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
 
         <RealTimeData />
 
-        {/* <h2 className="text-3xl font-bold p-6">Trending collections</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
-          {TradingNFTs.slice(0, 7).map((nft, index) => (
-            <NFTCard key={index} {...nft} />
-          ))}
+        <div className="mb-12">
+          <Interface />
         </div>
-
-        <h2 className="text-3xl font-bold p-6">Minting now</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
-          {TradingNFTs.slice(0, 7).map((nft, index) => (
-            <NFTCard key={index} {...nft} />
-          ))}
-        </div> */}
-        {/* Sliding effect for Trending collections */}
-
-        <Interface />
+        
+        <div className="mb-12">
+          <LiveMintingUpdates />
+        </div>
         <h2 className="text-3xl font-bold p-6">Trending collections</h2>
         <div className="sliding-container">
           <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
@@ -217,3 +180,5 @@ function App() {
 }
 
 export default App;
+
+

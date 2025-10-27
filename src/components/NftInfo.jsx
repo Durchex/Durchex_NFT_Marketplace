@@ -12,7 +12,6 @@ import {
 import ShareModal from "../components/ShareModal";
 import FilterSidebar from "../components/FilterSidebar";
 import { useFilter } from "../Context/FilterContext";
-import Header from "../components/Header";
 
 function App() {
   const [isLiked, setIsLiked] = useState(false);
@@ -51,7 +50,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0e0e16] text-white">
-      <Header />
       <div className="p-6 bg-gradient-to-b from-[#1D0E35] to-[#0e0e16]">
         <div className="items-center gap-4">
           <div className="w-16 h-14 bg-gray-700 rounded-md"></div>

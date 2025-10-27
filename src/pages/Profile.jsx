@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Edit3,
   Share2,
@@ -8,58 +8,46 @@ import {
   Filter,
   X,
 } from "lucide-react";
-import Header from "../components/Header";
+import { ICOContent } from "../Context";
 
 function App() {
+  const { address, getAllListings } = useContext(ICOContent);
   const [activeTab, setActiveTab] = useState("Owned");
   const [viewMode, setViewMode] = useState("grid");
   const [isEditing, setIsEditing] = useState(false);
-  const [profileName, setProfileName] = useState("Benjamin Femi");
-  const [tempName, setTempName] = useState("Benjamin Femi");
+  const [profileName, setProfileName] = useState("Anonymous User");
+  const [tempName, setTempName] = useState("Anonymous User");
   const [nameError, setNameError] = useState("");
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState(null);
+  const [nftItems, setNftItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUserNFTs = async () => {
+      if (!address) {
+        setNftItems([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // TODO: Replace with real API call to fetch user's NFTs
+        // For now, we'll show empty state until real API is implemented
+        setNftItems([]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading user NFTs:', error);
+        setNftItems([]);
+        setLoading(false);
+      }
+    };
+
+    loadUserNFTs();
+  }, [address, activeTab]);
 
   const tabs = ["Owned", "On sale", "My Collections", "Created"];
-
-  const nftItems = [
-    {
-      id: 1,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1242",
-      price: "0.5 ETH",
-    },
-    {
-      id: 2,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1243",
-      price: "0.7 ETH",
-    },
-    {
-      id: 3,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1244",
-      price: "0.6 ETH",
-    },
-    {
-      id: 4,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1245",
-      price: "0.8 ETH",
-    },
-    {
-      id: 5,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1246",
-      price: "0.8 ETH",
-    },
-    {
-      id: 6,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1247",
-      price: "0.8 ETH",
-    },
-  ];
 
   const validateName = (name) => {
     if (!name.trim()) return "Name cannot be empty";
@@ -118,9 +106,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation Bar */}
-      <Header />
-
       {/* Profile Header */}
       <div className="bg-purple-900/50 py-10 px-12">
         <div className="flx items-end mb-6">
@@ -241,43 +226,71 @@ function App() {
 
       {/* NFT Grid */}
       <div className="px-12 pb-12">
-        <div
-          className={
-            viewMode === "grid" ? "grid grid-cols-4 gap-6" : "space-y-4"
-          }
-        >
-          {nftItems.map((item) => (
-            <div
-              key={item.id}
-              className={`${
-                viewMode === "grid"
-                  ? "bg-[#222] rounded-lg overflow-hidden hover:shadow-lg cursor-pointer"
-                  : "bg-[#222] rounded-lg p-4 flex items-center space-x-4 hover:shadow-lg cursor-pointer"
-              }`}
-              onClick={() => handleViewItem(item)}
-            >
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading your NFTs...</p>
+          </div>
+        ) : nftItems.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">No NFTs Found</h3>
+            <p className="text-gray-400 mb-4">
+              {!address 
+                ? "Connect your wallet to view your NFTs" 
+                : `You don't have any NFTs in the "${activeTab}" category yet`
+              }
+            </p>
+            <p className="text-sm text-gray-500">
+              {!address 
+                ? "Your NFT collection will appear here once you connect your wallet"
+                : "Start minting or buying NFTs to build your collection"
+              }
+            </p>
+          </div>
+        ) : (
+          <div
+            className={
+              viewMode === "grid" ? "grid grid-cols-4 gap-6" : "space-y-4"
+            }
+          >
+            {nftItems.map((item) => (
               <div
-                className={
+                key={item.id}
+                className={`${
                   viewMode === "grid"
-                    ? "aspect-square bg-[#333]"
-                    : "h-20 w-20 bg-[#333] rounded"
-                }
-              ></div>
-              <div className={viewMode === "grid" ? "p-4" : "flex-1"}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-gray-400 text-sm">{item.collection}</p>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-purple-400">{item.price}</p>
+                    ? "bg-[#222] rounded-lg overflow-hidden hover:shadow-lg cursor-pointer"
+                    : "bg-[#222] rounded-lg p-4 flex items-center space-x-4 hover:shadow-lg cursor-pointer"
+                }`}
+                onClick={() => handleViewItem(item)}
+              >
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "aspect-square bg-[#333]"
+                      : "h-20 w-20 bg-[#333] rounded"
+                  }
+                ></div>
+                <div className={viewMode === "grid" ? "p-4" : "flex-1"}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-gray-400 text-sm">{item.collection}</p>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-purple-400">{item.price}</p>
+                    </div>
+                    <button className="p-1">
+                      <MoreVertical className="h-5 w-5 text-gray-400" />
+                    </button>
                   </div>
-                  <button className="p-1">
-                    <MoreVertical className="h-5 w-5 text-gray-400" />
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* NFT Detail Modal */}

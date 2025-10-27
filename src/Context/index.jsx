@@ -1,7 +1,8 @@
 import axios from "axios";
 import { ethers } from "ethers";
 import React, { createContext, useEffect, useState } from "react";
-import { ErrorToast } from "../app/Toast/Error.jsx";
+import toast from "react-hot-toast";
+import { nftService, formatNFTForCache } from "../services/nftService";
 
 //INTERNAL IMPORT
 import {
@@ -22,12 +23,23 @@ export const Index = ({ children }) => {
   const [accountBalance, setAccountBalance] = useState(null);
   const [loader, setLoader] = useState(false);
   const [currency, setCurrency] = useState("MATIC");
+  const [selectedNetwork, setSelectedNetwork] = useState({
+    name: "Ethereum",
+    symbol: "ETH",
+    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
+    chainId: 1
+  });
+
+  // Helper function for error notifications
+  const notifyError = (message) => {
+    toast.error(message);
+  };
 
   //FUNCTION
   const checkIfWalletConnected = async () => {
     try {
-      if (!window.ethereum) return notifyError("No account found");
-      // await handleNetworkSwitch();
+      if (!window.ethereum) return;
+      
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
       });
@@ -35,27 +47,59 @@ export const Index = ({ children }) => {
       if (accounts.length) {
         setAddress(accounts[0]);
 
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-
-        const getbalance = await provider.getBalance(accounts[0]);
-        const bal = ethers.utils.formatEther(getbalance);
-        setAccountBalance(bal);
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const getbalance = await provider.getBalance(accounts[0]);
+          const bal = ethers.utils.formatEther(getbalance);
+          setAccountBalance(bal);
+        } catch (networkError) {
+          console.warn("Network detection failed, using fallback:", networkError.message);
+          setAccountBalance("0");
+        }
+        
         return accounts[0];
-      } else {
-        ErrorToast("No account found");
       }
     } catch (error) {
-      console.log(error);
-      // notifyError("Please install Metamask");
+      console.warn("Wallet connection check failed:", error.message);
+      // Silently handle errors in automatic check
     }
   };
 
   useEffect(() => {
-    checkIfWalletConnected();
-  }, [address]);
+    // Only check wallet connection on initial load
+    if (!address) {
+      checkIfWalletConnected();
+    }
+
+    // Listen for account changes
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts) => {
+        if (accounts.length === 0) {
+          // User disconnected
+          setAddress("");
+          setAccountBalance("0");
+        } else {
+          // User switched accounts
+          setAddress(accounts[0]);
+          checkIfWalletConnected();
+        }
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+      return () => {
+        if (window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        }
+      };
+    }
+  }, []); // Empty dependency array - only run on mount
 
   const connectWallet = async () => {
-    if (!window.ethereum) return notifyError("No account available");
+    if (!window.ethereum) {
+      notifyError("No account available");
+      return;
+    }
     try {
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
@@ -64,12 +108,18 @@ export const Index = ({ children }) => {
       if (accounts.length) {
         setAddress(accounts[0]);
 
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-
-        console.log("here");
-        const getbalance = await provider.getBalance(accounts[0]);
-        const bal = ethers.utils.formatEther(getbalance);
-        setAccountBalance(bal);
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const getbalance = await provider.getBalance(accounts[0]);
+          const bal = ethers.utils.formatEther(getbalance);
+          setAccountBalance(bal);
+        } catch (networkError) {
+          console.warn("Network detection failed, using fallback:", networkError.message);
+          setAccountBalance("0");
+        }
+        
+        // Only show success message when connection is successful
+        toast.success("Wallet connected successfully!");
         return accounts[0];
       } else {
         notifyError("No account found");
@@ -77,26 +127,48 @@ export const Index = ({ children }) => {
     } catch (error) {
       console.log(error);
       setLoader(false);
-      notifyError("Error connecting wallet");
+      if (error.code === 4001) {
+        notifyError("User rejected the connection request");
+      } else {
+        notifyError("Error connecting wallet");
+      }
     }
+  };
+
+  const disconnectWallet = () => {
+    setAddress("");
+    setAccountBalance("0");
+    toast.success("Wallet disconnected successfully!");
   };
 
   //! MAIN FUNCTION
   const ethereumUsd = async () => {
     try {
       var ETH_USD = await axios.get(
-        "https://www.binance.com/bapi/composite/v1/public/promo/cmc/cryptocurrency/quotes/latest?id=1839%2C1%2C1027%2C5426%2C52%2C3890%2C2010%2C5805%2C4206"
+        "https://www.binance.com/bapi/composite/v1/public/promo/cmc/cryptocurrency/quotes/latest?id=1839%2C1%2C1027%2C5426%2C52%2C3890%2C2010%2C5805%2C4206",
+        {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       return ETH_USD.data.data.body.data[1027].quote.USD.price;
     } catch (error) {
-      console.log(error);
+      console.log("Error fetching ETH price:", error);
+      // Return a default price if API fails
+      return 2000; // Default ETH price
     }
   };
 
   //* VendorNFT  Functions
   const getAllVendors = async () => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.getAllVendors();
       console.log("🚀 ~ getAllVendors ~ response:", response);
       // WarringToast("Waiting for transaction ....");
@@ -109,6 +181,9 @@ export const Index = ({ children }) => {
 
   const isAuthorizedVendor = async (address) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.isAuthorizedVendor(address);
       return response;
     } catch (error) {
@@ -119,6 +194,9 @@ export const Index = ({ children }) => {
 
   const addVendor = async (VendorAddress) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.addVendor(VendorAddress);
       return response;
     } catch (error) {
@@ -129,6 +207,9 @@ export const Index = ({ children }) => {
 
   const removeVendor = async (VendorAddress) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.removeVendor(VendorAddress);
       return response;
     } catch (error) {
@@ -139,6 +220,9 @@ export const Index = ({ children }) => {
 
   const vendorMint = async (uri, nftMarketplaceAddress) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.vendorMint(
         uri,
         nftMarketplaceAddress
@@ -153,6 +237,9 @@ export const Index = ({ children }) => {
 
   const publicMint = async (uri, nftMarketplaceAddress) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.publicMint(
         uri,
         nftMarketplaceAddress,
@@ -173,6 +260,9 @@ export const Index = ({ children }) => {
 
   const withdraw = async (_account) => {
     try {
+      if (!ContractInstance) {
+        throw new Error("Contract not initialized. Please connect your wallet.");
+      }
       const response = await ContractInstance.withdraw();
       return response;
     } catch (error) {
@@ -362,25 +452,33 @@ export const Index = ({ children }) => {
   const getActiveListings = async () => {
     try {
       const contract = await NFTMarketplaceCONTRACT();
+      if (!contract) {
+        console.log("Contract is null, returning empty array");
+        return [];
+      }
       const response = await contract.getActiveListings();
       console.log("🚀 ~ getActiveListings ~ response:", response);
 
       return response;
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
-      return error;
+      return [];
     }
   };
 
   const getAllListings = async () => {
     try {
       const contract = await NFTMarketplaceCONTRACT();
+      if (!contract) {
+        console.log("Contract is null, returning empty array");
+        return [];
+      }
       const response = await contract.getAllListings();
 
       return response;
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
-      return error;
+      return [];
     }
   };
 
@@ -421,6 +519,36 @@ export const Index = ({ children }) => {
     }
   }
 
+  // Enhanced function to fetch and cache NFT metadata
+  async function fetchAndCacheNFTMetadata(blockchainData) {
+    try {
+      // First try to get from cache
+      const cachedNFT = await nftService.getNFT(
+        'ethereum-sepolia',
+        blockchainData.itemId?.toString(),
+        blockchainData.tokenId?.toString()
+      );
+
+      if (cachedNFT) {
+        return cachedNFT;
+      }
+
+      // If not in cache, fetch from blockchain and IPFS
+      const tokenUrl = await tokenURI(blockchainData.tokenId);
+      const metadata = await fetchMetadataFromPinata(tokenUrl);
+
+      // Format and cache the NFT data
+      const formattedNFT = formatNFTForCache(blockchainData, metadata);
+      await nftService.cacheNFTMetadata(formattedNFT);
+
+      return formattedNFT;
+    } catch (error) {
+      console.error("Error fetching and caching NFT metadata:", error);
+      // Return basic blockchain data if caching fails
+      return formatNFTForCache(blockchainData, {});
+    }
+  }
+
   return (
     <ICOContent.Provider
       value={{
@@ -438,11 +566,13 @@ export const Index = ({ children }) => {
         withdraw,
         tokenURI,
         fetchMetadataFromPinata,
+        fetchAndCacheNFTMetadata,
         getActiveListings,
         getListingFee,
         updatePointThreshold,
         updatePointsPerTransaction,
         connectWallet,
+        disconnectWallet,
         setMintingFee,
         vendorMint,
         publicMint,
@@ -456,6 +586,9 @@ export const Index = ({ children }) => {
         setLoader,
         currency,
         shortenAddress,
+        nftService,
+        selectedNetwork,
+        setSelectedNetwork,
       }}
     >
       {children}

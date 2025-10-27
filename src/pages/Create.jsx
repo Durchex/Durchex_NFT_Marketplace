@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Palette, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import Header from "../components/Header";
 
 const Create = () => {
   const [formData, setFormData] = useState({
@@ -62,7 +61,6 @@ const Create = () => {
 
   return (
     <div className="min-h-screen bg-[#0C0B0E] text-white">
-      <Header />
       <main className="max-w-3xl mx-auto py-6 px-4">
         {/* Back Navigation Icon */}
         <button

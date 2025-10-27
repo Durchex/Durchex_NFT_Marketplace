@@ -1,25 +1,20 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FiSearch, FiShoppingBag } from "react-icons/fi";
+import { FiSearch, FiShoppingBag, FiUser } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
-import { BiLinkAlt } from "react-icons/bi";
 import { HiMenu, HiX } from "react-icons/hi";
+import { useCart } from "../Context/CartContext";
+import { useNetwork } from "../Context/NetworkContext";
+import EnhancedWalletConnect from "./EnhancedWalletConnect";
 import LOGO from "../assets/LOGO.png";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedChain, setSelectedChain] = useState("Polygon");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
-
-  const chains = [
-    "Polygon",
-    "Ethereum",
-    "Binance Smart Chain",
-    "Solana",
-    "Avalanche",
-  ];
+  const { getCartItemCount } = useCart();
+  const { selectedNetwork, networks, switchNetwork } = useNetwork();
   // Navigation items array
   const navItems = [
     { name: "Explore", path: "/" },
@@ -36,12 +31,15 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-black px-4 py-6 md:py-10 relative">
-      <div className="max-w7xl mx-auto flex items-center justify-between">
+    <nav className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 px-4 py-4 md:py-6 relative sticky top-0 z-40 w-full">
+      <div className="w-full flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center space-x-2 z-10">
-          <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8" />
-          <div className="text-violet-500 font-bold text-xl md:text-2xl">
+        <div className="flex items-center space-x-3 z-10">
+          <div className="relative">
+            <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8 md:h-10 md:w-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-20 blur-sm"></div>
+          </div>
+          <div className="text-violet-500 font-display font-bold text-xl md:text-2xl tracking-tight">
             DURCHEX
           </div>
         </div>
@@ -104,14 +102,27 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Blockchain Selector */}
+            {/* Network Selector */}
             <div className="relative">
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-2 bg-[#19171C] text-white px-4 py-2 rounded-lg"
+                className="flex items-center space-x-2 bg-[#19171C] text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
-                <BiLinkAlt className="text-violet-500" />
-                <span>{selectedChain}</span>
+                <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
+                  <img 
+                    src={selectedNetwork?.icon || networks[0].icon} 
+                    alt={selectedNetwork?.name || networks[0].name}
+                    className="w-5 h-5 rounded-full"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
+                    {(selectedNetwork?.symbol || networks[0].symbol).charAt(0)}
+                  </div>
+                </div>
+                <span className="font-display">{selectedNetwork?.name || networks[0].name}</span>
                 <HiChevronDown
                   className={`transform transition-transform ${
                     isOpen ? "rotate-180" : ""
@@ -121,17 +132,40 @@ export default function Navbar() {
 
               {/* Dropdown Menu */}
               {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-lg py-1 z-50">
-                  {chains.map((chain) => (
+                <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+                  <div className="px-3 py-2 border-b border-gray-700">
+                    <p className="text-xs text-gray-400 font-display">Select Network</p>
+                  </div>
+                  {networks.map((network) => (
                     <button
-                      key={chain}
-                      onClick={() => {
-                        setSelectedChain(chain);
+                      key={network.name}
+                      onClick={async () => {
+                        await switchNetwork(network);
                         setIsOpen(false);
                       }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                      className="flex items-center space-x-3 w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                     >
-                      {chain}
+                      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
+                        <img 
+                          src={network.icon} 
+                          alt={network.name}
+                          className="w-5 h-5 rounded-full"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
+                          {network.symbol.charAt(0)}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-display font-medium">{network.name}</div>
+                        <div className="text-xs text-gray-500">{network.symbol}</div>
+                      </div>
+                      {selectedNetwork?.name === network.name && (
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -140,17 +174,43 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Desktop Cart and Profile */}
-        <div className="hidden md:flex gap-5 items-center">
-          <Link to="/admin">
-            <button className="text-gray-300 hover:text-white">
-              <FiShoppingBag className="w-6 h-6" />
+        {/* Desktop Actions */}
+        <div className="hidden md:flex gap-4 items-center">
+          {/* Cart with count */}
+          <Link to="/cart" className="relative">
+            <button className="text-gray-300 hover:text-white relative p-2 rounded-lg hover:bg-gray-800 transition-colors">
+              <FiShoppingBag className="w-5 h-5" />
+              {getCartItemCount() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium">
+                  {getCartItemCount()}
+                </span>
+              )}
             </button>
           </Link>
 
-          <Link to="/profile">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tl from-violet-700 via-blue-400 to-fuchsia-700"></div>
+          {/* Profile */}
+          <Link to="/user-profile">
+            <button className="text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors">
+              <FiUser className="w-5 h-5" />
+            </button>
           </Link>
+
+          {/* Admin - Hidden for security */}
+          {/* <Link to="/admin">
+            <button className="text-gray-300 hover:text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
+              Admin
+            </button>
+          </Link> */}
+
+          {/* Trading */}
+          <Link to="/trading">
+            <button className="text-gray-300 hover:text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
+              Trading
+            </button>
+          </Link>
+
+          {/* Wallet Connect */}
+            <EnhancedWalletConnect />
         </div>
       </div>
 
@@ -196,37 +256,63 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Mobile Blockchain Selector */}
+            {/* Mobile Wallet Connect */}
             <div className="py-3 border-b border-gray-800">
               <div className="text-gray-400 text-sm mb-2">
-                Select Blockchain
+                Wallet Connection
+              </div>
+              <EnhancedWalletConnect />
+            </div>
+
+            {/* Mobile Network Selector */}
+            <div className="py-3 border-b border-gray-800">
+              <div className="text-gray-400 text-sm mb-2 font-display">
+                Select Network
               </div>
               <div className="relative">
                 <button
                   onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center space-x-2 bg-[#19171C] text-white px-4 py-2 rounded-lg w-full"
+                  className="flex items-center space-x-3 bg-[#19171C] text-white px-4 py-3 rounded-lg w-full hover:bg-gray-800 transition-colors"
                 >
-                  <BiLinkAlt className="text-violet-500" />
-                  <span>{selectedChain}</span>
+                  <img 
+                    src={selectedNetwork?.icon || networks[0].icon} 
+                    alt={selectedNetwork?.name || networks[0].name}
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <div className="flex-1 text-left">
+                    <div className="font-display font-medium">{selectedNetwork?.name || networks[0].name}</div>
+                    <div className="text-xs text-gray-400">{selectedNetwork?.symbol || networks[0].symbol}</div>
+                  </div>
                   <HiChevronDown
-                    className={`ml-auto transform transition-transform ${
+                    className={`transform transition-transform ${
                       isOpen ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
                 {isOpen && (
-                  <div className="absolute left-0 right-0 mt-2 bg-gray-900 rounded-lg shadow-lg py-1 z-50">
-                    {chains.map((chain) => (
+                  <div className="absolute left-0 right-0 mt-2 bg-gray-900/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+                    {networks.map((network) => (
                       <button
-                        key={chain}
-                        onClick={() => {
-                          setSelectedChain(chain);
+                        key={network.name}
+                        onClick={async () => {
+                          await switchNetwork(network);
                           setIsOpen(false);
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="flex items-center space-x-3 w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                       >
-                        {chain}
+                        <img 
+                          src={network.icon} 
+                          alt={network.name}
+                          className="w-6 h-6 rounded-full"
+                        />
+                        <div className="flex-1">
+                          <div className="font-display font-medium">{network.name}</div>
+                          <div className="text-xs text-gray-500">{network.symbol}</div>
+                        </div>
+                        {selectedNetwork?.name === network.name && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
                       </button>
                     ))}
                   </div>

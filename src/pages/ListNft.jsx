@@ -5,7 +5,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import { ICOContent } from "../Context/index.jsx";
-import Header from "../components/Header.jsx";
 
 function ListNft() {
   const contexts = useContext(ICOContent);
@@ -49,7 +48,6 @@ function ListNft() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      <Header />
       <div className="container mx-auto px-4 py-12 md:py-16">
         <Toaster position="left" />
 

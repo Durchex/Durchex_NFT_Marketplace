@@ -1,4 +1,3 @@
-import Header2 from "../components/Header2";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Image, ArrowLeft } from "lucide-react";
@@ -43,9 +42,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0C0B0E] text-white">
-      {/* Header */}
-      <Header2 />
-
       {/* Main Content */}
       <main className="mx-auto max-w-6xl px-6 py8">
         {/* Back Navigation Icon */}

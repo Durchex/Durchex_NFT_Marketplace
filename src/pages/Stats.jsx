@@ -1,27 +1,33 @@
-import { useState } from "react";
-import Header from "../components/Header";
+import { useState, useEffect } from "react";
 
 const Stats = () => {
   const [selectedTab, setSelectedTab] = useState("All");
   const [selectedTimeframe, setSelectedTimeframe] = useState("1h");
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const collections = Array(20).fill({
-    id: 98,
-    name: "Funny Pigeons",
-    volume: "101 ETH",
-    volumeChange: "0.7%",
-    topOffer: "18 ETH",
-    floorPrice: "17 ETH",
-    floorChange: "0.7%",
-    sales: 20,
-  });
+  useEffect(() => {
+    const loadStats = async () => {
+      setLoading(true);
+      try {
+        // TODO: Replace with real API call to fetch collection statistics
+        // For now, we'll show empty state until real API is implemented
+        setCollections([]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        setCollections([]);
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [selectedTab, selectedTimeframe]);
 
   const tabs = ["All", "Trending", "Top", "Watchlist"];
   const timeframes = ["1h", "6h", "24h", "7d", "1m", "6m", "1y"];
   return (
     <div className="min-h-screen bg-[#0C0B0E] text-white">
-      <Header />
-
       <div className=" p-8">
         <h1 className="text-5xl font-bold mb-8">Stats</h1>
 
@@ -104,24 +110,42 @@ const Stats = () => {
             <div>Sales</div>
           </div>
 
-          {collections.map((collection, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-8 py-4 border-t border-zinc-800 items-center"
-            >
-              <div className="col-span-2 flex items-center gap-3">
-                <span className="text-gray-400">{collection.id}</span>
-                <div className="w-10 h-10 bg-zinc-800 rounded-full"></div>
-                <span>{collection.name}</span>
-              </div>
-              <div>{collection.volume}</div>
-              <div className="text-green-500">{collection.volumeChange}</div>
-              <div>{collection.topOffer}</div>
-              <div>{collection.floorPrice}</div>
-              <div className="text-green-500">{collection.floorChange}</div>
-              <div>{collection.sales}</div>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading collection statistics...</p>
             </div>
-          ))}
+          ) : collections.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">No Collection Data Available</h3>
+              <p className="text-gray-400 mb-4">Collection statistics will appear here once NFTs are minted and traded</p>
+              <p className="text-sm text-gray-500">Real-time data will be fetched from the blockchain and database</p>
+            </div>
+          ) : (
+            collections.map((collection, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-8 py-4 border-t border-zinc-800 items-center"
+              >
+                <div className="col-span-2 flex items-center gap-3">
+                  <span className="text-gray-400">{collection.id}</span>
+                  <div className="w-10 h-10 bg-zinc-800 rounded-full"></div>
+                  <span>{collection.name}</span>
+                </div>
+                <div>{collection.volume}</div>
+                <div className="text-green-500">{collection.volumeChange}</div>
+                <div>{collection.topOffer}</div>
+                <div>{collection.floorPrice}</div>
+                <div className="text-green-500">{collection.floorChange}</div>
+                <div>{collection.sales}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

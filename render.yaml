@@ -1,0 +1,49 @@
+services:
+  # Backend API Service
+  - type: web
+    name: durchex-nft-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: durchex-mongodb
+          property: connectionString
+      - key: VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS
+        value: 0x0000000000000000000000000000000000000000
+      - key: VITE_APP_VENDORNFT_CONTRACT_ADDRESS
+        value: 0x0000000000000000000000000000000000000000
+      - key: VITE_PINATA_API_KEY
+        value: your_pinata_api_key_here
+      - key: VITE_PINATA_SECRECT_KEY
+        value: your_pinata_secret_key_here
+
+  # Frontend Static Site
+  - type: web
+    name: durchex-nft-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS
+        value: 0x0000000000000000000000000000000000000000
+      - key: VITE_APP_VENDORNFT_CONTRACT_ADDRESS
+        value: 0x0000000000000000000000000000000000000000
+      - key: VITE_PINATA_API_KEY
+        value: your_pinata_api_key_here
+      - key: VITE_PINATA_SECRECT_KEY
+        value: your_pinata_secret_key_here
+      - key: VITE_APP_WEB3_PROVIDER
+        value: https://rpc.ankr.com/eth_sepolia
+
+databases:
+  - name: durchex-mongodb
+    plan: free
+    databaseName: durchex_db
