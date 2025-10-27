@@ -239,16 +239,16 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-30 flex flex-col pt-20 pb-4 px-6">
-          <div className="flex flex-col space-y-4 bg-gray-900/80 backdrop-blur-md rounded-lg p-6 border border-gray-700/50">
+        <div className="fixed inset-0 bg-black z-30 flex flex-col pt-20 pb-4 px-6">
+          <div className="flex flex-col space-y-4 bg-gray-900 rounded-lg p-6 border border-gray-600">
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={toggleMobileMenu}
-                className={`text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-700/50 hover:bg-gray-800/50 transition-colors ${
+                className={`text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors ${
                   location.pathname === item.path
-                    ? "text-[#8149F4] bg-violet-500/10"
+                    ? "text-[#8149F4] bg-violet-500/20"
                     : "text-gray-300"
                 }`}
               >
@@ -257,11 +257,11 @@ export default function Navbar() {
             ))}
 
             {/* Mobile Wallet Connect */}
-            <div className="py-3 border-b border-gray-700/50">
+            <div className="py-3 border-b border-gray-600">
               <div className="text-gray-400 text-sm mb-3 font-display">
                 Wallet Connection
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="bg-gray-800 rounded-lg p-3">
                 <EnhancedWalletConnect />
               </div>
             </div>
@@ -274,7 +274,7 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center space-x-3 bg-gray-800/70 text-white px-4 py-3 rounded-lg w-full hover:bg-gray-700/70 transition-colors border border-gray-600/50"
+                  className="flex items-center space-x-3 bg-gray-800 text-white px-4 py-3 rounded-lg w-full hover:bg-gray-700 transition-colors border border-gray-600"
                 >
                   <img 
                     src={selectedNetwork?.icon || networks[0].icon} 
@@ -300,39 +300,52 @@ export default function Navbar() {
                 </button>
 
                 {isOpen && (
-                  <div className="absolute left-0 right-0 mt-2 bg-gray-900/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-600/50 py-2 z-50">
-                    {networks.map((network) => (
-                      <button
-                        key={network.name}
-                        onClick={async () => {
-                          await switchNetwork(network);
-                          setIsOpen(false);
-                        }}
-                        className="flex items-center space-x-3 w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-800/70 hover:text-white transition-colors"
-                      >
-                        <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
-                          <img
-                            src={network.icon}
-                            alt={network.name}
-                            className="w-5 h-5 rounded-full"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                  <div className="fixed inset-0 bg-black/90 z-40 flex flex-col pt-20 pb-4 px-6">
+                    <div className="bg-gray-900 rounded-lg p-6 border border-gray-600">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-display font-semibold text-white">Select Network</h3>
+                        <button
+                          onClick={() => setIsOpen(false)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
+                          <HiX className="w-6 h-6" />
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {networks.map((network) => (
+                          <button
+                            key={network.name}
+                            onClick={async () => {
+                              await switchNetwork(network);
+                              setIsOpen(false);
                             }}
-                          />
-                          <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
-                            {network.symbol.charAt(0)}
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-display font-medium">{network.name}</div>
-                          <div className="text-xs text-gray-500">{network.symbol}</div>
-                        </div>
-                        {selectedNetwork?.name === network.name && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        )}
-                      </button>
-                    ))}
+                            className="flex items-center space-x-4 w-full text-left px-4 py-4 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors rounded-lg border border-gray-700"
+                          >
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
+                              <img
+                                src={network.icon}
+                                alt={network.name}
+                                className="w-8 h-8 rounded-full"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold hidden">
+                                {network.symbol.charAt(0)}
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-display font-medium text-lg">{network.name}</div>
+                              <div className="text-sm text-gray-500">{network.symbol}</div>
+                            </div>
+                            {selectedNetwork?.name === network.name && (
+                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
