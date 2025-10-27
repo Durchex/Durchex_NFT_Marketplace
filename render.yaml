@@ -31,6 +31,7 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
     envVars:
       - key: VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS
         value: 0x0000000000000000000000000000000000000000
