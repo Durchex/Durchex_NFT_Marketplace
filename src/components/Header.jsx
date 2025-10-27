@@ -300,50 +300,56 @@ export default function Navbar() {
                 </button>
 
                 {isOpen && (
-                  <div className="fixed inset-0 bg-black/90 z-40 flex flex-col pt-20 pb-4 px-6">
-                    <div className="bg-gray-900 rounded-lg p-6 border border-gray-600">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-display font-semibold text-white">Select Network</h3>
-                        <button
-                          onClick={() => setIsOpen(false)}
-                          className="text-gray-400 hover:text-white transition-colors"
-                        >
-                          <HiX className="w-6 h-6" />
-                        </button>
-                      </div>
-                      <div className="space-y-3">
-                        {networks.map((network) => (
+                  <div className="fixed inset-0 bg-black/90 z-40 flex flex-col pt-16 pb-4 px-4 md:absolute md:left-0 md:mt-2 md:w-80 md:bg-gray-900/95 md:backdrop-blur-md md:rounded-lg md:shadow-xl md:border md:border-gray-600/50 md:py-2 md:z-50">
+                    <div className="bg-gray-900 rounded-lg border border-gray-600 md:bg-transparent md:border-0 flex flex-col max-h-full md:max-h-none">
+                      <div className="flex-shrink-0 p-6 md:p-0">
+                        <div className="flex items-center justify-between mb-6 md:hidden">
+                          <h3 className="text-xl font-display font-semibold text-white">Select Network</h3>
                           <button
-                            key={network.name}
-                            onClick={async () => {
-                              await switchNetwork(network);
-                              setIsOpen(false);
-                            }}
-                            className="flex items-center space-x-4 w-full text-left px-4 py-4 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors rounded-lg border border-gray-700"
+                            onClick={() => setIsOpen(false)}
+                            className="text-gray-400 hover:text-white transition-colors"
                           >
-                            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
-                              <img
-                                src={network.icon}
-                                alt={network.name}
-                                className="w-8 h-8 rounded-full"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold hidden">
-                                {network.symbol.charAt(0)}
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-display font-medium text-lg">{network.name}</div>
-                              <div className="text-sm text-gray-500">{network.symbol}</div>
-                            </div>
-                            {selectedNetwork?.name === network.name && (
-                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            )}
+                            <HiX className="w-6 h-6" />
                           </button>
-                        ))}
+                        </div>
+                      </div>
+
+                      {/* Scrollable Content */}
+                      <div className="flex-1 overflow-y-auto px-6 pb-6 md:p-0">
+                        <div className="space-y-3">
+                          {networks.map((network) => (
+                            <button
+                              key={network.name}
+                              onClick={async () => {
+                                await switchNetwork(network);
+                                setIsOpen(false);
+                              }}
+                              className="flex items-center space-x-4 w-full text-left px-4 py-4 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors rounded-lg border border-gray-700"
+                            >
+                              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
+                                <img
+                                  src={network.icon}
+                                  alt={network.name}
+                                  className="w-8 h-8 rounded-full"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold hidden">
+                                  {network.symbol.charAt(0)}
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-display font-medium text-lg">{network.name}</div>
+                                <div className="text-sm text-gray-500">{network.symbol}</div>
+                              </div>
+                              {selectedNetwork?.name === network.name && (
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
