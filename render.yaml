@@ -29,8 +29,8 @@ services:
     name: durchex-nft-frontend
     env: static
     plan: free
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
     pullRequestPreviewsEnabled: false
     envVars:
       - key: VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS
