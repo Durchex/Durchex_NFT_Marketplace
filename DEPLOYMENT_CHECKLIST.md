@@ -73,3 +73,4 @@ VITE_APP_WEB3_PROVIDER=https://rpc.ankr.com/eth_sepolia
 ## 🚀 Ready for Deployment!
 
 Your NFT marketplace is now ready for deployment to Render. Follow the RENDER_DEPLOYMENT_GUIDE.md for detailed instructions.
+

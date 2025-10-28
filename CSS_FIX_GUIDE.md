@@ -125,3 +125,4 @@ After fixing, your NFT marketplace should display with:
 2. **Verify GitHub repository** has latest code
 3. **Try manual redeploy** from Render dashboard
 4. **Contact Render support** if build logs show errors
+
