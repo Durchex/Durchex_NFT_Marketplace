@@ -29,8 +29,8 @@ services:
     name: durchex-nft-frontend
     env: static
     plan: free
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: ./frontend/dist
+    buildCommand: cd frontend && npm ci && npm run build && cd .. && node copy-dist.js
+    staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     # Force rebuild with updated frontend structure
     envVars:
