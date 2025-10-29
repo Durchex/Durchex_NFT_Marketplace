@@ -176,6 +176,14 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex gap-4 items-center">
+          {/* Onboarding CTA */}
+          {!localStorage.getItem('durchex_onboarding_completed') && (
+            <Link to="/onboarding">
+              <button className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-medium">
+                Get Started
+              </button>
+            </Link>
+          )}
           {/* Cart with count */}
           <Link to="/cart" className="relative">
             <button className="text-gray-300 hover:text-white relative p-2 rounded-lg hover:bg-gray-800 transition-colors">

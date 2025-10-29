@@ -23,6 +23,7 @@ const ListNft = lazy(() => import("./pages/ListNft"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Profile = lazy(() => import("./pages/Profile"));
 const TradingPage = lazy(() => import("./pages/TradingPage"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/stats" element={<Stats />} />
           <Route path="/listnft" element={<ListNft />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           <Route path="/nftcreatorform" element={<NftCreatorForm />} />
           <Route
