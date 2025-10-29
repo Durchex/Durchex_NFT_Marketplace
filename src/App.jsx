@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useContext } from "react";
+import { ICOContent } from "./Context";
 import { lazy, Suspense } from "react";
 import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
@@ -27,6 +29,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
 
 export default function App() {
+  const { address } = useContext(ICOContent) || {};
   return (
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
@@ -35,7 +38,7 @@ export default function App() {
           <Route
             path="/"
             element={
-              typeof window !== "undefined" && !localStorage.getItem("durchex_onboarding_completed") ? (
+              typeof window !== "undefined" && address && !localStorage.getItem("durchex_onboarding_completed") ? (
                 <Navigate to="/onboarding" replace />
               ) : (
                 <Hero />

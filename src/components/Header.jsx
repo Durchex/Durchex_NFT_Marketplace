@@ -4,6 +4,8 @@ import { FiSearch, FiShoppingBag, FiUser } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
 import { HiMenu, HiX } from "react-icons/hi";
 import { useCart } from "../Context/CartContext";
+import { useContext } from "react";
+import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
 import EnhancedWalletConnect from "./EnhancedWalletConnect";
 import LOGO from "../assets/LOGO.png";
@@ -14,6 +16,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const { getCartItemCount } = useCart();
+  const { address } = useContext(ICOContent) || {};
   const { selectedNetwork, networks, switchNetwork } = useNetwork();
   // Navigation items array
   const navItems = [
@@ -176,8 +179,8 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex gap-4 items-center">
-          {/* Onboarding CTA */}
-          {!localStorage.getItem('durchex_onboarding_completed') && (
+          {/* Onboarding CTA - only when wallet connected and not completed */}
+          {address && !localStorage.getItem('durchex_onboarding_completed') && (
             <Link to="/onboarding">
               <button className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-medium">
                 Get Started
