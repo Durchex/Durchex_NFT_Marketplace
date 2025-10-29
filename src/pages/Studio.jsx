@@ -1,8 +1,10 @@
+import Header1 from "../components/Header";
 import { Link } from "react-router-dom";
 
 export default function Studio() {
   return (
     <div className="min-h-screen bg-black">
+      <Header1 />
       <div className="my-20 flex items-center justify-center">
         <div className="w-full max-w-4xl bg-[#111111] rounded-2xl border border-gray-800">
           <div className="flex items-center justify-between p-6">

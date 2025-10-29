@@ -1,55 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Typography System - Space Grotesk as Primary Font */
 @layer base {
   html {
-    font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply text-gray-100 bg-black font-sans antialiased;
   }
-
-  body {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+  h1 {
+    @apply text-3xl md:text-5xl font-semibold tracking-tight;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.025em;
+  h2 {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
   }
-
-  p, span, div, button, input, textarea, select, label, a {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+  h3 {
+    @apply text-xl md:text-2xl font-semibold;
   }
-
-  .font-display {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+  p {
+    @apply text-gray-300;
   }
-
-  .font-body {
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-  }
-}
-
-/* Hide scrollbars while maintaining scroll functionality */
-@layer utilities {
-  .scrollbar-hide {
-    /* Firefox */
-    scrollbar-width: none;
-    /* Safari and Chrome */
-    -ms-overflow-style: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* Subtle scroll indicators */
-  .scrollbar-hide:hover {
-    /* Optional: Add a subtle shadow or border to indicate scrollable content */
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  a {
+    @apply text-indigo-400 hover:text-indigo-300;
   }
 }
 
@@ -62,14 +32,13 @@ html::-webkit-scrollbar {
   display: none;
 }
 
-/* Global stylesheet */
 .sliding-container {
   overflow: hidden; /* Hide overflow to create a clean sliding effect */
   width: 100%;
 }
 
 .sliding-nfts {
-  display: flex; /* Change to flex for horizontal sliding */
+  display: flex; /* Horizontal sliding */
   animation: slide 50s linear infinite; /* Infinite sliding animation */
 }
 
@@ -78,12 +47,13 @@ html::-webkit-scrollbar {
   width: 25%; /* Adjust based on your grid (e.g., 25% for 4 columns) */
 }
 
+/* Infinite sliding animation to the right */
 @keyframes slide {
   0% {
-    transform: translateX(-100%); /* Start off-screen to the left */
+    transform: translateX(0); /* Start at the beginning */
   }
   100% {
-    transform: translateX(100%); /* Move fully to the right */
+    transform: translateX(-50%); /* Move items off-screen to the left */
   }
 }
 
@@ -106,9 +76,28 @@ html::-webkit-scrollbar {
 }
 
 
+
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+  font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
     "Helvetica Neue", sans-serif;
+}
+
+
+.sliding-container {
+  overflow: hidden; /* Hide overflow to create a clean sliding effect */
+  width: 100%;
+}
+
+.sliding-nfts {
+  display: flex; /* Change to flex for horizontal sliding */
+  animation: slide 50s linear infinite; /* Infinite sliding animation */
+}
+/* Remove duplicated/typo class; use .sliding-nfts only */
+
+.slide-item {
+  flex: 0 0 auto; /* Prevent items from shrinking or growing */
+  width: 25%; /* Adjust based on your grid (e.g., 25% for 4 columns) */
 }
 

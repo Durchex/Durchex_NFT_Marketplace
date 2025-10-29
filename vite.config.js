@@ -1,31 +1,51 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 import react from '@vitejs/plugin-react-swc'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 5173,
-    host: true,
-    open: true
+  define: {
+    global: "window", // Fix for certain libraries expecting `global`
   },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ethers: ['ethers'],
-          charts: ['chart.js', 'react-chartjs-2']
-        }
-      }
-    }
+  server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+    },
+  },
+  resolve: {
+    alias: {
+      buffer: "buffer", // Ensures buffer works in the browser
+    },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'ethers', 'axios']
+    include: ["buffer"],
   },
-  css: {
-    postcss: './postcss.config.js'
-  }
-})
+});
+
+
+
+// import { defineConfig } from 'vite'
+// import react from '@vitejs/plugin-react-swc'
+
+// // https://vite.dev/config/
+// export default defineConfig({
+//   plugins: [react()],
+// })
+
+
+// import { defineConfig } from 'vite'
+// import react from '@vitejs/plugin-react'
+// import path from 'path'
+
+// export default defineConfig({
+//   plugins: [react()],
+//   resolve: {
+//     alias: {
+//       '@': path.resolve( './src'),
+//     },
+//   },
+// })

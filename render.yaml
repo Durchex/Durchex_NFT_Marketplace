@@ -29,7 +29,7 @@ services:
     name: durchex-nft-frontend
     env: static
     plan: free
-    buildCommand: cd frontend && rm -rf node_modules package-lock.json && npm install && npm run build && cd .. && node copy-dist.js
+    buildCommand: rm -rf node_modules package-lock.json && npm install && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     # Force rebuild with updated frontend structure - Cache busting rebuild at 2025-01-29 00:40

@@ -65,7 +65,7 @@ class GasService {
       const gasPriceBN = ethers.BigNumber.from(gasPrice);
       
       // Add 20% buffer to gas estimate
-      const gasLimitWithBuffer = gasLimit.mul(120).div(100);
+      const gasLimitWithBuffer = gasLimit.mul(120).intDiv(100);
       
       const totalCost = gasLimitWithBuffer.mul(gasPriceBN);
       
@@ -197,3 +197,4 @@ class GasService {
 const gasService = new GasService();
 
 export default gasService;
+

@@ -6,6 +6,7 @@ import NFTCard from "../components/NFTCard";
 import LOGO from "../assets/LOGO.png";
 import metamask from "../assets/metamask.png";  
 import { ICOContent } from "../Context/index";
+import Header from "../components/Header";
 
 function MyNfts() {
   const contexts = useContext(ICOContent);
@@ -88,6 +89,9 @@ function MyNfts() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <Header/>
+
+
       <main className="mx-auto mt-8 px-4">
         <h2 className="text-3xl font-bold mb-6">My NFTs collections</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">

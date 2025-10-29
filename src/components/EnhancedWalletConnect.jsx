@@ -260,8 +260,10 @@ const EnhancedWalletConnect = () => {
         </button>
 
         {showWalletOptions && (
-          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:absolute md:right-0 md:mt-2 md:w-80 md:bg-gray-800/95 md:backdrop-blur-md md:border md:border-gray-700/50 md:rounded-xl md:shadow-xl md:animate-slide-up md:origin-top-right">
-            <div className="bg-gray-900 rounded-lg border border-gray-600 md:bg-transparent md:border-0 flex flex-col max-h-full md:max-h-none">
+          <>
+            {/* Mobile full-screen drawer */}
+            <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+              <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
               <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -281,69 +283,118 @@ const EnhancedWalletConnect = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-0">
-                {/* Network Selection */}
-                <div className="mb-6 md:p-4 md:border-b md:border-gray-700">
-                  <div className="text-white font-display font-medium mb-4 text-lg">Select Network</div>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-2">
-                    {networks.map((network) => (
-                      <button
-                        key={network.id}
-                        onClick={() => setSelectedNetwork(network.id)}
-                        className={`p-4 rounded-lg text-left transition-colors border ${
-                          selectedNetwork === network.id
-                            ? 'bg-blue-600 text-white border-blue-500'
-                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{network.icon}</span>
-                          <div>
-                            <div className="font-display text-lg font-medium">{network.name}</div>
-                            <div className="text-sm opacity-75">{network.symbol}</div>
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="mb-6">
+                    <div className="text-white font-display font-medium mb-4 text-lg">Select Network</div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {networks.map((network) => (
+                        <button
+                          key={network.id}
+                          onClick={() => setSelectedNetwork(network.id)}
+                          className={`p-4 rounded-lg text-left transition-colors border ${
+                            selectedNetwork === network.id
+                              ? 'bg-blue-600 text-white border-blue-500'
+                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className="text-2xl">{network.icon}</span>
+                            <div>
+                              <div className="font-display text-lg font-medium">{network.name}</div>
+                              <div className="text-sm opacity-75">{network.symbol}</div>
+                            </div>
                           </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {getFilteredWallets().map((wallet) => (
+                      <button
+                        key={wallet.name}
+                        onClick={() => handleWalletSelect(wallet)}
+                        className="w-full flex items-center space-x-4 px-4 py-4 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700"
+                      >
+                        <div className="text-2xl">{wallet.icon}</div>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-display font-medium text-lg">{wallet.name}</span>
+                            {wallet.isInstalled() ? (
+                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Installed</span>
+                            ) : (
+                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">Not Installed</span>
+                            )}
+                          </div>
+                          {!wallet.isInstalled() && (
+                            <p className="text-sm text-gray-500">Click to download {wallet.name}</p>
+                          )}
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Wallet Options */}
-                <div className="space-y-3 md:p-2">
-                  {getFilteredWallets().map((wallet) => (
-                    <button
-                      key={wallet.name}
-                      onClick={() => handleWalletSelect(wallet)}
-                      className="w-full flex items-center space-x-4 px-4 py-4 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700"
-                    >
-                      <div className="text-2xl">{wallet.icon}</div>
-                      <div className="flex-1 text-left">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-display font-medium text-lg">{wallet.name}</span>
-                          {wallet.isInstalled() ? (
-                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                              Installed
-                            </span>
-                          ) : (
-                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                              Not Installed
-                            </span>
+            {/* Desktop anchored popover */}
+            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+              <div className="flex flex-col max-h-[70vh]">
+                <div className="flex-shrink-0 p-4 border-b border-gray-700">
+                  <div className="text-white font-display font-medium text-lg">Connect Wallet</div>
+                  <div className="text-gray-400 font-display text-sm">Choose your preferred wallet</div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="mb-4">
+                    <div className="text-white font-display font-medium mb-3 text-base">Select Network</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {networks.map((network) => (
+                        <button
+                          key={network.id}
+                          onClick={() => setSelectedNetwork(network.id)}
+                          className={`p-3 rounded-lg text-left transition-colors border ${
+                            selectedNetwork === network.id
+                              ? 'bg-blue-600 text-white border-blue-500'
+                              : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className="text-xl">{network.icon}</span>
+                            <div className="font-display text-sm font-medium">{network.name}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {getFilteredWallets().map((wallet) => (
+                      <button
+                        key={wallet.name}
+                        onClick={() => handleWalletSelect(wallet)}
+                        className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700"
+                      >
+                        <div className="text-xl">{wallet.icon}</div>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-display font-medium">{wallet.name}</span>
+                            {wallet.isInstalled() ? (
+                              <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">Installed</span>
+                            ) : (
+                              <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded-full">Not Installed</span>
+                            )}
+                          </div>
+                          {!wallet.isInstalled() && (
+                            <p className="text-xs text-gray-500">Click to download {wallet.name}</p>
                           )}
                         </div>
-                        {!wallet.isInstalled() && (
-                          <p className="text-sm text-gray-500">
-                            Click to download {wallet.name}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     );
@@ -377,8 +428,10 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:absolute md:right-0 md:mt-2 md:w-80 md:bg-gray-800/95 md:backdrop-blur-md md:border md:border-gray-700/50 md:rounded-xl md:shadow-xl md:animate-slide-up md:origin-top-right">
-          <div className="bg-gray-900 rounded-lg border border-gray-600 md:bg-transparent md:border-0 flex flex-col max-h-full md:max-h-none">
+        <>
+          {/* Mobile full-screen drawer */}
+          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+            <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
             <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -399,8 +452,8 @@ const EnhancedWalletConnect = () => {
               </div>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-0">
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6">
               {/* Network Selection */}
               <div className="mb-6 md:p-4 md:border-b md:border-gray-700">
                 <div className="text-white font-display font-medium mb-4 text-lg">Current Network</div>
@@ -487,7 +540,79 @@ const EnhancedWalletConnect = () => {
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Desktop anchored popover */}
+          <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+            <div className="flex flex-col max-h-[70vh]">
+              <div className="flex-shrink-0 p-4 border-b border-gray-700">
+                <div className="text-white font-display font-medium text-lg">Connected Wallet</div>
+                <div className="text-gray-400 font-display text-sm">{shortenAddress(address)}</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="mb-4">
+                  <div className="text-white font-display font-medium mb-3 text-base">Current Network</div>
+                  <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{networks.find(n => n.id === selectedNetwork)?.icon}</span>
+                      <span className="font-display text-white">{networks.find(n => n.id === selectedNetwork)?.name}</span>
+                    </div>
+                    <button onClick={updateNetworkBalance} className="p-2 hover:bg-gray-700 rounded transition-colors">
+                      <FiRefreshCw className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-white font-display font-medium mb-3 text-base">Balance</div>
+                  <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg border border-gray-700">
+                    <span className="text-gray-400 font-display">Balance</span>
+                    <span className="text-white font-display font-medium">{formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}</span>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-white font-display font-medium mb-3 text-base">Switch Network</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {networks.map((network) => (
+                      <button
+                        key={network.id}
+                        onClick={() => switchNetwork(network.id)}
+                        className={`p-3 rounded-lg text-left transition-colors border ${
+                          selectedNetwork === network.id
+                            ? 'bg-blue-600 text-white border-blue-500'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-xl">{network.icon}</span>
+                          <span className="font-display">{network.name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <button onClick={copyAddress} className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700">
+                    <FiCopy className="w-4 h-4" />
+                    <span className="font-display">Copy Address</span>
+                  </button>
+                  <button onClick={openExplorer} className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700">
+                    <FiExternalLink className="w-4 h-4" />
+                    <span className="font-display">View on Explorer</span>
+                  </button>
+                  <button onClick={() => { window.location.href = '/user-profile'; }} className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700">
+                    <FiSettings className="w-4 h-4" />
+                    <span className="font-display">Profile Settings</span>
+                  </button>
+                  <hr className="my-3 border-gray-700" />
+                  <button onClick={handleDisconnect} className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50">
+                    <FiLogOut className="w-4 h-4" />
+                    <span className="font-display">Disconnect</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </>
       )}
     </div>
   );
