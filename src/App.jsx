@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
@@ -32,7 +32,16 @@ export default function App() {
       <Suspense fallback={<Loading />}>
         {/* <Suspense fallback={<div className="bg-black justify-center items-center w-full ">Loading...</div>}> */}
         <Routes>
-          <Route path="/" element={<Hero />} />
+          <Route
+            path="/"
+            element={
+              typeof window !== "undefined" && !localStorage.getItem("durchex_onboarding_completed") ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <Hero />
+              )
+            }
+          />
           <Route path="/mynfts" element={<MyNfts />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/create" element={<Create />} />
