@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { ICOContent } from '../Context';
-import { useNetwork } from '../Context/NetworkContext';
+import React, { useState, useEffect } from 'react';
 import TokenTradingChart from '../components/TokenTradingChart';
 import AdvancedTradingInterface from '../components/AdvancedTradingInterface';
+import Header from '../components/Header';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiStar, FiActivity, FiBarChart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const TradingPage = () => {
-  const { address } = useContext(ICOContent);
-  const { selectedNetwork } = useNetwork();
-  
   const [activeView, setActiveView] = useState('basic');
   const [marketData, setMarketData] = useState({});
   const [watchlist, setWatchlist] = useState(['ETH', 'MATIC', 'BNB']);
@@ -63,36 +59,8 @@ const TradingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      {/* Header */}
-      <div className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-white">Trading Dashboard</h1>
-            <p className="font-body text-gray-400">Advanced token trading and market analysis</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Network Indicator */}
-            <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg">
-              <img src={selectedNetwork?.icon} alt={selectedNetwork?.name} className="w-5 h-5 rounded-full" />
-              <span className="font-display text-sm">{selectedNetwork?.name}</span>
-            </div>
-            
-            {/* Wallet Status */}
-            {address ? (
-              <div className="flex items-center space-x-2 bg-green-800 px-3 py-2 rounded-lg">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="font-display text-sm">Wallet Connected</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 bg-yellow-800 px-3 py-2 rounded-lg">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                <span className="font-display text-sm">Connect Wallet in Header</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Global Header */}
+      <Header />
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Market Overview */}
