@@ -8,7 +8,7 @@ import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import axios from "axios";
 import { ICOContent } from "../Context";
-import { PINATA_API_KEY, PINATA_SECRET_KEY } from "../Context/constants";
+import { PINATA_API_KEY, PINATA_SECRET_KEY, PINATA_JWT } from "../Context/constants";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 
@@ -41,10 +41,7 @@ export default function Create() {
     collection: "",
   });
 
-  const [imageURL, setimageURL] = useState(
-    // "https://copper-leading-yak-964.mypinata.cloud/ipfs/Qma7g6tpfB1zAyfRFVkBgb8Cms6Vd2wpEjvN8p3MJ1ekaJ"
-    " "
-  );
+  const [imageURL, setimageURL] = useState("");
 
   const [isBatchMinting, setIsBatchMinting] = useState(false);
   const [batchFiles, setBatchFiles] = useState([]);
@@ -120,7 +117,7 @@ export default function Create() {
         const formData = new FormData();
         formData.append("file", file);
         // console.log("🚀 ~ uploadToIPFS ~ formData:", formData.file);
-        console.log("Pinata keys present:", Boolean(PINATA_API_KEY), Boolean(PINATA_SECRET_KEY));
+        console.log("Pinata auth present:", { jwt: Boolean(PINATA_JWT), key: Boolean(PINATA_API_KEY), secret: Boolean(PINATA_SECRET_KEY) });
 
         //   https://copper-leading-yak-964.mypinata.cloud/ipfs/Qma7g6tpfB1zAyfRFVkBgb8Cms6Vd2wpEjvN8p3MJ1ekaJ
 
@@ -129,11 +126,16 @@ export default function Create() {
           url: "https://api.pinata.cloud/pinning/pinFileToIPFS",
           data: formData,
           maxBodyLength: "Infinity",
-          headers: {
-            pinata_api_key: PINATA_API_KEY,
-            pinata_secret_api_key: PINATA_SECRET_KEY,
-            "Content-Type": "multipart/form-data",
-          },
+          headers: PINATA_JWT
+            ? {
+                Authorization: `Bearer ${PINATA_JWT}`,
+                "Content-Type": "multipart/form-data",
+              }
+            : {
+                pinata_api_key: PINATA_API_KEY,
+                pinata_secret_api_key: PINATA_SECRET_KEY,
+                "Content-Type": "multipart/form-data",
+              },
         });
         const url = `https://silver-solid-beetle-367.mypinata.cloud/ipfs/${response.data.IpfsHash}`;
 
@@ -202,11 +204,16 @@ export default function Create() {
           "https://api.pinata.cloud/pinning/pinJSONToIPFS",
           data,
           {
-            headers: {
-              pinata_api_key: PINATA_API_KEY,
-              pinata_secret_api_key: PINATA_SECRET_KEY,
-              "Content-Type": "application/json",
-            },
+            headers: PINATA_JWT
+              ? {
+                  Authorization: `Bearer ${PINATA_JWT}`,
+                  "Content-Type": "application/json",
+                }
+              : {
+                  pinata_api_key: PINATA_API_KEY,
+                  pinata_secret_api_key: PINATA_SECRET_KEY,
+                  "Content-Type": "application/json",
+                },
           }
         );
 
@@ -229,7 +236,7 @@ export default function Create() {
   };
 
   const uploadJSONToIPFS = async (metadata) => {
-    if (!imageURL && !batchImageURLs.length) {
+    if ((!imageURL || !imageURL.trim()) && !batchImageURLs.length) {
       ErrorToast("Image URL is missing! Please ensure the image is uploaded.");
       return;
     }
@@ -255,7 +262,7 @@ export default function Create() {
         !metadata.name ||
         !metadata.description ||
         !metadata.creator ||
-        !imageURL ||
+        !imageURL || !imageURL.trim() ||
         !metadata.properties ||
         !metadata.category
       )
@@ -285,11 +292,16 @@ export default function Create() {
           "https://api.pinata.cloud/pinning/pinJSONToIPFS",
           JSON.parse(data),
           {
-            headers: {
-              pinata_api_key: PINATA_API_KEY,
-              pinata_secret_api_key: PINATA_SECRET_KEY,
-              "Content-Type": "application/json",
-            },
+            headers: PINATA_JWT
+              ? {
+                  Authorization: `Bearer ${PINATA_JWT}`,
+                  "Content-Type": "application/json",
+                }
+              : {
+                  pinata_api_key: PINATA_API_KEY,
+                  pinata_secret_api_key: PINATA_SECRET_KEY,
+                  "Content-Type": "application/json",
+                },
           }
         );
 

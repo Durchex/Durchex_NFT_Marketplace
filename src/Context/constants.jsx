@@ -30,6 +30,9 @@ export const PINATA_SECRET_KEY =
   import.meta.env.VITE_APP_PINATA_SECRET_KEY ||
   import.meta.env.VITE_APP_PINATA_SECRECT_KEY;
 
+// Optional Pinata JWT (preferred for client-side uploads)
+export const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || import.meta.env.VITE_APP_PINATA_JWT;
+
 export const shortenAddress = (address) =>
   `${address?.slice(0, 4)}...${address?.slice(-4)}`;
 
@@ -130,11 +133,11 @@ export const VendorNFTs_CONTRACT = async () => {
 };
 
 export const rpcUrls = {
-  polygon: import.meta.env.VITE_RPC_URL_POLYGON,
-  arbitrum: import.meta.env.VITE_RPC_URL_ARBITRUM,
-  ethereum: import.meta.env.VITE_RPC_URL_ETHEREUM,
-  bsc: import.meta.env.VITE_RPC_URL_BSC,
-  base: import.meta.env.VITE_RPC_URL_BASE,
+  polygon: import.meta.env.VITE_RPC_URL_POLYGON || "https://polygon-rpc.com",
+  arbitrum: import.meta.env.VITE_RPC_URL_ARBITRUM || "https://arb1.arbitrum.io/rpc",
+  ethereum: import.meta.env.VITE_RPC_URL_ETHEREUM || "https://eth.llamarpc.com",
+  bsc: import.meta.env.VITE_RPC_URL_BSC || "https://bsc-dataseed.binance.org/",
+  base: import.meta.env.VITE_RPC_URL_BASE || "https://mainnet.base.org",
 };
 
 // export const rpcUrls = {

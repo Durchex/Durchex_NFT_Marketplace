@@ -142,22 +142,30 @@ export const Index = ({ children }) => {
 
   //FUNCTION: Fetch cart from Local Storage or API
   const fetchCartItems = () => {
-    // Get cart from localStorage if it exists
     const storedCart = JSON.parse(localStorage.getItem("cartItems") || "[]");
     if (storedCart.length > 0) {
       setCartItems(storedCart);
-    } else {
-      const addressString = address.toLowerCase().toString();
-      fetch(`https://backend-2wkx.onrender.com/api/v1/cart/cart/${addressString}`)
-        .then((res) => {
-          return res.json();
-        })
-        .then((data) => {
-          setCartItems(data);
-          localStorage.setItem("cartItems", JSON.stringify(data));
-        })
-        .catch((err) => console.error("Error fetching cart:", err));
+      return;
     }
+
+    if (!address) return; // Guard: no address yet
+
+    const addressString = address?.toLowerCase?.().toString?.();
+    if (!addressString) return;
+
+    fetch(`https://backend-2wkx.onrender.com/api/v1/cart/cart/${addressString}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          // 404 or other non-JSON responses
+          throw new Error(`Cart request failed: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setCartItems(Array.isArray(data) ? data : []);
+        localStorage.setItem("cartItems", JSON.stringify(Array.isArray(data) ? data : []));
+      })
+      .catch((err) => console.error("Error fetching cart:", err));
   };
 
 
@@ -166,9 +174,6 @@ export const Index = ({ children }) => {
       fetchCartItems();
     }
   }, [address]);
-  useEffect(() => {
-    fetchCartItems();
-  }, []);
 
   //! MAIN FUNCTION
   const ethereumUsd = async () => {
