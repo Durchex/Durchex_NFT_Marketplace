@@ -189,9 +189,9 @@ const Explore = () => {
       
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Two Column Flex Layout */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full">
           {/* Column 1: Popular NFTs Slider (Larger) */}
-          <div className="flex-[2] lg:flex-[3]">
+          <div className="w-full lg:w-[65%] lg:flex-[3]">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
                 Most Popular NFTs
@@ -249,7 +249,7 @@ const Explore = () => {
           </div>
 
           {/* Column 2: Creators List (Smaller) */}
-          <div className="flex-1 lg:max-w-sm">
+          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-300 bg-clip-text text-transparent">
