@@ -364,9 +364,9 @@ function App() {
         </div>
 
         {/* Two Column Flex Layout - Popular NFTs and Creators */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-stretch my-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start my-8">
           {/* Column 1: Popular NFTs Slider (Larger) */}
-          <div className="w-full lg:w-[65%] lg:flex-[3] flex flex-col">
+          <div className="w-full lg:w-[65%] lg:flex-[3]">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
                 Most Popular NFTs
@@ -374,18 +374,18 @@ function App() {
               <p className="text-gray-400 text-sm">Discover trending NFTs on Durchex</p>
             </div>
 
-            {/* Auto-sliding NFT Slider - One at a time, Rectangular with matching height */}
-            <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800 flex-1 flex flex-col min-h-0">
+            {/* Auto-sliding NFT Slider - One at a time, Rectangular with fixed height matching second column */}
+            <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800 h-[600px]">
               {allNfts && allNfts.length > 0 ? (
                 <Link
                   to={`/nft/${allNfts[currentNFTIndex].tokenId}/${allNfts[currentNFTIndex].itemId}/${allNfts[currentNFTIndex].price}`}
-                  className="block group flex-1 flex flex-col min-h-0"
+                  className="block group h-full flex flex-col"
                 >
                   <div 
                     key={currentNFTIndex}
-                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] flex-1 flex flex-col min-h-0 h-full"
+                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] h-full flex flex-col"
                   >
-                    <div className="relative w-full flex-1 overflow-hidden">
+                    <div className="relative w-full flex-1 overflow-hidden min-h-0">
                       <img
                         src={allNfts[currentNFTIndex].image || `https://picsum.photos/800/600?random=${currentNFTIndex}`}
                         alt={allNfts[currentNFTIndex].name || "NFT"}
@@ -417,7 +417,7 @@ function App() {
                   </div>
                 </Link>
               ) : (
-                <div className="w-full text-center py-12 text-gray-400 flex items-center justify-center flex-1">
+                <div className="w-full h-full text-center py-12 text-gray-400 flex items-center justify-center">
                   <p>No NFTs available yet</p>
                 </div>
               )}
@@ -445,7 +445,7 @@ function App() {
           </div>
 
           {/* Column 2: Creators List (Smaller) */}
-          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm flex flex-col">
+          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-300 bg-clip-text text-transparent">
                 Top Creators
@@ -454,7 +454,7 @@ function App() {
             </div>
 
             {/* Creators List */}
-            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
               {creators.map((creator) => (
                 <Link
                   key={creator.id}
