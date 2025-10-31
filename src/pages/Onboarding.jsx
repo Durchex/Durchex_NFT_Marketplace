@@ -25,6 +25,31 @@ export default function Onboarding() {
   const [step, setStep] = useState(STEPS.ROLE);
   const [data, setData] = useState(defaultData);
 
+  // Redirect away if onboarding is already completed
+  useEffect(() => {
+    const completed = localStorage.getItem("durchex_onboarding_completed");
+    if (completed === "true") {
+      // If already completed, redirect based on saved role or default to explore
+      const saved = localStorage.getItem("durchex_onboarding");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.role === "creator") {
+            navigate("/studio", { replace: true });
+          } else if (parsed.role === "collector") {
+            navigate("/explore", { replace: true });
+          } else {
+            navigate("/", { replace: true });
+          }
+        } catch {
+          navigate("/", { replace: true });
+        }
+      } else {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const saved = localStorage.getItem("durchex_onboarding");
     if (saved) {
@@ -75,9 +100,15 @@ export default function Onboarding() {
   const finish = () => {
     localStorage.setItem("durchex_onboarding_completed", "true");
     localStorage.setItem("durchex_onboarding", JSON.stringify(data));
-    if (data.role === "creator") navigate("/studio");
-    else if (data.role === "collector") navigate("/explore");
-    else navigate("/");
+    
+    // Navigate based on role, using replace to prevent back button issues
+    if (data.role === "creator" || data.role === "both") {
+      navigate("/studio", { replace: true });
+    } else if (data.role === "collector") {
+      navigate("/explore", { replace: true });
+    } else {
+      navigate("/", { replace: true });
+    }
   };
 
   const toggleArray = (key, value) => {
