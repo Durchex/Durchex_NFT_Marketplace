@@ -128,9 +128,16 @@ const EnhancedWalletConnect = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const target = event.target;
       // Check if click is outside the wallet dropdown container
-      const walletDropdown = target.closest('.wallet-dropdown');
+      const walletDropdown = event.target.closest('.wallet-dropdown');
+      const walletDropdownContent = event.target.closest('.wallet-dropdown-content');
+      
+      // Don't close if clicking inside the dropdown content
+      if (walletDropdownContent) {
+        return;
+      }
+      
+      // Close if clicking outside the entire dropdown container
       if (!walletDropdown) {
         setIsDropdownOpen(false);
         setShowWalletOptions(false);
@@ -139,8 +146,9 @@ const EnhancedWalletConnect = () => {
 
     // Only add listener if dropdown is open
     if (isDropdownOpen || showWalletOptions) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      // Use capture phase to catch clicks before they bubble
+      document.addEventListener('mousedown', handleClickOutside, true);
+      return () => document.removeEventListener('mousedown', handleClickOutside, true);
     }
   }, [isDropdownOpen, showWalletOptions]);
 
@@ -419,7 +427,12 @@ const EnhancedWalletConnect = () => {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setIsDropdownOpen(prev => !prev);
+          console.log('Wallet button clicked, current state:', isDropdownOpen);
+          setIsDropdownOpen(prev => {
+            const newState = !prev;
+            console.log('Setting dropdown to:', newState);
+            return newState;
+          });
         }}
         className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
       >
@@ -445,7 +458,7 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <div className="wallet-dropdown-content" onClick={(e) => e.stopPropagation()}>
+        <div className="wallet-dropdown-content" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           {/* Mobile full-screen drawer */}
           <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
             <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
@@ -548,7 +561,13 @@ const EnhancedWalletConnect = () => {
                 </button>
                 <hr className="my-4 border-gray-700" />
                 <button
-                  onClick={handleDisconnect}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Disconnect button clicked');
+                    handleDisconnect();
+                  }}
                   className="w-full flex items-center space-x-4 px-4 py-4 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
                 >
                   <FiLogOut className="w-5 h-5" />
@@ -620,7 +639,16 @@ const EnhancedWalletConnect = () => {
                     <span className="font-display">Profile Settings</span>
                   </button>
                   <hr className="my-3 border-gray-700" />
-                  <button onClick={handleDisconnect} className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50">
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Desktop disconnect button clicked');
+                      handleDisconnect();
+                    }} 
+                    className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
+                  >
                     <FiLogOut className="w-4 h-4" />
                     <span className="font-display">Disconnect</span>
                   </button>
