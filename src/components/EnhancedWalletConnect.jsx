@@ -145,17 +145,13 @@ const EnhancedWalletConnect = () => {
   }, [isDropdownOpen, showWalletOptions]);
 
   useEffect(() => {
-    if (address) {
-      if (accountBalance) {
-        // If we have accountBalance from context, use it immediately
-        setNetworkBalance(accountBalance);
-      }
-      // Then update the balance for the selected network
-      updateNetworkBalance();
+    // Always reflect the wallet's base balance; do not switch to per-network token balances
+    if (address && accountBalance) {
+      setNetworkBalance(accountBalance);
     } else {
       setNetworkBalance('0');
     }
-  }, [address, selectedNetwork, accountBalance]);
+  }, [address, accountBalance]);
 
   const updateNetworkBalance = async () => {
     try {
@@ -163,35 +159,8 @@ const EnhancedWalletConnect = () => {
         setNetworkBalance('0');
         return;
       }
-
-      const network = networks.find(n => n.id === selectedNetwork);
-      if (!network) {
-        // Use the real balance from context as fallback
-        setNetworkBalance(accountBalance || '0');
-        return;
-      }
-
-      // For EVM-compatible networks (Ethereum, Polygon, BSC, Arbitrum), use the real balance
-      if (['ethereum', 'polygon', 'bsc', 'arbitrum'].includes(selectedNetwork)) {
-        if (window.ethereum && address) {
-          try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const balance = await provider.getBalance(address);
-            const formattedBalance = ethers.utils.formatEther(balance);
-            setNetworkBalance(formattedBalance);
-          } catch (error) {
-            console.error('Error fetching balance:', error);
-            // Fallback to accountBalance from context
-            setNetworkBalance(accountBalance || '0');
-          }
-        } else {
-          // Use the real balance from context
-          setNetworkBalance(accountBalance || '0');
-        }
-      } else {
-        // For non-EVM networks, we'll use accountBalance from context or show 0
-        setNetworkBalance(accountBalance || '0');
-      }
+      // Do not change to network-specific token balance; keep using base context balance
+      setNetworkBalance(accountBalance || '0');
     } catch (error) {
       console.error('Error updating network balance:', error);
       // Fallback to accountBalance from context
@@ -261,7 +230,7 @@ const EnhancedWalletConnect = () => {
       }
 
       setSelectedNetwork(networkId);
-      await updateNetworkBalance();
+      // Do not change the shown balance on network switch
       toast.success(`Switched to ${network.name}`);
     } catch (error) {
       console.error('Network switch error:', error);
@@ -465,7 +434,7 @@ const EnhancedWalletConnect = () => {
             {shortenAddress(address)}
           </div>
           <div className="text-xs font-display text-gray-400">
-            {formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+            {formatBalance(accountBalance || networkBalance)} ETH
           </div>
         </div>
         <FiChevronDown
@@ -476,7 +445,7 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <div className="wallet-dropdown-content">
+        <div className="wallet-dropdown-content" onClick={(e) => e.stopPropagation()}>
           {/* Mobile full-screen drawer */}
           <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
             <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
@@ -524,7 +493,7 @@ const EnhancedWalletConnect = () => {
                 <div className="flex justify-between items-center p-4 bg-gray-800 rounded-lg border border-gray-700">
                   <span className="text-gray-400 font-display text-lg">Balance</span>
                   <span className="text-white font-display font-medium text-lg">
-                    {formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+                    {formatBalance(accountBalance || networkBalance)} ETH
                   </span>
                 </div>
               </div>
@@ -613,7 +582,7 @@ const EnhancedWalletConnect = () => {
                   <div className="text-white font-display font-medium mb-3 text-base">Balance</div>
                   <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg border border-gray-700">
                     <span className="text-gray-400 font-display">Balance</span>
-                    <span className="text-white font-display font-medium">{formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}</span>
+                        <span className="text-white font-display font-medium">{formatBalance(accountBalance || networkBalance)} ETH</span>
                   </div>
                 </div>
                 <div className="mb-4">
