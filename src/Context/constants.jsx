@@ -19,9 +19,16 @@ export const NFTMarketplace_ABI = NFTMarketplace.abi;
 export const VendorNFT_ABI = VendorNFT.abi;
 export const MargicPearl_ABI = MargicPearl.abi;
 
-//PINATA KEY
-export const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY;
-export const PINATA_SECRET_KEY = import.meta.env.VITE_PINATA_SECRECT_KEY;
+//PINATA KEY (support common env var spellings)
+export const PINATA_API_KEY =
+  import.meta.env.VITE_PINATA_API_KEY ||
+  import.meta.env.VITE_APP_PINATA_API_KEY;
+
+export const PINATA_SECRET_KEY =
+  import.meta.env.VITE_PINATA_SECRET_KEY ||
+  import.meta.env.VITE_PINATA_SECRECT_KEY ||
+  import.meta.env.VITE_APP_PINATA_SECRET_KEY ||
+  import.meta.env.VITE_APP_PINATA_SECRECT_KEY;
 
 export const shortenAddress = (address) =>
   `${address?.slice(0, 4)}...${address?.slice(-4)}`;
