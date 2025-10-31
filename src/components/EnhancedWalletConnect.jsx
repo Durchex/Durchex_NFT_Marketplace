@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ICOContent } from '../Context';
+import { ethers } from 'ethers';
 import { FiChevronDown, FiLogOut, FiCopy, FiExternalLink, FiUser, FiSettings, FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const EnhancedWalletConnect = () => {
-  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress } = useContext(ICOContent);
+  const { address, connectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
@@ -139,28 +140,56 @@ const EnhancedWalletConnect = () => {
 
   useEffect(() => {
     if (address) {
+      if (accountBalance) {
+        // If we have accountBalance from context, use it immediately
+        setNetworkBalance(accountBalance);
+      }
+      // Then update the balance for the selected network
       updateNetworkBalance();
+    } else {
+      setNetworkBalance('0');
     }
-  }, [address, selectedNetwork]);
+  }, [address, selectedNetwork, accountBalance]);
 
   const updateNetworkBalance = async () => {
     try {
+      if (!address) {
+        setNetworkBalance('0');
+        return;
+      }
+
       const network = networks.find(n => n.id === selectedNetwork);
-      if (!network) return;
+      if (!network) {
+        // Use the real balance from context as fallback
+        setNetworkBalance(accountBalance || '0');
+        return;
+      }
 
-      // Simulate balance fetching for different networks
-      const mockBalances = {
-        ethereum: '2.5',
-        polygon: '150.0',
-        bsc: '0.8',
-        arbitrum: '1.2',
-        tezos: '45.0',
-        hyperliquid: '12.5'
-      };
-
-      setNetworkBalance(mockBalances[selectedNetwork] || '0');
+      // For EVM-compatible networks (Ethereum, Polygon, BSC, Arbitrum), use the real balance
+      if (['ethereum', 'polygon', 'bsc', 'arbitrum'].includes(selectedNetwork)) {
+        if (window.ethereum && address) {
+          try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const balance = await provider.getBalance(address);
+            const formattedBalance = ethers.utils.formatEther(balance);
+            setNetworkBalance(formattedBalance);
+          } catch (error) {
+            console.error('Error fetching balance:', error);
+            // Fallback to accountBalance from context
+            setNetworkBalance(accountBalance || '0');
+          }
+        } else {
+          // Use the real balance from context
+          setNetworkBalance(accountBalance || '0');
+        }
+      } else {
+        // For non-EVM networks, we'll use accountBalance from context or show 0
+        setNetworkBalance(accountBalance || '0');
+      }
     } catch (error) {
       console.error('Error updating network balance:', error);
+      // Fallback to accountBalance from context
+      setNetworkBalance(accountBalance || '0');
     }
   };
 
@@ -181,9 +210,9 @@ const EnhancedWalletConnect = () => {
 
     setIsConnecting(true);
     try {
-      await connectWallet(wallet.name.toLowerCase());
+      await connectWallet();
       setShowWalletOptions(false);
-      setIsDropdownOpen(true);
+      // Don't auto-open dropdown, let user see the connected state first
       toast.success(`${wallet.name} connected successfully!`);
     } catch (error) {
       console.error('Connection error:', error);
@@ -194,9 +223,11 @@ const EnhancedWalletConnect = () => {
   };
 
   const handleDisconnect = () => {
-    disconnectWallet();
+    setAddress(null);
+    setAccountBalance(null);
     setIsDropdownOpen(false);
     setNetworkBalance('0');
+    toast.success('Wallet disconnected');
   };
 
   const copyAddress = () => {
@@ -233,6 +264,9 @@ const EnhancedWalletConnect = () => {
   };
 
   const formatBalance = (balance) => {
+    if (!balance || balance === '0' || isNaN(parseFloat(balance))) {
+      return '0.0000';
+    }
     return parseFloat(balance).toFixed(4);
   };
 
@@ -417,7 +451,7 @@ const EnhancedWalletConnect = () => {
             {shortenAddress(address)}
           </div>
           <div className="text-xs font-display text-gray-400">
-            {formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+            {formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
           </div>
         </div>
         <FiChevronDown
@@ -476,7 +510,7 @@ const EnhancedWalletConnect = () => {
                 <div className="flex justify-between items-center p-4 bg-gray-800 rounded-lg border border-gray-700">
                   <span className="text-gray-400 font-display text-lg">Balance</span>
                   <span className="text-white font-display font-medium text-lg">
-                    {formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+                    {formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
                   </span>
                 </div>
               </div>
@@ -565,7 +599,7 @@ const EnhancedWalletConnect = () => {
                   <div className="text-white font-display font-medium mb-3 text-base">Balance</div>
                   <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg border border-gray-700">
                     <span className="text-gray-400 font-display">Balance</span>
-                    <span className="text-white font-display font-medium">{formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}</span>
+                    <span className="text-white font-display font-medium">{formatBalance(accountBalance || networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}</span>
                   </div>
                 </div>
                 <div className="mb-4">
