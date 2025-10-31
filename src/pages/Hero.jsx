@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import Header from "../components/Header";
 import LoadingNFTRow from "../components/LoadingNftRow";
-import RealTimeData from "../components/RealTimeData";
 import { ICOContent } from "../Context/index";
 import Footer from "../FooterComponents/Footer";
 
@@ -257,8 +256,6 @@ function App() {
             ))}
           </div>
         </div>
-
-        <RealTimeData nftCollections={allNfts} />
 
         <h2 className="text-xl md:text-3xl font-bold p-6 bg-gradient-to-tr from-purple-600 to-pink-300  bg-clip-text text-transparent">
           Trending collections
