@@ -128,27 +128,30 @@ const EnhancedWalletConnect = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check if click is outside the wallet dropdown container
+      // Check if click is inside the wallet dropdown container (button or dropdown content)
       const walletDropdown = event.target.closest('.wallet-dropdown');
-      const walletDropdownContent = event.target.closest('.wallet-dropdown-content');
       
-      // Don't close if clicking inside the dropdown content
-      if (walletDropdownContent) {
+      // Don't close if clicking inside the dropdown container or dropdown content
+      if (walletDropdown) {
         return;
       }
       
-      // Close if clicking outside the entire dropdown container
-      if (!walletDropdown) {
-        setIsDropdownOpen(false);
-        setShowWalletOptions(false);
-      }
+      // Close if clicking outside
+      setIsDropdownOpen(false);
+      setShowWalletOptions(false);
     };
 
-    // Only add listener if dropdown is open
+    // Only add listener if dropdown is open, with a small delay to let button click complete
     if (isDropdownOpen || showWalletOptions) {
-      // Use capture phase to catch clicks before they bubble
-      document.addEventListener('mousedown', handleClickOutside, true);
-      return () => document.removeEventListener('mousedown', handleClickOutside, true);
+      const timeoutId = setTimeout(() => {
+        // Use regular bubbling phase instead of capture - this allows stopPropagation to work
+        document.addEventListener('click', handleClickOutside);
+      }, 50); // Small delay to let the button click complete first
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('click', handleClickOutside);
+      };
     }
   }, [isDropdownOpen, showWalletOptions]);
 
@@ -427,12 +430,7 @@ const EnhancedWalletConnect = () => {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log('Wallet button clicked, current state:', isDropdownOpen);
-          setIsDropdownOpen(prev => {
-            const newState = !prev;
-            console.log('Setting dropdown to:', newState);
-            return newState;
-          });
+          setIsDropdownOpen(prev => !prev);
         }}
         className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
       >
@@ -565,7 +563,6 @@ const EnhancedWalletConnect = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Disconnect button clicked');
                     handleDisconnect();
                   }}
                   className="w-full flex items-center space-x-4 px-4 py-4 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
@@ -644,7 +641,6 @@ const EnhancedWalletConnect = () => {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('Desktop disconnect button clicked');
                       handleDisconnect();
                     }} 
                     className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
