@@ -364,9 +364,9 @@ function App() {
         </div>
 
         {/* Two Column Flex Layout - Popular NFTs and Creators */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-start my-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full items-stretch my-8">
           {/* Column 1: Popular NFTs Slider (Larger) */}
-          <div className="w-full lg:w-[65%] lg:flex-[3]">
+          <div className="w-full lg:w-[65%] lg:flex-[3] flex flex-col">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
                 Most Popular NFTs
@@ -374,22 +374,22 @@ function App() {
               <p className="text-gray-400 text-sm">Discover trending NFTs on Durchex</p>
             </div>
 
-            {/* Auto-sliding NFT Slider - One at a time */}
-            <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800">
+            {/* Auto-sliding NFT Slider - One at a time, Rectangular with matching height */}
+            <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800 flex-1 flex flex-col min-h-0">
               {allNfts && allNfts.length > 0 ? (
                 <Link
                   to={`/nft/${allNfts[currentNFTIndex].tokenId}/${allNfts[currentNFTIndex].itemId}/${allNfts[currentNFTIndex].price}`}
-                  className="block group"
+                  className="block group flex-1 flex flex-col min-h-0"
                 >
                   <div 
                     key={currentNFTIndex}
-                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02]"
+                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] flex-1 flex flex-col min-h-0 h-full"
                   >
-                    <div className="relative aspect-square md:aspect-[4/3] overflow-hidden">
+                    <div className="relative w-full flex-1 overflow-hidden">
                       <img
                         src={allNfts[currentNFTIndex].image || `https://picsum.photos/800/600?random=${currentNFTIndex}`}
                         alt={allNfts[currentNFTIndex].name || "NFT"}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover scale-150 group-hover:scale-[1.7] transition-transform duration-700"
                         onError={(e) => {
                           e.target.src = `https://picsum.photos/800/600?random=${currentNFTIndex}`;
                         }}
@@ -407,7 +407,7 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="p-6">
+                    <div className="p-6 flex-shrink-0">
                       <h3 className="font-semibold text-xl text-white mb-2">{allNfts[currentNFTIndex].name || "Unknown NFT"}</h3>
                       <p className="text-gray-400 text-sm mb-4">{allNfts[currentNFTIndex].collection || "Collection"}</p>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -417,7 +417,7 @@ function App() {
                   </div>
                 </Link>
               ) : (
-                <div className="w-full text-center py-12 text-gray-400">
+                <div className="w-full text-center py-12 text-gray-400 flex items-center justify-center flex-1">
                   <p>No NFTs available yet</p>
                 </div>
               )}
@@ -445,7 +445,7 @@ function App() {
           </div>
 
           {/* Column 2: Creators List (Smaller) */}
-          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm">
+          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm flex flex-col">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-300 bg-clip-text text-transparent">
                 Top Creators
@@ -454,7 +454,7 @@ function App() {
             </div>
 
             {/* Creators List */}
-            <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
               {creators.map((creator) => (
                 <Link
                   key={creator.id}
