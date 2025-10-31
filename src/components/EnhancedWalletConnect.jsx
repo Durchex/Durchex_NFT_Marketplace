@@ -128,15 +128,21 @@ const EnhancedWalletConnect = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.wallet-dropdown')) {
+      const target = event.target;
+      // Check if click is outside the wallet dropdown container
+      const walletDropdown = target.closest('.wallet-dropdown');
+      if (!walletDropdown) {
         setIsDropdownOpen(false);
         setShowWalletOptions(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    // Only add listener if dropdown is open
+    if (isDropdownOpen || showWalletOptions) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen, showWalletOptions]);
 
   useEffect(() => {
     if (address) {
@@ -195,9 +201,9 @@ const EnhancedWalletConnect = () => {
 
   const handleConnectClick = () => {
     if (address) {
-      setIsDropdownOpen(!isDropdownOpen);
+      setIsDropdownOpen(prev => !prev);
     } else {
-      setShowWalletOptions(!showWalletOptions);
+      setShowWalletOptions(prev => !prev);
     }
   };
 
@@ -278,9 +284,12 @@ const EnhancedWalletConnect = () => {
 
   if (!address) {
     return (
-      <div className="relative wallet-dropdown">
+      <div className="relative wallet-dropdown z-[10000]">
         <button
-          onClick={handleConnectClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleConnectClick();
+          }}
           disabled={isConnecting}
           className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
@@ -296,7 +305,7 @@ const EnhancedWalletConnect = () => {
         {showWalletOptions && (
           <>
             {/* Mobile full-screen drawer */}
-            <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+            <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
               <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
               <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
                 <div className="flex items-center justify-between">
@@ -373,7 +382,7 @@ const EnhancedWalletConnect = () => {
             </div>
 
             {/* Desktop anchored popover */}
-            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
               <div className="flex flex-col max-h-[70vh]">
                 <div className="flex-shrink-0 p-4 border-b border-gray-700">
                   <div className="text-white font-display font-medium text-lg">Connect Wallet</div>
@@ -435,9 +444,14 @@ const EnhancedWalletConnect = () => {
   }
 
   return (
-    <div className="relative wallet-dropdown">
+    <div className="relative wallet-dropdown z-[10000]">
       <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDropdownOpen(prev => !prev);
+        }}
         className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
       >
         <div className="relative">
@@ -462,9 +476,9 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <>
+        <div className="wallet-dropdown-content">
           {/* Mobile full-screen drawer */}
-          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+          <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
             <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
             <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
               <div className="flex items-center justify-between">
@@ -576,7 +590,7 @@ const EnhancedWalletConnect = () => {
           </div>
 
           {/* Desktop anchored popover */}
-          <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+          <div className="hidden md:block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
             <div className="flex flex-col max-h-[70vh]">
               <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="text-white font-display font-medium text-lg">Connected Wallet</div>
@@ -646,7 +660,7 @@ const EnhancedWalletConnect = () => {
             </div>
           </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
