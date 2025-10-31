@@ -63,6 +63,7 @@ function App() {
   const [hasMoreNFTs, setHasMoreNFTs] = useState(true);
   const [offset, setOffset] = useState(0);
   const [creators, setCreators] = useState([]);
+  const [currentNFTIndex, setCurrentNFTIndex] = useState(0);
 
   // useEffect(() => {
   //   const savedNFTs = localStorage.getItem("tradingNFTs");
@@ -139,6 +140,17 @@ function App() {
       }
     };
   }, []);
+
+  // Auto-advance NFT slider to show one at a time
+  useEffect(() => {
+    if (!allNfts || allNfts.length === 0) return;
+    
+    const interval = setInterval(() => {
+      setCurrentNFTIndex((prev) => (prev + 1) % allNfts.length);
+    }, 4000); // Change NFT every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [allNfts]);
 
   const fetchallnftItems = () => {
     const addressString = selectedChain.toString();
@@ -362,55 +374,73 @@ function App() {
               <p className="text-gray-400 text-sm">Discover trending NFTs on Durchex</p>
             </div>
 
-            {/* Auto-sliding NFT Slider */}
+            {/* Auto-sliding NFT Slider - One at a time */}
             <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800">
-              <div className="nft-slider-container overflow-hidden">
-                <div className="nft-slider-track flex gap-4">
-                  {/* Use actual NFTs from allNfts, duplicate for seamless loop */}
-                  {allNfts && allNfts.length > 0 ? (
-                    [...allNfts, ...allNfts].map((nft, idx) => (
-                      <Link
-                        key={`popular_${nft.itemId || nft.tokenId || idx}_${idx}`}
-                        to={`/nft/${nft.tokenId}/${nft.itemId}/${nft.price}`}
-                        className="flex-shrink-0 w-[280px] sm:w-[320px] md:w-[360px] group"
-                      >
-                        <div className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105">
-                          <div className="relative aspect-square overflow-hidden">
-                            <img
-                              src={nft.image || `https://picsum.photos/400/400?random=${idx}`}
-                              alt={nft.name || "NFT"}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              onError={(e) => {
-                                e.target.src = `https://picsum.photos/400/400?random=${idx}`;
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <div className="flex items-center justify-between text-white">
-                                <div className="flex items-center gap-2">
-                                  <FiStar className="text-yellow-400" />
-                                  <span className="text-sm font-medium">0</span>
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {nft.price ? (parseFloat(nft.price) / 1e18).toFixed(4) : "0.0000"} ETH
-                                </div>
-                              </div>
-                            </div>
+              {allNfts && allNfts.length > 0 ? (
+                <Link
+                  to={`/nft/${allNfts[currentNFTIndex].tokenId}/${allNfts[currentNFTIndex].itemId}/${allNfts[currentNFTIndex].price}`}
+                  className="block group"
+                >
+                  <div 
+                    key={currentNFTIndex}
+                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02]"
+                  >
+                    <div className="relative aspect-square md:aspect-[4/3] overflow-hidden">
+                      <img
+                        src={allNfts[currentNFTIndex].image || `https://picsum.photos/800/600?random=${currentNFTIndex}`}
+                        alt={allNfts[currentNFTIndex].name || "NFT"}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                          e.target.src = `https://picsum.photos/800/600?random=${currentNFTIndex}`;
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex items-center justify-between text-white">
+                          <div className="flex items-center gap-2">
+                            <FiStar className="text-yellow-400" />
+                            <span className="text-sm font-medium">0</span>
                           </div>
-                          <div className="p-4">
-                            <h3 className="font-semibold text-white truncate mb-1">{nft.name || "Unknown NFT"}</h3>
-                            <p className="text-gray-400 text-sm truncate">{nft.collection || "Collection"}</p>
+                          <div className="text-sm font-medium">
+                            {allNfts[currentNFTIndex].price ? (parseFloat(allNfts[currentNFTIndex].price) / 1e18).toFixed(4) : "0.0000"} ETH
                           </div>
                         </div>
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="w-full text-center py-12 text-gray-400">
-                      <p>No NFTs available yet</p>
+                      </div>
                     </div>
-                  )}
+                    <div className="p-6">
+                      <h3 className="font-semibold text-xl text-white mb-2">{allNfts[currentNFTIndex].name || "Unknown NFT"}</h3>
+                      <p className="text-gray-400 text-sm mb-4">{allNfts[currentNFTIndex].collection || "Collection"}</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>View Details →</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="w-full text-center py-12 text-gray-400">
+                  <p>No NFTs available yet</p>
                 </div>
-              </div>
+              )}
+              
+              {/* Navigation dots */}
+              {allNfts && allNfts.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+                  {allNfts.slice(0, Math.min(allNfts.length, 10)).map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCurrentNFTIndex(idx);
+                      }}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        idx === currentNFTIndex ? 'w-8 bg-purple-500' : 'w-2 bg-gray-600 hover:bg-gray-500'
+                      }`}
+                      aria-label={`Go to NFT ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -501,25 +531,18 @@ function App() {
       <Footer />
       
       <style>{`
-        .nft-slider-container {
-          position: relative;
-          overflow: hidden;
+        .nft-slide-item {
+          animation: fadeIn 0.5s ease-in-out;
         }
         
-        .nft-slider-track {
-          animation: slide-nfts 40s linear infinite;
-        }
-        
-        .nft-slider-track:hover {
-          animation-play-state: paused;
-        }
-        
-        @keyframes slide-nfts {
-          0% {
-            transform: translateX(0);
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.98);
           }
-          100% {
-            transform: translateX(-50%);
+          to {
+            opacity: 1;
+            transform: scale(1);
           }
         }
         
