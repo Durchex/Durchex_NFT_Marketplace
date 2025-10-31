@@ -578,7 +578,7 @@ const EnhancedWalletConnect = () => {
           </div>
 
           {/* Desktop anchored popover */}
-          <div className="hidden md:block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
+          <div className="block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
             <div className="flex flex-col max-h-[70vh]">
               <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="text-white font-display font-medium text-lg">Connected Wallet</div>

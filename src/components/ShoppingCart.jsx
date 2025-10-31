@@ -34,11 +34,20 @@ const ShoppingCart = () => {
       // Process each item in the cart
       for (const item of cartItems) {
         try {
-          await buyNFT(item.contractAddress, item.nftId, item.price);
+          // Get the NFT's listing network from cart item
+          const nftNetwork = item.network || item.metadata?.network;
+          
+          if (!nftNetwork) {
+            toast.error(`${item.name} is missing network information`);
+            continue;
+          }
+
+          // Purchase NFT on its listing network
+          await buyNFT(item.contractAddress || item.nftContract, item.nftId, item.price, nftNetwork);
           toast.success(`Successfully purchased ${item.name}!`);
         } catch (error) {
           console.error(`Failed to buy ${item.name}:`, error);
-          toast.error(`Failed to buy ${item.name}`);
+          toast.error(`Failed to buy ${item.name}: ${error.message || 'Unknown error'}`);
         }
       }
 
