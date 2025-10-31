@@ -225,3 +225,4 @@ const ProfilePictureUpload = ({ onUpload, currentImage, className = '' }) => {
 };
 
 export default ProfilePictureUpload;
+

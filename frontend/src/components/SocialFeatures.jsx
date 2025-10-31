@@ -246,3 +246,4 @@ const SocialFeatures = ({ nftId, nftData, onLike, onFavorite, onShare }) => {
 };
 
 export default SocialFeatures;
+

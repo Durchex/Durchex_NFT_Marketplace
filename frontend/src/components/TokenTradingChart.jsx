@@ -515,3 +515,4 @@ const TokenTradingChart = () => {
 };
 
 export default TokenTradingChart;
+

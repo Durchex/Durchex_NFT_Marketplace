@@ -439,3 +439,4 @@ const NFTListingInterface = ({ nftData, onClose }) => {
 };
 
 export default NFTListingInterface;
+
