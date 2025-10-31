@@ -308,15 +308,11 @@ export default function Create() {
         // Log the Pinata response to inspect it
         console.log("🚀 ~ Pinata response:", response.data);
 
-        // Get the IPFS hash from the response and construct the URL
-        const ipfsUrl = `https://silver-solid-beetle-367.mypinata.cloud/ipfs/${response.data.IpfsHash}`;
+        // Use the public Pinata gateway to avoid private gateway 403s
+        const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
         console.log("🚀 ~ Metadata uploaded to IPFS. URL:", ipfsUrl);
 
-        // Optionally fetch and log the metadata from IPFS for inspection
-        const fetchedMetadata = await fetch(ipfsUrl).then((res) => res.json());
-        console.log("🚀 ~ Fetched Metadata from IPFS:", fetchedMetadata);
-
-        // Return the IPFS URL
+        // Return the IPFS URL (no immediate fetch to avoid 403/CORS)
         return ipfsUrl;
       } catch (error) {
         console.error("Error uploading metadata to Pinata:", error);
