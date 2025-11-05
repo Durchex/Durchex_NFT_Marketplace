@@ -89,7 +89,7 @@ function App() {
   const [isEligible, setIsEligible] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
   const contexts = useContext(ICOContent);
-  const { getUserStatu, address } = contexts;
+  const { getUserStatu, address } = contexts || {};
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const tabs = [
@@ -140,29 +140,42 @@ function App() {
   ];
 
   const getUserPoints = async () => {
-    const response = await getUserStatu(address);
-    console.log("🚀 ~ getUserPoints ~ response:", response)
+    if (!getUserStatu || !address) {
+      console.warn("getUserStatu not available or address not connected");
+      return;
+    }
 
-    const points = response[0];
-    const eligible = response[1];
+    try {
+      const response = await getUserStatu(address);
+      console.log("🚀 ~ getUserPoints ~ response:", response);
 
-    // Update state
-    setUserPoints(points.toString());
-    setIsEligible(eligible);
+      if (response && response.length >= 2) {
+        const points = response[0];
+        const eligible = response[1];
+
+        // Update state
+        setUserPoints(points.toString());
+        setIsEligible(eligible);
+      }
+    } catch (error) {
+      console.error("Error getting user points:", error);
+      // Set default values on error
+      setUserPoints("0");
+      setIsEligible(false);
+    }
   };
 
   useEffect(() => {
-    if (activeTab === "My Points") {
-      getUserPoints();
-
-      // async function fetchData() {
-      //   // You can await here
-
-      //   // ...
-      // }
-      // fetchData();
+    if (address) {
+      setUserAddress(address);
     }
-  }, [activeTab]);
+  }, [address]);
+
+  useEffect(() => {
+    if (activeTab === "My Points" && address && getUserStatu) {
+      getUserPoints();
+    }
+  }, [activeTab, address]);
 
   const validateName = (name) => {
     if (!name.trim()) return "Name cannot be empty";
@@ -222,6 +235,9 @@ function App() {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  // The component should always render, even if context is not ready
+  // Context will be available once the app loads
 
   return (
     <div className="min-h-screen bg-black text-white">

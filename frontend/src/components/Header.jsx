@@ -201,7 +201,7 @@ export default function Navbar() {
           </Link>
 
           {/* Profile - WhatsApp Status Style */}
-          <Link to="/user-profile">
+          <Link to="/profile">
             <button className="relative text-gray-300 hover:text-white transition-colors">
               <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-green-500">
                 {/* Profile Picture or Icon */}
