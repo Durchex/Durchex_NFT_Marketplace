@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context";
-import { FiArrowRight, FiCheck, FiWallet, FiUsers, FiTrendingUp, FiShield, FiZap, FiLayers } from "react-icons/fi";
+import { FiArrowRight, FiCheck, FiCreditCard, FiUsers, FiTrendingUp, FiShield, FiZap, FiLayers } from "react-icons/fi";
 import { useContext } from "react";
 
 const Welcome = () => {
@@ -13,7 +13,7 @@ const Welcome = () => {
 
   const features = [
     {
-      icon: <FiWallet className="w-8 h-8" />,
+      icon: <FiCreditCard className="w-8 h-8" />,
       title: "Connect Your Wallet",
       description: "Securely connect your MetaMask, Coinbase Wallet, or other supported wallets to start trading NFTs.",
       step: 1
