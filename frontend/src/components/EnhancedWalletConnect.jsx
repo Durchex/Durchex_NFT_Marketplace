@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ICOContent } from '../Context';
+import { ethers } from 'ethers';
 import { FiChevronDown, FiLogOut, FiCopy, FiExternalLink, FiUser, FiSettings, FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const EnhancedWalletConnect = () => {
-  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress } = useContext(ICOContent);
+  const { address, connectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
@@ -102,9 +103,105 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Trust Wallet',
       icon: '🛡️',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isTrust,
+      isInstalled: () => typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Brave Wallet',
+      icon: '🦁',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
+      connect: () => connectWallet('brave'),
+      downloadLink: 'https://brave.com/wallet/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Binance Wallet',
+      icon: '🟡',
+      isInstalled: () => typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance),
+      connect: () => connectWallet('binance'),
+      downloadLink: 'https://www.binance.com/en/web3wallet',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Rainbow Wallet',
+      icon: '🌈',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
+      connect: () => connectWallet('rainbow'),
+      downloadLink: 'https://rainbow.me/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Phantom',
+      icon: '👻',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isPhantom,
+      connect: () => connectWallet('phantom'),
+      downloadLink: 'https://phantom.app/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'OKX Wallet',
+      icon: '⚡',
+      isInstalled: () => typeof window.okxwallet !== 'undefined',
+      connect: () => connectWallet('okx'),
+      downloadLink: 'https://www.okx.com/web3',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'TokenPocket',
+      icon: '💼',
+      isInstalled: () => typeof window.tokenpocket !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket),
+      connect: () => connectWallet('tokenpocket'),
+      downloadLink: 'https://tokenpocket.pro/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'SafePal',
+      icon: '🦄',
+      isInstalled: () => typeof window.safepal !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isSafePal),
+      connect: () => connectWallet('safepal'),
+      downloadLink: 'https://www.safepal.com/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Frame',
+      icon: '🖼️',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isFrame,
+      connect: () => connectWallet('frame'),
+      downloadLink: 'https://frame.sh/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Zerion',
+      icon: '📊',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isZerion,
+      connect: () => connectWallet('zerion'),
+      downloadLink: 'https://zerion.io/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Argent',
+      icon: '🛡️',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isArgent,
+      connect: () => connectWallet('argent'),
+      downloadLink: 'https://www.argent.xyz/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'imToken',
+      icon: '🔐',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isImToken,
+      connect: () => connectWallet('imtoken'),
+      downloadLink: 'https://token.im/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Opera Wallet',
+      icon: '🎭',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isOpera,
+      connect: () => connectWallet('opera'),
+      downloadLink: 'https://www.opera.com/crypto/next',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
     },
     {
@@ -127,48 +224,62 @@ const EnhancedWalletConnect = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.wallet-dropdown')) {
-        setIsDropdownOpen(false);
-        setShowWalletOptions(false);
+      // Check if click is inside the wallet dropdown container (button or dropdown content)
+      const walletDropdown = event.target.closest('.wallet-dropdown');
+      
+      // Don't close if clicking inside the dropdown container or dropdown content
+      if (walletDropdown) {
+        return;
       }
+      
+      // Close if clicking outside
+      setIsDropdownOpen(false);
+      setShowWalletOptions(false);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    // Only add listener if dropdown is open, with a small delay to let button click complete
+    if (isDropdownOpen || showWalletOptions) {
+      const timeoutId = setTimeout(() => {
+        // Use regular bubbling phase instead of capture - this allows stopPropagation to work
+        document.addEventListener('click', handleClickOutside);
+      }, 50); // Small delay to let the button click complete first
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [isDropdownOpen, showWalletOptions]);
 
   useEffect(() => {
-    if (address) {
-      updateNetworkBalance();
+    // Always reflect the wallet's base balance; do not switch to per-network token balances
+    if (address && accountBalance) {
+      setNetworkBalance(accountBalance);
+    } else {
+      setNetworkBalance('0');
     }
-  }, [address, selectedNetwork]);
+  }, [address, accountBalance]);
 
   const updateNetworkBalance = async () => {
     try {
-      const network = networks.find(n => n.id === selectedNetwork);
-      if (!network) return;
-
-      // Simulate balance fetching for different networks
-      const mockBalances = {
-        ethereum: '2.5',
-        polygon: '150.0',
-        bsc: '0.8',
-        arbitrum: '1.2',
-        tezos: '45.0',
-        hyperliquid: '12.5'
-      };
-
-      setNetworkBalance(mockBalances[selectedNetwork] || '0');
+      if (!address) {
+        setNetworkBalance('0');
+        return;
+      }
+      // Do not change to network-specific token balance; keep using base context balance
+      setNetworkBalance(accountBalance || '0');
     } catch (error) {
       console.error('Error updating network balance:', error);
+      // Fallback to accountBalance from context
+      setNetworkBalance(accountBalance || '0');
     }
   };
 
   const handleConnectClick = () => {
     if (address) {
-      setIsDropdownOpen(!isDropdownOpen);
+      setIsDropdownOpen(prev => !prev);
     } else {
-      setShowWalletOptions(!showWalletOptions);
+      setShowWalletOptions(prev => !prev);
     }
   };
 
@@ -181,9 +292,9 @@ const EnhancedWalletConnect = () => {
 
     setIsConnecting(true);
     try {
-      await connectWallet(wallet.name.toLowerCase());
+      await connectWallet();
       setShowWalletOptions(false);
-      setIsDropdownOpen(true);
+      // Don't auto-open dropdown, let user see the connected state first
       toast.success(`${wallet.name} connected successfully!`);
     } catch (error) {
       console.error('Connection error:', error);
@@ -194,9 +305,11 @@ const EnhancedWalletConnect = () => {
   };
 
   const handleDisconnect = () => {
-    disconnectWallet();
+    setAddress(null);
+    setAccountBalance(null);
     setIsDropdownOpen(false);
     setNetworkBalance('0');
+    toast.success('Wallet disconnected');
   };
 
   const copyAddress = () => {
@@ -224,7 +337,7 @@ const EnhancedWalletConnect = () => {
       }
 
       setSelectedNetwork(networkId);
-      await updateNetworkBalance();
+      // Do not change the shown balance on network switch
       toast.success(`Switched to ${network.name}`);
     } catch (error) {
       console.error('Network switch error:', error);
@@ -233,6 +346,9 @@ const EnhancedWalletConnect = () => {
   };
 
   const formatBalance = (balance) => {
+    if (!balance || balance === '0' || isNaN(parseFloat(balance))) {
+      return '0.0000';
+    }
     return parseFloat(balance).toFixed(4);
   };
 
@@ -244,9 +360,12 @@ const EnhancedWalletConnect = () => {
 
   if (!address) {
     return (
-      <div className="relative wallet-dropdown">
+      <div className="relative wallet-dropdown z-[10000]">
         <button
-          onClick={handleConnectClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleConnectClick();
+          }}
           disabled={isConnecting}
           className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
@@ -262,7 +381,7 @@ const EnhancedWalletConnect = () => {
         {showWalletOptions && (
           <>
             {/* Mobile full-screen drawer */}
-            <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+            <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
               <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
               <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
                 <div className="flex items-center justify-between">
@@ -339,7 +458,7 @@ const EnhancedWalletConnect = () => {
             </div>
 
             {/* Desktop anchored popover */}
-            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
               <div className="flex flex-col max-h-[70vh]">
                 <div className="flex-shrink-0 p-4 border-b border-gray-700">
                   <div className="text-white font-display font-medium text-lg">Connect Wallet</div>
@@ -401,9 +520,14 @@ const EnhancedWalletConnect = () => {
   }
 
   return (
-    <div className="relative wallet-dropdown">
+    <div className="relative wallet-dropdown z-[10000]">
       <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDropdownOpen(prev => !prev);
+        }}
         className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
       >
         <div className="relative">
@@ -417,7 +541,7 @@ const EnhancedWalletConnect = () => {
             {shortenAddress(address)}
           </div>
           <div className="text-xs font-display text-gray-400">
-            {formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+            {formatBalance(accountBalance || networkBalance)} ETH
           </div>
         </div>
         <FiChevronDown
@@ -428,9 +552,9 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <>
+        <div className="wallet-dropdown-content" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           {/* Mobile full-screen drawer */}
-          <div className="fixed inset-0 bg-black/90 z-50 flex flex-col pt-16 pb-4 px-4 md:hidden">
+          <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
             <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
             <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
               <div className="flex items-center justify-between">
@@ -476,7 +600,7 @@ const EnhancedWalletConnect = () => {
                 <div className="flex justify-between items-center p-4 bg-gray-800 rounded-lg border border-gray-700">
                   <span className="text-gray-400 font-display text-lg">Balance</span>
                   <span className="text-white font-display font-medium text-lg">
-                    {formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}
+                    {formatBalance(accountBalance || networkBalance)} ETH
                   </span>
                 </div>
               </div>
@@ -531,7 +655,12 @@ const EnhancedWalletConnect = () => {
                 </button>
                 <hr className="my-4 border-gray-700" />
                 <button
-                  onClick={handleDisconnect}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDisconnect();
+                  }}
                   className="w-full flex items-center space-x-4 px-4 py-4 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
                 >
                   <FiLogOut className="w-5 h-5" />
@@ -542,7 +671,7 @@ const EnhancedWalletConnect = () => {
           </div>
 
           {/* Desktop anchored popover */}
-          <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-50">
+          <div className="block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
             <div className="flex flex-col max-h-[70vh]">
               <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="text-white font-display font-medium text-lg">Connected Wallet</div>
@@ -565,7 +694,7 @@ const EnhancedWalletConnect = () => {
                   <div className="text-white font-display font-medium mb-3 text-base">Balance</div>
                   <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg border border-gray-700">
                     <span className="text-gray-400 font-display">Balance</span>
-                    <span className="text-white font-display font-medium">{formatBalance(networkBalance)} {networks.find(n => n.id === selectedNetwork)?.symbol}</span>
+                        <span className="text-white font-display font-medium">{formatBalance(accountBalance || networkBalance)} ETH</span>
                   </div>
                 </div>
                 <div className="mb-4">
@@ -603,7 +732,15 @@ const EnhancedWalletConnect = () => {
                     <span className="font-display">Profile Settings</span>
                   </button>
                   <hr className="my-3 border-gray-700" />
-                  <button onClick={handleDisconnect} className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50">
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDisconnect();
+                    }} 
+                    className="w-full flex items-center space-x-3 px-3 py-3 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors duration-200 border border-red-700/50"
+                  >
                     <FiLogOut className="w-4 h-4" />
                     <span className="font-display">Disconnect</span>
                   </button>
@@ -612,7 +749,7 @@ const EnhancedWalletConnect = () => {
             </div>
           </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
