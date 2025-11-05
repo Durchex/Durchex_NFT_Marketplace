@@ -26,7 +26,7 @@ ChartJS.register(
   Filler
 );
 
-const AdvancedTradingInterface = () => {
+const AdvancedTradingInterface = ({ selectedMarket }) => {
   const [activeTab, setActiveTab] = useState('chart');
   const [timeframe, setTimeframe] = useState('1H');
   const [chartType, setChartType] = useState('line');
@@ -35,7 +35,14 @@ const AdvancedTradingInterface = () => {
     asks: [],
   });
   const [recentTrades, setRecentTrades] = useState([]);
-  const [tradingPair, setTradingPair] = useState('ETH/USDT');
+  const [tradingPair, setTradingPair] = useState(selectedMarket?.pair || 'ETH/USDT');
+
+  // Update trading pair when market changes
+  useEffect(() => {
+    if (selectedMarket) {
+      setTradingPair(selectedMarket.pair);
+    }
+  }, [selectedMarket]);
 
   // Generate mock order book data
   const generateOrderBook = () => {
@@ -302,4 +309,3 @@ const AdvancedTradingInterface = () => {
 };
 
 export default AdvancedTradingInterface;
-

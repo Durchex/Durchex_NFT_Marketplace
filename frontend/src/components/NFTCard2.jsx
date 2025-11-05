@@ -19,6 +19,7 @@ const NFTCard2 = ({
   seller,
   tokenId,
   name,
+  network,
 }) => {
   const contexts = useContext(ICOContent);
   const { buyNFT, address, shortenAddress, setCartItems, cartItems, fetchCartItems } = contexts;

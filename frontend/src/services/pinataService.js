@@ -190,4 +190,3 @@ const pinataService = new PinataService();
 
 export default pinataService;
 
-

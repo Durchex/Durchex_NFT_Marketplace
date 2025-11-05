@@ -260,4 +260,3 @@ const LiveMintingUpdates = () => {
 };
 
 export default LiveMintingUpdates;
-

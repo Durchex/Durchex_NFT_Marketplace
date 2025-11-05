@@ -553,4 +553,3 @@ const NFTMintingInterface = () => {
 };
 
 export default NFTMintingInterface;
-

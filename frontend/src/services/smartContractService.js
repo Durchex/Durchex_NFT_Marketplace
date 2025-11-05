@@ -366,4 +366,3 @@ const smartContractService = new SmartContractService();
 
 export default smartContractService;
 
-

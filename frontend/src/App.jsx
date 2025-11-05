@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useContext } from "react";
+import { ICOContent } from "./Context";
 import { lazy, Suspense } from "react";
 import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
@@ -23,15 +25,27 @@ const ListNft = lazy(() => import("./pages/ListNft"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Profile = lazy(() => import("./pages/Profile"));
 const TradingPage = lazy(() => import("./pages/TradingPage"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 
 export default function App() {
+  const { address } = useContext(ICOContent) || {};
   return (
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
         {/* <Suspense fallback={<div className="bg-black justify-center items-center w-full ">Loading...</div>}> */}
         <Routes>
-          <Route path="/" element={<Hero />} />
+          <Route
+            path="/"
+            element={
+              typeof window !== "undefined" && address && !localStorage.getItem("durchex_onboarding_completed") ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <Hero />
+              )
+            }
+          />
           <Route path="/mynfts" element={<MyNfts />} />
           <Route path="/studio" element={<Studio />} />
           <Route path="/create" element={<Create />} />
@@ -41,6 +55,8 @@ export default function App() {
           <Route path="/stats" element={<Stats />} />
           <Route path="/listnft" element={<ListNft />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/welcome" element={<Welcome />} />
 
           <Route path="/nftcreatorform" element={<NftCreatorForm />} />
           <Route

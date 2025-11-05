@@ -109,6 +109,59 @@ export const nftAPI = {
     }
   },
 
+  // Update NFT owner and listing status in backend
+  updateNftOwner: async ({ network, itemId, tokenId, newOwner, listed = false }) => {
+    try {
+      const response = await api.post('/nft/nfts/update-owner', {
+        network,
+        itemId,
+        tokenId,
+        newOwner,
+        listed,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to update NFT owner: ${error.message}`);
+    }
+  },
+
+  // Create pending transfer record (store buyer address after purchase)
+  createPendingTransfer: async ({ network, itemId, nftContract, buyerAddress, sellerAddress, transactionHash }) => {
+    try {
+      const response = await api.post('/nft/pending-transfers', {
+        network,
+        itemId,
+        nftContract,
+        buyerAddress,
+        sellerAddress,
+        transactionHash,
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create pending transfer: ${error.message}`);
+    }
+  },
+
+  // Get pending transfer (buyer address for an NFT)
+  getPendingTransfer: async ({ network, itemId }) => {
+    try {
+      const response = await api.get(`/nft/pending-transfers/${network}/${itemId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get pending transfer: ${error.message}`);
+    }
+  },
+
+  // Delete pending transfer after successful transfer
+  deletePendingTransfer: async ({ network, itemId }) => {
+    try {
+      const response = await api.delete(`/nft/pending-transfers/${network}/${itemId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delete pending transfer: ${error.message}`);
+    }
+  },
+
   // Create NFT record
   createNft: async (nftData) => {
     try {
@@ -257,5 +310,4 @@ export const cartAPI = {
 };
 
 export default api;
-
 

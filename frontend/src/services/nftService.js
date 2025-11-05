@@ -148,4 +148,3 @@ export const formatNFTForCache = (blockchainData, metadata = {}) => {
 
 export default nftService;
 
-

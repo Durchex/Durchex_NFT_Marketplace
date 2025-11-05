@@ -24,6 +24,7 @@ import OffersTab from "./OffersTab";
 import { formatPrice, getCurrencySymbol } from "../Context/constants";
 import MyCollection from "./MyCollection";
 import NftInfoItems from "./NftinfoItems";
+import { nftAPI } from "../services/api";
 
 function App() {
   // const { id } = useParams();
@@ -51,6 +52,7 @@ function App() {
     address,
     fetchMetadataFromPinata,
     fetchMetadata,
+    transferNFT,
   } = contexts;
   const [NFTsItems, setNFTsItems] = useState([]);
   const [nftDatas, setNftData] = useState(null);
@@ -71,7 +73,9 @@ function App() {
   const [prices, setPrices] = useState(null);
   const priceee = formatPOLPrice(prices);
   const [bannerImage, setBannerImage] = useState("");
-  console.log("🚀 ~ App ~ bannerImage:", bannerImage)
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [newOwner, setNewOwner] = useState("");
+  const [pendingTransfer, setPendingTransfer] = useState(null);
 
   useEffect(() => {
     const fetchActiveListings = async () => {
@@ -214,8 +218,31 @@ function App() {
 
 
   useEffect(() => {
-    fetchSingleNftItem()
-  }, [])
+    fetchSingleNftItem();
+    // Fetch pending transfer (buyer address) if seller is viewing
+    if (nftDatas?.seller && address && nftDatas.seller?.toLowerCase() === address.toLowerCase()) {
+      fetchPendingTransfer();
+    }
+  }, [nftDatas, address, itemId])
+
+  // Fetch pending transfer to auto-populate buyer address
+  const fetchPendingTransfer = async () => {
+    try {
+      const network = nftDatas?.network || selectedChain?.toLowerCase();
+      if (!network || !itemId) return;
+
+      const pending = await nftAPI.getPendingTransfer({ network, itemId });
+      if (pending && pending.buyerAddress) {
+        setPendingTransfer(pending);
+        setNewOwner(pending.buyerAddress); // Auto-populate buyer address
+        console.log("🚀 ~ Auto-populated buyer address:", pending.buyerAddress);
+      }
+    } catch (error) {
+      // No pending transfer found or API error - this is fine
+      console.log("No pending transfer found or error:", error.message);
+      setPendingTransfer(null);
+    }
+  };
   
   // router.get("/nft/:network/:itemId/:tokenId/:collection", fetchSingleNft);
 
@@ -230,36 +257,107 @@ function App() {
       .then((data) => {
         console.log("🚀 123456~ .then ~ data:", data);
         setBannerImage(data.image);
+        // Store the full NFT data including network
+        if (data) {
+          setNftData(data);
+          // Ensure network is set from the fetched data
+          if (data.network) {
+            console.log("🚀 ~ NFT network from API:", data.network);
+          }
+        }
         setIsLoading(false);
       })
-      .catch((err) => console.error("Error fetching cart:", err));
+      .catch((err) => console.error("Error fetching NFT:", err));
   };
 
   const handleBuy = async () => {
-    // event.preventDefault();
-    if (!address) return ErrorToast("Connect you Wallet");
-    const vendorNFTAddress = import.meta.env
-      .VITE_APP_VENDORNFT_CONTRACT_ADDRESS;
+    if (!address) {
+      ErrorToast("Please connect your wallet first");
+      return;
+    }
+
+    // Get NFT's listing network from the fetched data
+    const nftListingNetwork = nftDatas?.network || selectedChain?.toLowerCase();
+    
+    if (!nftListingNetwork) {
+      ErrorToast("Network information is missing for this NFT");
+      return;
+    }
+
+    console.log("🚀 ~ handleBuy ~ nftListingNetwork:", nftListingNetwork);
+    console.log("🚀 ~ handleBuy ~ itemId:", itemId);
+    console.log("🚀 ~ handleBuy ~ price:", price);
 
     try {
-      await buyNFT(vendorNFTAddress, itemId, price)
+      // Pass the NFT's network to ensure purchase happens on the correct network
+      await buyNFT(nftContract || itemId, itemId, price, nftListingNetwork)
         .then((response) => {
           SuccessToast(
             <div>
-              NFT Listed successfully 🎉 ! <br />
-              {/* {response.gasUsed.toString()} */}
+              NFT Purchased successfully 🎉 ! <br />
+              Transaction: {response.transactionHash?.slice(0, 10)}...
             </div>
           );
           setTimeout(() => {
-            navigate("/myProfile");
-          }, 3000);
+            navigate("/");
+          }, 2000);
         })
         .catch((error) => {
-          console.error(error);
-          ErrorToast(<div>Something error happen try agin 💔 !</div>);
+          console.error("Buy NFT error:", error);
+          ErrorToast(<div>{error.message || "Failed to purchase NFT. Please try again 💔!"}</div>);
         });
     } catch (error) {
-      console.log(error);
+      console.error("Buy NFT error:", error);
+      ErrorToast(<div>{error.message || "Something went wrong 💔!"}</div>);
+    }
+  };
+
+  // Seller verification: transfer NFT to new owner and update backend
+  const handleConfirmTransfer = async () => {
+    if (!address) return ErrorToast("Connect your wallet first");
+    if (!newOwner) return ErrorToast("Enter the new owner's address");
+    try {
+      const receipt = await transferNFT(nftContract, tokenId, newOwner);
+      SuccessToast(
+        <div>
+          NFT transferred successfully 🎉 !<br />
+          Tx: {receipt.transactionHash?.slice(0, 10)}...
+        </div>
+      );
+
+      // Update backend owner record
+      try {
+        await nftAPI.updateNftOwner({
+          network: nftDatas?.network || selectedChain?.toLowerCase(),
+          itemId,
+          tokenId,
+          newOwner,
+          listed: false,
+        });
+
+        // Delete pending transfer record after successful transfer
+        try {
+          await nftAPI.deletePendingTransfer({
+            network: nftDatas?.network || selectedChain?.toLowerCase(),
+            itemId,
+          });
+          console.log("🚀 ~ Pending transfer record deleted");
+        } catch (deleteErr) {
+          console.error("Failed to delete pending transfer:", deleteErr);
+        }
+      } catch (apiErr) {
+        console.error("Failed to update backend owner:", apiErr);
+      }
+
+      setShowTransfer(false);
+      setNewOwner("");
+      setPendingTransfer(null);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      ErrorToast(<div>{err.message || "Transfer failed"}</div>);
     }
   };
 
@@ -371,7 +469,7 @@ function App() {
           <p className="mt-4 text-purple-400 cursor-pointer">Learn more.</p>
           <div className="block md:flex  justify-between w-full">
             <p className="my-6">
-              Tokenize your cards for free on{" "}
+              Tokenize your cards for free on {" "}
               <span className="text-purple-400">Durchex.com</span>
             </p>
             <div className="">
@@ -427,6 +525,52 @@ function App() {
                   Close
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Seller confirm transfer UI (visible to current seller) */}
+          {nftDatas?.seller && address && nftDatas.seller?.toLowerCase() === address.toLowerCase() && (
+            <div className="mt-6 p-4 border border-gray-700 rounded-lg bg-gray-800/50">
+              <h3 className="text-lg font-semibold mb-2">
+                {pendingTransfer ? "Confirm Transfer to Buyer" : "Transfer NFT to New Owner"}
+              </h3>
+              {pendingTransfer ? (
+                <>
+                  <p className="text-sm text-green-400 mb-2">
+                    ✓ Purchase detected! Buyer address auto-populated.
+                  </p>
+                  {pendingTransfer.transactionHash && (
+                    <p className="text-xs text-gray-500 mb-3">
+                      Purchase Tx: {pendingTransfer.transactionHash.slice(0, 10)}...
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-400 mb-3">
+                  Enter the buyer's address to transfer this NFT on-chain. This will update the ownership.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newOwner}
+                  onChange={(e) => setNewOwner(e.target.value)}
+                  className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white"
+                  placeholder="0xBuyerAddress"
+                />
+                <button
+                  onClick={handleConfirmTransfer}
+                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newOwner}
+                >
+                  {pendingTransfer ? "Confirm Transfer" : "Transfer NFT"}
+                </button>
+              </div>
+              {newOwner && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Verify the address before confirming: {newOwner}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -542,7 +686,7 @@ function App() {
             <OffersTab
               offers={offers}
               placeOffer={placeOffers}
-              editOffers={editOffers}
+              editOffer={editOffers}
               cancelOffer={cancelOffers}
               acceptOffer={acceptOffers}
               address={address}

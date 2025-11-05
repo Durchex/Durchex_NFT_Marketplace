@@ -8,6 +8,7 @@ import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import axios from "axios";
 import { ICOContent } from "../Context";
+import { PINATA_API_KEY, PINATA_SECRET_KEY, PINATA_JWT } from "../Context/constants";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 
@@ -40,10 +41,7 @@ export default function Create() {
     collection: "",
   });
 
-  const [imageURL, setimageURL] = useState(
-    // "https://copper-leading-yak-964.mypinata.cloud/ipfs/Qma7g6tpfB1zAyfRFVkBgb8Cms6Vd2wpEjvN8p3MJ1ekaJ"
-    " "
-  );
+  const [imageURL, setimageURL] = useState("");
 
   const [isBatchMinting, setIsBatchMinting] = useState(false);
   const [batchFiles, setBatchFiles] = useState([]);
@@ -119,14 +117,7 @@ export default function Create() {
         const formData = new FormData();
         formData.append("file", file);
         // console.log("🚀 ~ uploadToIPFS ~ formData:", formData.file);
-        console.log(
-          "🚀 ~ uploadJSONToIPFS ~ .env.VITE_APP_PINATA_SECRET_KEY:",
-          import.meta.env.VITE_APP_PINATA_SECRECT_KEY
-        );
-        console.log(
-          "🚀 ~ uploadJSONToIPFS ~ process.env.VITE_APP_PINATA_API_KEY,:",
-          import.meta.env.VITE_APP_PINATA_API_KEY
-        );
+        console.log("Pinata auth present:", { jwt: Boolean(PINATA_JWT), key: Boolean(PINATA_API_KEY), secret: Boolean(PINATA_SECRET_KEY) });
 
         //   https://copper-leading-yak-964.mypinata.cloud/ipfs/Qma7g6tpfB1zAyfRFVkBgb8Cms6Vd2wpEjvN8p3MJ1ekaJ
 
@@ -135,11 +126,16 @@ export default function Create() {
           url: "https://api.pinata.cloud/pinning/pinFileToIPFS",
           data: formData,
           maxBodyLength: "Infinity",
-          headers: {
-            pinata_api_key: import.meta.env.VITE_APP_PINATA_API_KEY,
-            pinata_secret_api_key: import.meta.env.VITE_APP_PINATA_SECRECT_KEY,
-            "Content-Type": "multipart/form-data",
-          },
+          headers: PINATA_JWT
+            ? {
+                Authorization: `Bearer ${PINATA_JWT}`,
+                "Content-Type": "multipart/form-data",
+              }
+            : {
+                pinata_api_key: PINATA_API_KEY,
+                pinata_secret_api_key: PINATA_SECRET_KEY,
+                "Content-Type": "multipart/form-data",
+              },
         });
         const url = `https://silver-solid-beetle-367.mypinata.cloud/ipfs/${response.data.IpfsHash}`;
 
@@ -194,38 +190,38 @@ export default function Create() {
     if (imageURL) {
       console.log("🚀 ~ uploadJSONToIPFS ~ imageURL:", imageURL);
       try {
-        // setLoader(true);
-        const data = JSON.stringify({
+        const data = {
           name: metadata.name,
           description: metadata.description,
           creator: metadata.creator,
-          image: batchImageURLs ? metadata.image : imageURL,
+          image: isBatchMinting ? metadata.image : imageURL,
           category: metadata.category,
           properties: metadata.properties,
           collection: metadata.collection,
-        });
-        const formData = new FormData();
-        formData.append("file", data);
+        };
 
-        const response = await axios({
-          method: "post",
-          url: "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-          // https://api.pinata.cloud/pinning/pinJSONToIPFS
-          data: formData,
-          // maxBodyLength: "Infinity",
-          headers: {
-            pinata_api_key: import.meta.env.VITE_APP_PINATA_API_KEY,
-            pinata_secret_api_key: import.meta.env.VITE_APP_PINATA_SECRECT_KEY,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.post(
+          "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+          data,
+          {
+            headers: PINATA_JWT
+              ? {
+                  Authorization: `Bearer ${PINATA_JWT}`,
+                  "Content-Type": "application/json",
+                }
+              : {
+                  pinata_api_key: PINATA_API_KEY,
+                  pinata_secret_api_key: PINATA_SECRET_KEY,
+                  "Content-Type": "application/json",
+                },
+          }
+        );
 
         console.log("🚀 ~ ~~~~~~~~~~~~~uploadToIPFS ~ response:", response);
 
         // const url = `https://copper-leading-yak-964.mypinata.cloud/ipfs/${response.data.IpfsHash}`;
         // const urls = "https://gateway.pinata.cloud/ipfs/" + response.data.IpfsHash
-        const urls =
-          "https://gateway.pinata.cloud/ipfs/" + response.data.IpfsHash;
+        const urls = "https://gateway.pinata.cloud/ipfs/" + response.data.IpfsHash;
         console.log("🚀 ~ uploadToIPFS ~ url:", urls);
 
         // setLoader(false);
@@ -240,7 +236,7 @@ export default function Create() {
   };
 
   const uploadJSONToIPFS = async (metadata) => {
-    if (!imageURL && !batchImageURLs.length) {
+    if ((!imageURL || !imageURL.trim()) && !batchImageURLs.length) {
       ErrorToast("Image URL is missing! Please ensure the image is uploaded.");
       return;
     }
@@ -266,7 +262,7 @@ export default function Create() {
         !metadata.name ||
         !metadata.description ||
         !metadata.creator ||
-        !imageURL ||
+        !imageURL || !imageURL.trim() ||
         !metadata.properties ||
         !metadata.category
       )
@@ -291,34 +287,32 @@ export default function Create() {
         console.log("🚀 ~ Data to be uploaded to Pinata:", data); // Log data to ensure correctness
 
         // Create FormData for uploading to Pinata
-        const formData = new FormData();
-        const jsonBlob = new Blob([data], { type: "application/json" });
-        formData.append("file", jsonBlob, "metadata.json"); // Use Blob for JSON and name the file if needed
-
         // Upload the metadata to Pinata
-        const response = await axios({
-          method: "post",
-          url: "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-          data: data,
-          headers: {
-            pinata_api_key: import.meta.env.VITE_APP_PINATA_API_KEY,
-            pinata_secret_api_key: import.meta.env.VITE_APP_PINATA_SECRECT_KEY,
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await axios.post(
+          "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+          JSON.parse(data),
+          {
+            headers: PINATA_JWT
+              ? {
+                  Authorization: `Bearer ${PINATA_JWT}`,
+                  "Content-Type": "application/json",
+                }
+              : {
+                  pinata_api_key: PINATA_API_KEY,
+                  pinata_secret_api_key: PINATA_SECRET_KEY,
+                  "Content-Type": "application/json",
+                },
+          }
+        );
 
         // Log the Pinata response to inspect it
         console.log("🚀 ~ Pinata response:", response.data);
 
-        // Get the IPFS hash from the response and construct the URL
-        const ipfsUrl = `https://silver-solid-beetle-367.mypinata.cloud/ipfs/${response.data.IpfsHash}`;
+        // Use the public Pinata gateway to avoid private gateway 403s
+        const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
         console.log("🚀 ~ Metadata uploaded to IPFS. URL:", ipfsUrl);
 
-        // Optionally fetch and log the metadata from IPFS for inspection
-        const fetchedMetadata = await fetch(ipfsUrl).then((res) => res.json());
-        console.log("🚀 ~ Fetched Metadata from IPFS:", fetchedMetadata);
-
-        // Return the IPFS URL
+        // Return the IPFS URL (no immediate fetch to avoid 403/CORS)
         return ipfsUrl;
       } catch (error) {
         console.error("Error uploading metadata to Pinata:", error);

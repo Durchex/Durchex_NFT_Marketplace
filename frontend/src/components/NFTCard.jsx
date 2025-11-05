@@ -15,7 +15,9 @@ const NFTCard = ({ collectionName, currentlyListed,
   owner,
   price,
   seller,
-  tokenId, name }) => {
+  tokenId, 
+  name,
+  network }) => {
 
      const contexts = useContext(ICOContent);
      const { addToCart, isInCart, removeFromCart } = useCart();
@@ -48,6 +50,7 @@ const NFTCard = ({ collectionName, currentlyListed,
         price,
         name,
         image,
+        network: network || metadata?.network, // Include network property
         metadata: { collectionName, currentlyListed, owner, seller }
       };
 
@@ -60,32 +63,50 @@ const NFTCard = ({ collectionName, currentlyListed,
     };
 
     const handleBuy = async () => {
-      // event.preventDefault();
-      if(!address) return ErrorToast("Connect you Wallet")
-      const vendorNFTAddress = import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS;
-        console.log("🚀 ~ HandleMintNFT ~ vendorNFTAddress:", vendorNFTAddress);
-    
-        console.log("🚀 ~ handleBuy ~ nftDatas.itemId:", itemId);
+      if(!address) {
+        ErrorToast("Please connect your wallet first");
+        return;
+      }
+
+      if(!currentlyListed) {
+        ErrorToast("This NFT is not listed for sale");
+        return;
+      }
+
+      // Get the NFT's listing network (priority: explicit network > metadata.network > fallback)
+      const nftListingNetwork = network || metadata?.network;
+      
+      if(!nftListingNetwork) {
+        ErrorToast("Network information is missing for this NFT");
+        return;
+      }
+
+      console.log("🚀 ~ handleBuy ~ nftListingNetwork:", nftListingNetwork);
+      console.log("🚀 ~ handleBuy ~ itemId:", itemId);
+      console.log("🚀 ~ handleBuy ~ price:", price);
     
       try {
-          await buyNFT(vendorNFTAddress, itemId, price)
-            .then((response) => {
-              SuccessToast(
-                <div>
-                  NFT Listed successfully 🎉 ! <br />
-                      {/* {response.gasUsed.toString()} */}
-                </div>
-              );
-              setTimeout(() => {
-                Navigate("/myProfile/myNFTs");
-              }, 3000);
-            })
-            .catch((error) => {
-              console.error(error);
-              ErrorToast(<div>Something error happen try agin 💔 !</div>);
-            });
+        // Pass the NFT's network to ensure purchase happens on the correct network
+        await buyNFT(nftContract || itemId, itemId, price, nftListingNetwork)
+          .then((response) => {
+            SuccessToast(
+              <div>
+                NFT Purchased successfully 🎉 ! <br />
+                Transaction: {response.transactionHash?.slice(0, 10)}...
+              </div>
+            );
+            // Refresh page or navigate after purchase
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          })
+          .catch((error) => {
+            console.error("Buy NFT error:", error);
+            ErrorToast(<div>{error.message || "Failed to purchase NFT. Please try again 💔!"}</div>);
+          });
       } catch (error) {
-        console.log(error);
+        console.error("Buy NFT error:", error);
+        ErrorToast(<div>{error.message || "Something went wrong 💔!"}</div>);
       }
     };
 

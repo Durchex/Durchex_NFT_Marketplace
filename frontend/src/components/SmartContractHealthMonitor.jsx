@@ -290,4 +290,3 @@ const SmartContractHealthMonitor = () => {
 };
 
 export default SmartContractHealthMonitor;
-

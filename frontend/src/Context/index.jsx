@@ -142,22 +142,30 @@ export const Index = ({ children }) => {
 
   //FUNCTION: Fetch cart from Local Storage or API
   const fetchCartItems = () => {
-    // Get cart from localStorage if it exists
     const storedCart = JSON.parse(localStorage.getItem("cartItems") || "[]");
     if (storedCart.length > 0) {
       setCartItems(storedCart);
-    } else {
-      const addressString = address.toLowerCase().toString();
-      fetch(`https://backend-2wkx.onrender.com/api/v1/cart/cart/${addressString}`)
-        .then((res) => {
-          return res.json();
-        })
-        .then((data) => {
-          setCartItems(data);
-          localStorage.setItem("cartItems", JSON.stringify(data));
-        })
-        .catch((err) => console.error("Error fetching cart:", err));
+      return;
     }
+
+    if (!address) return; // Guard: no address yet
+
+    const addressString = address?.toLowerCase?.().toString?.();
+    if (!addressString) return;
+
+    fetch(`https://backend-2wkx.onrender.com/api/v1/cart/cart/${addressString}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          // 404 or other non-JSON responses
+          throw new Error(`Cart request failed: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setCartItems(Array.isArray(data) ? data : []);
+        localStorage.setItem("cartItems", JSON.stringify(Array.isArray(data) ? data : []));
+      })
+      .catch((err) => console.error("Error fetching cart:", err));
   };
 
 
@@ -166,9 +174,6 @@ export const Index = ({ children }) => {
       fetchCartItems();
     }
   }, [address]);
-  useEffect(() => {
-    fetchCartItems();
-  }, []);
 
   //! MAIN FUNCTION
   const ethereumUsd = async () => {
@@ -492,36 +497,106 @@ export const Index = ({ children }) => {
     }
   };
 
-  const buyNFT = async (nftContractAddress, itemIds, prices) => {
+  const buyNFT = async (nftContractAddress, itemIds, prices, nftNetwork = null) => {
     console.log("🚀 ~ buyNFT ~ price:", prices);
     console.log("🚀 ~ buyNFT ~ itemIds:", itemIds);
+    console.log("🚀 ~ buyNFT ~ nftNetwork:", nftNetwork);
+    
+    if (!window.ethereum) {
+      throw new Error("No crypto wallet found. Please install MetaMask or another Web3 wallet.");
+    }
+
     try {
-      console.log("🚀 ~ publicMint ~ ContractInstance:", nftContractAddress);
+      // Determine the network to use - prioritize NFT's listing network
+      const targetNetwork = (nftNetwork || selectedChain).toLowerCase();
+      console.log("🚀 ~ buyNFT ~ targetNetwork:", targetNetwork);
+
+      // Import changeNetwork function
+      const { changeNetwork } = await import("./constants");
+      
+      // Switch wallet to the NFT's network before purchase
+      try {
+        await changeNetwork(targetNetwork);
+        // Wait a moment for network switch to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (networkError) {
+        console.error("Network switch error:", networkError);
+        throw new Error(`Failed to switch to ${targetNetwork} network. Please switch manually in your wallet.`);
+      }
 
       const itemId = ethers.BigNumber.from(itemIds);
       const price = ethers.utils.formatEther(prices);
 
-      const networkName = selectedChain.toLowerCase();
+      // Get marketplace contract for the NFT's network
       const MarketContractInstance = await getNFTMarketplaceContracts(
-        networkName
+        targetNetwork
       );
+
+      if (!MarketContractInstance) {
+        throw new Error(`No marketplace contract found for network: ${targetNetwork}`);
+      }
+
+      console.log("🚀 ~ buyNFT ~ Calling smart contract on network:", targetNetwork);
+      console.log("🚀 ~ buyNFT ~ Contract address:", MarketContractInstance.address);
+      console.log("🚀 ~ buyNFT ~ Purchase amount:", price, "ETH");
+
+      // Get buyer address from the signer (current user making the purchase)
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const buyerAddress = await signer.getAddress();
+
+      console.log("🚀 ~ buyNFT ~ Buyer address:", buyerAddress);
+
+      // Execute the purchase transaction on the NFT's network
       const tx = await MarketContractInstance.buyNFT(
         nftContractAddress,
         itemId,
         {
-          value: ethers.utils.parseEther(price.toString()), // Amount of ETH to send
-          // gasPrice: ethers.utils.parseUnits("20", "gwei")
+          value: ethers.utils.parseEther(price.toString()), // Amount to send in ETH
           gasLimit: 360000,
         }
       );
 
+      console.log("🚀 ~ buyNFT ~ Transaction sent:", tx.hash);
+
+      // Wait for transaction confirmation
       const receipt = await tx.wait();
 
-      console.log("Transaction confirmed:", receipt);
+      console.log("🚀 ~ buyNFT ~ Transaction confirmed:", receipt);
+      console.log("🚀 ~ buyNFT ~ Gas used:", receipt.gasUsed.toString());
+
+      // Store purchase record with buyer address for seller verification
+      try {
+        // Import API to store purchase
+        const { nftAPI } = await import("../services/api");
+        await nftAPI.createPendingTransfer({
+          network: targetNetwork,
+          itemId: itemId.toString(),
+          nftContract: nftContractAddress,
+          buyerAddress: buyerAddress.toLowerCase(),
+          sellerAddress: receipt.from?.toLowerCase() || null, // From transaction if available
+          transactionHash: receipt.transactionHash,
+        });
+        console.log("🚀 ~ buyNFT ~ Purchase record stored for seller verification");
+      } catch (apiError) {
+        console.error("Failed to store purchase record:", apiError);
+        // Don't fail the purchase if API call fails
+      }
+      
       return receipt;
     } catch (error) {
-      console.log(error + " in useMintNFT in VendorNFT ( Hook )");
-      return error;
+      console.error("Buy NFT error:", error);
+      
+      // Provide user-friendly error messages
+      if (error.code === 4001) {
+        throw new Error("Transaction was rejected by user");
+      } else if (error.code === -32603) {
+        throw new Error("Transaction failed. Please check you have enough balance for the purchase and gas fees.");
+      } else if (error.message?.includes("network")) {
+        throw error;
+      } else {
+        throw new Error(`Failed to purchase NFT: ${error.message || error}`);
+      }
     }
   };
 
@@ -544,6 +619,58 @@ export const Index = ({ children }) => {
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
       return error;
+    }
+  };
+
+  // Transfer NFT from current owner to a new owner (seller verification step)
+  const transferNFT = async (
+    nftContractAddress,
+    tokenId,
+    newOwnerAddress
+  ) => {
+    try {
+      if (!address) throw new Error("Connect your wallet to proceed");
+      if (!ethers.utils.isAddress(newOwnerAddress)) {
+        throw new Error("Invalid recipient address");
+      }
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      // Minimal ERC721 ABI for transfer
+      const erc721Abi = [
+        "function ownerOf(uint256 tokenId) view returns (address)",
+        "function isApprovedForAll(address owner, address operator) view returns (bool)",
+        "function getApproved(uint256 tokenId) view returns (address)",
+        "function setApprovalForAll(address operator, bool approved)",
+        "function approve(address to, uint256 tokenId)",
+        "function safeTransferFrom(address from, address to, uint256 tokenId)"
+      ];
+
+      const nftContract = new ethers.Contract(
+        nftContractAddress,
+        erc721Abi,
+        signer
+      );
+
+      // Ensure caller is current owner
+      const currentOwner = await nftContract.ownerOf(tokenId);
+      if (currentOwner.toLowerCase() !== address.toLowerCase()) {
+        throw new Error("Only the current owner can transfer this NFT");
+      }
+
+      // Perform transfer
+      const tx = await nftContract.safeTransferFrom(
+        address,
+        newOwnerAddress,
+        tokenId
+      );
+      const receipt = await tx.wait();
+
+      return receipt;
+    } catch (error) {
+      console.error("transferNFT error:", error);
+      throw error;
     }
   };
 
