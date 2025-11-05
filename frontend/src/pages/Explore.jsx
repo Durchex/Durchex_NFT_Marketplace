@@ -25,16 +25,20 @@ const generateMockCreators = (count = 8) => {
     "Innovator in generative and AI-powered art"
   ];
 
-  return Array.from({ length: count }, (_, i) => ({
-    id: `creator_${i}`,
-    username: names[i % names.length],
-    walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${names[i % names.length]}`,
-    bio: bios[i % bios.length],
-    isVerified: Math.random() > 0.5, // Random verification status
-    nftCount: Math.floor(Math.random() * 50) + 5,
-    followers: Math.floor(Math.random() * 10000) + 100
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    const verificationType = Math.random() > 0.6 ? 'gold' : (Math.random() > 0.5 ? 'white' : null);
+    return {
+      id: `creator_${i}`,
+      username: names[i % names.length],
+      walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${names[i % names.length]}`,
+      bio: bios[i % bios.length],
+      verificationType: verificationType, // 'gold', 'white', or null
+      isVerified: verificationType !== null,
+      nftCount: Math.floor(Math.random() * 50) + 5,
+      followers: Math.floor(Math.random() * 10000) + 100
+    };
+  });
 };
 
 // Mock popular NFTs
@@ -60,10 +64,12 @@ const Explore = () => {
     username: "",
     email: "",
     socialLinks: "",
-    reason: ""
+    reason: "",
+    verificationType: "white", // 'white' or 'gold'
+    idDocument: null // For gold verification
   });
 
-  // Initialize with mock data
+    // Initialize with mock data
   useEffect(() => {
     const mockNFTs = generateMockNFTs(20);
     setPopularNFTs(mockNFTs);
@@ -72,15 +78,22 @@ const Explore = () => {
     const savedCreators = localStorage.getItem("durchex_creators");
     if (savedCreators) {
       try {
-        setCreators(JSON.parse(savedCreators));
+        const parsed = JSON.parse(savedCreators);
+        // Filter to show only gold verified users in top creators (trending)
+        const goldVerifiedCreators = parsed.filter(c => c.verificationType === 'gold');
+        setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : parsed);
       } catch {
         const newCreators = generateMockCreators(8);
-        setCreators(newCreators);
+        // Filter to show only gold verified users
+        const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
+        setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
         localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
       }
     } else {
       const newCreators = generateMockCreators(8);
-      setCreators(newCreators);
+      // Filter to show only gold verified users
+      const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
+      setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
       localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
     }
   }, []);
@@ -285,17 +298,31 @@ const Explore = () => {
                           e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.username}`;
                         }}
                       />
-                      {creator.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
-                          <FiCheck className="text-white text-xs" />
+                      {creator.verificationType === 'gold' && (
+                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full p-1 border-2 border-gray-900">
+                          <FiCheck className="text-gray-900 text-xs font-bold" />
+                        </div>
+                      )}
+                      {creator.verificationType === 'white' && (
+                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-gray-900">
+                          <FiCheck className="text-gray-900 text-xs font-bold" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
-                        {creator.isVerified && (
-                          <FiCheck className="text-blue-500 flex-shrink-0" title="Verified Creator" />
+                        {creator.verificationType === 'gold' && (
+                          <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
+                            <FiCheck className="text-xs" />
+                            <span>Gold Verified</span>
+                          </div>
+                        )}
+                        {creator.verificationType === 'white' && (
+                          <div className="flex items-center gap-1 bg-white text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
+                            <FiCheck className="text-xs" />
+                            <span>Verified</span>
+                          </div>
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>
@@ -334,10 +361,54 @@ const Explore = () => {
             </div>
             
             <p className="text-gray-400 text-sm mb-6">
-              Get verified to earn a verification badge and gain trust from collectors.
+              Get verified to earn a verification badge and gain trust from collectors. Gold verification requires ID verification and appears in trending creators.
             </p>
 
             <div className="space-y-4">
+              {/* Verification Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">
+                  Verification Type <span className="text-red-400">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setVerificationRequest({ ...verificationRequest, verificationType: "white", idDocument: null })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      verificationRequest.verificationType === "white"
+                        ? "border-white bg-white/10"
+                        : "border-gray-700 hover:border-gray-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-white rounded-full border-2 border-gray-900 flex items-center justify-center">
+                        <FiCheck className="text-gray-900 text-xs font-bold" />
+                      </div>
+                    </div>
+                    <div className="text-white text-sm font-medium">White Badge</div>
+                    <div className="text-gray-400 text-xs mt-1">No ID required</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVerificationRequest({ ...verificationRequest, verificationType: "gold" })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      verificationRequest.verificationType === "gold"
+                        ? "border-yellow-500 bg-yellow-500/10"
+                        : "border-gray-700 hover:border-gray-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full border-2 border-gray-900 flex items-center justify-center">
+                        <FiCheck className="text-gray-900 text-xs font-bold" />
+                      </div>
+                    </div>
+                    <div className="text-white text-sm font-medium">Gold Badge</div>
+                    <div className="text-gray-400 text-xs mt-1">ID required</div>
+                    <div className="text-yellow-400 text-xs mt-1 font-semibold">Trending</div>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Username <span className="text-red-400">*</span>
@@ -376,6 +447,25 @@ const Explore = () => {
                   placeholder="Twitter, Instagram, etc."
                 />
               </div>
+
+              {/* ID Document Upload for Gold Verification */}
+              {verificationRequest.verificationType === "gold" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    ID Document <span className="text-red-400">*</span>
+                    <span className="text-gray-500 text-xs ml-2">(Required for Gold verification)</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setVerificationRequest({ ...verificationRequest, idDocument: e.target.files[0] })}
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                  />
+                  {verificationRequest.idDocument && (
+                    <p className="text-green-400 text-xs mt-2">✓ Document selected: {verificationRequest.idDocument.name}</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">

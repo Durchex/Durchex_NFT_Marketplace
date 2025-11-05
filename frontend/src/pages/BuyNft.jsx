@@ -78,11 +78,11 @@ function NftBuy({ price, nftId, ComponentLoad, isListed }) {
       {isListed ? (
         <button
           type="button"
-          className="py-2.5 w-full px-5 text-sm sm:text-lg justify-evenly font-medium flex items-center gap-3 text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-purple-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-purple-600 dark:text-gray-100 border-none dark:hover:text-white dark:hover:bg-purple-700 bg-gradient-to-r from-purple-800 to-pink-600"
+          className="py-2.5 w-full px-5 text-sm sm:text-lg justify-evenly font-medium flex items-center gap-3 text-white focus:outline-none bg-white border-2 border-purple-600 hover:bg-purple-50 hover:text-purple-700 focus:z-10 focus:ring-4 focus:ring-purple-200 transition-colors rounded-lg"
           onClick={HandleBuyNFT}
         >
-          Buy now for
-          <div className="flex gap-2 items-center">
+          <span className="text-purple-600">Buy now for</span>
+          <div className="flex gap-2 items-center text-purple-600">
             <FaEthereum /> {Number(price).toFixed(4)} ETH
           </div>
         </button>
@@ -90,7 +90,7 @@ function NftBuy({ price, nftId, ComponentLoad, isListed }) {
         <button
           onClick={() => ErrorToast("This NFT is not listed")}
           type="button"
-          className="py-2.5 w-full px-5 text-sm sm:text-lg justify-evenly font-medium flex items-center gap-3 text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 focus:z-10 dark:text-gray-100/50 border-none bg-gradient-to-r from-gray-700 to-gray-600 cursor-not-allowed"
+          className="py-2.5 w-full px-5 text-sm sm:text-lg justify-evenly font-medium flex items-center gap-3 text-gray-400 focus:outline-none bg-white border-2 border-gray-300 rounded-lg cursor-not-allowed"
         >
           This NFT is not listed
         </button>

@@ -186,7 +186,7 @@ const NFTCard = ({ collectionName, currentlyListed,
         <div className="space-y-2">
           <button 
             onClick={handleBuy}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2.5 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+            className="w-full bg-white border-2 border-purple-600 hover:bg-purple-50 text-purple-600 font-medium py-2.5 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
           >
             Buy Now
           </button>

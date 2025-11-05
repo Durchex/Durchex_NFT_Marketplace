@@ -32,16 +32,20 @@ const generateMockCreators = (count = 8) => {
     "Innovator in generative and AI-powered art"
   ];
 
-  return Array.from({ length: count }, (_, i) => ({
-    id: `creator_${i}`,
-    username: names[i % names.length],
-    walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${names[i % names.length]}`,
-    bio: bios[i % bios.length],
-    isVerified: Math.random() > 0.5,
-    nftCount: Math.floor(Math.random() * 50) + 5,
-    followers: Math.floor(Math.random() * 10000) + 100
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    const verificationType = Math.random() > 0.6 ? 'gold' : (Math.random() > 0.5 ? 'white' : null);
+    return {
+      id: `creator_${i}`,
+      username: names[i % names.length],
+      walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${names[i % names.length]}`,
+      bio: bios[i % bios.length],
+      verificationType: verificationType, // 'gold', 'white', or null
+      isVerified: verificationType !== null,
+      nftCount: Math.floor(Math.random() * 50) + 5,
+      followers: Math.floor(Math.random() * 10000) + 100
+    };
+  });
 };
 
 function App() {
@@ -471,17 +475,31 @@ function App() {
                           e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.username}`;
                         }}
                       />
-                      {creator.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
-                          <FiCheck className="text-white text-xs" />
+                      {creator.verificationType === 'gold' && (
+                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full p-1 border-2 border-gray-900">
+                          <FiCheck className="text-gray-900 text-xs font-bold" />
+                        </div>
+                      )}
+                      {creator.verificationType === 'white' && (
+                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-gray-900">
+                          <FiCheck className="text-gray-900 text-xs font-bold" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
-                        {creator.isVerified && (
-                          <FiCheck className="text-blue-500 flex-shrink-0" title="Verified Creator" />
+                        {creator.verificationType === 'gold' && (
+                          <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
+                            <FiCheck className="text-xs" />
+                            <span>Gold</span>
+                          </div>
+                        )}
+                        {creator.verificationType === 'white' && (
+                          <div className="flex items-center gap-1 bg-white text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
+                            <FiCheck className="text-xs" />
+                            <span>Verified</span>
+                          </div>
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>

@@ -200,10 +200,17 @@ export default function Navbar() {
             </button>
           </Link>
 
-          {/* Profile */}
+          {/* Profile - WhatsApp Status Style */}
           <Link to="/user-profile">
-            <button className="text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors">
-              <FiUser className="w-5 h-5" />
+            <button className="relative text-gray-300 hover:text-white transition-colors">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-green-500">
+                {/* Profile Picture or Icon */}
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <FiUser className="w-5 h-5 text-gray-400" />
+                </div>
+                {/* Online Status Indicator */}
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
+              </div>
             </button>
           </Link>
 
