@@ -27,6 +27,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const TradingPage = lazy(() => import("./pages/TradingPage"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 
 export default function App() {
   const { address } = useContext(ICOContent) || {};
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/listnft" element={<ListNft />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/welcome" element={<Welcome />} />
 
           <Route path="/nftcreatorform" element={<NftCreatorForm />} />
           <Route

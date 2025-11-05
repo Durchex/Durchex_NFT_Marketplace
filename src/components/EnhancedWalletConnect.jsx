@@ -103,9 +103,105 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Trust Wallet',
       icon: '🛡️',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isTrust,
+      isInstalled: () => typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Brave Wallet',
+      icon: '🦁',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
+      connect: () => connectWallet('brave'),
+      downloadLink: 'https://brave.com/wallet/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Binance Wallet',
+      icon: '🟡',
+      isInstalled: () => typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance),
+      connect: () => connectWallet('binance'),
+      downloadLink: 'https://www.binance.com/en/web3wallet',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Rainbow Wallet',
+      icon: '🌈',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
+      connect: () => connectWallet('rainbow'),
+      downloadLink: 'https://rainbow.me/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Phantom',
+      icon: '👻',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isPhantom,
+      connect: () => connectWallet('phantom'),
+      downloadLink: 'https://phantom.app/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'OKX Wallet',
+      icon: '⚡',
+      isInstalled: () => typeof window.okxwallet !== 'undefined',
+      connect: () => connectWallet('okx'),
+      downloadLink: 'https://www.okx.com/web3',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'TokenPocket',
+      icon: '💼',
+      isInstalled: () => typeof window.tokenpocket !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket),
+      connect: () => connectWallet('tokenpocket'),
+      downloadLink: 'https://tokenpocket.pro/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'SafePal',
+      icon: '🦄',
+      isInstalled: () => typeof window.safepal !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isSafePal),
+      connect: () => connectWallet('safepal'),
+      downloadLink: 'https://www.safepal.com/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Frame',
+      icon: '🖼️',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isFrame,
+      connect: () => connectWallet('frame'),
+      downloadLink: 'https://frame.sh/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Zerion',
+      icon: '📊',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isZerion,
+      connect: () => connectWallet('zerion'),
+      downloadLink: 'https://zerion.io/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Argent',
+      icon: '🛡️',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isArgent,
+      connect: () => connectWallet('argent'),
+      downloadLink: 'https://www.argent.xyz/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'imToken',
+      icon: '🔐',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isImToken,
+      connect: () => connectWallet('imtoken'),
+      downloadLink: 'https://token.im/',
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+    },
+    {
+      name: 'Opera Wallet',
+      icon: '🎭',
+      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isOpera,
+      connect: () => connectWallet('opera'),
+      downloadLink: 'https://www.opera.com/crypto/next',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
     },
     {

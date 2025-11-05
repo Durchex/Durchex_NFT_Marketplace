@@ -30,7 +30,7 @@ ChartJS.register(
   Filler
 );
 
-const TokenTradingChart = () => {
+const TokenTradingChart = ({ selectedMarket }) => {
   const { address } = useContext(ICOContent);
   const { selectedNetwork } = useNetwork();
   
@@ -39,13 +39,24 @@ const TokenTradingChart = () => {
   const [priceData, setPriceData] = useState({});
   const [loading, setLoading] = useState(true);
   const [swapData, setSwapData] = useState({
-    fromToken: 'ETH',
-    toToken: 'USDT',
+    fromToken: selectedMarket?.base || 'ETH',
+    toToken: selectedMarket?.quote || 'USDT',
     fromAmount: '',
     toAmount: '',
     fromBalance: 0,
     toBalance: 0,
   });
+
+  // Update swap data when market changes
+  useEffect(() => {
+    if (selectedMarket) {
+      setSwapData(prev => ({
+        ...prev,
+        fromToken: selectedMarket.base,
+        toToken: selectedMarket.quote,
+      }));
+    }
+  }, [selectedMarket]);
   const [timeframe, setTimeframe] = useState('1D');
   const [isSwapping, setIsSwapping] = useState(false);
 
@@ -154,13 +165,18 @@ const TokenTradingChart = () => {
 
   // Load chart data
   useEffect(() => {
+    if (!selectedMarket) return;
+    
     const loadChartData = async () => {
       setLoading(true);
       try {
         // TODO: Replace with real API call to CoinGecko, CoinMarketCap, or Binance API
         // For now, we'll show empty state until real API is implemented
         setChartData(defaultChartData);
-        setPriceData({});
+        setPriceData({
+          [selectedMarket.base]: { price: selectedMarket.price, change24h: selectedMarket.change24h },
+          [selectedMarket.quote]: { price: 1, change24h: 0 },
+        });
         setLoading(false);
       } catch (error) {
         console.error('Error loading chart data:', error);
@@ -171,7 +187,7 @@ const TokenTradingChart = () => {
     };
 
     loadChartData();
-  }, [swapData.fromToken, timeframe]);
+  }, [selectedMarket, timeframe]);
 
   // Calculate swap amount
   const calculateSwapAmount = (fromAmount, fromToken, toToken) => {
