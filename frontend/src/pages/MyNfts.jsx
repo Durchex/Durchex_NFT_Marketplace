@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 // import { Link } from "react-router-dom";
 import RealTimeData from "../components/RealTimeData";
 import NFTCard from "../components/NFTCard";
-import LOGO from "../assets/LOGO.png";
+import LOGO from "../assets/logo.png";
 import metamask from "../assets/metamask.png";  
 import { ICOContent } from "../Context/index";
 import Header from "../components/Header";

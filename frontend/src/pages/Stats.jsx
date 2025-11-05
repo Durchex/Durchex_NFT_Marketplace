@@ -131,7 +131,7 @@ const Stats = () => {
 export default Stats;
 
 // import { useState, useEffect } from "react";
-// import LOGO from "../assets/LOGO.png";
+// import LOGO from "../assets/logo.png";
 // // import metamask from "../assets/metamask.png";
 // import { HiMenu, HiX } from "react-icons/hi";
 // // import { Link } from "react-router-dom";

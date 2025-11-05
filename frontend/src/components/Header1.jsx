@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
 import { BiLinkAlt } from "react-icons/bi";
-import LOGO from "../assets/LOGO.png";
+import LOGO from "../assets/logo.png";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);

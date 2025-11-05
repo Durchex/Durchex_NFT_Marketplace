@@ -1,5 +1,5 @@
 import { useState } from "react";
-import LOGO from "../assets/LOGO.png";
+import LOGO from "../assets/logo.png";
 
 const Footer = () => {
   // Tooltip content for quick links

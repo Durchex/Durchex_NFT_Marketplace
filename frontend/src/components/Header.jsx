@@ -8,7 +8,7 @@ import { useContext } from "react";
 import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
 import EnhancedWalletConnect from "./EnhancedWalletConnect";
-import LOGO from "../assets/LOGO.png";
+import LOGO from "../assets/logo.png";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
