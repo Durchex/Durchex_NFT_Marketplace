@@ -4,11 +4,12 @@ import { FiSearch, FiShoppingBag, FiUser } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
 import { HiMenu, HiX } from "react-icons/hi";
 import { useCart } from "../Context/CartContext";
-import { useContext } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
 import EnhancedWalletConnect from "./EnhancedWalletConnect";
 import LOGO from "../assets/logo.png";
+import { useUser } from "../Context/UserContext";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +19,28 @@ export default function Navbar() {
   const { getCartItemCount } = useCart();
   const { address } = useContext(ICOContent) || {};
   const { selectedNetwork, networks, switchNetwork } = useNetwork();
+  const { userProfile, initializeProfile } = useUser();
+
+  useEffect(() => {
+    if (address) initializeProfile(address);
+  }, [address, initializeProfile]);
+
+  const avatarUrl = useMemo(() => {
+    // Priority: userProfile.image -> userProfile.avatar -> localStorage profile -> dicebear -> null
+    if (userProfile?.image) return userProfile.image;
+    if (userProfile?.avatar) return userProfile.avatar;
+    try {
+      const saved = localStorage.getItem("durchex_user_profile");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.image) return parsed.image;
+        if (parsed?.avatar) return parsed.avatar;
+      }
+    } catch {}
+    if (address) return `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`;
+    return null;
+  }, [userProfile, address]);
+
   // Navigation items array
   const navItems = [
     { name: "Explore", path: "/" },
@@ -56,8 +79,26 @@ export default function Navbar() {
           >
             <FiSearch className="w-5 h-5" />
           </button>
-          <Link to="/admin" className="text-gray-300 hover:text-white p-2 mr-1">
+          <Link to="/cart" className="text-gray-300 hover:text-white p-2 mr-1 relative">
             <FiShoppingBag className="w-5 h-5" />
+            {getCartItemCount() > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-medium">
+                {getCartItemCount()}
+              </span>
+            )}
+          </Link>
+          {/* Mobile Profile - WhatsApp Status Style with avatar */}
+          <Link to="/profile" className="p-1 mr-1">
+            <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-green-500">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" onError={(e)=>{e.currentTarget.style.display='none';}} />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <FiUser className="w-4 h-4 text-gray-300" />
+                </div>
+              )}
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
+            </div>
           </Link>
           <button
             onClick={toggleMobileMenu}
@@ -200,15 +241,17 @@ export default function Navbar() {
             </button>
           </Link>
 
-          {/* Profile - WhatsApp Status Style */}
+          {/* Profile - WhatsApp Status Style with avatar */}
           <Link to="/profile">
             <button className="relative text-gray-300 hover:text-white transition-colors">
               <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-green-500">
-                {/* Profile Picture or Icon */}
-                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                  <FiUser className="w-5 h-5 text-gray-400" />
-                </div>
-                {/* Online Status Indicator */}
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" onError={(e)=>{e.currentTarget.style.display='none';}} />
+                ) : (
+                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                    <FiUser className="w-5 h-5 text-gray-400" />
+                  </div>
+                )}
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
               </div>
             </button>
@@ -293,7 +336,7 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center space-x-3 bg-gray-800 text-white px-4 py-3 rounded-lg w-full hover:bg-gray-700 transition-colors border border-gray-600"
+                  className="flex items-center space-x-3 bg-gray-800 text:white px-4 py-3 rounded-lg w-full hover:bg-gray-700 transition-colors border border-gray-600"
                 >
                   <img 
                     src={selectedNetwork?.icon || networks[0].icon} 
@@ -382,7 +425,13 @@ export default function Navbar() {
               onClick={toggleMobileMenu}
               className="flex items-center space-x-3 py-3 border-b border-gray-800"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tl from-violet-700 via-blue-400 to-fuchsia-700"></div>
+              <div className="w-8 h-8 rounded-full overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-tl from-violet-700 via-blue-400 to-fuchsia-700"></div>
+                )}
+              </div>
               <span className="text-gray-300">My Profile</span>
             </Link>
           </div>

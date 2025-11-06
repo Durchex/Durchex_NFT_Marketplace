@@ -480,20 +480,12 @@ function App() {
                           title="Gold verified"
                           className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
                         >
-                          <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden="true">
-                            <defs>
-                              <linearGradient id="goldStarHero" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#FFE27A" />
-                                <stop offset="100%" stopColor="#F7B500" />
-                              </linearGradient>
-                              <filter id="softenHero" x="-10%" y="-10%" width="120%" height="120%">
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="0.25" />
-                              </filter>
-                            </defs>
-                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7"
-                              fill="url(#goldStarHero)" stroke="#E6B800" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#softenHero)" />
-                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+                          <img
+                            src="https://imgur.com/5cAUe81.png"
+                            alt="Gold Verified"
+                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                          />
                         </span>
                       )}
                       {creator.verificationType === 'white' && (
@@ -501,16 +493,12 @@ function App() {
                           title="Verified"
                           className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
                         >
-                          <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden="true">
-                            <defs>
-                              <filter id="softenWHero" x="-10%" y="-10%" width="120%" height="120%">
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="0.25" />
-                              </filter>
-                            </defs>
-                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7"
-                              fill="#ffffff" stroke="#E5E7EB" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#softenWHero)" />
-                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+                          <img
+                            src="https://imgur.com/pa1Y2LB.png"
+                            alt="Verified"
+                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                          />
                         </span>
                       )}
                     </div>
