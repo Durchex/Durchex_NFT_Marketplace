@@ -1,200 +1,105 @@
-import React, { useState } from 'react';
-import { FiSearch, FiFilter, FiPackage, FiTruck, FiCheck, FiX, FiClock, FiUser, FiDollarSign, FiCalendar, FiActivity } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiSearch, FiFilter, FiPackage, FiTruck, FiCheck, FiX, FiClock, FiUser, FiDollarSign, FiCalendar, FiActivity, FiRefreshCw } from 'react-icons/fi';
+import { adminAPI } from '../../services/adminAPI';
+import toast from 'react-hot-toast';
 
 const Orders = () => {
+  const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [filterNetwork, setFilterNetwork] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 });
 
-  // Mock data - in real app, this would come from API
-  const orders = [
-    {
-      id: 1,
-      orderNumber: 'ORD-2024-001',
-      customer: '0x1234...5678',
-      customerName: 'John Doe',
-      email: 'john@example.com',
-      nftName: 'Cool Cat #123',
-      collection: 'Cool Cats',
-      amount: '2.5 ETH',
-      status: 'completed',
-      paymentMethod: 'ETH',
-      transactionHash: '0x1234567890abcdef1234567890abcdef12345678',
-      createdAt: '2024-01-15 14:30:25',
-      completedAt: '2024-01-15 16:45:30',
-      blockNumber: 18945678,
-      notes: 'NFT successfully transferred to buyer wallet'
-    },
-    {
-      id: 2,
-      orderNumber: 'ORD-2024-002',
-      customer: '0x9876...5432',
-      customerName: 'Jane Smith',
-      email: 'jane@example.com',
-      nftName: 'Space Ape #456',
-      collection: 'Space Apes',
-      amount: '1.8 ETH',
-      status: 'pending',
-      paymentMethod: 'ETH',
-      transactionHash: null,
-      createdAt: '2024-01-15 13:45:12',
-      completedAt: null,
-      blockNumber: null,
-      notes: 'Awaiting blockchain confirmation'
-    },
-    {
-      id: 3,
-      orderNumber: 'ORD-2024-003',
-      customer: '0xabcd...efgh',
-      customerName: 'Bob Wilson',
-      email: 'bob@example.com',
-      nftName: 'Digital Art #789',
-      collection: 'Digital Art',
-      amount: '3.2 ETH',
-      status: 'processing',
-      paymentMethod: 'ETH',
-      transactionHash: null,
-      createdAt: '2024-01-15 12:15:08',
-      completedAt: null,
-      blockNumber: null,
-      notes: 'Payment received, processing NFT transfer'
-    },
-    {
-      id: 4,
-      orderNumber: 'ORD-2024-004',
-      customer: '0x5678...1234',
-      customerName: 'Alice Brown',
-      email: 'alice@example.com',
-      nftName: 'Pixel Punks #321',
-      collection: 'Pixel Punks',
-      amount: '0.8 ETH',
-      status: 'cancelled',
-      paymentMethod: 'ETH',
-      transactionHash: null,
-      createdAt: '2024-01-15 11:20:45',
-      completedAt: null,
-      blockNumber: null,
-      notes: 'Transaction failed - insufficient gas'
-    }
-  ];
-
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        order.nftName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        order.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleSelectOrder = (orderId) => {
-    setSelectedOrders(prev => 
-      prev.includes(orderId) 
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedOrders.length === filteredOrders.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(filteredOrders.map(order => order.id));
+  const fetchOrders = async (page = 1, filters = {}) => {
+    setIsLoading(true);
+    try {
+      const data = await adminAPI.getOrders(page, pagination.limit, {
+        ...filters,
+        search: searchTerm
+      });
+      setOrders(data.orders || []);
+      setPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 1 });
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+      setOrders([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      completed: 'bg-green-100 text-green-800',
-      processing: 'bg-yellow-100 text-yellow-800',
-      pending: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-red-100 text-red-800',
-      failed: 'bg-red-100 text-red-800'
-    };
-    return styles[status] || styles.pending;
+  useEffect(() => {
+    const filters = {};
+    if (filterStatus !== 'all') filters.status = filterStatus;
+    if (filterNetwork !== 'all') filters.network = filterNetwork;
+    fetchOrders(pagination.page, filters);
+  }, [pagination.page, filterStatus, filterNetwork]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== undefined) {
+        fetchOrders(1, { status: filterStatus, network: filterNetwork });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await adminAPI.updateOrderStatus(orderId, newStatus);
+      toast.success('Order status updated');
+      fetchOrders(pagination.page, { status: filterStatus, network: filterNetwork });
+    } catch (error) {
+      toast.error('Failed to update order status');
+    }
   };
 
-  const getStatusIcon = (status) => {
+  const formatAddress = (address) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Unknown';
+    return new Date(date).toLocaleString();
+  };
+
+  const getStatusColor = (status) => {
     switch (status) {
-      case 'completed':
-        return <FiCheck className="w-4 h-4 text-green-600" />;
-      case 'processing':
-        return <FiClock className="w-4 h-4 text-yellow-600" />;
-      case 'pending':
-        return <FiClock className="w-4 h-4 text-blue-600" />;
-      case 'cancelled':
-        return <FiX className="w-4 h-4 text-red-600" />;
-      case 'failed':
-        return <FiX className="w-4 h-4 text-red-600" />;
-      default:
-        return <FiClock className="w-4 h-4 text-gray-600" />;
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const totalRevenue = orders
-    .filter(o => o.status === 'completed')
-    .reduce((sum, o) => sum + parseFloat(o.amount), 0);
-
-  const totalOrders = orders.length;
-  const completedOrders = orders.filter(o => o.status === 'completed').length;
-  const pendingOrders = orders.filter(o => o.status === 'processing').length;
+  if (isLoading && orders.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-display">Loading orders...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 font-display">Manage NFT purchase orders and blockchain transactions</p>
+          <p className="text-gray-600 font-display">Manage active NFT listings and sales</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-display">
-            Export Orders
-          </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-display">
-            Create Order
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-display text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-display font-bold text-gray-900">{totalRevenue.toFixed(2)} ETH</p>
-            </div>
-            <FiDollarSign className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-display text-gray-600">Total Orders</p>
-              <p className="text-2xl font-display font-bold text-gray-900">{totalOrders}</p>
-            </div>
-            <FiPackage className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-display text-gray-600">Completed</p>
-              <p className="text-2xl font-display font-bold text-gray-900">{completedOrders}</p>
-            </div>
-            <FiCheck className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-display text-gray-600">Processing</p>
-              <p className="text-2xl font-display font-bold text-gray-900">{pendingOrders}</p>
-            </div>
-            <FiClock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
+        <button
+          onClick={() => fetchOrders(pagination.page, { status: filterStatus, network: filterNetwork })}
+          className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-display"
+        >
+          <FiRefreshCw className="w-4 h-4" />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {/* Filters */}
@@ -205,7 +110,7 @@ const Orders = () => {
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by order number, customer name, NFT, or transaction hash..."
+                placeholder="Search orders by NFT name, collection, or seller..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display"
@@ -216,182 +121,138 @@ const Orders = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display"
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
             >
               <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="processing">Processing</option>
+              <option value="active">Active</option>
               <option value="pending">Pending</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="failed">Failed</option>
+              <option value="completed">Completed</option>
             </select>
-            <button className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-display">
-              <FiFilter className="w-4 h-4" />
-              <span>More Filters</span>
-            </button>
+            <select
+              value={filterNetwork}
+              onChange={(e) => setFilterNetwork(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
+            >
+              <option value="all">All Networks</option>
+              <option value="ethereum">Ethereum</option>
+              <option value="polygon">Polygon</option>
+              <option value="bsc">BSC</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* Orders Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                onChange={handleSelectAll}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="font-display text-sm text-gray-700">
-                {selectedOrders.length} of {filteredOrders.length} selected
-              </span>
-            </div>
-            {selectedOrders.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <button className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors font-display">
-                  Bulk Actions
-                </button>
-                <button className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors font-display">
-                  Process Orders
-                </button>
-                <button className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors font-display">
-                  Cancel Orders
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  NFT
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">NFT</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">Seller</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">Network</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase">Created</th>
+                <th className="px-6 py-3 text-right text-xs font-display font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.includes(order.id)}
-                        onChange={() => handleSelectOrder(order.id)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
-                      />
-                      <div>
-                        <div className="text-sm font-display font-medium text-gray-900">
-                          {order.orderNumber}
-                        </div>
-                        {order.transactionHash && (
-                          <div className="text-xs text-gray-500 font-mono">
-                            TX: {order.transactionHash.slice(0, 10)}...{order.transactionHash.slice(-8)}
-                          </div>
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        {order.nft?.image && (
+                          <img src={order.nft.image} alt={order.nft.name} className="w-12 h-12 rounded-lg object-cover" />
                         )}
+                        <div>
+                          <div className="text-sm font-display font-medium text-gray-900">
+                            {order.nft?.name || 'Unknown NFT'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-display">
+                            {order.nft?.collection || 'No collection'}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-display font-medium text-gray-900">
-                        {order.customerName}
-                      </div>
-                      <div className="text-sm text-gray-500 font-display">
-                        {order.email}
-                      </div>
-                      <div className="text-xs text-gray-400 font-mono">
-                        {order.customer}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-display font-medium text-gray-900">
-                        {order.nftName}
-                      </div>
-                      <div className="text-sm text-gray-500 font-display">
-                        {order.collection}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-display font-semibold text-gray-900">
-                    {order.amount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(order.status)}
-                      <span className={`inline-flex px-2 py-1 text-xs font-display font-semibold rounded-full ${getStatusBadge(order.status)}`}>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 font-display">
+                      {formatAddress(order.seller)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display font-semibold text-gray-900">
+                      {order.price}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-500 capitalize">
+                      {order.network || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-display font-semibold rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-500">
-                    {order.createdAt}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-display font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900 p-1" title="View Customer">
-                        <FiUser className="w-4 h-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900 p-1" title="View Transaction">
-                        <FiActivity className="w-4 h-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900 p-1" title="View Details">
-                        <FiCalendar className="w-4 h-4" />
-                      </button>
-                    </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-500">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-display font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        {order.status === 'active' && (
+                          <button
+                            onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
+                            className="text-green-600 hover:text-green-900 p-1"
+                            title="Mark as Completed"
+                          >
+                            <FiCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                        {order.status !== 'cancelled' && (
+                          <button
+                            onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Cancel Order"
+                          >
+                            <FiX className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <p className="text-gray-500 font-display">No orders found</p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="px-6 py-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-display text-gray-700">
-              Showing 1 to {filteredOrders.length} of {orders.length} results
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-                Previous
-              </button>
-              <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded font-display">
-                1
-              </button>
-              <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-                2
-              </button>
-              <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-                Next
-              </button>
+        {pagination.pages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-display text-gray-700">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => fetchOrders(pagination.page - 1, { status: filterStatus, network: filterNetwork })}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 font-display"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => fetchOrders(pagination.page + 1, { status: filterStatus, network: filterNetwork })}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 font-display"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

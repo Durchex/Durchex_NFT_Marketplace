@@ -476,30 +476,44 @@ function App() {
                         }}
                       />
                       {creator.verificationType === 'gold' && (
-                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full p-1 border-2 border-gray-900">
-                          <FiCheck className="text-gray-900 text-xs font-bold" />
-                        </div>
+                        <span
+                          title="Gold verified"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-yellow-300 shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
+                          style={{
+                            background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)',
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
+                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          </svg>
+                        </span>
                       )}
                       {creator.verificationType === 'white' && (
-                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-gray-900">
-                          <FiCheck className="text-gray-900 text-xs font-bold" />
-                        </div>
+                        <span
+                          title="Verified"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
+                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          </svg>
+                        </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
-                        {creator.verificationType === 'gold' && (
-                          <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
-                            <FiCheck className="text-xs" />
-                            <span>Gold</span>
-                          </div>
-                        )}
-                        {creator.verificationType === 'white' && (
-                          <div className="flex items-center gap-1 bg-white text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
-                            <FiCheck className="text-xs" />
-                            <span>Verified</span>
-                          </div>
+                        {creator.verificationType && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-gray-700/60 bg-gray-800/60">
+                            <span
+                              className="inline-flex items-center justify-center w-4 h-4 rounded-full"
+                              style={creator.verificationType === 'gold' ? { background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)' } : { background: '#ffffff', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.15)' }}
+                            >
+                              <svg viewBox="0 0 24 24" className="w-2.5 h-2.5" aria-hidden="true">
+                                <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                              </svg>
+                            </span>
+                            <span className="text-gray-300">Verified</span>
+                          </span>
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>

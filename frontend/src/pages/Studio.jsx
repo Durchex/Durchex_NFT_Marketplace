@@ -1,7 +1,23 @@
+import { useState, useEffect } from "react";
 import Header1 from "../components/Header";
 import { Link } from "react-router-dom";
+import Loading from "../components/Loader";
 
 export default function Studio() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <Header1 />

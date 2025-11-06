@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { Edit3, Share2 } from "lucide-react";
 import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
+import { ICOContent } from "../Context"; // Import context
 
 const MyProfile = () => {
+  const { address } = useContext(ICOContent) || {};
   const [profileData, setProfileData] = useState({
     username: "",
     email: "",
@@ -20,13 +22,16 @@ const MyProfile = () => {
 
   const fileInputRef = useRef();
 
-  const walletAddress = "0x1234567823abcdef1234567890abcdef12345678"; // Replace this later with dynamic wallet address
-
   useEffect(() => {
+    // Don't fetch profile if wallet is not connected
+    if (!address) {
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
         const res = await fetch(
-          `https://backend-2wkx.onrender.com/api/v1/user/users/${walletAddress}`
+          `https://backend-2wkx.onrender.com/api/v1/user/users/${address}`
         );
         if (!res.ok) throw new Error("Failed to fetch profile");
 
@@ -49,7 +54,7 @@ const MyProfile = () => {
     };
 
     fetchProfile();
-  }, []);
+  }, [address]);
 
   // const handleImageChange = (e) => {
   //   const file = e.target.files[0];
@@ -78,11 +83,23 @@ const MyProfile = () => {
   
 
   const handleSubmit = async () => {
+    // Require wallet connection
+    if (!address) {
+      ErrorToast("Please connect your wallet first");
+      return;
+    }
+
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      ErrorToast("Invalid wallet address format");
+      return;
+    }
+
     setIsLoading(true); // Start loading spinner
 
     try {
       const payload = {
-        walletAddress: "0x1234567823abcdef1234567890abcdef12345678", // you might want to get this dynamically
+        walletAddress: address, // Use actual wallet address from context
         username: profileData.username,
         bio: profileData.bio,
         email: profileData.email,
@@ -117,6 +134,12 @@ const MyProfile = () => {
   };
 
   const handleDelete = async () => {
+    // Require wallet connection
+    if (!address) {
+      ErrorToast("Please connect your wallet first");
+      return;
+    }
+
     const confirmed = window.confirm(
       "Are you sure you want to delete your profile? This action cannot be undone."
     );
@@ -124,7 +147,7 @@ const MyProfile = () => {
 
     try {
       const res = await fetch(
-        `https://backend-2wkx.onrender.com/api/v1/user/users/${walletAddress}`,
+        `https://backend-2wkx.onrender.com/api/v1/user/users/${address}`,
         {
           method: "DELETE",
         }
@@ -199,6 +222,23 @@ const MyProfile = () => {
   const handleToggleEdit = () => {
     setIsEditing(!isEditing);
   };
+
+  // Require wallet connection
+  if (!address) {
+    return (
+      <div className="relative py-6 md:py-10 px-4 md:px-12">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <div className="text-center">
+            <svg className="w-20 h-20 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <h2 className="text-2xl font-bold mb-2 text-white">Wallet Not Connected</h2>
+            <p className="text-gray-400">Please connect your wallet to access your profile.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative py-6 md:py-10 px-4 md:px-12">

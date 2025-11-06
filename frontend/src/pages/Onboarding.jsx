@@ -24,6 +24,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(STEPS.ROLE);
   const [data, setData] = useState(defaultData);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Redirect away if onboarding is already completed
   useEffect(() => {
@@ -98,17 +99,32 @@ export default function Onboarding() {
   };
 
   const finish = () => {
-    localStorage.setItem("durchex_onboarding_completed", "true");
-    localStorage.setItem("durchex_onboarding", JSON.stringify(data));
-    
-    // Navigate based on role, using replace to prevent back button issues
-    if (data.role === "creator" || data.role === "both") {
-      navigate("/studio", { replace: true });
-    } else if (data.role === "collector") {
-      navigate("/explore", { replace: true });
-    } else {
-      navigate("/", { replace: true });
+    // Save onboarding data first - ensure it's written synchronously
+    try {
+      localStorage.setItem("durchex_onboarding_completed", "true");
+      localStorage.setItem("durchex_onboarding", JSON.stringify(data));
+    } catch (error) {
+      console.error("Failed to save onboarding data:", error);
     }
+    
+    // Show loading state
+    setIsNavigating(true);
+    
+    // Determine target route
+    let targetRoute = "/";
+    if (data.role === "creator" || data.role === "both") {
+      targetRoute = "/studio";
+    } else if (data.role === "collector") {
+      targetRoute = "/explore";
+    }
+    
+    // Use requestAnimationFrame to ensure DOM updates are processed
+    // Then navigate after a brief delay to allow React state to update
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        navigate(targetRoute, { replace: true });
+      }, 200);
+    });
   };
 
   const toggleArray = (key, value) => {
@@ -127,6 +143,18 @@ export default function Onboarding() {
       <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-6">{children}</div>
     </div>
   );
+
+  // Show loading state during navigation
+  if (isNavigating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">

@@ -29,6 +29,18 @@ export const AdminProvider = ({ children }) => {
       username: 'moderator',
       password: 'mod123',
       role: 'moderator'
+    },
+    {
+      email: 'partner@durchex.com',
+      username: 'partner',
+      password: 'partner123',
+      role: 'partner'
+    },
+    {
+      email: 'investor@durchex.com',
+      username: 'investor',
+      password: 'investor123',
+      role: 'partner'
     }
   ];
 
@@ -113,6 +125,11 @@ export const AdminProvider = ({ children }) => {
     return isAdminLoggedIn && adminUser?.role === 'super_admin';
   };
 
+  // Check if current user is a partner/investor (read-only access)
+  const isPartner = () => {
+    return isAdminLoggedIn && adminUser?.role === 'partner';
+  };
+
   const value = {
     isAdminLoggedIn,
     adminUser,
@@ -120,7 +137,8 @@ export const AdminProvider = ({ children }) => {
     adminLogin,
     adminLogout,
     hasAdminAccess,
-    isSuperAdmin
+    isSuperAdmin,
+    isPartner
   };
 
   return (

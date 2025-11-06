@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../Context/AdminContext';
 import { FiShield, FiEye, FiEyeOff, FiUser, FiLock } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
-  const { adminLogin, isLoading } = useAdmin();
+  const { adminLogin, isLoading, isAdminLoggedIn, isPartner } = useAdmin();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -12,6 +12,17 @@ const AdminLogin = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAdminLoggedIn) {
+      if (isPartner()) {
+        navigate('/admin/partner/dashboard', { replace: true });
+      } else {
+        navigate('/admin/dashboard', { replace: true });
+      }
+    }
+  }, [isAdminLoggedIn, isPartner, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -52,7 +63,16 @@ const AdminLogin = () => {
 
     const success = await adminLogin(formData.email, formData.password);
     if (success) {
-      navigate('/admin/dashboard');
+      // Check if user is a partner and redirect accordingly
+      // Note: isPartner() might not be immediately available, so we check the role from the login
+      // The useEffect above will handle the redirect based on the actual role
+      setTimeout(() => {
+        if (isPartner()) {
+          navigate('/admin/partner/dashboard', { replace: true });
+        } else {
+          navigate('/admin/dashboard', { replace: true });
+        }
+      }, 100);
     }
   };
 
@@ -157,6 +177,7 @@ const AdminLogin = () => {
             <div className="space-y-1 text-xs text-gray-400 font-display">
               <p><strong>Super Admin:</strong> admin@durchex.com / admin123</p>
               <p><strong>Moderator:</strong> moderator@durchex.com / mod123</p>
+              <p><strong>Partner/Investor:</strong> partner@durchex.com / partner123</p>
             </div>
           </div>
         </div>

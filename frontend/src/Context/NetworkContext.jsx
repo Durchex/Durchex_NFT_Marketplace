@@ -76,8 +76,8 @@ export const NetworkProvider = ({ children }) => {
       name: "Hyperliquid", 
       symbol: "HL", 
       icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEZGNzciLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
-      chainId: 421614, // Hyperliquid Testnet (for mainnet use appropriate chainId)
-      rpcUrl: "https://api.hyperliquid.xyz/info",
+      chainId: 421614, // Hyperliquid Testnet
+      rpcUrl: "https://api.hyperliquid-testnet.xyz/evm",
       blockExplorerUrl: "https://explorer.hyperliquid.xyz",
       isEVM: true, // Hyperliquid has EVM compatibility
       walletType: "evm"
@@ -94,22 +94,28 @@ export const NetworkProvider = ({ children }) => {
 
       // Handle Tezos (non-EVM)
       if (network.name === "Tezos" && !network.isEVM) {
-        // Check for Temple Wallet
-        if (typeof window.templeWallet !== 'undefined') {
+        // Check for Temple Wallet (thanosWallet is the newer API)
+        const templeWallet = window.templeWallet || window.thanosWallet || window.temple;
+        if (templeWallet) {
           try {
-            const wallet = await window.templeWallet.connect();
+            // Try connecting with Temple Wallet
+            const wallet = await templeWallet.connect();
             const account = await wallet.getPKH();
             setSelectedNetwork(network);
             toast.success(`Connected to Tezos`);
             return true;
           } catch (error) {
             console.error('Tezos connection error:', error);
-            toast.error("Please install Temple Wallet for Tezos");
+            // Still update the network selection even if wallet connection fails
+            setSelectedNetwork(network);
+            toast.error("Tezos network selected, but wallet connection failed. Please ensure Temple Wallet is unlocked.");
             return false;
           }
         } else {
-          toast.error("Please install Temple Wallet to connect to Tezos network");
-          return false;
+          // Allow network selection even without wallet - user can connect later
+          setSelectedNetwork(network);
+          toast.info("Tezos network selected. Install Temple Wallet to connect your wallet.");
+          return true;
         }
       }
 
@@ -131,8 +137,15 @@ export const NetworkProvider = ({ children }) => {
         return true;
       } catch (switchError) {
         // If the network doesn't exist, try to add it
-        if (switchError.code === 4902 || switchError.code === -32603) {
+        if (switchError.code === 4902 || switchError.code === -32603 || switchError.code === -32002) {
           try {
+            // Validate RPC URL before adding
+            if (!network.rpcUrl || network.rpcUrl.includes('/info')) {
+              console.error('Invalid RPC URL for network:', network.name);
+              toast.error(`${network.name} has an invalid RPC configuration. Please contact support.`);
+              return false;
+            }
+
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [{
@@ -153,12 +166,27 @@ export const NetworkProvider = ({ children }) => {
             return true;
           } catch (addError) {
             console.error('Error adding network:', addError);
-            toast.error(`Failed to add ${network.name} network. Please add it manually in your wallet.`);
+            console.error('Network details:', {
+              name: network.name,
+              chainId: network.chainId,
+              chainIdHex: `0x${network.chainId.toString(16)}`,
+              rpcUrl: network.rpcUrl,
+              blockExplorerUrl: network.blockExplorerUrl
+            });
+            // Still update the UI to show the selected network
+            setSelectedNetwork(network);
+            toast.error(`Failed to add ${network.name} network automatically. Please add it manually in your wallet settings.`);
             return false;
           }
+        } else if (switchError.code === 4001) {
+          // User rejected the request
+          toast.error(`Network switch cancelled`);
+          return false;
         } else {
           console.error('Error switching network:', switchError);
-          toast.error(`Failed to switch to ${network.name}`);
+          // Still update the UI to reflect user's intent
+          setSelectedNetwork(network);
+          toast.error(`Failed to switch to ${network.name}. Please try again or add the network manually.`);
           return false;
         }
       }

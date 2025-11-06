@@ -38,10 +38,10 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 relative z-10">
-        {/* Brand Column */}
-        <div className="col-span-2 md:col-span-1 space-y-3 md:space-y-6">
+      {/* Main Content - 2 columns x 2 rows on mobile, 4 columns on desktop */}
+      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 lg:gap-12 relative z-10">
+        {/* Row 1, Column 1: Brand */}
+        <div className="space-y-3 md:space-y-6">
           <div className="flex items-center space-x-2">
             <img
               src={LOGO || "/placeholder.svg"}
@@ -57,8 +57,8 @@ const Footer = () => {
           <p className="text-xs md:text-sm">© All rights reserved. 2025</p>
         </div>
 
-        {/* Quick Links Column */}
-        <div className="col-span-2 md:col-span-1">
+        {/* Row 1, Column 2: Quick Links */}
+        <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Quick Links</h3>
           <ul className="space-y-2 md:space-y-4">
             {/* Quick links with tooltips */}
@@ -82,10 +82,10 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Communities & Contact - Combined on Mobile */}
-        <div className="col-span-2 md:col-span-1">
+        {/* Row 2, Column 1: Communities & Contact */}
+        <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Communities</h3>
-          <div className="space-y-2 md:space-y-4 list-none">
+          <div className="space-y-2 md:space-y-4 list-none mb-6">
             <li>
               <a
                 href="https://discord.gg/3tkGsgTs"
@@ -138,7 +138,7 @@ const Footer = () => {
             </li>
           </div>
 
-          <h3 className="text-white text-base md:text-lg font-medium mt-6 mb-4 md:mb-6">
+          <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Contact support
           </h3>
           <div className="space-y-2 md:space-y-4">
@@ -159,12 +159,12 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Supported Blockchains Column */}
-        <div className="col-span-2 md:col-span-1">
+        {/* Row 2, Column 2: Blockchains & Payments Combined */}
+        <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Supported Blockchains
           </h3>
-          <div className="space-y-3 md:space-y-6">
+          <div className="space-y-3 md:space-y-6 mb-6">
             <div>
               <h4 className="text-white mb-2 md:mb-4 text-sm md:text-base">Layer 1:</h4>
               <ul className="space-y-1 md:space-y-2 text-xs md:text-base">
@@ -189,10 +189,7 @@ const Footer = () => {
               </ul>
             </div>
           </div>
-        </div>
 
-        {/* Accepted Payments Column */}
-        <div className="col-span-2 md:col-span-1">
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Accepted Payments
           </h3>

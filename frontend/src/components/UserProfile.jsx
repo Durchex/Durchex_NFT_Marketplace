@@ -72,6 +72,12 @@ const UserProfile = () => {
       return;
     }
 
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      toast.error('Invalid wallet address format');
+      return;
+    }
+
     try {
       const profileData = {
         ...formData,
@@ -86,8 +92,10 @@ const UserProfile = () => {
       }
       
       setIsEditing(false);
+      toast.success('Profile saved successfully!');
     } catch (error) {
       console.error('Failed to save profile:', error);
+      toast.error(error.message || 'Failed to save profile. Please try again.');
     }
   };
 
@@ -112,6 +120,25 @@ const UserProfile = () => {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Require wallet connection
+  if (!address) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <svg className="w-20 h-20 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <h2 className="text-2xl font-bold mb-2 text-white">Wallet Not Connected</h2>
+              <p className="text-gray-400">Please connect your wallet to access your profile.</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -158,8 +185,15 @@ const UserProfile = () => {
             <h2 className="text-xl font-semibold">Profile Information</h2>
             {!isEditing ? (
               <button
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+                onClick={() => {
+                  if (!address) {
+                    toast.error('Please connect your wallet first');
+                    return;
+                  }
+                  setIsEditing(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!address}
               >
                 Edit Profile
               </button>

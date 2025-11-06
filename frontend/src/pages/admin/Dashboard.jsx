@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FiUsers, 
   FiImage, 
@@ -6,90 +6,142 @@ import {
   FiTrendingUp,
   FiActivity,
   FiShoppingCart,
-  FiEye,
-  FiHeart
+  FiRefreshCw
 } from 'react-icons/fi';
+import { adminAPI } from '../../services/adminAPI';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
-  // Mock data - in real app, this would come from API
-  const stats = [
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalNFTs: 0,
+    totalVolume: '0',
+    activeSales: 0
+  });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [topCollections, setTopCollections] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminAPI.getDashboardStats();
+      
+      setStats({
+        totalUsers: data.totalUsers || 0,
+        totalNFTs: data.totalNFTs || 0,
+        totalVolume: data.totalVolume || '0',
+        activeSales: data.activeSales || 0
+      });
+      
+      setRecentActivities(data.recentActivities || []);
+      setTopCollections(data.topCollections || []);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return 'Unknown';
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - time) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
+  const formatAddress = (address) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const statsData = [
     {
       title: 'Total Users',
-      value: '1,234',
-      change: '+12.5%',
+      value: stats.totalUsers.toLocaleString(),
+      change: '+0%', // Can be calculated from historical data
       changeType: 'positive',
       icon: FiUsers,
       color: 'blue'
     },
     {
       title: 'NFTs Listed',
-      value: '5,678',
-      change: '+8.2%',
+      value: stats.totalNFTs.toLocaleString(),
+      change: '+0%',
       changeType: 'positive',
       icon: FiImage,
       color: 'green'
     },
     {
       title: 'Total Volume',
-      value: '89.2 ETH',
-      change: '+15.3%',
+      value: `${stats.totalVolume} ETH`,
+      change: '+0%',
       changeType: 'positive',
       icon: FiDollarSign,
       color: 'purple'
     },
     {
       title: 'Active Sales',
-      value: '234',
-      change: '-2.1%',
-      changeType: 'negative',
+      value: stats.activeSales.toLocaleString(),
+      change: '+0%',
+      changeType: 'positive',
       icon: FiShoppingCart,
       color: 'orange'
     }
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'sale',
-      description: 'NFT "Cool Cat #123" sold for 2.5 ETH',
-      time: '2 minutes ago',
-      user: '0x1234...5678'
-    },
-    {
-      id: 2,
-      type: 'listing',
-      description: 'New NFT collection "Space Apes" listed',
-      time: '15 minutes ago',
-      user: '0x9876...5432'
-    },
-    {
-      id: 3,
-      type: 'user',
-      description: 'New user registered',
-      time: '1 hour ago',
-      user: '0xabcd...efgh'
-    },
-    {
-      id: 4,
-      type: 'sale',
-      description: 'NFT "Digital Art #456" sold for 1.8 ETH',
-      time: '2 hours ago',
-      user: '0x5678...1234'
-    }
-  ];
-
-  const topCollections = [
-    { name: 'Cool Cats', volume: '45.2 ETH', items: 1234, change: '+12.5%' },
-    { name: 'Space Apes', volume: '32.8 ETH', items: 856, change: '+8.2%' },
-    { name: 'Digital Art', volume: '28.5 ETH', items: 642, change: '+15.3%' },
-    { name: 'Pixel Punks', volume: '22.1 ETH', items: 423, change: '-2.1%' }
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-display">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 min-h-full">
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-display font-bold text-gray-900">Dashboard Overview</h2>
+          {lastUpdated && (
+            <p className="text-sm text-gray-500 font-display mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={fetchDashboardData}
+          disabled={isLoading}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-display transition-colors"
+        >
+          <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+        {statsData.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -126,25 +178,33 @@ const Dashboard = () => {
             </h3>
             <FiActivity className="w-5 h-5 text-gray-400" />
           </div>
-          <div className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-display text-gray-900">
-                    {activity.description}
-                  </p>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-xs text-gray-500 font-display">
-                      {activity.time}
-                    </span>
-                    <span className="text-xs text-gray-400 font-display">
-                      by {activity.user}
-                    </span>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.type === 'sale' ? 'bg-green-500' :
+                    activity.type === 'listing' ? 'bg-blue-500' :
+                    'bg-purple-500'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-display text-gray-900">
+                      {activity.description}
+                    </p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-xs text-gray-500 font-display">
+                        {formatTimeAgo(activity.time)}
+                      </span>
+                      <span className="text-xs text-gray-400 font-display">
+                        by {formatAddress(activity.user)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8 font-display">No recent activity</p>
+            )}
           </div>
         </div>
 
@@ -156,58 +216,41 @@ const Dashboard = () => {
             </h3>
             <FiTrendingUp className="w-5 h-5 text-gray-400" />
           </div>
-          <div className="space-y-4">
-            {topCollections.map((collection, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-display font-bold text-sm">
-                      {index + 1}
-                    </span>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {topCollections.length > 0 ? (
+              topCollections.map((collection, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-display font-bold text-sm">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-display font-medium text-gray-900">
+                        {collection.name}
+                      </p>
+                      <p className="text-sm text-gray-500 font-display">
+                        {collection.items} items
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-display font-medium text-gray-900">
-                      {collection.name}
+                  <div className="text-right">
+                    <p className="font-display font-semibold text-gray-900">
+                      {parseFloat(collection.volume).toFixed(2)} ETH
                     </p>
-                    <p className="text-sm text-gray-500 font-display">
-                      {collection.items} items
+                    <p className={`text-sm font-display ${
+                      collection.change?.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {collection.change || '+0%'}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-display font-semibold text-gray-900">
-                    {collection.volume}
-                  </p>
-                  <p className={`text-sm font-display ${
-                    collection.change.startsWith('+') ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {collection.change}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-8 font-display">No collections yet</p>
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-display font-semibold text-gray-900 mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
-            <FiUsers className="w-5 h-5 text-blue-600" />
-            <span className="font-display text-gray-900">Manage Users</span>
-          </button>
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors">
-            <FiImage className="w-5 h-5 text-green-600" />
-            <span className="font-display text-gray-900">Review NFTs</span>
-          </button>
-          <button className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors">
-            <FiDollarSign className="w-5 h-5 text-purple-600" />
-            <span className="font-display text-gray-900">View Transactions</span>
-          </button>
         </div>
       </div>
     </div>

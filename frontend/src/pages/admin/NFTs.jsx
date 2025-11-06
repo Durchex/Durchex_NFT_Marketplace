@@ -1,103 +1,143 @@
-import React, { useState } from 'react';
-import { FiSearch, FiFilter, FiImage, FiEye, FiEdit, FiTrash2, FiCheck, FiX, FiClock } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiSearch, FiFilter, FiImage, FiEye, FiEdit, FiTrash2, FiCheck, FiX, FiClock, FiRefreshCw } from 'react-icons/fi';
+import { adminAPI } from '../../services/adminAPI';
+import { nftAPI } from '../../services/api';
+import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 const NFTs = () => {
+  const [nfts, setNfts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterNetwork, setFilterNetwork] = useState('all');
   const [selectedNFTs, setSelectedNFTs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 });
+  const [editingNFT, setEditingNFT] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  // Mock data - in real app, this would come from API
-  const nfts = [
-    {
-      id: 1,
-      name: 'Cool Cat #123',
-      collection: 'Cool Cats',
-      image: '/api/placeholder/150/150',
-      owner: '0x1234...5678',
-      creator: '0x9876...5432',
-      price: '2.5 ETH',
-      status: 'listed',
-      category: 'Art',
-      createdAt: '2024-01-15',
-      lastSale: '2.5 ETH',
-      views: 1234,
-      likes: 89
-    },
-    {
-      id: 2,
-      name: 'Space Ape #456',
-      collection: 'Space Apes',
-      image: '/api/placeholder/150/150',
-      owner: '0xabcd...efgh',
-      creator: '0x5678...1234',
-      price: '1.8 ETH',
-      status: 'sold',
-      category: 'Collectibles',
-      createdAt: '2024-02-20',
-      lastSale: '1.8 ETH',
-      views: 856,
-      likes: 67
-    },
-    {
-      id: 3,
-      name: 'Digital Art #789',
-      collection: 'Digital Art',
-      image: '/api/placeholder/150/150',
-      owner: '0xefgh...ijkl',
-      creator: '0x1234...5678',
-      price: '3.2 ETH',
-      status: 'pending',
-      category: 'Art',
-      createdAt: '2024-03-10',
-      lastSale: null,
-      views: 234,
-      likes: 12
+  const fetchNFTs = async (page = 1, filters = {}) => {
+    setIsLoading(true);
+    try {
+      const data = await adminAPI.getAllNFTsAdmin(page, pagination.limit, {
+        ...filters,
+        search: searchTerm
+      });
+      setNfts(data.nfts || []);
+      setPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 1 });
+    } catch (error) {
+      console.error('Error fetching NFTs:', error);
+      toast.error('Failed to load NFTs');
+      setNfts([]);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
-  const filteredNFTs = nfts.filter(nft => {
-    const matchesSearch = nft.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        nft.collection.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        nft.owner.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || nft.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    const filters = {};
+    if (filterStatus !== 'all') {
+      filters.status = filterStatus;
+    }
+    if (filterNetwork !== 'all') {
+      filters.network = filterNetwork;
+    }
+    fetchNFTs(pagination.page, filters);
+  }, [pagination.page, filterStatus, filterNetwork]);
 
-  const handleSelectNFT = (nftId) => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== undefined) {
+        fetchNFTs(1, { status: filterStatus, network: filterNetwork });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleSelectNFT = (itemId) => {
     setSelectedNFTs(prev => 
-      prev.includes(nftId) 
-        ? prev.filter(id => id !== nftId)
-        : [...prev, nftId]
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedNFTs.length === filteredNFTs.length) {
+    if (selectedNFTs.length === nfts.length) {
       setSelectedNFTs([]);
     } else {
-      setSelectedNFTs(filteredNFTs.map(nft => nft.id));
+      setSelectedNFTs(nfts.map(nft => nft.itemId));
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      listed: 'bg-green-100 text-green-800',
-      sold: 'bg-blue-100 text-blue-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      rejected: 'bg-red-100 text-red-800'
-    };
-    return styles[status] || styles.pending;
+  const handleEditNFT = (nft) => {
+    setEditingNFT(nft);
+    setShowEditModal(true);
   };
 
-  const getCategoryBadge = (category) => {
-    const styles = {
-      Art: 'bg-purple-100 text-purple-800',
-      Collectibles: 'bg-pink-100 text-pink-800',
-      Gaming: 'bg-green-100 text-green-800',
-      Music: 'bg-orange-100 text-orange-800'
-    };
-    return styles[category] || styles.Art;
+  const handleUpdateNFT = async (updates) => {
+    try {
+      await adminAPI.updateNFTStatus(editingNFT.network, editingNFT.itemId, updates);
+      toast.success('NFT updated successfully');
+      setShowEditModal(false);
+      setEditingNFT(null);
+      fetchNFTs(pagination.page, { status: filterStatus, network: filterNetwork });
+    } catch (error) {
+      toast.error('Failed to update NFT');
+    }
   };
+
+  const handleDeleteNFT = async (network, itemId) => {
+    if (!window.confirm('Are you sure you want to delete this NFT?')) return;
+    
+    try {
+      if (editingNFT?.collection) {
+        await nftAPI.deleteNftInCollection(network, editingNFT.collection, itemId);
+      } else {
+        await nftAPI.deleteSingleNft(network, itemId);
+      }
+      toast.success('NFT deleted successfully');
+      fetchNFTs(pagination.page, { status: filterStatus, network: filterNetwork });
+    } catch (error) {
+      toast.error('Failed to delete NFT');
+    }
+  };
+
+  const handleToggleListing = async (nft) => {
+    try {
+      await adminAPI.updateNFTStatus(nft.network, nft.itemId, {
+        currentlyListed: !nft.currentlyListed
+      });
+      toast.success(`NFT ${nft.currentlyListed ? 'unlisted' : 'listed'} successfully`);
+      fetchNFTs(pagination.page, { status: filterStatus, network: filterNetwork });
+    } catch (error) {
+      toast.error('Failed to update listing status');
+    }
+  };
+
+  const filteredNFTs = nfts;
+
+  const formatAddress = (address) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Unknown';
+    return new Date(date).toLocaleDateString();
+  };
+
+  if (isLoading && nfts.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-display">Loading NFTs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -105,16 +145,15 @@ const NFTs = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-gray-900">NFTs</h1>
-          <p className="text-gray-600 font-display">Manage NFT collections and listings</p>
+          <p className="text-gray-600 font-display">Manage NFT listings and collections</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-display">
-            Export NFTs
-          </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-display">
-            Review Pending
-          </button>
-        </div>
+        <button
+          onClick={() => fetchNFTs(pagination.page, { status: filterStatus, network: filterNetwork })}
+          className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-display"
+        >
+          <FiRefreshCw className="w-4 h-4" />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {/* Filters */}
@@ -140,152 +179,281 @@ const NFTs = () => {
             >
               <option value="all">All Status</option>
               <option value="listed">Listed</option>
-              <option value="sold">Sold</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
+              <option value="unlisted">Unlisted</option>
             </select>
-            <button className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-display">
-              <FiFilter className="w-4 h-4" />
-              <span>More Filters</span>
-            </button>
+            <select
+              value={filterNetwork}
+              onChange={(e) => setFilterNetwork(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display"
+            >
+              <option value="all">All Networks</option>
+              <option value="ethereum">Ethereum</option>
+              <option value="polygon">Polygon</option>
+              <option value="bsc">BSC</option>
+              <option value="arbitrum">Arbitrum</option>
+            </select>
           </div>
         </div>
       </div>
 
-      {/* NFTs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredNFTs.map((nft) => (
-          <div key={nft.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-            {/* NFT Image */}
-            <div className="relative">
-              <div className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <FiImage className="w-12 h-12 text-white opacity-50" />
-              </div>
-              <div className="absolute top-3 left-3">
-                <input
-                  type="checkbox"
-                  checked={selectedNFTs.includes(nft.id)}
-                  onChange={() => handleSelectNFT(nft.id)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-              </div>
-              <div className="absolute top-3 right-3">
-                <span className={`inline-flex px-2 py-1 text-xs font-display font-semibold rounded-full ${getStatusBadge(nft.status)}`}>
-                  {nft.status}
-                </span>
-              </div>
-            </div>
+      {/* NFTs Grid/Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto scrollbar-hide">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedNFTs.length === filteredNFTs.length && filteredNFTs.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">NFT</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Collection</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Network</th>
+                <th className="px-6 py-3 text-right text-xs font-display font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredNFTs.length > 0 ? (
+                filteredNFTs.map((nft) => (
+                  <tr key={nft._id || nft.itemId} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedNFTs.includes(nft.itemId)}
+                        onChange={() => handleSelectNFT(nft.itemId)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={nft.image || '/placeholder-nft.png'}
+                          alt={nft.name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/150';
+                          }}
+                        />
+                        <div>
+                          <div className="text-sm font-display font-medium text-gray-900">
+                            {nft.name || 'Unnamed NFT'}
+                          </div>
+                          <div className="text-xs text-gray-500 font-mono">
+                            #{nft.tokenId}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-900">
+                      {nft.collection || 'Single NFT'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-500 font-mono">
+                      {formatAddress(nft.owner)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-900">
+                      {parseFloat(nft.price || 0).toFixed(4)} ETH
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleToggleListing(nft)}
+                        className={`inline-flex px-2 py-1 text-xs font-display font-semibold rounded-full ${
+                          nft.currentlyListed
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        {nft.currentlyListed ? 'Listed' : 'Unlisted'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-display text-gray-500 capitalize">
+                      {nft.network || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-display font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <Link
+                          to={`/nft/${nft.tokenId}/${nft.itemId}/${nft.price}/${nft.collection || ''}`}
+                          className="text-blue-600 hover:text-blue-900 p-1"
+                          title="View NFT"
+                        >
+                          <FiEye className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleEditNFT(nft)}
+                          className="text-green-600 hover:text-green-900 p-1"
+                          title="Edit NFT"
+                        >
+                          <FiEdit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNFT(nft.network, nft.itemId)}
+                          className="text-red-600 hover:text-red-900 p-1"
+                          title="Delete NFT"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" className="px-6 py-12 text-center">
+                    <p className="text-gray-500 font-display">No NFTs found</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-            {/* NFT Details */}
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-display font-semibold text-gray-900 truncate">
-                    {nft.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 font-display">
-                    {nft.collection}
-                  </p>
-                </div>
-                <span className={`inline-flex px-2 py-1 text-xs font-display font-semibold rounded-full ${getCategoryBadge(nft.category)}`}>
-                  {nft.category}
-                </span>
+        {/* Pagination */}
+        {pagination.pages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-display text-gray-700">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
               </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 font-display">Price:</span>
-                  <span className="font-display font-semibold text-gray-900">{nft.price}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 font-display">Views:</span>
-                  <span className="font-display text-gray-900">{nft.views.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 font-display">Likes:</span>
-                  <span className="font-display text-gray-900">{nft.likes}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 font-display">Owner:</span>
-                  <span className="font-mono text-xs text-gray-900">{nft.owner}</span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <button className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors">
-                    <FiEye className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors">
-                    <FiEdit className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors">
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                {nft.status === 'pending' && (
-                  <div className="flex items-center space-x-1">
-                    <button className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors">
-                      <FiCheck className="w-4 h-4" />
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => fetchNFTs(pagination.page - 1, { status: filterStatus, network: filterNetwork })}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-display"
+                >
+                  Previous
+                </button>
+                {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => fetchNFTs(pageNum, { status: filterStatus, network: filterNetwork })}
+                      className={`px-3 py-1 text-sm border rounded transition-colors font-display ${
+                        pagination.page === pageNum
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
                     </button>
-                    <button className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors">
-                      <FiX className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                  );
+                })}
+                <button
+                  onClick={() => fetchNFTs(pagination.page + 1, { status: filterStatus, network: filterNetwork })}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-display"
+                >
+                  Next
+                </button>
               </div>
             </div>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Bulk Actions */}
-      {selectedNFTs.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="font-display text-blue-900">
-                {selectedNFTs.length} NFTs selected
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-display">
-                Approve Selected
-              </button>
-              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-display">
-                Reject Selected
-              </button>
-              <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-display">
-                Delete Selected
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Edit NFT Modal */}
+      {showEditModal && editingNFT && (
+        <EditNFTModal
+          nft={editingNFT}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingNFT(null);
+          }}
+          onSave={handleUpdateNFT}
+        />
       )}
+    </div>
+  );
+};
 
-      {/* Pagination */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-display text-gray-700">
-            Showing 1 to {filteredNFTs.length} of {nfts.length} results
+// Edit NFT Modal Component
+const EditNFTModal = ({ nft, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: nft.name || '',
+    description: nft.description || '',
+    price: nft.price || '',
+    currentlyListed: nft.currentlyListed || false,
+    category: nft.category || ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-display font-bold text-gray-900 mb-4">Edit NFT</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-display font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-              Previous
+          <div>
+            <label className="block text-sm font-display font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
+              rows="3"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-display font-medium text-gray-700 mb-1">Price (ETH)</label>
+            <input
+              type="number"
+              step="0.0001"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-display font-medium text-gray-700 mb-1">Category</label>
+            <input
+              type="text"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-display"
+            />
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.currentlyListed}
+              onChange={(e) => setFormData({ ...formData, currentlyListed: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label className="ml-2 text-sm font-display text-gray-700">Currently Listed</label>
+          </div>
+          <div className="flex items-center justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-display"
+            >
+              Cancel
             </button>
-            <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded font-display">
-              1
-            </button>
-            <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-              2
-            </button>
-            <button className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors font-display">
-              Next
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-display"
+            >
+              Save Changes
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

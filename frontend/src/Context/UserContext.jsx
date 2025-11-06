@@ -25,6 +25,14 @@ export const UserProvider = ({ children }) => {
       return;
     }
 
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      console.warn('Invalid wallet address format:', walletAddress);
+      setUserProfile(null);
+      setIsProfileLoaded(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const profile = await userAPI.getUserProfile(walletAddress);
@@ -38,8 +46,21 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Create or update user profile
+  // Create or update user profile - requires wallet address
   const createOrUpdateProfile = async (userData) => {
+    if (!userData.walletAddress) {
+      const error = new Error('Wallet address is required to save profile');
+      toast.error(error.message);
+      throw error;
+    }
+
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(userData.walletAddress)) {
+      const error = new Error('Invalid wallet address format');
+      toast.error(error.message);
+      throw error;
+    }
+
     setIsLoading(true);
     try {
       const profile = await userAPI.createOrUpdateUser(userData);
@@ -48,7 +69,7 @@ export const UserProvider = ({ children }) => {
       return profile;
     } catch (error) {
       console.error('Failed to save profile:', error);
-      toast.error('Failed to save profile');
+      toast.error(error.message || 'Failed to save profile');
       throw error;
     } finally {
       setIsLoading(false);
@@ -108,14 +129,27 @@ export const UserProvider = ({ children }) => {
     updatedAt: new Date().toISOString(),
   });
 
-  // Initialize profile if it doesn't exist
+  // Initialize profile if it doesn't exist - but don't auto-create
+  // Only load existing profile, don't create new ones automatically
   const initializeProfile = async (walletAddress) => {
-    if (!userProfile && walletAddress) {
-      const defaultProfile = getDefaultProfile(walletAddress);
+    if (!walletAddress) {
+      console.warn('Cannot initialize profile without wallet address');
+      return;
+    }
+
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      console.warn('Invalid wallet address format:', walletAddress);
+      return;
+    }
+
+    // Only load existing profile, don't create new one
+    if (!userProfile) {
       try {
-        await createOrUpdateProfile(defaultProfile);
+        await loadUserProfile(walletAddress);
       } catch (error) {
-        console.error('Failed to initialize profile:', error);
+        console.error('Failed to load profile:', error);
+        // Don't create profile automatically - user must explicitly save
       }
     }
   };

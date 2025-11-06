@@ -20,7 +20,8 @@ import {
   FiTrash2,
   FiCheckCircle,
   FiXCircle,
-  FiLock
+  FiLock,
+  FiCode
 } from 'react-icons/fi';
 import { useAdmin } from '../Context/AdminContext';
 
@@ -36,6 +37,7 @@ const AdminSidebar = ({ isPartner = false }) => {
     { id: 'nfts', label: 'NFTs', icon: FiImage, path: '/admin/nfts', description: 'Manage NFT collections' },
     { id: 'transactions', label: 'Transactions', icon: FiDollarSign, path: '/admin/transactions', description: 'View transaction history' },
     { id: 'orders', label: 'Orders', icon: FiShoppingCart, path: '/admin/orders', description: 'Manage orders and sales' },
+    { id: 'contracts', label: 'Contract Management', icon: FiCode, path: '/admin/contracts', description: 'Manage smart contracts and vendors' },
     { id: 'analytics', label: 'Analytics', icon: FiBarChart, path: '/admin/analytics', description: 'Site statistics and reports' },
     { id: 'activity', label: 'Activity Log', icon: FiActivity, path: '/admin/activity', description: 'System activity monitoring' },
     { id: 'reports', label: 'Reports', icon: FiFileText, path: '/admin/reports', description: 'Generate reports' },

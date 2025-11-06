@@ -28,18 +28,28 @@ const TradingPage = lazy(() => import("./pages/TradingPage"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
 const Welcome = lazy(() => import("./pages/Welcome"));
+const AdminLogin = lazy(() => import("./components/AdminLogin"));
+const PartnerAdmin = lazy(() => import("./pages/admin/PartnerAdmin"));
 
 export default function App() {
   const { address } = useContext(ICOContent) || {};
+  
+  // Helper function to check if should redirect to onboarding
+  const shouldRedirectToOnboarding = () => {
+    if (typeof window === "undefined") return false;
+    if (!address) return false;
+    const onboardingCompleted = localStorage.getItem("durchex_onboarding_completed");
+    return onboardingCompleted !== "true";
+  };
+  
   return (
     <BrowserRouter>
       <Suspense fallback={<Loading />}>
-        {/* <Suspense fallback={<div className="bg-black justify-center items-center w-full ">Loading...</div>}> */}
         <Routes>
           <Route
             path="/"
             element={
-              typeof window !== "undefined" && address && !localStorage.getItem("durchex_onboarding_completed") ? (
+              shouldRedirectToOnboarding() ? (
                 <Navigate to="/onboarding" replace />
               ) : (
                 <Hero />
@@ -65,7 +75,10 @@ export default function App() {
           />
           <Route path="/nft/:tokenId/:itemId/:price/:collection" element={<NftInfo />} />
           <Route path="/nft/:tokenId/:itemId/:price/" element={<NftInfo2 />} />
-          <Route path="/admin" element={<Admin />} />
+          {/* Admin Routes - Partner routes must come before general admin routes */}
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin/partner/*" element={<PartnerAdmin />} />
+          <Route path="/admin/*" element={<Admin />} />
           <Route path="/collection/:collection" element={<CollectionPage/>} />
           <Route path="/profile" element={<Profile />} />
           {/* FOOTER ROUTES SECTION */}

@@ -58,6 +58,7 @@ const Explore = () => {
   const { address } = useContext(ICOContent) || {};
   const [popularNFTs, setPopularNFTs] = useState([]);
   const [creators, setCreators] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [verificationRequest, setVerificationRequest] = useState({
     walletAddress: "",
@@ -71,31 +72,40 @@ const Explore = () => {
 
     // Initialize with mock data
   useEffect(() => {
-    const mockNFTs = generateMockNFTs(20);
-    setPopularNFTs(mockNFTs);
+    const initializeData = () => {
+      const mockNFTs = generateMockNFTs(20);
+      setPopularNFTs(mockNFTs);
 
-    // Load creators from localStorage or generate new ones
-    const savedCreators = localStorage.getItem("durchex_creators");
-    if (savedCreators) {
-      try {
-        const parsed = JSON.parse(savedCreators);
-        // Filter to show only gold verified users in top creators (trending)
-        const goldVerifiedCreators = parsed.filter(c => c.verificationType === 'gold');
-        setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : parsed);
-      } catch {
+      // Load creators from localStorage or generate new ones
+      const savedCreators = localStorage.getItem("durchex_creators");
+      if (savedCreators) {
+        try {
+          const parsed = JSON.parse(savedCreators);
+          // Filter to show only gold verified users in top creators (trending)
+          const goldVerifiedCreators = parsed.filter(c => c.verificationType === 'gold');
+          setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : parsed);
+        } catch {
+          const newCreators = generateMockCreators(8);
+          // Filter to show only gold verified users
+          const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
+          setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
+          localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
+        }
+      } else {
         const newCreators = generateMockCreators(8);
         // Filter to show only gold verified users
         const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
         setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
         localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
       }
-    } else {
-      const newCreators = generateMockCreators(8);
-      // Filter to show only gold verified users
-      const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
-      setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
-      localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
-    }
+      
+      // Mark as loaded after data is initialized
+      setIsLoading(false);
+    };
+
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(initializeData, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Listen for new NFT mints and remove a mock creator
@@ -195,6 +205,17 @@ const Explore = () => {
       toast.error("Failed to submit verification request");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading explore page...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -299,30 +320,44 @@ const Explore = () => {
                         }}
                       />
                       {creator.verificationType === 'gold' && (
-                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full p-1 border-2 border-gray-900">
-                          <FiCheck className="text-gray-900 text-xs font-bold" />
-                        </div>
+                        <span
+                          title="Gold verified"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-yellow-300 shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
+                          style={{
+                            background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)',
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
+                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          </svg>
+                        </span>
                       )}
                       {creator.verificationType === 'white' && (
-                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 border-2 border-gray-900">
-                          <FiCheck className="text-gray-900 text-xs font-bold" />
-                        </div>
+                        <span
+                          title="Verified"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
+                        >
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
+                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          </svg>
+                        </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
-                        {creator.verificationType === 'gold' && (
-                          <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-yellow-600 text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
-                            <FiCheck className="text-xs" />
-                            <span>Gold Verified</span>
-                          </div>
-                        )}
-                        {creator.verificationType === 'white' && (
-                          <div className="flex items-center gap-1 bg-white text-gray-900 px-1.5 py-0.5 rounded text-xs font-bold">
-                            <FiCheck className="text-xs" />
-                            <span>Verified</span>
-                          </div>
+                        {creator.verificationType && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-gray-700/60 bg-gray-800/60">
+                            <span
+                              className="inline-flex items-center justify-center w-4 h-4 rounded-full"
+                              style={creator.verificationType === 'gold' ? { background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)' } : { background: '#ffffff', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.15)' }}
+                            >
+                              <svg viewBox="0 0 24 24" className="w-2.5 h-2.5" aria-hidden="true">
+                                <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                              </svg>
+                            </span>
+                            <span className="text-gray-300">Verified</span>
+                          </span>
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>

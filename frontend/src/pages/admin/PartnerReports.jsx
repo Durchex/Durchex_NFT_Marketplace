@@ -1,151 +1,86 @@
-import React, { useState } from 'react';
-import { FiEye, FiLock, FiFileText, FiDownload, FiCalendar, FiFilter } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiDownload, FiFileText, FiRefreshCw } from 'react-icons/fi';
+import { adminAPI } from '../../services/adminAPI';
 
 const PartnerReports = () => {
-  const [selectedReport, setSelectedReport] = useState('');
-  const [dateRange, setDateRange] = useState('30');
+  const [availableReports, setAvailableReports] = useState([]);
+  const [selected, setSelected] = useState('sales');
+  const [report, setReport] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const reports = [
-    { id: 'user-growth', name: 'User Growth Report', description: 'Track user registration and activity over time', type: 'analytics' },
-    { id: 'nft-sales', name: 'NFT Sales Report', description: 'Comprehensive sales data and trends', type: 'sales' },
-    { id: 'revenue', name: 'Revenue Report', description: 'Platform revenue and fee collection', type: 'financial' },
-    { id: 'transactions', name: 'Transaction Report', description: 'All transaction history and analysis', type: 'transactions' },
-    { id: 'collections', name: 'Collections Report', description: 'Top performing collections and trends', type: 'collections' },
-  ];
-
-  const generatedReports = [
-    { id: 1, name: 'User Growth Report - January 2024', type: 'analytics', generatedAt: '2024-01-15 10:30:00', size: '2.3 MB', status: 'ready' },
-    { id: 2, name: 'NFT Sales Report - December 2023', type: 'sales', generatedAt: '2024-01-01 09:15:00', size: '5.7 MB', status: 'ready' },
-    { id: 3, name: 'Revenue Report - Q4 2023', type: 'financial', generatedAt: '2023-12-31 18:45:00', size: '1.8 MB', status: 'ready' },
-    { id: 4, name: 'Transaction Report - November 2023', type: 'transactions', generatedAt: '2023-12-01 14:20:00', size: '8.2 MB', status: 'ready' },
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'generating': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchReports = async () => {
+    try {
+      const res = await adminAPI.getReports();
+      setAvailableReports(res.reports || []);
+    } catch {
+      setAvailableReports([]);
     }
   };
 
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'analytics': return <FiFileText className="w-4 h-4 text-blue-500" />;
-      case 'sales': return <FiFileText className="w-4 h-4 text-green-500" />;
-      case 'financial': return <FiFileText className="w-4 h-4 text-purple-500" />;
-      case 'transactions': return <FiFileText className="w-4 h-4 text-orange-500" />;
-      case 'collections': return <FiFileText className="w-4 h-4 text-pink-500" />;
-      default: return <FiFileText className="w-4 h-4 text-gray-500" />;
+  useEffect(() => { fetchReports(); }, []);
+
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    setReport(null);
+    try {
+      const endDate = new Date().toISOString();
+      const startDate = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const res = await adminAPI.generateReport(selected, { startDate, endDate });
+      setReport(res);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 min-h-full">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-display font-bold text-gray-900">Reports</h2>
+    <div className="bg-white rounded-lg shadow-sm p-6 min-h-full">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-display font-bold text-gray-900">Reports (Read-only)</h2>
         <div className="flex items-center space-x-2 text-yellow-600">
-          <FiEye className="w-5 h-5" />
-          <span className="font-display text-sm">Read-only access</span>
+          <FiRefreshCw />
+          <button onClick={fetchReports} className="font-display text-sm">Refresh</button>
         </div>
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-yellow-800 font-display">
-          You can view and download existing reports but cannot generate new ones. Contact the main administrator for report generation.
-        </p>
-      </div>
-
-      {/* Report Generation (Disabled for Partners) */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-display font-semibold text-gray-900 mb-4">Generate New Report</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-display font-medium text-gray-700 mb-2">
-              Report Type
-            </label>
-            <select
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-display"
-            >
-              <option value="">Select report type...</option>
-              {reports.map(report => (
-                <option key={report.id} value={report.id}>
-                  {report.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-display font-medium text-gray-700 mb-2">
-              Date Range
-            </label>
-            <select
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 font-display"
-            >
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-              <option value="365">Last year</option>
-            </select>
-          </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {['sales','users','nfts'].map((t) => (
           <button
-            disabled
-            className="w-full bg-gray-300 text-gray-500 py-2 px-4 rounded-lg font-display cursor-not-allowed"
+            key={t}
+            onClick={() => setSelected(t)}
+            className={`p-4 rounded-lg border text-left ${selected===t? 'border-blue-500 bg-blue-50': 'border-gray-200 hover:border-gray-300'}`}
           >
-            Generate Report (Partner Access Restricted)
+            <div className="font-display font-medium text-gray-900 capitalize">{t}</div>
+            <div className="text-xs text-gray-500 font-display">Preview latest {t} data</div>
           </button>
-        </div>
+        ))}
       </div>
 
-      {/* Available Reports */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-display font-semibold text-gray-900 mb-4">Available Reports</h3>
-        <div className="space-y-4">
-          {generatedReports.map((report) => (
-            <div key={report.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {getTypeIcon(report.type)}
-                  <div>
-                    <h4 className="font-display font-medium text-gray-900">{report.name}</h4>
-                    <p className="text-sm text-gray-600 font-display">
-                      Generated: {report.generatedAt} • Size: {report.size}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(report.status)} font-display`}>
-                    {report.status}
-                  </span>
-                  <button className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-display text-sm">
-                    <FiDownload className="w-4 h-4" />
-                    <span>Download</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-center space-x-3 mb-4">
+        <button onClick={handleGenerate} disabled={isLoading} className="px-4 py-2 bg-gray-800 text-white rounded-lg font-display disabled:opacity-50">
+          {isLoading ? 'Generating...' : 'Generate Preview'}
+        </button>
+        {report && (
+          <button
+            onClick={() => {
+              const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = `${report.type}-preview.json`; a.click(); URL.revokeObjectURL(url);
+            }}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg font-display flex items-center space-x-2"
+          >
+            <FiDownload className="w-4 h-4" />
+            <span>Download Preview</span>
+          </button>
+        )}
       </div>
 
-      {/* Report Types Info */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-display font-semibold text-gray-900 mb-4">Report Types</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {reports.map((report) => (
-            <div key={report.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3 mb-2">
-                {getTypeIcon(report.type)}
-                <h4 className="font-display font-medium text-gray-900">{report.name}</h4>
-              </div>
-              <p className="text-sm text-gray-600 font-display">{report.description}</p>
-            </div>
-          ))}
-        </div>
+      <div className="bg-gray-50 rounded-lg p-4 overflow-x-auto">
+        {report ? (
+          <pre className="text-xs">{JSON.stringify(report, null, 2)}</pre>
+        ) : (
+          <div className="text-gray-500 font-display text-sm">No report generated yet.</div>
+        )}
       </div>
     </div>
   );
