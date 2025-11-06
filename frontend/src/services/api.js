@@ -1,8 +1,20 @@
 import axios from 'axios';
 
+// Compute base URL with a runtime fallback to the current origin in production
+const envBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+let resolvedBase = envBase;
+if (typeof window !== 'undefined') {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!isLocal && envBase.includes('localhost')) {
+    resolvedBase = `${window.location.origin}/api/v1`;
+    // eslint-disable-next-line no-console
+    console.warn('[API] Overriding localhost baseURL to', resolvedBase);
+  }
+}
+
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1',
+  baseURL: resolvedBase,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
