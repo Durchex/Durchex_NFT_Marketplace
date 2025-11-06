@@ -38,9 +38,9 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Main Content - 2 columns x 2 rows on mobile, 4 columns on desktop */}
-      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 lg:gap-12 relative z-10">
-        {/* Row 1, Column 1: Brand */}
+      {/* Main Content - 2 columns x 2 rows on mobile, 5 columns on desktop (brand, links, communities, contact, blockchains/payments) */}
+      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-12 relative z-10">
+        {/* Brand */}
         <div className="space-y-3 md:space-y-6">
           <div className="flex items-center space-x-2">
             <img
@@ -57,11 +57,10 @@ const Footer = () => {
           <p className="text-xs md:text-sm">© All rights reserved. 2025</p>
         </div>
 
-        {/* Row 1, Column 2: Quick Links */}
+        {/* Quick Links */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Quick Links</h3>
           <ul className="space-y-2 md:space-y-4">
-            {/* Quick links with tooltips */}
             {Object.keys(tooltipContent).map((linkName) => (
               <li key={linkName} className="relative">
                 <a
@@ -82,7 +81,7 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Row 2, Column 1: Communities & Contact */}
+        {/* Communities (mobile + desktop) */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Communities</h3>
           <div className="space-y-2 md:space-y-4 list-none mb-6">
@@ -138,10 +137,11 @@ const Footer = () => {
             </li>
           </div>
 
-          <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
+          {/* Contact support (mobile-only inside this column) */}
+          <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6 lg:hidden">
             Contact support
           </h3>
-          <div className="space-y-2 md:space-y-4">
+          <div className="space-y-2 md:space-y-4 lg:hidden">
             <div>
               <a className="hover:text-white transition-colors text-sm md:text-base">
                 <i className="fas fa-phone"></i> +15617227159
@@ -159,7 +159,28 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Row 2, Column 2: Blockchains & Payments Combined */}
+        {/* Contact support (desktop-only separate column) */}
+        <div className="hidden lg:block">
+          <h3 className="text-white text-lg font-medium mb-6">Contact support</h3>
+          <div className="space-y-4">
+            <div>
+              <a className="hover:text-white transition-colors text-base">
+                <i className="fas fa-phone"></i> +15617227159
+              </a>
+            </div>
+            <div>
+              <a
+                href="mailto:support@durchex.com"
+                className="hover:text-white transition-colors text-base"
+              >
+                <i className="fas fa-envelope pr-2"></i>
+                support@durchex.com
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Blockchains & Payments */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Supported Blockchains

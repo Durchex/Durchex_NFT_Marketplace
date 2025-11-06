@@ -478,23 +478,28 @@ function App() {
                       {creator.verificationType === 'gold' && (
                         <span
                           title="Gold verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-yellow-300 shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
-                          style={{
-                            background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)',
-                          }}
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
                         >
-                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
-                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                            <defs>
+                              <linearGradient id="goldGradHero" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#FFE27A" />
+                                <stop offset="100%" stopColor="#F7B500" />
+                              </linearGradient>
+                            </defs>
+                            <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" fill="url(#goldGradHero)" stroke="#E6B800" strokeWidth="1.25"/>
+                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </span>
                       )}
                       {creator.verificationType === 'white' && (
                         <span
                           title="Verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 shadow-[0_0_0_2px_rgba(0,0,0,0.6)]"
                         >
-                          <svg viewBox="0 0 24 24" className="w-3 h-3" aria-hidden="true">
-                            <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                          <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                            <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1.25"/>
+                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </span>
                       )}
@@ -504,12 +509,22 @@ function App() {
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
                         {creator.verificationType && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-gray-700/60 bg-gray-800/60">
-                            <span
-                              className="inline-flex items-center justify-center w-4 h-4 rounded-full"
-                              style={creator.verificationType === 'gold' ? { background: 'radial-gradient(circle at 30% 30%, #FFE27A, #F7B500)' } : { background: '#ffffff', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.15)' }}
-                            >
-                              <svg viewBox="0 0 24 24" className="w-2.5 h-2.5" aria-hidden="true">
-                                <path fill="#111" d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                            <span className="inline-flex items-center justify-center w-4 h-4">
+                              <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+                                {creator.verificationType === 'gold' ? (
+                                  <>
+                                    <defs>
+                                      <linearGradient id="goldGradInlineHero" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFE27A" />
+                                        <stop offset="100%" stopColor="#F7B500" />
+                                      </linearGradient>
+                                    </defs>
+                                    <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" fill="url(#goldGradInlineHero)" stroke="#E6B800" strokeWidth="1.25"/>
+                                  </>
+                                ) : (
+                                  <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1.25"/>
+                                )}
+                                <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </span>
                             <span className="text-gray-300">Verified</span>
