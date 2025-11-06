@@ -322,28 +322,38 @@ const Explore = () => {
                       {creator.verificationType === 'gold' && (
                         <span
                           title="Gold verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
                         >
-                          <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden="true">
                             <defs>
                               <linearGradient id="goldStar" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stopColor="#FFE27A" />
                                 <stop offset="100%" stopColor="#F7B500" />
                               </linearGradient>
+                              <filter id="soften" x="-10%" y="-10%" width="120%" height="120%">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="0.25" />
+                              </filter>
                             </defs>
-                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7" fill="url(#goldStar)" stroke="#E6B800" strokeWidth="1" />
-                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7"
+                              fill="url(#goldStar)" stroke="#E6B800" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#soften)" />
+                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </span>
                       )}
                       {creator.verificationType === 'white' && (
                         <span
                           title="Verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
                         >
-                          <svg viewBox="0 0 24 24" className="w-5 h-5" aria-hidden="true">
-                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7" fill="#ffffff" stroke="#E5E7EB" strokeWidth="1" />
-                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden="true">
+                            <defs>
+                              <filter id="softenW" x="-10%" y="-10%" width="120%" height="120%">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="0.25" />
+                              </filter>
+                            </defs>
+                            <polygon points="12,2 14,7 20,4 17,10 22,12 17,14 20,20 14,17 12,22 10,17 4,20 7,14 2,12 7,10 4,4 10,7"
+                              fill="#ffffff" stroke="#E5E7EB" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" filter="url(#softenW)" />
+                            <path d="M9 12.5l1.8 1.8 4.7-4.7" stroke="#111" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </span>
                       )}
