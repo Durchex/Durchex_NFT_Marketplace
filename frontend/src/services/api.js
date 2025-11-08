@@ -14,7 +14,7 @@ function getBaseURL() {
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
-    const origin = window.location.origin;
+    const port = window.location.port;
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
     
     // For local development, use localhost:3000
@@ -24,19 +24,16 @@ function getBaseURL() {
       return localUrl;
     }
     
-    // For production, try same origin first (for reverse proxy setups)
-    // This assumes nginx is proxying /api/ to the backend
-    if (origin && typeof origin === 'string' && origin.length > 0) {
-      const productionUrl = `${origin}/api/v1`;
-      console.log('[API] Using production URL (same origin):', productionUrl);
+    // For production, construct URL from protocol + hostname (without port)
+    // This ensures we use the same domain without port 3000
+    // Nginx will proxy /api/ to localhost:3000
+    if (hostname && protocol) {
+      // Always use protocol + hostname without port for production
+      // Standard ports (80/443) are implicit, non-standard ports should be removed
+      const productionUrl = `${protocol}//${hostname}/api/v1`;
+      console.log('[API] Using production URL (same domain, no port):', productionUrl);
+      console.log('[API] Original origin:', window.location.origin, 'port:', port);
       return productionUrl;
-    } else {
-      // Fallback: construct manually if origin is missing
-      if (hostname && protocol) {
-        const manualUrl = `${protocol}//${hostname}/api/v1`;
-        console.warn('[API] Origin missing, constructed URL manually:', manualUrl);
-        return manualUrl;
-      }
     }
   }
   
