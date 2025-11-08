@@ -5,7 +5,8 @@ function getBaseURL() {
   const envBase = import.meta.env.VITE_API_BASE_URL;
   
   // If env variable is set and looks valid, use it
-  if (envBase && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
+  if (envBase && typeof envBase === 'string' && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
+    console.log('[API] Using environment variable:', envBase);
     return envBase;
   }
   
@@ -18,27 +19,45 @@ function getBaseURL() {
     
     // For local development, use localhost:3000
     if (isLocal) {
-      return 'http://localhost:3000/api/v1';
+      const localUrl = 'http://localhost:3000/api/v1';
+      console.log('[API] Using local development URL:', localUrl);
+      return localUrl;
     }
     
     // For production, try same origin first (for reverse proxy setups)
     // This assumes nginx is proxying /api/ to the backend
-    if (origin) {
-      // First try: same origin (for reverse proxy like nginx)
-      // This is the most common production setup
-      return `${origin}/api/v1`;
+    if (origin && typeof origin === 'string' && origin.length > 0) {
+      const productionUrl = `${origin}/api/v1`;
+      console.log('[API] Using production URL (same origin):', productionUrl);
+      return productionUrl;
+    } else {
+      // Fallback: construct manually if origin is missing
+      if (hostname && protocol) {
+        const manualUrl = `${protocol}//${hostname}/api/v1`;
+        console.warn('[API] Origin missing, constructed URL manually:', manualUrl);
+        return manualUrl;
+      }
     }
   }
   
-  // Fallback
-  return 'http://localhost:3000/api/v1';
+  // Final fallback
+  const fallbackUrl = 'http://localhost:3000/api/v1';
+  console.warn('[API] Using fallback URL:', fallbackUrl);
+  return fallbackUrl;
 }
 
 const resolvedBase = getBaseURL();
 
+// Validate the resolved URL
+if (!resolvedBase || !resolvedBase.startsWith('http')) {
+  console.error('[API] Invalid base URL detected:', resolvedBase);
+  throw new Error(`Invalid API base URL: ${resolvedBase}. Please set VITE_API_BASE_URL environment variable.`);
+}
+
 // Log the resolved base URL for debugging
 if (typeof window !== 'undefined') {
-  console.log('[API] Base URL:', resolvedBase);
+  console.log('[API] Resolved Base URL:', resolvedBase);
+  console.log('[API] Full request example:', `${resolvedBase}/admin/stats`);
 }
 
 // Create axios instance with base configuration
@@ -53,7 +72,17 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    const fullUrl = config.baseURL ? `${config.baseURL}${config.url}` : config.url;
+    console.log(`API Request: ${config.method?.toUpperCase()} ${fullUrl}`);
+    console.log(`API Config - baseURL: ${config.baseURL}, url: ${config.url}`);
+    
+    // Validate URL before making request
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+      console.error('[API] Invalid request URL detected:', fullUrl);
+      console.error('[API] baseURL:', config.baseURL);
+      console.error('[API] url:', config.url);
+    }
+    
     return config;
   },
   (error) => {
