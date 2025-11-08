@@ -1,21 +1,54 @@
 import axios from 'axios';
 
-// Compute base URL with a runtime fallback to the current origin in production
-const envBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
-let resolvedBase = envBase;
-if (typeof window !== 'undefined') {
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (!isLocal && envBase.includes('localhost')) {
-    resolvedBase = `${window.location.origin}/api/v1`;
-    // eslint-disable-next-line no-console
-    console.warn('[API] Overriding localhost baseURL to', resolvedBase);
+// Helper function to validate and construct a proper base URL
+function getBaseURL() {
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  
+  // If env variable is set and looks valid, use it
+  if (envBase && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
+    return envBase;
   }
+  
+  // If we're in the browser, construct from current origin
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    // For local development, use localhost:3000
+    if (isLocal) {
+      return 'http://localhost:3000/api/v1';
+    }
+    
+    // For production, construct URL properly
+    // If frontend is on standard port (80/443), backend might be on 3000
+    // If frontend already has a port, use the same hostname with port 3000
+    if (hostname) {
+      // Default backend port is 3000
+      const backendPort = '3000';
+      const protocolPart = protocol === 'https:' ? 'https:' : 'http:';
+      
+      // Construct full URL with protocol, hostname, and port
+      return `${protocolPart}//${hostname}:${backendPort}/api/v1`;
+    }
+  }
+  
+  // Fallback
+  return 'http://localhost:3000/api/v1';
+}
+
+const resolvedBase = getBaseURL();
+
+// Log the resolved base URL for debugging
+if (typeof window !== 'undefined') {
+  console.log('[API] Base URL:', resolvedBase);
 }
 
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: resolvedBase,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for slow connections
   headers: {
     'Content-Type': 'application/json',
   },
