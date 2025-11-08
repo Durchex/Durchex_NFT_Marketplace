@@ -7,7 +7,7 @@ echo "=== Durchex Nginx Proxy Fix ==="
 echo ""
 
 # Find the nginx config file
-CONFIG_FILE="/home/durchex/htdocs/durchex.com/conf/nginx.conf"
+CONFIG_FILE="/home/durchex/htdocs/durchex.com/nginx.conf"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "❌ Config file not found at: $CONFIG_FILE"
