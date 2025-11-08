@@ -13,7 +13,7 @@ function getBaseURL() {
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
-    const port = window.location.port;
+    const origin = window.location.origin;
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
     
     // For local development, use localhost:3000
@@ -21,16 +21,12 @@ function getBaseURL() {
       return 'http://localhost:3000/api/v1';
     }
     
-    // For production, construct URL properly
-    // If frontend is on standard port (80/443), backend might be on 3000
-    // If frontend already has a port, use the same hostname with port 3000
-    if (hostname) {
-      // Default backend port is 3000
-      const backendPort = '3000';
-      const protocolPart = protocol === 'https:' ? 'https:' : 'http:';
-      
-      // Construct full URL with protocol, hostname, and port
-      return `${protocolPart}//${hostname}:${backendPort}/api/v1`;
+    // For production, try same origin first (for reverse proxy setups)
+    // This assumes nginx is proxying /api/ to the backend
+    if (origin) {
+      // First try: same origin (for reverse proxy like nginx)
+      // This is the most common production setup
+      return `${origin}/api/v1`;
     }
   }
   
