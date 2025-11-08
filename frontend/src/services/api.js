@@ -1,13 +1,29 @@
 import axios from 'axios';
 
+// Helper function to normalize URL by removing non-standard ports
+function normalizeURL(url) {
+  if (!url || typeof url !== 'string') return url;
+  
+  // Remove port 3000 from production URLs (not accessible from browser)
+  // Keep localhost:3000 for development
+  if (url.includes(':3000') && !url.includes('localhost')) {
+    const normalized = url.replace(':3000', '');
+    console.log('[API] Normalized URL (removed port 3000):', url, '→', normalized);
+    return normalized;
+  }
+  
+  return url;
+}
+
 // Helper function to validate and construct a proper base URL
 function getBaseURL() {
   const envBase = import.meta.env.VITE_API_BASE_URL;
   
-  // If env variable is set and looks valid, use it
+  // If env variable is set and looks valid, normalize it (remove port 3000 if present)
   if (envBase && typeof envBase === 'string' && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
-    console.log('[API] Using environment variable:', envBase);
-    return envBase;
+    const normalized = normalizeURL(envBase);
+    console.log('[API] Using environment variable:', normalized, '(original:', envBase, ')');
+    return normalized;
   }
   
   // If we're in the browser, construct from current origin
