@@ -685,6 +685,7 @@ const EnhancedWalletConnect = () => {
               </div>
             </div>
           </div>
+          </div>
 
           {/* Desktop anchored popover */}
           <div className="hidden md:block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl" style={{ zIndex: 99999 }} onClick={(e) => e.stopPropagation()}>
