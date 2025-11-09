@@ -744,7 +744,7 @@ const EnhancedWalletConnect = () => {
                     <FiExternalLink className="w-4 h-4" />
                     <span className="font-display">View on Explorer</span>
                   </button>
-                  <button onClick={() => { window.location.href = '/user-profile'; }} className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700">
+                  <button onClick={() => { window.location.href = '/profile'; }} className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700">
                     <FiSettings className="w-4 h-4" />
                     <span className="font-display">Profile Settings</span>
                   </button>
