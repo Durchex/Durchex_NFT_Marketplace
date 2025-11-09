@@ -350,6 +350,10 @@ function App() {
             {allNfts?.map((item, index) => {
               // Get creator/owner address for profile link
               const creatorAddress = item.owner || item.seller || item.creator;
+              // Find creator in creators array to get verification status
+              const creator = creators.find(c => 
+                c.walletAddress?.toLowerCase() === creatorAddress?.toLowerCase()
+              );
               // Generate avatar from address or use default
               const avatarUrl = creatorAddress 
                 ? `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`
@@ -378,8 +382,37 @@ function App() {
                             }}
                           />
                         </div>
-                        {/* Online status indicator */}
-                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                        {/* Verification Badge */}
+                        {creator?.verificationType === 'gold' && (
+                          <span
+                            title="Gold verified"
+                            className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                          >
+                            <img
+                              src="https://imgur.com/5cAUe81.png"
+                              alt="Gold Verified"
+                              className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                            />
+                          </span>
+                        )}
+                        {creator?.verificationType === 'white' && (
+                          <span
+                            title="Verified"
+                            className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                          >
+                            <img
+                              src="https://imgur.com/pa1Y2LB.png"
+                              alt="Verified"
+                              className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                            />
+                          </span>
+                        )}
+                        {/* Online status indicator - only show if no verification badge */}
+                        {!creator?.verificationType && (
+                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                        )}
                       </div>
                     </Link>
                   )}

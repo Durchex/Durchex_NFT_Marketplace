@@ -662,7 +662,7 @@ const EnhancedWalletConnect = () => {
                 </button>
                 <button
                   onClick={() => {
-                    window.location.href = '/user-profile';
+                    window.location.href = '/profile';
                   }}
                   className="w-full flex items-center space-x-4 px-4 py-4 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors duration-200 border border-gray-700"
                 >
