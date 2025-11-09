@@ -21,7 +21,8 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiLock,
-  FiCode
+  FiCode,
+  FiUserPlus
 } from 'react-icons/fi';
 import { useAdmin } from '../Context/AdminContext';
 
