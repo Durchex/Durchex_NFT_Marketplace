@@ -17,7 +17,7 @@ function normalizeURL(url) {
 
 // Helper function to validate and construct a proper base URL
 function getBaseURL() {
-  const envBase = import.meta.env.VITE_API_BASE_URL;
+  const envBase = import.meta.env.VITE_API_BASE_URL || 'https://durchex.com/api/v1';
   
   // If env variable is set and looks valid, normalize it (remove port 3000 if present)
   if (envBase && typeof envBase === 'string' && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
@@ -54,7 +54,7 @@ function getBaseURL() {
   }
   
   // Final fallback
-  const fallbackUrl = 'http://localhost:3000/api/v1';
+  const fallbackUrl = 'https://durchex.com/api/v1';
   console.warn('[API] Using fallback URL:', fallbackUrl);
   return fallbackUrl;
 }
