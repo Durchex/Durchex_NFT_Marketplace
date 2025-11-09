@@ -12,6 +12,7 @@ CONFIG_FILE="/home/durchex/htdocs/durchex.com/nginx.conf"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "❌ Config file not found at: $CONFIG_FILE"
     echo "Searching for nginx.conf files..."
+    find /home/durchex -name "nginx.conf" -type f 2>/dev/null | head -5
     find /home/cloudpanel -name "nginx.conf" -type f 2>/dev/null | head -5
     echo ""
     echo "Please update CONFIG_FILE variable in this script with the correct path"
@@ -39,9 +40,15 @@ if grep -q "location /api/" "$CONFIG_FILE"; then
     cp "$CONFIG_FILE" "$BACKUP_FILE"
     echo "✅ Created backup: $BACKUP_FILE"
     
-    # Fix the proxy_pass
+    # Fix the proxy_pass - handle various formats
+    # Replace proxy_pass http://localhost:3000; (with semicolon)
     sed -i 's|proxy_pass http://localhost:3000;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    # Replace proxy_pass http://localhost:3000 (without semicolon, end of line)
     sed -i 's|proxy_pass http://localhost:3000$|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    # Replace proxy_pass http://127.0.0.1:3000; (alternative localhost format)
+    sed -i 's|proxy_pass http://127.0.0.1:3000;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    # Handle cases where /api/ is already partially there but wrong
+    sed -i 's|proxy_pass http://localhost:3000/api;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
     
     echo "✅ Updated proxy_pass to: proxy_pass http://localhost:3000/api/;"
     
