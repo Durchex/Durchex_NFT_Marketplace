@@ -53,10 +53,12 @@ elif [ "$ADMIN_STATUS" = "404" ]; then
     
     # Find backend directory
     BACKEND_DIR=""
-    if [ -d "/home/durchex/htdocs/durchex.com/backend" ]; then
+    if [ -d "/home/durchex/htdocs/durchex.com/backend_temp" ]; then
+        BACKEND_DIR="/home/durchex/htdocs/durchex.com/backend_temp"
+    elif [ -d "/home/durchex/htdocs/durchex.com/backend" ]; then
         BACKEND_DIR="/home/durchex/htdocs/durchex.com/backend"
-    elif [ -d "/home/durchex/backend" ]; then
-        BACKEND_DIR="/home/durchex/backend"
+    elif [ -d "/home/durchex/backend_temp" ]; then
+        BACKEND_DIR="/home/durchex/backend_temp"
     else
         echo "   ⚠️  Could not find backend directory"
         echo "   Please check: ls -la /home/durchex/"

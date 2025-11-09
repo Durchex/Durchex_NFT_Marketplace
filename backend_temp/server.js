@@ -21,6 +21,7 @@ const io = new Server(server, {
 import userRouter from "./routes/userRouter.js"; 
 import cartRouter from "./routes/cartRouter.js";
 import nftRouter from "./routes/nftRouter.js";
+import adminRouter from "./routes/adminRouter.js";
 
 // connect db
 connectDB();
@@ -83,6 +84,7 @@ app.get('/', (req, res) => {
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/nft', nftRouter);
+app.use('/api/v1/admin', adminRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>
