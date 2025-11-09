@@ -56,15 +56,42 @@ export default function App() {
               )
             }
           />
-          <Route path="/mynfts" element={<MyNfts />} />
-          <Route path="/studio" element={<Studio />} />
+          <Route
+            path="/mynfts"
+            element={
+              shouldRedirectToOnboarding() ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <MyNfts />
+              )
+            }
+          />
+          <Route
+            path="/studio"
+            element={
+              shouldRedirectToOnboarding() ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <Studio />
+              )
+            }
+          />
           <Route path="/create" element={<Create />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/multiplemint" element={<MultipleMint />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/listnft" element={<ListNft />} />
-          <Route path="/explore" element={<Explore />} />
+          <Route
+            path="/explore"
+            element={
+              shouldRedirectToOnboarding() ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <Explore />
+              )
+            }
+          />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/welcome" element={<Welcome />} />
 

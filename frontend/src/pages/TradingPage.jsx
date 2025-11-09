@@ -160,6 +160,34 @@ const TradingPage = () => {
       marketCap: 18000000,
       isNew: true
     },
+    // Tezos tokens
+    { 
+      symbol: 'XTZ', 
+      name: 'Tezos', 
+      network: 'Tezos',
+      chainId: 1729,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0MDQwNDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0iIzAwQzVGRiIvPgo8L3N2Zz4K',
+      price: 0.95,
+      change24h: 2.10,
+      volume24h: 85000000,
+      liquidity: 250000000,
+      marketCap: 850000000,
+      isNew: false
+    },
+    // Hyperliquid tokens
+    { 
+      symbol: 'HL', 
+      name: 'Hyperliquid', 
+      network: 'Hyperliquid',
+      chainId: 421614,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEZGNzciLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 12.50,
+      change24h: 5.80,
+      volume24h: 45000000,
+      liquidity: 180000000,
+      marketCap: 320000000,
+      isNew: false
+    },
   ];
 
   // Filter tokens by network

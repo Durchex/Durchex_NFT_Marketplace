@@ -27,7 +27,10 @@ export default function Onboarding() {
   const [isNavigating, setIsNavigating] = useState(false);
 
   // Redirect away if onboarding is already completed
+  // Only redirect if we're not currently navigating (to prevent redirect loop)
   useEffect(() => {
+    if (isNavigating) return; // Don't redirect while navigating
+    
     const completed = localStorage.getItem("durchex_onboarding_completed");
     if (completed === "true") {
       // If already completed, redirect based on saved role or default to explore
@@ -35,7 +38,7 @@ export default function Onboarding() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed.role === "creator") {
+          if (parsed.role === "creator" || parsed.role === "both") {
             navigate("/studio", { replace: true });
           } else if (parsed.role === "collector") {
             navigate("/explore", { replace: true });
@@ -49,7 +52,7 @@ export default function Onboarding() {
         navigate("/", { replace: true });
       }
     }
-  }, [navigate]);
+  }, [navigate, isNavigating]);
 
   useEffect(() => {
     const saved = localStorage.getItem("durchex_onboarding");
@@ -100,9 +103,12 @@ export default function Onboarding() {
 
   const finish = () => {
     // Save onboarding data first - ensure it's written synchronously
+    // Use synchronous localStorage operations to prevent race conditions
     try {
       localStorage.setItem("durchex_onboarding_completed", "true");
       localStorage.setItem("durchex_onboarding", JSON.stringify(data));
+      // Force a synchronous flush by reading it back
+      localStorage.getItem("durchex_onboarding_completed");
     } catch (error) {
       console.error("Failed to save onboarding data:", error);
     }
@@ -118,13 +124,13 @@ export default function Onboarding() {
       targetRoute = "/explore";
     }
     
-    // Use requestAnimationFrame to ensure DOM updates are processed
-    // Then navigate after a brief delay to allow React state to update
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        navigate(targetRoute, { replace: true });
-      }, 200);
-    });
+    // Navigate immediately with replace to prevent back navigation
+    // Use a small delay to ensure localStorage is fully written
+    setTimeout(() => {
+      navigate(targetRoute, { replace: true });
+      // Reset navigating state after navigation
+      setTimeout(() => setIsNavigating(false), 100);
+    }, 100);
   };
 
   const toggleArray = (key, value) => {
@@ -244,7 +250,7 @@ export default function Onboarding() {
           <div className="mb-4">
             <div className="font-display mb-2">Preferred chains</div>
             <div className="flex flex-wrap gap-2">
-              {["Polygon", "Ethereum", "Base", "BNB", "Arbitrum"].map((chain) => (
+              {["Polygon", "Ethereum", "BSC", "Arbitrum", "Tezos", "Hyperliquid"].map((chain) => (
                 <button
                   key={chain}
                   onClick={() => toggleArray("chains", chain)}
