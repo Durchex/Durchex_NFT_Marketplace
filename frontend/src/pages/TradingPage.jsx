@@ -1,135 +1,188 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import TokenTradingChart from '../components/TokenTradingChart';
-import AdvancedTradingInterface from '../components/AdvancedTradingInterface';
 import Header from '../components/Header';
-import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiStar, FiActivity, FiBarChart, FiArrowLeft, FiSearch } from 'react-icons/fi';
+import { useNetwork } from '../Context/NetworkContext';
+import { ICOContent } from '../Context';
+import { 
+  FiTrendingUp, 
+  FiTrendingDown, 
+  FiRefreshCw, 
+  FiStar, 
+  FiSearch,
+  FiArrowUpRight,
+  FiFilter,
+  FiX
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const TradingPage = () => {
-  const [activeView, setActiveView] = useState('basic');
-  const [marketData, setMarketData] = useState({});
-  const [watchlist, setWatchlist] = useState(['ETH', 'MATIC', 'BNB']);
-  const [loading, setLoading] = useState(true);
-  const [selectedMarket, setSelectedMarket] = useState(null); // null means show markets list
+  const { networks, selectedNetwork, switchNetwork } = useNetwork();
+  const { address } = useContext(ICOContent);
+  const [selectedToken, setSelectedToken] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedNetworkFilter, setSelectedNetworkFilter] = useState('all');
+  const [watchlist, setWatchlist] = useState(['ETH', 'MATIC', 'BNB', 'USDT', 'USDC']);
 
-  // Define all available markets
-  const markets = [
+  // Define tokens/projects for each supported network
+  const allTokens = [
+    // Ethereum tokens
     { 
-      pair: 'ETH/USDT', 
-      base: 'ETH', 
-      quote: 'USDT',
-      name: 'Ethereum / Tether',
+      symbol: 'ETH', 
+      name: 'Ethereum', 
+      network: 'Ethereum',
+      chainId: 1,
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
       price: 2450.50,
       change24h: 2.45,
       volume24h: 1250000000,
-      high24h: 2480.00,
-      low24h: 2410.00
+      liquidity: 4500000000,
+      marketCap: 295000000000,
+      isNew: false
     },
     { 
-      pair: 'MATIC/USDT', 
-      base: 'MATIC', 
-      quote: 'USDT',
-      name: 'Polygon / Tether',
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
-      price: 0.85,
-      change24h: -1.23,
-      volume24h: 450000000,
-      high24h: 0.88,
-      low24h: 0.83
-    },
-    { 
-      pair: 'BNB/USDT', 
-      base: 'BNB', 
-      quote: 'USDT',
-      name: 'Binance Coin / Tether',
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
-      price: 315.20,
-      change24h: 3.12,
-      volume24h: 890000000,
-      high24h: 318.50,
-      low24h: 310.00
-    },
-    { 
-      pair: 'ETH/USDC', 
-      base: 'ETH', 
-      quote: 'USDC',
-      name: 'Ethereum / USD Coin',
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
-      price: 2451.00,
-      change24h: 2.50,
-      volume24h: 980000000,
-      high24h: 2481.00,
-      low24h: 2411.00
-    },
-    { 
-      pair: 'MATIC/USDC', 
-      base: 'MATIC', 
-      quote: 'USDC',
-      name: 'Polygon / USD Coin',
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
-      price: 0.85,
-      change24h: -1.15,
-      volume24h: 320000000,
-      high24h: 0.87,
-      low24h: 0.84
-    },
-    { 
-      pair: 'BNB/USDC', 
-      base: 'BNB', 
-      quote: 'USDC',
-      name: 'Binance Coin / USD Coin',
-      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
-      price: 315.30,
-      change24h: 3.20,
-      volume24h: 650000000,
-      high24h: 318.60,
-      low24h: 310.10
-    },
-    { 
-      pair: 'USDT/USDC', 
-      base: 'USDT', 
-      quote: 'USDC',
-      name: 'Tether / USD Coin',
+      symbol: 'USDT', 
+      name: 'Tether USD', 
+      network: 'Ethereum',
+      chainId: 1,
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
       price: 1.00,
       change24h: 0.01,
       volume24h: 2500000000,
-      high24h: 1.001,
-      low24h: 0.999
+      liquidity: 80000000000,
+      marketCap: 95000000000,
+      isNew: false
+    },
+    { 
+      symbol: 'USDC', 
+      name: 'USD Coin', 
+      network: 'Ethereum',
+      chainId: 1,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 1.00,
+      change24h: 0.00,
+      volume24h: 1800000000,
+      liquidity: 25000000000,
+      marketCap: 28000000000,
+      isNew: false
+    },
+    // Polygon tokens
+    { 
+      symbol: 'MATIC', 
+      name: 'Polygon', 
+      network: 'Polygon',
+      chainId: 137,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 0.85,
+      change24h: -1.23,
+      volume24h: 450000000,
+      liquidity: 1200000000,
+      marketCap: 8500000000,
+      isNew: false
+    },
+    { 
+      symbol: 'POL', 
+      name: 'Polygon Ecosystem Token', 
+      network: 'Polygon',
+      chainId: 137,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 0.85,
+      change24h: 1.50,
+      volume24h: 120000000,
+      liquidity: 350000000,
+      marketCap: 8500000000,
+      isNew: true
+    },
+    // BSC tokens
+    { 
+      symbol: 'BNB', 
+      name: 'Binance Coin', 
+      network: 'BSC',
+      chainId: 56,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 315.20,
+      change24h: 3.12,
+      volume24h: 890000000,
+      liquidity: 4500000000,
+      marketCap: 48000000000,
+      isNew: false
+    },
+    // Arbitrum tokens
+    { 
+      symbol: 'ARB', 
+      name: 'Arbitrum', 
+      network: 'Arbitrum',
+      chainId: 42161,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyQzJEMzAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0iIzAwQzVGRiIvPgo8L3N2Zz4K',
+      price: 1.25,
+      change24h: 4.50,
+      volume24h: 320000000,
+      liquidity: 850000000,
+      marketCap: 1500000000,
+      isNew: false
+    },
+    // New projects (latest)
+    { 
+      symbol: 'DURCH', 
+      name: 'Durchex Token', 
+      network: 'Ethereum',
+      chainId: 1,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MTQ5RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 0.025,
+      change24h: 12.50,
+      volume24h: 15000000,
+      liquidity: 50000000,
+      marketCap: 25000000,
+      isNew: true
+    },
+    { 
+      symbol: 'DEX', 
+      name: 'DEX Protocol', 
+      network: 'Polygon',
+      chainId: 137,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 0.15,
+      change24h: 8.30,
+      volume24h: 8500000,
+      liquidity: 25000000,
+      marketCap: 12000000,
+      isNew: true
+    },
+    { 
+      symbol: 'SWAP', 
+      name: 'Swap Token', 
+      network: 'BSC',
+      chainId: 56,
+      icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==',
+      price: 0.08,
+      change24h: 15.20,
+      volume24h: 12000000,
+      liquidity: 35000000,
+      marketCap: 18000000,
+      isNew: true
     },
   ];
 
-  const tokens = [
-    { symbol: 'ETH', name: 'Ethereum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
-    { symbol: 'MATIC', name: 'Polygon', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==' },
-    { symbol: 'BNB', name: 'Binance Coin', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==' },
-    { symbol: 'USDT', name: 'Tether', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==' },
-    { symbol: 'USDC', name: 'USD Coin', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==' },
-  ];
+  // Filter tokens by network
+  const filteredTokens = allTokens.filter(token => {
+    const matchesNetwork = selectedNetworkFilter === 'all' || token.network === selectedNetworkFilter;
+    const matchesSearch = searchQuery === '' || 
+      token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      token.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesNetwork && matchesSearch;
+  });
 
-  useEffect(() => {
-    const loadMarketData = async () => {
-      setLoading(true);
-      try {
-        // TODO: Replace with real API call to CoinGecko, CoinMarketCap, or Binance API
-        // For now, we'll show empty state until real API is implemented
-        setMarketData({});
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading market data:', error);
-        setMarketData({});
-        setLoading(false);
-      }
-    };
+  // Get latest projects (new tokens)
+  const latestProjects = allTokens.filter(token => token.isNew).slice(0, 6);
 
-    loadMarketData();
-    
-    // Refresh data every 30 seconds
-    const interval = setInterval(loadMarketData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  // Get supported networks for filter
+  const supportedNetworks = ['all', ...Array.from(new Set(allTokens.map(t => t.network)))];
+
+  const formatNumber = (num) => {
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    return num.toFixed(2);
+  };
 
   const toggleWatchlist = (symbol) => {
     setWatchlist(prev => 
@@ -140,348 +193,365 @@ const TradingPage = () => {
     toast.success(`${symbol} ${watchlist.includes(symbol) ? 'removed from' : 'added to'} watchlist`);
   };
 
-  const formatNumber = (num) => {
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return num.toFixed(2);
-  };
+  // Create market object for selected token
+  const selectedMarket = selectedToken ? {
+    pair: `${selectedToken.symbol}/USDT`,
+    base: selectedToken.symbol,
+    quote: 'USDT',
+    name: `${selectedToken.name} / Tether`,
+    icon: selectedToken.icon,
+    price: selectedToken.price,
+    change24h: selectedToken.change24h,
+    volume24h: selectedToken.volume24h,
+    high24h: selectedToken.price * 1.02,
+    low24h: selectedToken.price * 0.98
+  } : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
-      {/* Global Header */}
       <Header />
 
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Market Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm text-gray-400">Total Market Cap</p>
-                <p className="font-display text-xl font-bold">$2.1T</p>
-              </div>
-              <FiBarChart className="w-8 h-8 text-blue-400" />
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
+        {/* Latest Projects Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
+                Latest Projects
+              </h2>
+              <p className="text-gray-400 text-sm">New tokens on supported networks</p>
             </div>
-            <div className="flex items-center space-x-1 mt-2">
-              <FiTrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400 font-display">+2.5%</span>
-            </div>
+            <button className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm font-medium">
+              View All
+              <FiArrowUpRight className="w-4 h-4" />
+            </button>
           </div>
-          
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm text-gray-400">24h Volume</p>
-                <p className="font-display text-xl font-bold">$45.2B</p>
-              </div>
-              <FiActivity className="w-8 h-8 text-purple-400" />
-            </div>
-            <div className="flex items-center space-x-1 mt-2">
-              <FiTrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400 font-display">+8.3%</span>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm text-gray-400">Active Traders</p>
-                <p className="font-display text-xl font-bold">1.2M</p>
-              </div>
-              <FiRefreshCw className="w-8 h-8 text-green-400" />
-            </div>
-            <div className="flex items-center space-x-1 mt-2">
-              <FiTrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400 font-display">+12.1%</span>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm text-gray-400">BTC Dominance</p>
-                <p className="font-display text-xl font-bold">42.3%</p>
-              </div>
-              <FiTrendingDown className="w-8 h-8 text-red-400" />
-            </div>
-            <div className="flex items-center space-x-1 mt-2">
-              <FiTrendingDown className="w-4 h-4 text-red-400" />
-              <span className="text-sm text-red-400 font-display">-1.2%</span>
-            </div>
+
+          {/* Latest Projects Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {latestProjects.map((token, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedToken(token)}
+                className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:border-purple-500 transition-all text-left group hover:scale-105"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="relative">
+                    <img 
+                      src={token.icon} 
+                      alt={token.symbol}
+                      className="w-10 h-10 rounded-full"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    {token.isNew && (
+                      <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                        NEW
+                      </span>
+                    )}
+                  </div>
+                  <FiStar 
+                    className={`w-4 h-4 transition-colors ${
+                      watchlist.includes(token.symbol) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600 group-hover:text-yellow-400'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWatchlist(token.symbol);
+                    }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-white text-sm">{token.symbol}</h3>
+                  <p className="text-xs text-gray-400 truncate">{token.name}</p>
+                </div>
+                <div className="mt-2">
+                  <div className="text-xs text-gray-400">Network</div>
+                  <div className="text-xs text-purple-400 font-medium">{token.network}</div>
+                </div>
+                <div className="mt-2 flex items-center gap-1">
+                  <span className={`text-xs font-semibold ${
+                    token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Markets List View - Show when no market is selected */}
-        {!selectedMarket ? (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
-                  Trading Markets
-                </h1>
-                <p className="text-gray-400">Select a market to view charts and start trading</p>
+        {/* Main Trading Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Sidebar - Token List */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Search and Filter */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
+              <div className="relative mb-4">
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search tokens..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                />
+              </div>
+              
+              {/* Network Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <FiFilter className="w-4 h-4 text-gray-400" />
+                {supportedNetworks.map((network) => (
+                  <button
+                    key={network}
+                    onClick={() => setSelectedNetworkFilter(network)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      selectedNetworkFilter === network
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {network === 'all' ? 'All' : network}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-              <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search markets (e.g., ETH, MATIC, BNB)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-              />
-            </div>
-
-            {/* Markets Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {markets
-                .filter(market => 
-                  market.pair.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  market.base.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  market.quote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  market.name.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-                .map((market) => (
-                  <button
-                    key={market.pair}
-                    onClick={() => setSelectedMarket(market)}
-                    className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50 hover:border-purple-500 transition-all text-left group hover:scale-105"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={market.icon} 
-                          alt={market.base}
-                          className="w-10 h-10 rounded-full"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                        <div>
-                          <h3 className="font-display font-bold text-lg text-white">{market.pair}</h3>
-                          <p className="text-sm text-gray-400">{market.name}</p>
+            {/* Token List */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/50 overflow-hidden">
+              <div className="p-4 border-b border-gray-700/50">
+                <h3 className="font-display font-bold text-lg">All Tokens</h3>
+                <p className="text-xs text-gray-400">Supported networks only</p>
+              </div>
+              <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+                {filteredTokens.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400">
+                    <p>No tokens found</p>
+                  </div>
+                ) : (
+                  filteredTokens.map((token, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedToken(token)}
+                      className={`w-full p-4 border-b border-gray-700/30 hover:bg-gray-700/30 transition-colors text-left ${
+                        selectedToken?.symbol === token.symbol ? 'bg-purple-600/20 border-l-4 border-purple-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={token.icon} 
+                            alt={token.symbol}
+                            className="w-8 h-8 rounded-full"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-display font-semibold text-white">{token.symbol}</span>
+                              {token.isNew && (
+                                <span className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400">{token.name}</div>
+                            <div className="text-xs text-purple-400 mt-0.5">{token.network}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-display font-semibold text-white">${token.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</div>
+                          <div className={`text-xs flex items-center justify-end gap-1 ${
+                            token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {token.change24h >= 0 ? <FiTrendingUp className="w-3 h-3" /> : <FiTrendingDown className="w-3 h-3" />}
+                            {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                          </div>
                         </div>
                       </div>
-                      <FiStar 
-                        className={`w-5 h-5 transition-colors ${
-                          watchlist.includes(market.base) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600 group-hover:text-yellow-400'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWatchlist(market.base);
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Center - Swap Interface */}
+          <div className="lg:col-span-2">
+            {selectedToken ? (
+              <div className="space-y-6">
+                {/* Token Header */}
+                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <img 
+                        src={selectedToken.icon} 
+                        alt={selectedToken.symbol}
+                        className="w-12 h-12 rounded-full"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
                         }}
                       />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400 text-sm">Price</span>
-                        <span className="font-display font-semibold text-white">${market.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400 text-sm">24h Change</span>
-                        <span className={`font-display font-semibold flex items-center gap-1 ${
-                          market.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {market.change24h >= 0 ? <FiTrendingUp /> : <FiTrendingDown />}
-                          {market.change24h >= 0 ? '+' : ''}{market.change24h.toFixed(2)}%
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-400 text-sm">24h Volume</span>
-                        <span className="font-display text-sm text-gray-300">${formatNumber(market.volume24h)}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>24h High: ${market.high24h.toLocaleString()}</span>
-                        <span>24h Low: ${market.low24h.toLocaleString()}</span>
+                      <div>
+                        <h2 className="font-display font-bold text-2xl text-white">{selectedToken.symbol}</h2>
+                        <p className="text-gray-400">{selectedToken.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs bg-purple-600/20 text-purple-400 px-2 py-1 rounded">
+                            {selectedToken.network}
+                          </span>
+                          {selectedToken.isNew && (
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-bold">
+                              NEW PROJECT
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </button>
-                ))}
-            </div>
+                    <button
+                      onClick={() => setSelectedToken(null)}
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <FiX className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </div>
+                  
+                  {/* Price Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-700/50">
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Price</div>
+                      <div className="font-display font-semibold text-white">
+                        ${selectedToken.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">24h Change</div>
+                      <div className={`font-display font-semibold flex items-center gap-1 ${
+                        selectedToken.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {selectedToken.change24h >= 0 ? <FiTrendingUp /> : <FiTrendingDown />}
+                        {selectedToken.change24h >= 0 ? '+' : ''}{selectedToken.change24h.toFixed(2)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">24h Volume</div>
+                      <div className="font-display font-semibold text-white">
+                        ${formatNumber(selectedToken.volume24h)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Liquidity</div>
+                      <div className="font-display font-semibold text-white">
+                        ${formatNumber(selectedToken.liquidity)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            {markets.filter(market => 
-              market.pair.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              market.base.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              market.quote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              market.name.toLowerCase().includes(searchQuery.toLowerCase())
-            ).length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-400">No markets found matching "{searchQuery}"</p>
+                {/* Swap Interface */}
+                <TokenTradingChart selectedMarket={selectedMarket} />
+              </div>
+            ) : (
+              <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-12 border border-gray-700/50 text-center">
+                <div className="max-w-md mx-auto">
+                  <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiArrowUpRight className="w-10 h-10 text-purple-400" />
+                  </div>
+                  <h3 className="font-display font-bold text-xl mb-2">Select a Token to Swap</h3>
+                  <p className="text-gray-400 text-sm mb-6">
+                    Choose a token from the list to view its chart and start swapping
+                  </p>
+                  <div className="text-xs text-gray-500">
+                    <p>Supported Networks: {networks.map(n => n.name).join(', ')}</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-        ) : (
-          /* Chart and Swap View - Show when market is selected */
-          <>
-            {/* Back Button and Market Info */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setSelectedMarket(null)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
-                >
-                  <FiArrowLeft />
-                  <span>Back to Markets</span>
-                </button>
-                
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={selectedMarket.icon} 
-                    alt={selectedMarket.base}
-                    className="w-8 h-8 rounded-full"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                  <div>
-                    <h2 className="font-display font-bold text-xl">{selectedMarket.pair}</h2>
-                    <p className="text-sm text-gray-400">{selectedMarket.name}</p>
-                  </div>
-                  <div className="ml-4 px-3 py-1 rounded-lg bg-gray-800/50 border border-gray-700">
-                    <span className={`font-display font-semibold flex items-center gap-1 ${
-                      selectedMarket.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {selectedMarket.change24h >= 0 ? <FiTrendingUp /> : <FiTrendingDown />}
-                      {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              {/* View Toggle */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setActiveView('basic')}
-                  className={`px-4 py-2 rounded-lg font-display transition-colors ${
-                    activeView === 'basic'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  Basic Trading
-                </button>
-                <button
-                  onClick={() => setActiveView('advanced')}
-                  className={`px-4 py-2 rounded-lg font-display transition-colors ${
-                    activeView === 'advanced'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  Advanced Trading
-                </button>
+          {/* Right Sidebar - Market Stats */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Market Overview */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
+              <h3 className="font-display font-bold text-lg mb-4">Market Overview</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Total Market Cap</span>
+                  <span className="font-display font-semibold">$2.1T</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">24h Volume</span>
+                  <span className="font-display font-semibold">$45.2B</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Active Pairs</span>
+                  <span className="font-display font-semibold">{filteredTokens.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">Supported Networks</span>
+                  <span className="font-display font-semibold">{networks.length}</span>
+                </div>
               </div>
             </div>
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Trading Interface */}
-              <div className="lg:col-span-3">
-                {activeView === 'basic' ? (
-                  <TokenTradingChart selectedMarket={selectedMarket} />
-                ) : (
-                  <AdvancedTradingInterface selectedMarket={selectedMarket} />
-                )}
-              </div>
-
-              {/* Market Data Sidebar */}
-              <div className="space-y-6">
-                {/* Quick Market Switch */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
-                  <h3 className="font-display text-lg font-bold mb-4">Quick Switch</h3>
-                  <div className="space-y-2">
-                    {markets.slice(0, 5).map((market) => (
-                      <button
-                        key={market.pair}
-                        onClick={() => setSelectedMarket(market)}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                          selectedMarket.pair === market.pair
-                            ? 'bg-purple-600/20 border border-purple-500'
-                            : 'bg-gray-700 hover:bg-gray-600 border border-gray-700'
-                        }`}
-                      >
-                        <span className="font-display font-medium">{market.pair}</span>
-                        <span className={`text-sm ${
-                          market.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+            {/* Watchlist */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
+              <h3 className="font-display font-bold text-lg mb-4">Watchlist</h3>
+              <div className="space-y-2">
+                {watchlist.slice(0, 5).map((symbol) => {
+                  const token = allTokens.find(t => t.symbol === symbol);
+                  if (!token) return null;
+                  
+                  return (
+                    <button
+                      key={symbol}
+                      onClick={() => setSelectedToken(token)}
+                      className="w-full flex items-center justify-between p-2 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <img src={token.icon} alt={token.name} className="w-6 h-6 rounded-full" />
+                        <span className="font-display font-medium text-sm">{symbol}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-display font-semibold text-xs">${token.price.toLocaleString()}</div>
+                        <div className={`text-xs ${
+                          token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {market.change24h >= 0 ? '+' : ''}{market.change24h.toFixed(2)}%
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Selected Market Stats */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
-                  <h3 className="font-display text-lg font-bold mb-4">Market Stats</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-display text-gray-400">Current Price</span>
-                      <span className="font-display font-medium">${selectedMarket.price.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-display text-gray-400">24h High</span>
-                      <span className="font-display font-medium text-green-400">${selectedMarket.high24h.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-display text-gray-400">24h Low</span>
-                      <span className="font-display font-medium text-red-400">${selectedMarket.low24h.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-display text-gray-400">24h Volume</span>
-                      <span className="font-display font-medium">${formatNumber(selectedMarket.volume24h)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Watchlist */}
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
-                  <h3 className="font-display text-lg font-bold mb-4">Watchlist</h3>
-                  <div className="space-y-3">
-                    {watchlist.map((symbol) => {
-                      const token = tokens.find(t => t.symbol === symbol);
-                      const market = markets.find(m => m.base === symbol);
-                      if (!token || !market) return null;
-                      
-                      return (
-                        <button
-                          key={symbol}
-                          onClick={() => setSelectedMarket(market)}
-                          className="w-full flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <img src={token.icon} alt={token.name} className="w-6 h-6 rounded-full" />
-                            <div>
-                              <div className="font-display font-medium">{symbol}</div>
-                              <div className="text-sm text-gray-400 font-display">{token.name}</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-display font-medium">${market.price.toLocaleString()}</div>
-                            <div className={`text-sm ${
-                              market.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                            }`}>
-                              {market.change24h >= 0 ? '+' : ''}{market.change24h.toFixed(2)}%
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                          {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </>
-        )}
+
+            {/* Network Info */}
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50">
+              <h3 className="font-display font-bold text-lg mb-4">Current Network</h3>
+              <div className="flex items-center gap-3 mb-3">
+                <img 
+                  src={selectedNetwork?.icon} 
+                  alt={selectedNetwork?.name}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <div className="font-display font-semibold">{selectedNetwork?.name}</div>
+                  <div className="text-xs text-gray-400">{selectedNetwork?.symbol}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // Show network selector modal or dropdown
+                  toast.info('Switch network from wallet dropdown');
+                }}
+                className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Switch Network
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

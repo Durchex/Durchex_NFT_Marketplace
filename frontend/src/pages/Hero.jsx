@@ -347,23 +347,60 @@ function App() {
       <main className="mx-auto mt8 px4 overflow-x-auto">
         <div className="sliding-container">
           <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {allNfts?.map((item, index) => (
-              <div
-                key={index}
-                className="bg-red-600 rounded-lg h-[250px] sm:w-[200px] md:w-[250px] flex items-end relative slide-item overflow-hidden"
-              >
-                <Link to={`/nft/${item.tokenId}/${item.itemId}/${item.price}`}>
-                <span className="text-medium md:text-xl text-blue-900 bg-black px-2 rounded-md absolute left-5 font-bold bottom-2">
-                  {item.name}
-                </span>
-                <img
-                  className="w-full h-full object-cover absolute top-0 left-0"
-                  src={item.image}
-                  alt={item.name}
-                />
-                </Link>
-              </div>
-            ))}
+            {allNfts?.map((item, index) => {
+              // Get creator/owner address for profile link
+              const creatorAddress = item.owner || item.seller || item.creator;
+              // Generate avatar from address or use default
+              const avatarUrl = creatorAddress 
+                ? `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`
+                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name || index}`;
+              
+              return (
+                <div
+                  key={index}
+                  className="bg-red-600 rounded-lg h-[250px] sm:w-[200px] md:w-[250px] flex items-end relative slide-item overflow-hidden group"
+                >
+                  {/* WhatsApp-style Profile Icon - Clickable to creator profile */}
+                  {creatorAddress && (
+                    <Link
+                      to={`/profile/${creatorAddress}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute top-3 left-3 z-20"
+                    >
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800">
+                          <img
+                            src={avatarUrl}
+                            alt="Creator"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorAddress}`;
+                            }}
+                          />
+                        </div>
+                        {/* Online status indicator */}
+                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                      </div>
+                    </Link>
+                  )}
+
+                  {/* NFT Image and Name - Clickable to NFT details */}
+                  <Link 
+                    to={`/nft/${item.tokenId}/${item.itemId}/${item.price}`}
+                    className="w-full h-full relative"
+                  >
+                    <span className="text-medium md:text-xl text-blue-900 bg-black px-2 rounded-md absolute left-5 font-bold bottom-2 z-10">
+                      {item.name}
+                    </span>
+                    <img
+                      className="w-full h-full object-cover absolute top-0 left-0"
+                      src={item.image}
+                      alt={item.name}
+                    />
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
 

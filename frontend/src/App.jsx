@@ -81,6 +81,7 @@ export default function App() {
           <Route path="/admin/*" element={<Admin />} />
           <Route path="/collection/:collection" element={<CollectionPage/>} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:walletAddress" element={<Profile />} />
           {/* FOOTER ROUTES SECTION */}
           <Route path="/aboutus" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />

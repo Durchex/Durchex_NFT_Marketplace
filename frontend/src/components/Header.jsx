@@ -58,7 +58,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 px-4 py-4 md:py-6 relative sticky top-0 z-40 w-full">
+    <nav className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 px-4 py-4 md:py-6 relative sticky top-0 z-40 w-full" style={{ isolation: 'isolate' }}>
       <div className="w-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-3 z-10">

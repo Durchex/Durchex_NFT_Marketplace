@@ -360,7 +360,7 @@ const EnhancedWalletConnect = () => {
 
   if (!address) {
     return (
-      <div className="relative wallet-dropdown z-[10000]">
+      <div className="relative wallet-dropdown" style={{ zIndex: 10000 }}>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -381,8 +381,16 @@ const EnhancedWalletConnect = () => {
         {showWalletOptions && (
           <>
             {/* Mobile full-screen drawer */}
-            <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
-              <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
+            <div 
+              className="fixed inset-0 bg-black/90 flex flex-col pt-16 pb-4 px-4 md:hidden" 
+              style={{ zIndex: 99999 }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowWalletOptions(false);
+                }
+              }}
+            >
+              <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full" onClick={(e) => e.stopPropagation()}>
               <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -458,7 +466,7 @@ const EnhancedWalletConnect = () => {
             </div>
 
             {/* Desktop anchored popover */}
-            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
+            <div className="hidden md:block absolute right-0 mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl" style={{ zIndex: 99999 }}>
               <div className="flex flex-col max-h-[70vh]">
                 <div className="flex-shrink-0 p-4 border-b border-gray-700">
                   <div className="text-white font-display font-medium text-lg">Connect Wallet</div>
@@ -520,7 +528,7 @@ const EnhancedWalletConnect = () => {
   }
 
   return (
-    <div className="relative wallet-dropdown z-[10000]">
+    <div className="relative wallet-dropdown" style={{ zIndex: 10000 }}>
       <button
         type="button"
         onClick={(e) => {
@@ -552,10 +560,18 @@ const EnhancedWalletConnect = () => {
       </button>
 
       {isDropdownOpen && (
-        <div className="wallet-dropdown-content" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+        <>
           {/* Mobile full-screen drawer */}
-          <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col pt-16 pb-4 px-4 md:hidden">
-            <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full">
+          <div 
+            className="fixed inset-0 bg-black/90 flex flex-col pt-16 pb-4 px-4 md:hidden" 
+            style={{ zIndex: 99999 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsDropdownOpen(false);
+              }
+            }}
+          >
+            <div className="bg-gray-900 rounded-lg border border-gray-600 flex flex-col max-h-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex-shrink-0 p-6 md:p-4 md:border-b md:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -671,7 +687,7 @@ const EnhancedWalletConnect = () => {
           </div>
 
           {/* Desktop anchored popover */}
-          <div className="block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl z-[9999]">
+          <div className="hidden md:block absolute right-0 top-full mt-2 w-80 bg-gray-800/95 backdrop-blur-md border border-gray-700/50 rounded-xl shadow-xl" style={{ zIndex: 99999 }} onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col max-h-[70vh]">
               <div className="flex-shrink-0 p-4 border-b border-gray-700">
                 <div className="text-white font-display font-medium text-lg">Connected Wallet</div>
@@ -748,8 +764,7 @@ const EnhancedWalletConnect = () => {
               </div>
             </div>
           </div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
