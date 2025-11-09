@@ -41,14 +41,24 @@ if grep -q "location /api/" "$CONFIG_FILE"; then
     echo "✅ Created backup: $BACKUP_FILE"
     
     # Fix the proxy_pass - handle various formats
+    # CRITICAL: The trailing slash /api/ is required for Nginx to preserve the /api prefix
+    
     # Replace proxy_pass http://localhost:3000; (with semicolon)
     sed -i 's|proxy_pass http://localhost:3000;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    
     # Replace proxy_pass http://localhost:3000 (without semicolon, end of line)
     sed -i 's|proxy_pass http://localhost:3000$|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    
     # Replace proxy_pass http://127.0.0.1:3000; (alternative localhost format)
     sed -i 's|proxy_pass http://127.0.0.1:3000;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
-    # Handle cases where /api/ is already partially there but wrong
+    
+    # Handle cases where /api is there but missing trailing slash (COMMON ISSUE!)
     sed -i 's|proxy_pass http://localhost:3000/api;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    sed -i 's|proxy_pass http://localhost:3000/api$|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    
+    # Handle cases with /api/ but wrong format
+    sed -i 's|proxy_pass http://127.0.0.1:3000/api;|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
+    sed -i 's|proxy_pass http://127.0.0.1:3000/api$|proxy_pass http://localhost:3000/api/;|g' "$CONFIG_FILE"
     
     echo "✅ Updated proxy_pass to: proxy_pass http://localhost:3000/api/;"
     
