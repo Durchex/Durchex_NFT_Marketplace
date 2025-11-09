@@ -12,7 +12,6 @@ ACTUAL_CONFIG=""
 # Check CloudPanel location first
 CLOUDPANEL_CONFIG="/home/durchex/htdocs/durchex.com/nginx.conf"
 if [ -f "$CLOUDPANEL_CONFIG" ] && sudo nginx -T 2>/dev/null | grep -q "$CLOUDPANEL_CONFIG"; then
-then
     ACTUAL_CONFIG="$CLOUDPANEL_CONFIG"
     echo "✅ Found CloudPanel config: $ACTUAL_CONFIG"
 elif [ -f "/etc/nginx/sites-available/durchex.com" ]; then
