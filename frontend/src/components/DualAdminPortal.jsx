@@ -41,6 +41,7 @@ const AdminSidebar = ({ isPartner = false }) => {
     { id: 'analytics', label: 'Analytics', icon: FiBarChart, path: '/admin/analytics', description: 'Site statistics and reports' },
     { id: 'activity', label: 'Activity Log', icon: FiActivity, path: '/admin/activity', description: 'System activity monitoring' },
     { id: 'reports', label: 'Reports', icon: FiFileText, path: '/admin/reports', description: 'Generate reports' },
+    { id: 'partners', label: 'Partner Management', icon: FiUserPlus, path: '/admin/partners', description: 'Manage partner accounts' },
     { id: 'settings', label: 'Settings', icon: FiSettings, path: '/admin/settings', description: 'System configuration' },
   ];
 

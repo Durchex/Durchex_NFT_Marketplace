@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { adminAuthAPI } from '../services/adminAuthAPI';
+import api from '../services/api';
 
 const AdminContext = createContext();
 
@@ -16,34 +18,6 @@ export const AdminProvider = ({ children }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Admin credentials (in production, these should be stored securely)
-  const ADMIN_CREDENTIALS = [
-    {
-      email: 'admin@durchex.com',
-      username: 'admin',
-      password: 'admin123', // Change this to a secure password
-      role: 'super_admin'
-    },
-    {
-      email: 'moderator@durchex.com', 
-      username: 'moderator',
-      password: 'mod123',
-      role: 'moderator'
-    },
-    {
-      email: 'partner@durchex.com',
-      username: 'partner',
-      password: 'partner123',
-      role: 'partner'
-    },
-    {
-      email: 'investor@durchex.com',
-      username: 'investor',
-      password: 'investor123',
-      role: 'partner'
-    }
-  ];
-
   // Check if admin is logged in on component mount
   useEffect(() => {
     const adminSession = localStorage.getItem('admin_session');
@@ -53,12 +27,18 @@ export const AdminProvider = ({ children }) => {
         if (sessionData.expires > Date.now()) {
           setIsAdminLoggedIn(true);
           setAdminUser(sessionData.user);
+          // Set admin ID in API headers for authenticated requests
+          if (sessionData.user.id) {
+            api.defaults.headers.common['x-admin-id'] = sessionData.user.id;
+          }
         } else {
           // Session expired
           localStorage.removeItem('admin_session');
+          delete api.defaults.headers.common['x-admin-id'];
         }
       } catch (error) {
         localStorage.removeItem('admin_session');
+        delete api.defaults.headers.common['x-admin-id'];
       }
     }
   }, []);
@@ -67,40 +47,36 @@ export const AdminProvider = ({ children }) => {
   const adminLogin = async (email, password) => {
     setIsLoading(true);
     try {
-      // Find admin by email or username
-      const admin = ADMIN_CREDENTIALS.find(
-        cred => cred.email === email || cred.username === email
-      );
+      const response = await adminAuthAPI.login(email, password);
+      
+      if (response.success && response.admin) {
+        // Create session
+        const sessionData = {
+          user: {
+            id: response.admin.id,
+            email: response.admin.email,
+            username: response.admin.username,
+            role: response.admin.role
+          },
+          expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        };
 
-      if (!admin) {
+        localStorage.setItem('admin_session', JSON.stringify(sessionData));
+        setIsAdminLoggedIn(true);
+        setAdminUser(sessionData.user);
+        
+        // Set admin ID in API headers for authenticated requests
+        api.defaults.headers.common['x-admin-id'] = response.admin.id;
+        
+        toast.success(`Welcome back, ${response.admin.username}!`);
+        return true;
+      } else {
         toast.error('Invalid credentials');
         return false;
       }
-
-      if (admin.password !== password) {
-        toast.error('Invalid password');
-        return false;
-      }
-
-      // Create session
-      const sessionData = {
-        user: {
-          email: admin.email,
-          username: admin.username,
-          role: admin.role
-        },
-        expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-      };
-
-      localStorage.setItem('admin_session', JSON.stringify(sessionData));
-      setIsAdminLoggedIn(true);
-      setAdminUser(sessionData.user);
-      toast.success(`Welcome back, ${admin.username}!`);
-      return true;
-
     } catch (error) {
       console.error('Admin login error:', error);
-      toast.error('Login failed. Please try again.');
+      toast.error(error.message || 'Login failed. Please try again.');
       return false;
     } finally {
       setIsLoading(false);
@@ -110,6 +86,7 @@ export const AdminProvider = ({ children }) => {
   // Admin logout function
   const adminLogout = () => {
     localStorage.removeItem('admin_session');
+    delete api.defaults.headers.common['x-admin-id'];
     setIsAdminLoggedIn(false);
     setAdminUser(null);
     toast.success('Logged out successfully');
@@ -120,12 +97,12 @@ export const AdminProvider = ({ children }) => {
     return isAdminLoggedIn && adminUser;
   };
 
-  // Check if current user is super admin
-  const isSuperAdmin = () => {
-    return isAdminLoggedIn && adminUser?.role === 'super_admin';
+  // Check if current user is admin (full access)
+  const isAdmin = () => {
+    return isAdminLoggedIn && adminUser?.role === 'admin';
   };
 
-  // Check if current user is a partner/investor (read-only access)
+  // Check if current user is a partner (read-only access)
   const isPartner = () => {
     return isAdminLoggedIn && adminUser?.role === 'partner';
   };
@@ -137,7 +114,7 @@ export const AdminProvider = ({ children }) => {
     adminLogin,
     adminLogout,
     hasAdminAccess,
-    isSuperAdmin,
+    isAdmin,
     isPartner
   };
 

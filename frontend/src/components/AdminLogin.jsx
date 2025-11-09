@@ -171,15 +171,6 @@ const AdminLogin = () => {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600/50">
-            <h3 className="text-sm font-display font-medium text-gray-300 mb-2">Demo Credentials:</h3>
-            <div className="space-y-1 text-xs text-gray-400 font-display">
-              <p><strong>Super Admin:</strong> admin@durchex.com / admin123</p>
-              <p><strong>Moderator:</strong> moderator@durchex.com / mod123</p>
-              <p><strong>Partner/Investor:</strong> partner@durchex.com / partner123</p>
-            </div>
-          </div>
         </div>
 
         {/* Back to Home */}

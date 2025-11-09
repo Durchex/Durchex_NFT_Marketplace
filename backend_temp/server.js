@@ -22,6 +22,7 @@ import userRouter from "./routes/userRouter.js";
 import cartRouter from "./routes/cartRouter.js";
 import nftRouter from "./routes/nftRouter.js";
 import adminRouter from "./routes/adminRouter.js";
+import adminAuthRouter from "./routes/adminAuthRouter.js";
 
 // connect db
 connectDB();
@@ -85,6 +86,7 @@ app.use('/api/v1/user', userRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/nft', nftRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/admin-auth', adminAuthRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

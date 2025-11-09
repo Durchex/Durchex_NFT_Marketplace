@@ -13,6 +13,7 @@ import Activity from "./admin/Activity";
 import Reports from "./admin/Reports";
 import Settings from "./admin/Settings";
 import ContractManagement from "./admin/ContractManagement";
+import PartnerManagement from "./admin/PartnerManagement";
 import AdminLogin from "../components/AdminLogin";
 
 const Admin = () => {
@@ -74,6 +75,7 @@ const Admin = () => {
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
         <Route path="contracts" element={<ContractManagement />} />
+        <Route path="partners" element={<PartnerManagement />} />
         {/* Default redirect to dashboard */}
         <Route path="" element={<Dashboard />} />
         <Route path="*" element={<Dashboard />} />
