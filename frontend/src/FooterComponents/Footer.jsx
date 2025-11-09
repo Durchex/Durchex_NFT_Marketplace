@@ -38,9 +38,9 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Main Content - 2 columns x 2 rows on mobile, 5 columns on desktop (brand, links, communities, contact, blockchains/payments) */}
-      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-12 relative z-10">
-        {/* Brand */}
+      {/* Main Content - 2 columns x 3 rows on mobile, 6 columns on desktop */}
+      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-6 gap-6 md:gap-8 lg:gap-12 relative z-10">
+        {/* Brand - Row 1, Col 1 on mobile */}
         <div className="space-y-3 md:space-y-6">
           <div className="flex items-center space-x-2">
             <img
@@ -57,7 +57,7 @@ const Footer = () => {
           <p className="text-xs md:text-sm">© All rights reserved. 2025</p>
         </div>
 
-        {/* Quick Links */}
+        {/* Quick Links - Row 1, Col 2 on mobile */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Quick Links</h3>
           <ul className="space-y-2 md:space-y-4">
@@ -81,30 +81,10 @@ const Footer = () => {
           </ul>
         </div>
 
-        {/* Communities (mobile + desktop) */}
+        {/* Communities - Row 2, Col 1 on mobile */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Communities</h3>
-          <div className="space-y-2 md:space-y-4 list-none mb-6">
-            <li>
-              <a
-                href="https://discord.gg/3tkGsgTs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors text-sm md:text-base"
-              >
-                <i className="fab fa-discord"></i> Discord
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.facebook.com/profile.php?id=61563622507992"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors text-sm md:text-base"
-              >
-                <i className="fab fa-facebook"></i> Facebook
-              </a>
-            </li>
+          <div className="space-y-2 md:space-y-4 list-none">
             <li>
               <a
                 href="https://x.com/DurchExc?t=TK8k5YBQoCyjgJdUY4Au3g&s=09"
@@ -125,23 +105,13 @@ const Footer = () => {
                 <i className="fab fa-telegram"></i> Telegram
               </a>
             </li>
-            <li>
-              <a
-                href="https://medium.com/@durchex"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors text-sm md:text-base"
-              >
-                <i className="fab fa-medium"></i> Medium
-              </a>
-            </li>
           </div>
+        </div>
 
-          {/* Contact support (mobile-only inside this column) */}
-          <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6 lg:hidden">
-            Contact support
-          </h3>
-          <div className="space-y-2 md:space-y-4 lg:hidden">
+        {/* Contact support - Row 2, Col 2 on mobile, Col 4 on desktop */}
+        <div>
+          <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">Contact support</h3>
+          <div className="space-y-2 md:space-y-4">
             <div>
               <a className="hover:text-white transition-colors text-sm md:text-base">
                 <i className="fas fa-phone"></i> +15617227159
@@ -159,33 +129,12 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Contact support (desktop-only separate column) */}
-        <div className="hidden lg:block">
-          <h3 className="text-white text-lg font-medium mb-6">Contact support</h3>
-          <div className="space-y-4">
-            <div>
-              <a className="hover:text-white transition-colors text-base">
-                <i className="fas fa-phone"></i> +15617227159
-              </a>
-            </div>
-            <div>
-              <a
-                href="mailto:support@durchex.com"
-                className="hover:text-white transition-colors text-base"
-              >
-                <i className="fas fa-envelope pr-2"></i>
-                support@durchex.com
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Blockchains & Payments */}
+        {/* Supported Blockchains - Row 3, Col 1 on mobile, Col 5 on desktop */}
         <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Supported Blockchains
           </h3>
-          <div className="space-y-3 md:space-y-6 mb-6">
+          <div className="space-y-3 md:space-y-6">
             <div>
               <h4 className="text-white mb-2 md:mb-4 text-sm md:text-base">Layer 1:</h4>
               <ul className="space-y-1 md:space-y-2 text-xs md:text-base">
@@ -193,8 +142,6 @@ const Footer = () => {
                 <li>BNB chain</li>
                 <li>Solana</li>
                 <li>Avalanche</li>
-                <li>Algorand</li>
-                <li>Aptos</li>
                 <li>SUI</li>
                 <li>Fantom</li>
               </ul>
@@ -210,7 +157,10 @@ const Footer = () => {
               </ul>
             </div>
           </div>
+        </div>
 
+        {/* Accepted Payments - Row 3, Col 2 on mobile, Col 6 on desktop */}
+        <div>
           <h3 className="text-white text-base md:text-lg font-medium mb-4 md:mb-6">
             Accepted Payments
           </h3>
@@ -223,7 +173,8 @@ const Footer = () => {
                 <li>MATIC</li>
               </ul>
             </div>
-            <div>
+            {/* Fiat Payments - Commented out for future use */}
+            {/* <div>
               <h4 className="text-white mb-2 md:mb-4 text-sm md:text-base">Fiat Payments</h4>
               <ul className="space-y-1 md:space-y-2 text-xs md:text-base">
                 <li>Moonpay</li>
@@ -233,7 +184,7 @@ const Footer = () => {
                 <li>Paypal</li>
                 <li>Mercuryo</li>
               </ul>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

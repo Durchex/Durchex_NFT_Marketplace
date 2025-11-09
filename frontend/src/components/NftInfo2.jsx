@@ -385,11 +385,14 @@ function App() {
           <div className="block md:flex justify-between">
             <div className="w-12 h-12 mr-5 bg-gray-700 rounded-md"></div>
             <div className="space-x-">
+              <h2 className="text-lg md:text-3xl font-bold mb-2 text-purple-400">
+                {nftDatas?.name || metadata?.name || "NFT Name"}
+              </h2>
               <h1 className="text-sm md:text-2xl font-bold">
-                {metadata?.collection}
+                {metadata?.collection || nftDatas?.collection || "Collection"}
               </h1>
               <p className="text-xs md:text-xl text-gray-400">
-                {metadata?.creator}
+                {metadata?.creator || nftDatas?.creator || "Creator"}
               </p>
               <div className="flex items-center mt-1">
                 <div className="bg-purple-800 text-purple-300 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
