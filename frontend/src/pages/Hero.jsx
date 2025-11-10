@@ -417,14 +417,11 @@ function App() {
                     </Link>
                   )}
 
-                  {/* NFT Image and Name - Clickable to NFT details */}
+                  {/* NFT Image - Clickable to NFT details */}
                   <Link 
                     to={`/nft/${item.tokenId}/${item.itemId}/${item.price}`}
                     className="w-full h-full relative"
                   >
-                    <span className="text-medium md:text-xl text-blue-900 bg-black px-2 rounded-md absolute left-5 font-bold bottom-2 z-10">
-                      {item.name}
-                    </span>
                     <img
                       className="w-full h-full object-cover absolute top-0 left-0"
                       src={item.image}

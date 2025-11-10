@@ -383,7 +383,37 @@ function App() {
         </div>
         <div className="flex justify-between items-center px-2 md:px-16  md:gap-4">
           <div className="block md:flex justify-between">
-            <div className="w-12 h-12 mr-5 bg-gray-700 rounded-md"></div>
+            {/* WhatsApp-style Profile Icon */}
+            {(() => {
+              const creatorAddress = nftDatas?.owner || nftDatas?.seller || nftDatas?.creator || metadata?.creator;
+              const avatarUrl = creatorAddress 
+                ? `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`
+                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${nftDatas?.name || metadata?.name || 'default'}`;
+              
+              return creatorAddress ? (
+                <Link
+                  to={`/profile/${creatorAddress}`}
+                  className="mr-5 relative inline-block"
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800">
+                      <img
+                        src={avatarUrl}
+                        alt="Creator"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorAddress}`;
+                        }}
+                      />
+                    </div>
+                    {/* Online status indicator */}
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="w-12 h-12 md:w-16 md:h-16 mr-5 bg-gray-700 rounded-full"></div>
+              );
+            })()}
             <div className="space-x-">
               <h2 className="text-lg md:text-3xl font-bold mb-2 text-purple-400">
                 {nftDatas?.name || metadata?.name || "NFT Name"}
