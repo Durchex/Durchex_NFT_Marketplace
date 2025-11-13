@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { ICOContent } from '../Context';
 import { ethers } from 'ethers';
 import { FiChevronDown, FiLogOut, FiCopy, FiExternalLink, FiUser, FiSettings, FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
@@ -11,6 +11,7 @@ const EnhancedWalletConnect = () => {
   const [showWalletOptions, setShowWalletOptions] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('ethereum');
   const [networkBalance, setNetworkBalance] = useState('0');
+  const [currentChainId, setCurrentChainId] = useState(null);
 
   const networks = [
     {
@@ -75,11 +76,50 @@ const EnhancedWalletConnect = () => {
     }
   ];
 
+  // Helper function to get the active wallet provider
+  const getWalletProvider = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    
+    // Check for multiple providers and prioritize
+    if (window.ethereum) {
+      // Check for specific wallet providers
+      if (window.ethereum.isMetaMask) return window.ethereum;
+      if (window.ethereum.isCoinbaseWallet) return window.ethereum;
+      if (window.ethereum.isTrust || window.ethereum.isTrustWallet) return window.ethereum;
+      if (window.ethereum.isBraveWallet) return window.ethereum;
+      if (window.ethereum.isRainbow) return window.ethereum;
+      if (window.ethereum.isPhantom) return window.ethereum;
+      if (window.ethereum.isTokenPocket) return window.ethereum;
+      if (window.ethereum.isSafePal) return window.ethereum;
+      if (window.ethereum.isFrame) return window.ethereum;
+      if (window.ethereum.isZerion) return window.ethereum;
+      if (window.ethereum.isArgent) return window.ethereum;
+      if (window.ethereum.isImToken) return window.ethereum;
+      if (window.ethereum.isOpera) return window.ethereum;
+      // Default to first ethereum provider
+      return window.ethereum;
+    }
+    
+    // Check for Binance Chain
+    if (window.BinanceChain) return window.BinanceChain;
+    
+    // Check for OKX Wallet
+    if (window.okxwallet) return window.okxwallet;
+    
+    // Check for TokenPocket
+    if (window.tokenpocket) return window.tokenpocket;
+    
+    // Check for SafePal
+    if (window.safepal) return window.safepal;
+    
+    return null;
+  }, []);
+
   const wallets = [
     {
       name: 'MetaMask',
       icon: '🦊',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
       connect: () => connectWallet('metamask'),
       downloadLink: 'https://metamask.io/download/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -87,7 +127,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Coinbase Wallet',
       icon: '🔵',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
       connect: () => connectWallet('coinbase'),
       downloadLink: 'https://www.coinbase.com/wallet',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -103,7 +143,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Trust Wallet',
       icon: '🛡️',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -111,7 +151,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Brave Wallet',
       icon: '🦁',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
       connect: () => connectWallet('brave'),
       downloadLink: 'https://brave.com/wallet/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -119,7 +159,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Binance Wallet',
       icon: '🟡',
-      isInstalled: () => typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance),
+      isInstalled: () => typeof window !== 'undefined' && (typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance)),
       connect: () => connectWallet('binance'),
       downloadLink: 'https://www.binance.com/en/web3wallet',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -127,7 +167,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Rainbow Wallet',
       icon: '🌈',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
       connect: () => connectWallet('rainbow'),
       downloadLink: 'https://rainbow.me/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -135,7 +175,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Phantom',
       icon: '👻',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isPhantom,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isPhantom,
       connect: () => connectWallet('phantom'),
       downloadLink: 'https://phantom.app/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -143,7 +183,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'OKX Wallet',
       icon: '⚡',
-      isInstalled: () => typeof window.okxwallet !== 'undefined',
+      isInstalled: () => typeof window !== 'undefined' && typeof window.okxwallet !== 'undefined',
       connect: () => connectWallet('okx'),
       downloadLink: 'https://www.okx.com/web3',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -151,7 +191,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'TokenPocket',
       icon: '💼',
-      isInstalled: () => typeof window.tokenpocket !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket),
+      isInstalled: () => typeof window !== 'undefined' && (typeof window.tokenpocket !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket)),
       connect: () => connectWallet('tokenpocket'),
       downloadLink: 'https://tokenpocket.pro/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -159,7 +199,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'SafePal',
       icon: '🦄',
-      isInstalled: () => typeof window.safepal !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isSafePal),
+      isInstalled: () => typeof window !== 'undefined' && (typeof window.safepal !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isSafePal)),
       connect: () => connectWallet('safepal'),
       downloadLink: 'https://www.safepal.com/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -167,7 +207,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Frame',
       icon: '🖼️',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isFrame,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isFrame,
       connect: () => connectWallet('frame'),
       downloadLink: 'https://frame.sh/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -175,7 +215,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Zerion',
       icon: '📊',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isZerion,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isZerion,
       connect: () => connectWallet('zerion'),
       downloadLink: 'https://zerion.io/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -183,7 +223,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Argent',
       icon: '🛡️',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isArgent,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isArgent,
       connect: () => connectWallet('argent'),
       downloadLink: 'https://www.argent.xyz/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -191,7 +231,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'imToken',
       icon: '🔐',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isImToken,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isImToken,
       connect: () => connectWallet('imtoken'),
       downloadLink: 'https://token.im/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -199,7 +239,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Opera Wallet',
       icon: '🎭',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isOpera,
+      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isOpera,
       connect: () => connectWallet('opera'),
       downloadLink: 'https://www.opera.com/crypto/next',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -207,7 +247,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Temple Wallet',
       icon: '🏛️',
-      isInstalled: () => typeof window.templeWallet !== 'undefined',
+      isInstalled: () => typeof window !== 'undefined' && typeof window.templeWallet !== 'undefined',
       connect: () => connectWallet('temple'),
       downloadLink: 'https://templewallet.com/',
       supportedNetworks: ['tezos']
@@ -215,7 +255,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Hyperliquid Wallet',
       icon: '⚡',
-      isInstalled: () => typeof window.hyperliquid !== 'undefined',
+      isInstalled: () => typeof window !== 'undefined' && typeof window.hyperliquid !== 'undefined',
       connect: () => connectWallet('hyperliquid'),
       downloadLink: 'https://hyperliquid.xyz/',
       supportedNetworks: ['hyperliquid']
@@ -250,6 +290,73 @@ const EnhancedWalletConnect = () => {
       };
     }
   }, [isDropdownOpen, showWalletOptions]);
+
+  // Get current chain ID from wallet
+  const getCurrentChainId = useCallback(async () => {
+    try {
+      const provider = getWalletProvider();
+      if (!provider) return null;
+      
+      // Try to get chainId using eth_chainId
+      if (provider.request) {
+        const chainId = await provider.request({ method: 'eth_chainId' });
+        return parseInt(chainId, 16);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting chain ID:', error);
+      return null;
+    }
+  }, [getWalletProvider]);
+
+  // Sync selected network with wallet's current network
+  useEffect(() => {
+    const syncNetwork = async () => {
+      const chainId = await getCurrentChainId();
+      if (chainId) {
+        setCurrentChainId(chainId);
+        const network = networks.find(n => n.chainId === chainId);
+        if (network) {
+          setSelectedNetwork(network.id);
+        }
+      }
+    };
+    
+    if (address) {
+      syncNetwork();
+    }
+  }, [address, getCurrentChainId]);
+
+  // Listen for chain changes
+  useEffect(() => {
+    const provider = getWalletProvider();
+    if (!provider || !address) return;
+
+    const handleChainChanged = async (chainId) => {
+      const chainIdNumber = typeof chainId === 'string' ? parseInt(chainId, 16) : chainId;
+      setCurrentChainId(chainIdNumber);
+      const network = networks.find(n => n.chainId === chainIdNumber);
+      if (network) {
+        setSelectedNetwork(network.id);
+        toast.success(`Network changed to ${network.name}`);
+      }
+    };
+
+    // Listen for chain changes
+    if (provider.on) {
+      provider.on('chainChanged', handleChainChanged);
+    } else if (provider.addListener) {
+      provider.addListener('chainChanged', handleChainChanged);
+    }
+
+    return () => {
+      if (provider.removeListener) {
+        provider.removeListener('chainChanged', handleChainChanged);
+      } else if (provider.off) {
+        provider.off('chainChanged', handleChainChanged);
+      }
+    };
+  }, [address, getWalletProvider]);
 
   useEffect(() => {
     // Always reflect the wallet's base balance; do not switch to per-network token balances
@@ -292,13 +399,62 @@ const EnhancedWalletConnect = () => {
 
     setIsConnecting(true);
     try {
-      await connectWallet();
-      setShowWalletOptions(false);
-      // Don't auto-open dropdown, let user see the connected state first
-      toast.success(`${wallet.name} connected successfully!`);
+      const provider = getWalletProvider();
+      if (!provider) {
+        toast.error('No wallet provider found. Please install a wallet extension.');
+        setIsConnecting(false);
+        return;
+      }
+
+      // Request account access
+      let accounts;
+      try {
+        if (provider.request) {
+          accounts = await provider.request({ method: 'eth_requestAccounts' });
+        } else if (provider.enable) {
+          accounts = await provider.enable();
+        } else {
+          throw new Error('Wallet does not support connection');
+        }
+      } catch (error) {
+        if (error.code === 4001) {
+          toast.error('Connection rejected by user');
+          setIsConnecting(false);
+          return;
+        }
+        throw error;
+      }
+
+      if (accounts && accounts.length > 0) {
+        // Use the context's connectWallet to update state
+        await connectWallet();
+        setShowWalletOptions(false);
+        toast.success(`${wallet.name} connected successfully!`);
+        
+        // Sync network after connection
+        const chainId = await getCurrentChainId();
+        if (chainId) {
+          const network = networks.find(n => n.chainId === chainId);
+          if (network) {
+            setSelectedNetwork(network.id);
+          }
+        }
+      } else {
+        toast.error('No accounts found. Please unlock your wallet.');
+      }
     } catch (error) {
       console.error('Connection error:', error);
-      toast.error('Failed to connect wallet');
+      let errorMessage = 'Failed to connect wallet';
+      
+      if (error.code === 4001) {
+        errorMessage = 'Connection rejected by user';
+      } else if (error.code === -32002) {
+        errorMessage = 'Connection request already pending. Please check your wallet.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsConnecting(false);
     }
@@ -312,9 +468,27 @@ const EnhancedWalletConnect = () => {
     toast.success('Wallet disconnected');
   };
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(address);
-    toast.success('Address copied to clipboard!');
+  const copyAddress = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(address);
+        toast.success('Address copied to clipboard!');
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = address;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success('Address copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Failed to copy address:', error);
+      toast.error('Failed to copy address');
+    }
   };
 
   const openExplorer = () => {
@@ -327,21 +501,77 @@ const EnhancedWalletConnect = () => {
   const switchNetwork = async (networkId) => {
     try {
       const network = networks.find(n => n.id === networkId);
-      if (!network) return;
-
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${network.chainId.toString(16)}` }],
-        });
+      if (!network) {
+        toast.error('Network not found');
+        return;
       }
 
-      setSelectedNetwork(networkId);
-      // Do not change the shown balance on network switch
-      toast.success(`Switched to ${network.name}`);
+      // Check if already on this network
+      const currentChainId = await getCurrentChainId();
+      if (currentChainId === network.chainId) {
+        setSelectedNetwork(networkId);
+        toast.success(`Already connected to ${network.name}`);
+        return;
+      }
+
+      const provider = getWalletProvider();
+      if (!provider) {
+        toast.error('No wallet provider found. Please connect your wallet first.');
+        return;
+      }
+
+      const chainIdHex = `0x${network.chainId.toString(16)}`;
+
+      try {
+        // Try to switch to the network
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chainIdHex }],
+        });
+        
+        setSelectedNetwork(networkId);
+        setCurrentChainId(network.chainId);
+        toast.success(`Switched to ${network.name}`);
+      } catch (switchError) {
+        // If the network doesn't exist, try to add it
+        if (switchError.code === 4902 || switchError.code === -32603) {
+          try {
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: chainIdHex,
+                chainName: network.name,
+                nativeCurrency: {
+                  name: network.symbol,
+                  symbol: network.symbol,
+                  decimals: 18,
+                },
+                rpcUrls: [network.rpcUrl],
+                blockExplorerUrls: network.blockExplorer ? [network.blockExplorer] : [],
+              }],
+            });
+            
+            setSelectedNetwork(networkId);
+            setCurrentChainId(network.chainId);
+            toast.success(`Added and switched to ${network.name}`);
+          } catch (addError) {
+            console.error('Error adding network:', addError);
+            if (addError.code === 4001) {
+              toast.error('Network addition rejected by user');
+            } else {
+              toast.error(`Failed to add ${network.name} network. Please add it manually in your wallet.`);
+            }
+          }
+        } else if (switchError.code === 4001) {
+          toast.error('Network switch rejected by user');
+        } else {
+          console.error('Network switch error:', switchError);
+          toast.error(`Failed to switch to ${network.name}. Please try again or switch manually in your wallet.`);
+        }
+      }
     } catch (error) {
       console.error('Network switch error:', error);
-      toast.error('Failed to switch network');
+      toast.error('Failed to switch network. Please try again.');
     }
   };
 

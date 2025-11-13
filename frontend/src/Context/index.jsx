@@ -33,45 +33,103 @@ export const Index = ({ children }) => {
   //FUNCTION
   const checkIfWalletConnected = async () => {
     try {
-      if (!window.ethereum) return ErrorToast("No account found");
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
-      });
+      // Get the wallet provider - check for multiple providers
+      let provider = null;
+      
+      if (typeof window !== "undefined") {
+        if (window.ethereum) {
+          provider = window.ethereum;
+        } else if (window.BinanceChain) {
+          provider = window.BinanceChain;
+        } else if (window.okxwallet) {
+          provider = window.okxwallet;
+        } else if (window.tokenpocket) {
+          provider = window.tokenpocket;
+        } else if (window.safepal) {
+          provider = window.safepal;
+        }
+      }
 
-      if (accounts.length) {
+      if (!provider) {
+        setAddress(null);
+        setAccountBalance(null);
+        return null;
+      }
+
+      let accounts;
+      try {
+        if (provider.request) {
+          accounts = await provider.request({
+            method: "eth_accounts",
+          });
+        } else if (provider.accounts) {
+          // Legacy wallet support
+          accounts = provider.accounts;
+        } else {
+          return null;
+        }
+      } catch (error) {
+        console.error("Error checking wallet connection:", error);
+        return null;
+      }
+
+      if (accounts && accounts.length > 0) {
         setAddress(accounts[0]);
 
-        let provider;
+        let ethersProvider;
         let getbalance;
 
-        if (typeof window !== "undefined" && window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          getbalance = await provider.getBalance(accounts[0]);
-        } else {
-          console.error(
-            "No Ethereum provider found! Make sure MetaMask or another wallet is installed."
-          );
+        try {
+          if (typeof window !== "undefined" && provider) {
+            ethersProvider = new ethers.providers.Web3Provider(provider);
+            getbalance = await ethersProvider.getBalance(accounts[0]);
+            const bal = ethers.utils.formatEther(getbalance);
+            setAccountBalance(bal);
+          } else {
+            console.error(
+              "No Ethereum provider found! Make sure MetaMask or another wallet is installed."
+            );
+            setAccountBalance("0");
+          }
+        } catch (balanceError) {
+          console.error("Error fetching balance:", balanceError);
+          setAccountBalance("0");
         }
 
-        const bal = ethers.utils.formatEther(getbalance);
-        setAccountBalance(bal);
         return accounts[0];
       } else {
         setAddress(null);
         setAccountBalance(null);
         console.log("Wallet disconnected");
-        // ErrorToast("Connect you Wallet");
-        console.log("error");
+        return null;
       }
     } catch (error) {
-      console.log(error);
-      // notifyError("Please install Metamask");
+      console.error("Error checking wallet connection:", error);
+      setAddress(null);
+      setAccountBalance(null);
+      return null;
     }
   };
 
   useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", (accounts) => {
+    // Get the wallet provider
+    let provider = null;
+    if (typeof window !== "undefined") {
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else if (window.BinanceChain) {
+        provider = window.BinanceChain;
+      } else if (window.okxwallet) {
+        provider = window.okxwallet;
+      } else if (window.tokenpocket) {
+        provider = window.tokenpocket;
+      } else if (window.safepal) {
+        provider = window.safepal;
+      }
+    }
+
+    if (provider) {
+      const handleAccountsChanged = (accounts) => {
         if (accounts.length === 0) {
           setAddress(null);
           setAccountBalance(null);
@@ -80,21 +138,45 @@ export const Index = ({ children }) => {
         } else {
           checkIfWalletConnected(); // Re-check connection when account changes
         }
-      });
+      };
 
-      window.ethereum.on("disconnect", () => {
+      const handleDisconnect = () => {
         setAddress(null);
         setAccountBalance(null);
         console.log("Wallet disconnected");
-      });
+      };
+
+      const handleChainChanged = (chainId) => {
+        // Update state when chain changes
+        // Reload only if necessary to ensure state is synced
+        // Some wallets require this for proper state management
+        console.log("Chain changed to:", chainId);
+        // Re-check wallet connection to sync with new chain
+        checkIfWalletConnected();
+      };
+
+      // Add event listeners
+      if (provider.on) {
+        provider.on("accountsChanged", handleAccountsChanged);
+        provider.on("disconnect", handleDisconnect);
+        provider.on("chainChanged", handleChainChanged);
+      } else if (provider.addListener) {
+        provider.addListener("accountsChanged", handleAccountsChanged);
+        provider.addListener("disconnect", handleDisconnect);
+        provider.addListener("chainChanged", handleChainChanged);
+      }
 
       // Cleanup listeners on component unmount
       return () => {
-        window.ethereum.removeListener(
-          "accountsChanged",
-          checkIfWalletConnected
-        );
-        window.ethereum.removeListener("disconnect", checkIfWalletConnected);
+        if (provider.removeListener) {
+          provider.removeListener("accountsChanged", handleAccountsChanged);
+          provider.removeListener("disconnect", handleDisconnect);
+          provider.removeListener("chainChanged", handleChainChanged);
+        } else if (provider.off) {
+          provider.off("accountsChanged", handleAccountsChanged);
+          provider.off("disconnect", handleDisconnect);
+          provider.off("chainChanged", handleChainChanged);
+        }
       };
     }
   }, []);
@@ -104,37 +186,96 @@ export const Index = ({ children }) => {
   }, [address]);
 
   const connectWallet = async () => {
-    if (!window.ethereum) return notifyError("No account available");
-    try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
+    // Get the wallet provider - check for multiple providers
+    let provider = null;
+    
+    if (typeof window !== "undefined") {
+      // Check for ethereum provider
+      if (window.ethereum) {
+        provider = window.ethereum;
+      } else if (window.BinanceChain) {
+        provider = window.BinanceChain;
+      } else if (window.okxwallet) {
+        provider = window.okxwallet;
+      } else if (window.tokenpocket) {
+        provider = window.tokenpocket;
+      } else if (window.safepal) {
+        provider = window.safepal;
+      }
+    }
 
-      if (accounts.length) {
+    if (!provider) {
+      ErrorToast("No wallet provider found. Please install MetaMask or another wallet extension.");
+      return null;
+    }
+
+    try {
+      let accounts;
+      
+      // Request account access with proper error handling
+      try {
+        if (provider.request) {
+          accounts = await provider.request({
+            method: "eth_requestAccounts",
+          });
+        } else if (provider.enable) {
+          // Legacy wallet support
+          accounts = await provider.enable();
+        } else {
+          throw new Error("Wallet does not support connection");
+        }
+      } catch (requestError) {
+        if (requestError.code === 4001) {
+          ErrorToast("Connection rejected by user");
+          return null;
+        } else if (requestError.code === -32002) {
+          ErrorToast("Connection request already pending. Please check your wallet.");
+          return null;
+        }
+        throw requestError;
+      }
+
+      if (accounts && accounts.length > 0) {
         setAddress(accounts[0]);
 
-        let provider;
+        let ethersProvider;
         let getbalance;
 
-        if (typeof window !== "undefined" && window.ethereum) {
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          getbalance = await provider.getBalance(accounts[0]);
-        } else {
-          console.error(
-            "No Ethereum provider found! Make sure MetaMask or another wallet is installed."
-          );
+        try {
+          if (typeof window !== "undefined" && provider) {
+            ethersProvider = new ethers.providers.Web3Provider(provider);
+            getbalance = await ethersProvider.getBalance(accounts[0]);
+            const bal = ethers.utils.formatEther(getbalance);
+            setAccountBalance(bal);
+          } else {
+            console.error(
+              "No Ethereum provider found! Make sure MetaMask or another wallet is installed."
+            );
+            setAccountBalance("0");
+          }
+        } catch (balanceError) {
+          console.error("Error fetching balance:", balanceError);
+          setAccountBalance("0");
         }
 
-        const bal = ethers.utils.formatEther(getbalance);
-        setAccountBalance(bal);
         return accounts[0];
       } else {
-        ErrorToast("No account found");
+        ErrorToast("No account found. Please unlock your wallet.");
+        return null;
       }
     } catch (error) {
-      console.log(error);
+      console.error("Wallet connection error:", error);
       setLoader(false);
-      ErrorToast("Error connecting wallet");
+      
+      let errorMessage = "Error connecting wallet";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.code) {
+        errorMessage = `Connection error: ${error.code}`;
+      }
+      
+      ErrorToast(errorMessage);
+      return null;
     }
   };
 
