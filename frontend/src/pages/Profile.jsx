@@ -23,6 +23,7 @@ import ListNft from "../components/ListNft.jsx";
 import MyCollections from "../components/MyCollections.jsx";
 import MyPoints from "../components/MyPoints.jsx";
 import MyProfile from "../components/MyProfile.jsx";
+import VerificationSubmission from "../components/VerificationSubmission.jsx";
 
 // import { Grid, List } from "lucide-react";
 
@@ -98,6 +99,7 @@ function App() {
     "My Points",
     "My Collections",
     "List NFT",
+    "Verification",
   ];
 
   const nftItems = [
@@ -331,6 +333,11 @@ function App() {
             <MyCollections placeholder={"Collection"} />
           )}
           {activeTab === "List NFT" && <ListNft />}
+          {activeTab === "Verification" && (
+            <div className="max-w-4xl mx-auto">
+              <VerificationSubmission />
+            </div>
+          )}
         </main>
       </div>
     </div>

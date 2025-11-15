@@ -22,7 +22,8 @@ import {
   FiXCircle,
   FiLock,
   FiCode,
-  FiUserPlus
+  FiUserPlus,
+  FiZap
 } from 'react-icons/fi';
 import { useAdmin } from '../Context/AdminContext';
 
@@ -43,6 +44,8 @@ const AdminSidebar = ({ isPartner = false }) => {
     { id: 'activity', label: 'Activity Log', icon: FiActivity, path: '/admin/activity', description: 'System activity monitoring' },
     { id: 'reports', label: 'Reports', icon: FiFileText, path: '/admin/reports', description: 'Generate reports' },
     { id: 'partners', label: 'Partner Management', icon: FiUserPlus, path: '/admin/partners', description: 'Manage partner accounts' },
+    { id: 'verifications', label: 'Verifications', icon: FiCheckCircle, path: '/admin/verifications', description: 'Manage user verifications' },
+    { id: 'gas-fees', label: 'Gas Fee Regulations', icon: FiZap, path: '/admin/gas-fees', description: 'Configure gas fee regulations' },
     { id: 'settings', label: 'Settings', icon: FiSettings, path: '/admin/settings', description: 'System configuration' },
   ];
 
