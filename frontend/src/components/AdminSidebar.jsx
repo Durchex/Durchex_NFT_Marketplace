@@ -14,7 +14,9 @@ import {
   FiUser,
   FiDollarSign,
   FiActivity,
-  FiFileText
+  FiFileText,
+  FiCheckCircle,
+  FiZap
 } from 'react-icons/fi';
 import { useAdmin } from '../Context/AdminContext';
 
@@ -80,6 +82,20 @@ const AdminSidebar = () => {
       icon: FiFileText,
       path: '/admin/reports',
       description: 'Generate reports'
+    },
+    {
+      id: 'verifications',
+      label: 'Verifications',
+      icon: FiCheckCircle,
+      path: '/admin/verifications',
+      description: 'Manage user verifications'
+    },
+    {
+      id: 'gas-fees',
+      label: 'Gas Fee Regulations',
+      icon: FiZap,
+      path: '/admin/gas-fees',
+      description: 'Configure gas fee regulations'
     },
     {
       id: 'settings',

@@ -14,6 +14,8 @@ import Reports from "./admin/Reports";
 import Settings from "./admin/Settings";
 import ContractManagement from "./admin/ContractManagement";
 import PartnerManagement from "./admin/PartnerManagement";
+import Verifications from "./admin/Verifications";
+import GasFeeRegulations from "./admin/GasFeeRegulations";
 import AdminLogin from "../components/AdminLogin";
 
 const Admin = () => {
@@ -76,6 +78,8 @@ const Admin = () => {
         <Route path="settings" element={<Settings />} />
         <Route path="contracts" element={<ContractManagement />} />
         <Route path="partners" element={<PartnerManagement />} />
+        <Route path="verifications" element={<Verifications />} />
+        <Route path="gas-fees" element={<GasFeeRegulations />} />
         {/* Default redirect to dashboard */}
         <Route path="" element={<Dashboard />} />
         <Route path="*" element={<Dashboard />} />
