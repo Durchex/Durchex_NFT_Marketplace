@@ -4,6 +4,7 @@ import React, { createContext, useEffect, useState } from "react";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import VendorNFT from "./VendorNFT.json";
 import MarketPlace from "./NFTMarketplace.json";
+import gasService from "../services/gasService";
 
 //INTERNAL IMPORT
 import {
@@ -437,11 +438,12 @@ export const Index = ({ children }) => {
       const networkName = selectedChain.toLowerCase();
       const ContractInstance = await getVendorNFTContracts(networkName);
       console.log("🚀 ~ publicMint ~ ContractInstance:", ContractInstance);
-      const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, {
-        // value: ethers.utils.parseEther(price.toString())
+      // Get transaction options with gas fee regulations applied
+      const txOptions = await gasService.getTransactionOptions(networkName, {
         value: ethers.utils.parseEther("0.01"),
         gasLimit: 700000,
       });
+      const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, txOptions);
 
       // Wait for the transaction to be mined
       const receipt = await tx.wait();
@@ -574,14 +576,18 @@ export const Index = ({ children }) => {
         console.log("✅ Marketplace already approved for this token.");
       }
 
+      // Get transaction options with gas fee regulations applied
+      const networkName = selectedChain.toLowerCase();
+      const txOptions = await gasService.getTransactionOptions(networkName, {
+        value: ethers.utils.parseEther(listingFeeInEther.toString()),
+        gasLimit: 3600000,
+      });
+
       const tx = await MarketContractInstance.listNFT(
         nftContractAddress,
         tokenId,
         uint256Value,
-        {
-          value: ethers.utils.parseEther(listingFeeInEther.toString()),
-          gasLimit: 3600000,
-        }
+        txOptions
       );
 
       const receipt = await tx.wait();
@@ -604,10 +610,12 @@ export const Index = ({ children }) => {
       const MarketContractInstance = await getNFTMarketplaceContracts(
         networkName
       );
-      const tx = await MarketContractInstance.editNftPrice(itemId, values, {
-        // value: ethers.utils.parseEther(listingFeeInEther.toString()),
+      // Get transaction options with gas fee regulations applied
+      const txOptions = await gasService.getTransactionOptions(networkName, {
         gasLimit: 360000,
       });
+
+      const tx = await MarketContractInstance.editNftPrice(itemId, values, txOptions);
 
       const receipt = await tx.wait();
 
@@ -688,14 +696,17 @@ export const Index = ({ children }) => {
 
       console.log("🚀 ~ buyNFT ~ Buyer address:", buyerAddress);
 
+      // Get transaction options with gas fee regulations applied
+      const txOptions = await gasService.getTransactionOptions(targetNetwork, {
+        value: ethers.utils.parseEther(price.toString()), // Amount to send in ETH
+        gasLimit: 360000,
+      });
+
       // Execute the purchase transaction on the NFT's network
       const tx = await MarketContractInstance.buyNFT(
         nftContractAddress,
         itemId,
-        {
-          value: ethers.utils.parseEther(price.toString()), // Amount to send in ETH
-          gasLimit: 360000,
-        }
+        txOptions
       );
 
       console.log("🚀 ~ buyNFT ~ Transaction sent:", tx.hash);
@@ -747,11 +758,12 @@ export const Index = ({ children }) => {
       const MarketContractInstance = await getNFTMarketplaceContracts(
         networkName
       );
-      const tx = await MarketContractInstance.placeOffer(nftContractAddress, {
+      // Get transaction options with gas fee regulations applied
+      const txOptions = await gasService.getTransactionOptions(networkName, {
         value: ethers.utils.parseEther(price.toString()), // Amount of ETH to send
-        // gasPrice: ethers.utils.parseUnits("20", "gwei")
         gasLimit: 360000,
       });
+      const tx = await MarketContractInstance.placeOffer(nftContractAddress, txOptions);
 
       const receipt = await tx.wait();
 
@@ -800,11 +812,18 @@ export const Index = ({ children }) => {
         throw new Error("Only the current owner can transfer this NFT");
       }
 
+      // Get transaction options with gas fee regulations applied
+      const networkName = selectedChain.toLowerCase();
+      const txOptions = await gasService.getTransactionOptions(networkName, {
+        gasLimit: 100000,
+      });
+
       // Perform transfer
       const tx = await nftContract.safeTransferFrom(
         address,
         newOwnerAddress,
-        tokenId
+        tokenId,
+        txOptions
       );
       const receipt = await tx.wait();
 
@@ -826,14 +845,16 @@ export const Index = ({ children }) => {
         networkName
       );
 
+      // Get transaction options with gas fee regulations applied
+      const txOptions = await gasService.getTransactionOptions(networkName, {
+        value: ethers.utils.parseEther(price.toString()), // Amount of ETH to send
+        gasLimit: 360000,
+      });
+
       const tx = await MarketContractInstance.editOffer(
         nftContractAddress,
         offerId,
-        {
-          value: ethers.utils.parseEther(price.toString()), // Amount of ETH to send
-          // gasPrice: ethers.utils.parseUnits("20", "gwei")
-          gasLimit: 360000,
-        }
+        txOptions
       );
 
       const receipt = await tx.wait();

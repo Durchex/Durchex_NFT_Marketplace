@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { gasFeeAPI } from './gasFeeAPI';
 
 class GasService {
   constructor() {
@@ -10,15 +11,41 @@ class GasService {
     };
   }
 
-  // Get current gas price for a network
-  async getGasPrice(network = 'ethereum') {
+  // Get current gas price for a network with gas fee regulations applied
+  async getGasPrice(network = 'ethereum', applyRegulations = true) {
     try {
       const provider = new ethers.providers.JsonRpcProvider(this.providers[network]);
-      const gasPrice = await provider.getGasPrice();
+      const currentGasPrice = await provider.getGasPrice();
+      
+      // Apply gas fee regulations if enabled
+      if (applyRegulations) {
+        try {
+          const regulatedPrice = await gasFeeAPI.calculateRegulatedGasPrice(
+            network,
+            currentGasPrice.toString()
+          );
+          
+          if (regulatedPrice.success && regulatedPrice.regulatedGasPrice) {
+            return {
+              success: true,
+              gasPrice: regulatedPrice.regulatedGasPrice,
+              gasPriceGwei: ethers.utils.formatUnits(regulatedPrice.regulatedGasPrice, 'gwei'),
+              originalGasPrice: currentGasPrice.toString(),
+              originalGasPriceGwei: ethers.utils.formatUnits(currentGasPrice, 'gwei'),
+              regulated: true
+            };
+          }
+        } catch (regError) {
+          console.warn('Gas fee regulation not available, using current gas price:', regError);
+          // Fall through to return current gas price
+        }
+      }
+      
       return {
         success: true,
-        gasPrice: gasPrice.toString(),
-        gasPriceGwei: ethers.utils.formatUnits(gasPrice, 'gwei')
+        gasPrice: currentGasPrice.toString(),
+        gasPriceGwei: ethers.utils.formatUnits(currentGasPrice, 'gwei'),
+        regulated: false
       };
     } catch (error) {
       console.error('Error fetching gas price:', error);
@@ -26,6 +53,49 @@ class GasService {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  // Get transaction options with gas fee regulations applied
+  async getTransactionOptions(network, baseOptions = {}) {
+    try {
+      const networkName = network.toLowerCase();
+      let txOptions = { ...baseOptions };
+
+      // Try to get gas fee regulations for this network
+      try {
+        const regulation = await gasFeeAPI.getGasFeeRegulation(networkName);
+        
+        if (regulation && regulation.isActive && regulation.regulations?.enabled) {
+          // Get current gas price
+          const gasPriceResult = await this.getGasPrice(networkName, true);
+          
+          if (gasPriceResult.success) {
+            const regulatedGasPrice = ethers.BigNumber.from(gasPriceResult.gasPrice);
+            
+            // Apply gas limit from regulations if specified
+            if (regulation.gasLimit && !txOptions.gasLimit) {
+              txOptions.gasLimit = regulation.gasLimit;
+            }
+            
+            // Apply regulated gas price
+            txOptions.gasPrice = regulatedGasPrice;
+            
+            console.log(`Applied gas fee regulation for ${networkName}:`, {
+              gasPrice: ethers.utils.formatUnits(regulatedGasPrice, 'gwei') + ' gwei',
+              gasLimit: txOptions.gasLimit
+            });
+          }
+        }
+      } catch (regError) {
+        console.warn(`Gas fee regulations not available for ${networkName}, using default:`, regError);
+        // Continue with base options
+      }
+
+      return txOptions;
+    } catch (error) {
+      console.error('Error getting transaction options:', error);
+      return baseOptions;
     }
   }
 

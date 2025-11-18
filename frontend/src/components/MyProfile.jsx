@@ -4,6 +4,7 @@ import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
 import { ICOContent } from "../Context"; // Import context
+import { getVerificationBadge, getVerificationLabel } from "../utils/verificationUtils";
 
 const MyProfile = () => {
   const { address } = useContext(ICOContent) || {};
@@ -12,7 +13,7 @@ const MyProfile = () => {
     email: "",
     image: "",
     socialLinks: [""],
-    verificationStatus: false,
+    verificationStatus: null, // Changed to null to support 'none', 'pending', 'premium', 'super_premium', 'rejected'
     bio: "",
     favoriteCreators: "",
   });
@@ -43,7 +44,7 @@ const MyProfile = () => {
           email: data.email || "",
           image: data.image || "",
           socialLinks: data.socialLinks?.length ? data.socialLinks : [""],
-          verificationStatus: data.isVerified || false,
+          verificationStatus: data.verificationStatus || (data.isVerified ? 'premium' : 'none'), // Support both old and new format
           bio: data.bio || "",
           favoriteCreators: data.favoriteCreators || "",
         });
@@ -103,7 +104,8 @@ const MyProfile = () => {
         username: profileData.username,
         bio: profileData.bio,
         email: profileData.email,
-        isVerified: profileData.verificationStatus,
+        // verificationStatus is managed through the verification system, not editable here
+        // isVerified: profileData.verificationStatus === 'premium' || profileData.verificationStatus === 'super_premium',
         socialLinks: profileData.socialLinks,
         image: profileData.image,
       };
@@ -271,15 +273,40 @@ const MyProfile = () => {
           />
         </div>
 
-        <input
-          type="text"
-          name="username"
-          value={profileData.username}
-          onChange={handleInputChange}
-          placeholder="Username"
-          className="text-center text-xl md:text-2xl font-bold bg-[#222] rounded px-4 py-2 text-white w-full max-w-xs mt-4"
-          disabled={!isEditing}
-        />
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <input
+            type="text"
+            name="username"
+            value={profileData.username}
+            onChange={handleInputChange}
+            placeholder="Username"
+            className="text-center text-xl md:text-2xl font-bold bg-[#222] rounded px-4 py-2 text-white w-full max-w-xs"
+            disabled={!isEditing}
+          />
+          {(() => {
+            const badge = profileData.verificationStatus ? getVerificationBadge(profileData.verificationStatus) : null;
+            if (badge) {
+              return (
+                <div className="relative" title={badge.label}>
+                  <img
+                    src={badge.imageUrl}
+                    alt={badge.label}
+                    className="w-8 h-8 object-contain"
+                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                  />
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </div>
+        {profileData.verificationStatus && (
+          <div className="text-center mt-2">
+            <span className="text-sm text-gray-400">
+              {getVerificationLabel(profileData.verificationStatus)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
@@ -379,22 +406,15 @@ const MyProfile = () => {
           disabled={!isEditing}
         />
 
-        {/* Verification Checkbox */}
-        <div className="flex items-center gap-4">
-          <label className="text-white">Verified:</label>
-          <input
-            type="checkbox"
-            name="verificationStatus"
-            checked={profileData.verificationStatus}
-            onChange={(e) =>
-              setProfileData((prev) => ({
-                ...prev,
-                verificationStatus: e.target.checked,
-              }))
-            }
-            disabled={!isEditing}
-          />
-        </div>
+        {/* Verification Status Display (Read-only, managed through verification system) */}
+        {!isEditing && profileData.verificationStatus && profileData.verificationStatus !== 'none' && (
+          <div className="flex items-center gap-4 p-3 bg-[#222] rounded-lg">
+            <span className="text-white">Verification Status:</span>
+            <span className="text-purple-400 font-semibold">
+              {getVerificationLabel(profileData.verificationStatus)}
+            </span>
+          </div>
+        )}
       </div>
       <div className="mt-6 space-y-4">
         <div className="flex gap-3">

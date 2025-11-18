@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ICOContent } from '../Context';
 import { verificationAPI } from '../services/verificationAPI';
+import pinataService from '../services/pinataService';
 import { FiCheck, FiX, FiAlertCircle, FiUpload, FiMail, FiMapPin, FiHome, FiGlobe, FiShield } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -118,12 +119,39 @@ const VerificationSubmission = () => {
 
     setLoading(true);
     try {
-      // In production, upload the ID image to a storage service first
+      // Upload ID document to IPFS if it's a file object
       let documentImageUrl = null;
       if (formData.idVerification.documentImage && typeof formData.idVerification.documentImage === 'object') {
-        // TODO: Upload to IPFS or cloud storage
-        // For now, we'll need to handle this on the backend
-        documentImageUrl = 'pending_upload';
+        toast.loading('Uploading ID document to IPFS...', { id: 'upload-doc' });
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (!allowedTypes.includes(formData.idVerification.documentImage.type)) {
+          toast.error('Invalid file type. Please upload JPG, PNG, or PDF only.', { id: 'upload-doc' });
+          setLoading(false);
+          return;
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (formData.idVerification.documentImage.size > maxSize) {
+          toast.error('File size too large. Maximum size is 10MB.', { id: 'upload-doc' });
+          setLoading(false);
+          return;
+        }
+
+        // Upload to Pinata IPFS
+        const uploadResult = await pinataService.uploadImage(formData.idVerification.documentImage);
+        
+        if (!uploadResult.success) {
+          toast.error(uploadResult.error || 'Failed to upload document. Please try again.', { id: 'upload-doc' });
+          setLoading(false);
+          return;
+        }
+
+        // Get IPFS URL
+        documentImageUrl = pinataService.getIPFSUrl(uploadResult.ipfsHash);
+        toast.success('Document uploaded successfully!', { id: 'upload-doc' });
       } else {
         documentImageUrl = formData.idVerification.documentImage;
       }

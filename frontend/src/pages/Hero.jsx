@@ -6,6 +6,7 @@ import Footer from "../FooterComponents/Footer";
 import socketService from "../services/socketService";
 import { FiCheck, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { getVerificationBadge } from "../utils/verificationUtils";
 
 import SlidingContainer from "../components/SlindingContainer";
 import { nftCollections } from "../utils";
@@ -383,36 +384,32 @@ function App() {
                           />
                         </div>
                         {/* Verification Badge */}
-                        {creator?.verificationType === 'gold' && (
-                          <span
-                            title="Gold verified"
-                            className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
-                          >
-                            <img
-                              src="https://imgur.com/5cAUe81.png"
-                              alt="Gold Verified"
-                              className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
-                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                            />
-                          </span>
-                        )}
-                        {creator?.verificationType === 'white' && (
-                          <span
-                            title="Verified"
-                            className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
-                          >
-                            <img
-                              src="https://imgur.com/pa1Y2LB.png"
-                              alt="Verified"
-                              className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
-                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                            />
-                          </span>
-                        )}
-                        {/* Online status indicator - only show if no verification badge */}
-                        {!creator?.verificationType && (
-                          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
-                        )}
+                        {(() => {
+                          // Support both verificationStatus (from DB) and verificationType (from mock data)
+                          const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
+                          const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
+                          
+                          if (badge) {
+                            return (
+                              <span
+                                title={badge.title}
+                                className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                              >
+                                <img
+                                  src={badge.imageUrl}
+                                  alt={badge.label}
+                                  className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                                  onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                                />
+                              </span>
+                            );
+                          }
+                          
+                          // Online status indicator - only show if no verification badge
+                          return (
+                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                          );
+                        })()}
                       </div>
                     </Link>
                   )}

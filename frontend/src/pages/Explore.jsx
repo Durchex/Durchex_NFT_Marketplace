@@ -6,6 +6,7 @@ import { ICOContent } from "../Context";
 import socketService from "../services/socketService";
 import { FiCheck, FiUser, FiTrendingUp, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { getVerificationBadge } from "../utils/verificationUtils";
 
 // Mock creators data
 const generateMockCreators = (count = 8) => {
@@ -319,32 +320,28 @@ const Explore = () => {
                           e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.username}`;
                         }}
                       />
-                      {creator.verificationType === 'gold' && (
-                        <span
-                          title="Gold verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
-                        >
-                          <img
-                            src="https://imgur.com/5cAUe81.png"
-                            alt="Gold Verified"
-                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
-                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                          />
-                        </span>
-                      )}
-                      {creator.verificationType === 'white' && (
-                        <span
-                          title="Verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
-                        >
-                          <img
-                            src="https://imgur.com/pa1Y2LB.png"
-                            alt="Verified"
-                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
-                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                          />
-                        </span>
-                      )}
+                      {(() => {
+                        // Support both verificationStatus (from DB) and verificationType (from mock data)
+                        const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
+                        const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
+                        
+                        if (badge) {
+                          return (
+                            <span
+                              title={badge.title}
+                              className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
+                            >
+                              <img
+                                src={badge.imageUrl}
+                                alt={badge.label}
+                                className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                              />
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
