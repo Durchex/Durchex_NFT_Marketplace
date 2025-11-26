@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { ICOContent } from "../../Context";
+import { contractAddresses } from "../../Context/constants";
 import { ErrorToast } from "../../app/Toast/Error";
 import { SuccessToast } from "../../app/Toast/Success";
 import { 
@@ -40,6 +41,7 @@ const ContractManagement = () => {
   const [airdropEligibility, setAirdropEligibility] = useState(null);
   const [authorizedVendor, setAuthorizedVendor] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState(contexts?.selectedChain || 'polygon');
 
   useEffect(() => {
     if (getAllVendors) {
@@ -92,6 +94,12 @@ const ContractManagement = () => {
     }
     setIsLoading(true);
     try {
+      // Ensure the context is set to the selected network before withdrawing
+      if (contexts?.setSelectedChain) {
+        contexts.setSelectedChain(selectedNetwork);
+        // small delay to allow context to update if needed
+        await new Promise((r) => setTimeout(r, 300));
+      }
       await withdraw();
       SuccessToast("Funds withdrawn successfully! 🎉");
     } catch (error) {
@@ -368,6 +376,21 @@ const ContractManagement = () => {
             <p className="text-sm text-gray-600 mb-4 font-display">
               Withdraw accumulated funds from the contract
             </p>
+            <div className="mb-3">
+              <label className="block text-sm text-gray-600 mb-2">Network</label>
+              <select
+                value={selectedNetwork}
+                onChange={(e) => setSelectedNetwork(e.target.value)}
+                className="w-full p-3 mb-2 rounded-lg bg-white border border-gray-300 text-gray-900"
+              >
+                {Object.keys(contractAddresses).map((net) => (
+                  <option key={net} value={net}>{net}</option>
+                ))}
+              </select>
+              <div className="text-xs text-gray-500">
+                Contract: {contractAddresses[selectedNetwork]?.vendorNFT || 'Not configured'}
+              </div>
+            </div>
             <button
               onClick={withdrawFunds}
               disabled={isLoading}

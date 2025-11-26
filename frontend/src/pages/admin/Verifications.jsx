@@ -14,6 +14,7 @@ const Verifications = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVerification, setSelectedVerification] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     loadVerifications();
@@ -33,23 +34,34 @@ const Verifications = () => {
   };
 
   const handleApprove = async (walletAddress) => {
-    if (!window.confirm('Are you sure you want to approve this verification?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to approve this verification?')) return;
 
+    setIsProcessing(true);
     try {
-      await verificationAPI.approveVerification(walletAddress, adminWallet || 'admin');
-      toast.success('Verification approved successfully');
+      const res = await verificationAPI.approveVerification(walletAddress, adminWallet || 'admin');
+      toast.success(res?.message || 'Verification approved successfully');
+
+      // Optimistically update local state so admin sees the result immediately
+      setVerifications((prev) => prev.map(v => v.walletAddress === walletAddress ? { ...v, verificationStatus: res?.tier || 'premium' } : v));
+      if (selectedVerification && selectedVerification.walletAddress === walletAddress) {
+        setSelectedVerification((prev) => ({ ...prev, verificationStatus: res?.tier || 'premium' }));
+      }
+
+      // Refresh list in background
       loadVerifications();
       setSelectedVerification(null);
     } catch (error) {
       toast.error(error.message || 'Failed to approve verification');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleReject = async (walletAddress) => {
+    setIsProcessing(true);
     if (!rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
+      setIsProcessing(false);
       return;
     }
 
@@ -66,6 +78,7 @@ const Verifications = () => {
     } catch (error) {
       toast.error(error.message || 'Failed to reject verification');
     }
+    setIsProcessing(false);
   };
 
   const getStatusBadge = (status) => {
@@ -207,7 +220,8 @@ const Verifications = () => {
                           <>
                             <button
                               onClick={() => handleApprove(verification.walletAddress)}
-                              className="text-green-600 hover:text-green-900"
+                              disabled={isProcessing}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <FiCheck className="w-4 h-4" />
                             </button>
@@ -216,7 +230,8 @@ const Verifications = () => {
                                 setSelectedVerification(verification);
                                 setRejectionReason('');
                               }}
-                              className="text-red-600 hover:text-red-900"
+                              disabled={isProcessing}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <FiX className="w-4 h-4" />
                             </button>
@@ -335,14 +350,16 @@ const Verifications = () => {
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => handleApprove(selectedVerification.walletAddress)}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      disabled={isProcessing}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FiCheck className="w-4 h-4 inline mr-2" />
                       Approve
                     </button>
                     <button
                       onClick={() => handleReject(selectedVerification.walletAddress)}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      disabled={isProcessing}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FiX className="w-4 h-4 inline mr-2" />
                       Reject
