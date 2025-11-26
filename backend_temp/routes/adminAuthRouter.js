@@ -4,6 +4,7 @@ import {
   createAdmin,
   createPartner,
   getAllAdmins,
+  getAllAdminsPublic,
   updateAdmin,
   deleteAdmin,
   authenticateAdmin
@@ -13,6 +14,7 @@ const router = express.Router();
 
 // Public routes
 router.post('/login', adminLogin);
+router.get('/all-public', getAllAdminsPublic);
 
 // Protected routes (require admin authentication)
 router.post('/create-admin', authenticateAdmin, createAdmin);

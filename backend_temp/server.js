@@ -23,6 +23,8 @@ import cartRouter from "./routes/cartRouter.js";
 import nftRouter from "./routes/nftRouter.js";
 import adminRouter from "./routes/adminRouter.js";
 import adminAuthRouter from "./routes/adminAuthRouter.js";
+import verificationRouter from "./routes/verificationRouter.js";
+import gasFeeRouter from "./routes/gasFeeRouter.js";
 
 // connect db
 connectDB();
@@ -87,6 +89,8 @@ app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/nft', nftRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/admin-auth', adminAuthRouter);
+app.use('/api/v1/verification', verificationRouter);
+app.use('/api/v1/gas-fee', gasFeeRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

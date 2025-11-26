@@ -1,4 +1,5 @@
 import AdminModel from '../models/adminModel.js';
+import mongoose from 'mongoose';
 
 // Admin Login
 export const adminLogin = async (req, res) => {
@@ -187,6 +188,28 @@ export const getAllAdmins = async (req, res) => {
     });
   } catch (error) {
     console.error('Get all admins error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Public: get limited admin info (no auth required)
+export const getAllAdminsPublic = async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ success: true, admins: [], count: 0, warning: 'Database not connected' });
+    }
+
+    const admins = await AdminModel.find()
+      .select('username role createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      admins,
+      count: admins.length
+    });
+  } catch (error) {
+    console.error('Get all admins public error:', error);
     res.status(500).json({ error: error.message });
   }
 };
