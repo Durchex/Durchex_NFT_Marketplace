@@ -4,7 +4,8 @@ import LoadingNFTRow from "../components/LoadingNftRow";
 import { ICOContent } from "../Context/index";
 import Footer from "../FooterComponents/Footer";
 import socketService from "../services/socketService";
-import { FiCheck, FiStar } from "react-icons/fi";
+import { FiStar } from "react-icons/fi";
+import VerifiedBadge from "../components/VerifiedBadge";
 import toast from "react-hot-toast";
 
 import SlidingContainer from "../components/SlindingContainer";
@@ -472,8 +473,8 @@ function App() {
                         }}
                       />
                       {creator.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
-                          <FiCheck className="text-white text-xs" />
+                        <div className="absolute -bottom-1 -right-1">
+                          <VerifiedBadge status={'premium'} small={true} />
                         </div>
                       )}
                     </div>
@@ -481,7 +482,7 @@ function App() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
                         {creator.isVerified && (
-                          <FiCheck className="text-blue-500 flex-shrink-0" title="Verified Creator" />
+                          <VerifiedBadge status={'premium'} small={true} />
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>

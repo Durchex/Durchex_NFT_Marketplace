@@ -4,6 +4,9 @@ import Header from "../components/Header";
 import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context";
 import socketService from "../services/socketService";
+import pinataService from "../services/pinataService";
+import verificationAPI from "../services/verificationAPI";
+import VerifiedBadge from "../components/VerifiedBadge";
 import { FiCheck, FiUser, FiTrendingUp, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 
@@ -60,7 +63,9 @@ const Explore = () => {
     username: "",
     email: "",
     socialLinks: "",
-    reason: ""
+    reason: "",
+    tier: 'premium',
+    idFile: null
   });
 
   // Initialize with mock data
@@ -150,36 +155,65 @@ const Explore = () => {
       toast.error("Please connect your wallet first");
       return;
     }
-
     if (!verificationRequest.username || !verificationRequest.email) {
       toast.error("Please fill in all required fields");
       return;
     }
 
     try {
-      // Save verification request to localStorage (for now)
-      const requests = JSON.parse(localStorage.getItem("durchex_verification_requests") || "[]");
-      const newRequest = {
-        ...verificationRequest,
-        walletAddress: address,
-        timestamp: new Date().toISOString(),
-        status: "pending"
+      // Build payload for backend
+      const payload = {
+        tier: verificationRequest.tier,
+        email: verificationRequest.email,
+        location: verificationRequest.tier === 'premium' ? (verificationRequest.location || '') : undefined,
+        address: verificationRequest.tier === 'premium' ? (verificationRequest.address || '') : undefined,
+        country: verificationRequest.tier === 'super_premium' ? (verificationRequest.country || '') : undefined,
+        houseAddress: verificationRequest.tier === 'super_premium' ? (verificationRequest.houseAddress || '') : undefined,
+        idVerification: undefined
       };
-      
-      requests.push(newRequest);
-      localStorage.setItem("durchex_verification_requests", JSON.stringify(requests));
-      
-      toast.success("Verification request submitted! Our team will review it soon.");
+
+      // If super_premium, upload ID image to Pinata first
+      if (verificationRequest.tier === 'super_premium') {
+        if (!verificationRequest.idFile) {
+          toast.error('Please attach an ID document for Super Premium verification');
+          return;
+        }
+
+        toast.loading('Uploading ID document to IPFS...');
+        const result = await pinataService.uploadImage(verificationRequest.idFile);
+        toast.dismiss();
+
+        if (!result.success) {
+          toast.error('Failed to upload ID image: ' + (result.error || ''));
+          return;
+        }
+
+        const ipfsUrl = pinataService.getIPFSUrl(result.ipfsHash);
+        payload.idVerification = {
+          documentType: verificationRequest.documentType || 'id',
+          documentNumber: verificationRequest.documentNumber || '',
+          documentImage: ipfsUrl
+        };
+      }
+
+      toast.loading('Submitting verification request...');
+      await verificationAPI.submitVerification(address, payload);
+      toast.dismiss();
+
+      toast.success('Verification request submitted! Our team will review it soon.');
       setIsVerificationModalOpen(false);
       setVerificationRequest({
         walletAddress: address,
-        username: "",
-        email: "",
-        socialLinks: "",
-        reason: ""
+        username: '',
+        email: '',
+        socialLinks: '',
+        reason: '',
+        tier: 'premium',
+        idFile: null
       });
     } catch (error) {
-      toast.error("Failed to submit verification request");
+      toast.error(error.message || 'Failed to submit verification request');
+      console.error('Verification submission error:', error);
     }
   };
 
@@ -286,8 +320,8 @@ const Explore = () => {
                         }}
                       />
                       {creator.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1">
-                          <FiCheck className="text-white text-xs" />
+                        <div className="absolute -bottom-1 -right-1">
+                          <VerifiedBadge status={'premium'} small={true} />
                         </div>
                       )}
                     </div>
@@ -295,7 +329,7 @@ const Explore = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-white truncate">{creator.username}</h3>
                         {creator.isVerified && (
-                          <FiCheck className="text-blue-500 flex-shrink-0" title="Verified Creator" />
+                          <VerifiedBadge status={'premium'} small={true} />
                         )}
                       </div>
                       <p className="text-gray-400 text-xs truncate mb-2">{creator.bio}</p>
@@ -350,6 +384,30 @@ const Explore = () => {
                   placeholder="Your username"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Verification Tier</label>
+                <select
+                  value={verificationRequest.tier}
+                  onChange={(e) => setVerificationRequest({ ...verificationRequest, tier: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                >
+                  <option value="premium">Premium (requires 20 NFTs)</option>
+                  <option value="super_premium">Super Premium (requires ID + 100 NFTs)</option>
+                </select>
+              </div>
+
+              {verificationRequest.tier === 'super_premium' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">ID document (photo)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setVerificationRequest({ ...verificationRequest, idFile: e.target.files[0] })}
+                    className="w-full text-sm"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">

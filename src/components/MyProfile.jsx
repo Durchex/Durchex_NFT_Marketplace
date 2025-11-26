@@ -3,6 +3,7 @@ import { Edit3, Share2 } from "lucide-react";
 import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
+import VerifiedBadge from "./VerifiedBadge";
 
 const MyProfile = () => {
   const [profileData, setProfileData] = useState({
@@ -33,15 +34,29 @@ const MyProfile = () => {
         const data = await res.json();
         console.log("🚀 ~ fetchProfile ~ data:", data);
 
-        setProfileData({
+        setProfileData((prev) => ({
+          ...prev,
           username: data.username || "",
           email: data.email || "",
           image: data.image || "",
           socialLinks: data.socialLinks?.length ? data.socialLinks : [""],
-          verificationStatus: data.isVerified || false,
+          verificationStatus: data.verificationStatus || data.isVerified || false,
           bio: data.bio || "",
           favoriteCreators: data.favoriteCreators || "",
-        });
+        }));
+
+        // Fetch verification status from verification endpoint (more accurate)
+        try {
+          const { default: verificationAPI } = await import("../services/verificationAPI");
+          const statusRes = await verificationAPI.getVerificationStatus(walletAddress);
+          if (statusRes && statusRes.verificationStatus) {
+            setProfileData((prev) => ({ ...prev, verificationStatus: statusRes.verificationStatus }));
+          }
+        } catch (err) {
+          // silent
+          console.warn('Could not fetch verification status:', err.message || err);
+        }
+
       } catch (error) {
         console.error("Error fetching profile:", error);
         // Optional: Show alert or toast here
@@ -231,15 +246,31 @@ const MyProfile = () => {
           />
         </div>
 
-        <input
-          type="text"
-          name="username"
-          value={profileData.username}
-          onChange={handleInputChange}
-          placeholder="Username"
-          className="text-center text-xl md:text-2xl font-bold bg-[#222] rounded px-4 py-2 text-white w-full max-w-xs mt-4"
-          disabled={!isEditing}
-        />
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            name="username"
+            value={profileData.username}
+            onChange={handleInputChange}
+            placeholder="Username"
+            className="text-center text-xl md:text-2xl font-bold bg-[#222] rounded px-4 py-2 text-white w-full max-w-xs mt-4"
+            disabled={!isEditing}
+          />
+          <div className="mt-4">
+            {/* Display verification badge */}
+            {profileData.verificationStatus && (
+              <span className="ml-2">
+                <VerifiedBadge status={
+                  typeof profileData.verificationStatus === 'string'
+                    ? profileData.verificationStatus
+                    : profileData.verificationStatus === true
+                      ? 'premium'
+                      : null
+                } small={true} />
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Action Buttons */}

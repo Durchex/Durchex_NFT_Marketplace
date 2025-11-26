@@ -1,5 +1,7 @@
 import { ethers } from 'ethers';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 class GasService {
   constructor() {
     this.providers = {
@@ -93,6 +95,25 @@ class GasService {
       const gasPriceResult = await this.getGasPrice(network);
       if (!gasPriceResult.success) {
         throw new Error(gasPriceResult.error);
+      }
+      // Respect regulated gas price from backend if available
+      try {
+        const res = await fetch(`${API_BASE}/gas-fee/calculate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ network, currentGasPrice: gasPriceResult.gasPrice })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.regulatedGasPrice) {
+            // Use regulated gas price returned by backend
+            gasPriceResult.gasPrice = json.regulatedGasPrice;
+            gasPriceResult.gasPriceGwei = ethers.utils.formatUnits(json.regulatedGasPrice, 'gwei');
+          }
+        }
+      } catch (err) {
+        // non-fatal - fall back to live gas price
+        console.warn('Could not fetch regulated gas price:', err.message || err);
       }
 
       // Estimate gas for minting
