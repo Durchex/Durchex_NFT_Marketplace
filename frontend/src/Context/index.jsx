@@ -577,7 +577,6 @@ export const Index = ({ children }) => {
       }
 
       // Get transaction options with gas fee regulations applied
-      const networkName = selectedChain.toLowerCase();
       const txOptions = await gasService.getTransactionOptions(networkName, {
         value: ethers.utils.parseEther(listingFeeInEther.toString()),
         gasLimit: 3600000,
