@@ -4,6 +4,7 @@ import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
 import VerifiedBadge from "./VerifiedBadge";
+import { userAPI } from "../services/api";
 
 const MyProfile = () => {
   const [profileData, setProfileData] = useState({
@@ -97,7 +98,7 @@ const MyProfile = () => {
 
     try {
       const payload = {
-        walletAddress: "0x1234567823abcdef1234567890abcdef12345678", // you might want to get this dynamically
+        walletAddress: walletAddress.toLowerCase(), // ensure normalized
         username: profileData.username,
         bio: profileData.bio,
         email: profileData.email,
@@ -105,21 +106,11 @@ const MyProfile = () => {
         socialLinks: profileData.socialLinks,
         image: profileData.image,
       };
+
       console.log("🚀 ~ handleSubmit ~ payload:", payload);
 
-      const response = await fetch("https://backend-2wkx.onrender.com/api/v1/user/users/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save profile");
-      }
-
-      const result = await response.json();
+      // Use centralized userAPI which respects VITE_API_BASE_URL
+      const result = await userAPI.createOrUpdateUser(payload);
       console.log("Profile saved:", result);
       SuccessToast("Profile saved successfully!");
       setIsEditing(false); // turn off edit mode
@@ -138,17 +129,7 @@ const MyProfile = () => {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(
-        `https://backend-2wkx.onrender.com/api/v1/user/users/${walletAddress}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to delete profile");
-      }
-
+      await userAPI.deleteUserProfile(walletAddress.toLowerCase());
       SuccessToast("Profile deleted successfully!");
       // Optional: redirect or reset state
       setProfileData({
