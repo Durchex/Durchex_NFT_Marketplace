@@ -8,7 +8,8 @@ const gasFeeSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      enum: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'tezos', 'hyperliquid'],
+      // include 'global' for platform-wide service charge
+      enum: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'tezos', 'hyperliquid', 'global'],
     },
     isActive: {
       type: Boolean,
@@ -33,6 +34,11 @@ const gasFeeSchema = new Schema(
     multiplier: {
       type: Number,
       default: 1.0, // Multiplier for gas price (e.g., 1.2 = 20% increase)
+    },
+    // USD-denominated platform-wide service charge (only used when network === 'global')
+    serviceChargeUSD: {
+      type: Number,
+      default: 0,
     },
     regulations: {
       enabled: {
