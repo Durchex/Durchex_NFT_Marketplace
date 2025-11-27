@@ -373,71 +373,92 @@ function App() {
     <div className="min-h-screen bg-[#0e0e16] text-white overflow-x-hidden">
       <Header />
       <div className="px-2 md:px-5 relative bg-gradient-to-b from-[#1D0E35] to-[#0e0e16]">
-        <div className="absolut left-0 top-0 w-full mb-8">
-          {/* <div className="absolute inset-0 bg-gradient-to-t from-[#333136] to-transparent z-10"></div> */}
-          <img
-            src={bannerImage }
-            alt="Featured Dancing Monkey"
-            className="w-full md:h-[400px] mt-5 object-cove roundedxl"
-          />{" "}
-        </div>
-        <div className="flex justify-between items-center px-2 md:px-16  md:gap-4">
-          <div className="block md:flex justify-between">
-            <div className="w-12 h-12 mr-5 bg-gray-700 rounded-md"></div>
-            <div className="space-x-">
-              <h1 className="text-sm md:text-2xl font-bold">
-                {metadata?.collection}
-              </h1>
-              <p className="text-xs md:text-xl text-gray-400">
-                {metadata?.creator}
-              </p>
-              <div className="flex items-center mt-1">
-                <div className="bg-purple-800 text-purple-300 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+        {/* Main NFT Details Container - Two Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 py-8 md:py-12 px-2 md:px-16">
+          {/* Left Column: NFT Image with proper aspect ratio */}
+          <div className="flex items-start justify-center">
+            <div className="w-full max-w-md rounded-xl overflow-hidden border border-gray-700/50 shadow-lg bg-gray-900">
+              <img
+                src={bannerImage}
+                alt="NFT"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Right Column: NFT Details and Info */}
+          <div className="flex flex-col justify-start space-y-6">
+            {/* Creator Section */}
+            <div>
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-gray-700 flex-shrink-0 border border-gray-600 overflow-hidden">
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${metadata?.creator || 'default'}`}
+                    alt="Creator"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-lg md:text-3xl font-bold text-purple-400 mb-1">
+                    {metadata?.name || nftDatas?.name || "NFT"}
+                  </h2>
+                  <h1 className="text-sm md:text-xl font-semibold text-white">
+                    {metadata?.collection || nftDatas?.collection || "Collection"}
+                  </h1>
+                  <p className="text-xs md:text-sm text-gray-400 mt-1">
+                    by {metadata?.creator || nftDatas?.creator || "Unknown"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="bg-purple-800 text-purple-300 text-xs px-3 py-1 rounded-full flex items-center gap-2">
                   <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
                   {selectedChain}
                 </div>
               </div>
             </div>
-          </div>
-          {/* Stats */}
-          <div className="flex md:grid md:grid-cols-6 gap-2 md:gap-4 px-4 md:px-16 m text-sm items-center h-full  my-auto">
-            <div>
-              <p className="text-gray-400 text-xs">ItemID</p>
-              <p className="font-semibold text-sm">#233{itemId}</p>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700/30">
+              <div>
+                <p className="text-gray-400 text-xs">Item ID</p>
+                <p className="font-semibold text-sm">#{itemId}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Floor Price</p>
+                <p className="font-semibold text-sm">
+                  {formatPrice(price)} {getCurrencySymbol(selectedChain)}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Category</p>
+                <p className="font-semibold text-sm">{metadata?.category || "NFT"}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Network</p>
+                <p className="font-semibold text-sm">{selectedChain}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-xs">Floor Price</p>
-              <p className="font-semibold text-xs">
-                {formatPrice(price)} {getCurrencySymbol(selectedChain)}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-xs">Items</p>
-              <p className="font-semibold text-xs">None</p>
-            </div>
-            <div>
-              <p className="text-gray-400 hidden md:block">Categories</p>
-              <p className="font-semibold hidden md:block">
-                {/* {metadata.category} */}
-                <span className="text-green-500"></span>
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-400 hidden md:block">Properties</p>
-              <p className="font-semibold hidden md:block">
-                {/* {metadata.properties} */}
-              </p>
-            </div>
-            <div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex-1 py-2 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold rounded-lg transition-all"
+              >
+                Buy NFT
+              </button>
               <button
                 onClick={toggleShareModal}
-                className="p-2 rounded-full hover:bg-gray-800 hidden md:block"
+                className="p-2 rounded-lg hover:bg-gray-700 border border-gray-600 text-gray-300"
+                title="Share"
               >
                 <Share2 size={20} />
               </button>
               <button
                 onClick={toggleLike}
-                className="p-2 rounded-full hover:bg-gray-800"
+                className="p-2 rounded-lg hover:bg-gray-700 border border-gray-600 text-gray-300"
+                title="Like"
               >
                 <Heart
                   size={20}
@@ -697,21 +718,15 @@ function App() {
           )}
           {activeTab === "Activity" && (
             <>
-              {" "}
               {isLoading ? (
                 <LoadingNFTRow />
               ) : (
-                <div className="">
-                  <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
-                    <div className="sliding-container">
-                      <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 p-6">
-                        {TradingNFTs.slice(0, 7).map((nft, index) => (
-                          <div key={index} className="slide-item">
-                            <NFTCard {...nft} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <div className="py-8 px-2 md:px-6">
+                  <h3 className="text-xl font-bold mb-6 text-white">Other NFTs from this Collection</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {TradingNFTs.slice(0, 7).map((nft, index) => (
+                      <NFTCard key={index} {...nft} />
+                    ))}
                   </div>
                 </div>
               )}

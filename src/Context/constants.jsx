@@ -138,6 +138,7 @@ export const rpcUrls = {
   ethereum: import.meta.env.VITE_RPC_URL_ETHEREUM || "https://eth.llamarpc.com",
   bsc: import.meta.env.VITE_RPC_URL_BSC || "https://bsc-dataseed.binance.org/",
   base: import.meta.env.VITE_RPC_URL_BASE || "https://mainnet.base.org",
+  hyperliquid: import.meta.env.VITE_RPC_URL_HYPERLIQUID || "https://api.hyperliquid-testnet.xyz/evm",
 };
 
 // export const rpcUrls = {
@@ -199,6 +200,10 @@ export const contractAddresses = {
   base: {
     marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE, // 0x1BBE1EC42D897e2f0dd39B6Cc6c1070515f7B307
     vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_BASE, // 0xb0F0733302967e210B61f50b59511B3F119aE869
+  },
+  hyperliquid: {
+    marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_HYPERLIQUID || "0x0",
+    vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_HYPERLIQUID || "0x0",
   },
 };
 

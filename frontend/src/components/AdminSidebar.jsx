@@ -91,11 +91,11 @@ const AdminSidebar = () => {
       description: 'Manage user verifications'
     },
     {
-      id: 'gas-fees',
-      label: 'Gas Fee Regulations',
+      id: 'service-charge',
+      label: 'Service Charge',
       icon: FiZap,
       path: '/admin/gas-fees',
-      description: 'Configure gas fee regulations'
+      description: 'Configure platform service charge'
     },
     {
       id: 'settings',

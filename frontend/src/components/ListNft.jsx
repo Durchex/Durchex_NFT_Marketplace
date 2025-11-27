@@ -87,12 +87,12 @@ const ListNft = () => {
             {/* Price Field */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-300">
-              {`${getCurrencySymbol(selectedChain)}`} *
+              {`Enter price in ${getCurrencySymbol(selectedChain)}`} *
               </label>
               <input
                 className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl focus:outline-none focus:border-pink-500 text-white placeholder-gray-500 transition-all duration-200"
                 type="text"
-                placeholder="Enter price in POL"
+                placeholder={`Enter price in ${getCurrencySymbol(selectedChain)}`}
                 name="price"
                 defaultValue={formNftData.price}
                 onChange={HandleOnChange}

@@ -1,16 +1,17 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { ICOContent } from '../Context';
 import gasService from '../services/gasService';
 import socketService from '../services/socketService';
+import { getCurrencySymbol } from '../Context/constants';
 import { FiDollarSign, FiClock, FiTag, FiTrendingUp, FiCheck, FiX, FiLoader, FiInfo } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const NFTListingInterface = ({ nftData, onClose }) => {
-  const { address, connectWallet } = useContext(ICOContent);
+  const { address, connectWallet, selectedChain } = useContext(ICOContent);
   const [isListing, setIsListing] = useState(false);
   const [formData, setFormData] = useState({
     price: '',
-    currency: 'ETH',
+    currency: getCurrencySymbol(selectedChain),
     duration: '7', // days
     listingType: 'fixed', // fixed, auction
     reservePrice: '',
@@ -20,6 +21,17 @@ const NFTListingInterface = ({ nftData, onClose }) => {
   });
   const [gasInfo, setGasInfo] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // Memoize the current network currency symbol
+  const currentCurrencySymbol = useMemo(() => getCurrencySymbol(selectedChain), [selectedChain]);
+
+  // Update currency when chain changes
+  React.useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      currency: currentCurrencySymbol
+    }));
+  }, [currentCurrencySymbol]);
 
   const currencies = [
     { symbol: 'ETH', name: 'Ethereum', icon: '🔷' },
@@ -167,7 +179,7 @@ const NFTListingInterface = ({ nftData, onClose }) => {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-display font-medium text-gray-700 mb-2">
-          Listing Price *
+          Listing Price * ({currentCurrencySymbol})
         </label>
         <div className="relative">
           <input
@@ -178,20 +190,12 @@ const NFTListingInterface = ({ nftData, onClose }) => {
             className={`w-full px-4 py-3 pr-20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display ${
               errors.price ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="0.001"
+            placeholder={`Enter price in ${currentCurrencySymbol}`}
           />
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-            <select
-              value={formData.currency}
-              onChange={(e) => handleInputChange('currency', e.target.value)}
-              className="border-none bg-transparent text-gray-500 font-display text-sm focus:outline-none"
-            >
-              {currencies.map(currency => (
-                <option key={currency.symbol} value={currency.symbol}>
-                  {currency.symbol}
-                </option>
-              ))}
-            </select>
+            <span className="text-gray-500 font-display text-sm">
+              {currentCurrencySymbol}
+            </span>
           </div>
         </div>
         {errors.price && <p className="text-red-500 text-sm mt-1 font-display">{errors.price}</p>}
@@ -220,7 +224,7 @@ const NFTListingInterface = ({ nftData, onClose }) => {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-display font-medium text-gray-700 mb-2">
-          Reserve Price *
+          Reserve Price * ({currentCurrencySymbol})
         </label>
         <div className="relative">
           <input
@@ -231,11 +235,11 @@ const NFTListingInterface = ({ nftData, onClose }) => {
             className={`w-full px-4 py-3 pr-20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display ${
               errors.reservePrice ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="0.001"
+            placeholder={`Enter minimum price in ${currentCurrencySymbol}`}
           />
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
             <span className="text-gray-500 font-display text-sm">
-              {formData.currency}
+              {currentCurrencySymbol}
             </span>
           </div>
         </div>
@@ -247,7 +251,7 @@ const NFTListingInterface = ({ nftData, onClose }) => {
 
       <div>
         <label className="block text-sm font-display font-medium text-gray-700 mb-2">
-          Buy Now Price *
+          Buy Now Price * ({currentCurrencySymbol})
         </label>
         <div className="relative">
           <input
@@ -258,11 +262,11 @@ const NFTListingInterface = ({ nftData, onClose }) => {
             className={`w-full px-4 py-3 pr-20 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display ${
               errors.buyNowPrice ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="0.001"
+            placeholder={`Enter buy now price in ${currentCurrencySymbol}`}
           />
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
             <span className="text-gray-500 font-display text-sm">
-              {formData.currency}
+              {currentCurrencySymbol}
             </span>
           </div>
         </div>

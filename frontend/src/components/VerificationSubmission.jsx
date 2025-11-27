@@ -269,73 +269,85 @@ const VerificationSubmission = () => {
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-3">Verification Tier</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Premium - White Badge */}
           <button
             type="button"
             onClick={() => setTier('premium')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-6 rounded-lg border-2 transition-all ${
               tier === 'premium'
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-gray-400 bg-gray-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                P
+            <div className="flex flex-col items-center text-center mb-4">
+              {/* White Badge Icon */}
+              <div className="w-16 h-16 mb-3 flex items-center justify-center">
+                <div className="relative">
+                  <div className="w-14 h-14 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center shadow-sm">
+                    <FiCheck className="w-8 h-8 text-gray-700" />
+                  </div>
+                </div>
               </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-gray-900">Premium</h3>
-                <p className="text-sm text-gray-600">20+ NFTs required</p>
-              </div>
+              <h3 className="font-semibold text-gray-900 text-lg">Premium</h3>
+              <p className="text-sm text-gray-600 mt-1">White Badge</p>
+              <p className="text-xs text-gray-500 mt-2">20+ NFTs required</p>
             </div>
-            <ul className="text-sm text-gray-600 space-y-1 mt-2">
+            <ul className="text-sm text-gray-600 space-y-2 mt-4 border-t border-gray-200 pt-4">
               <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4" />
+                <FiMail className="w-4 h-4 text-gray-400" />
                 <span>Email registration</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiMapPin className="w-4 h-4" />
+                <FiMapPin className="w-4 h-4 text-gray-400" />
                 <span>Location</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4" />
+                <FiHome className="w-4 h-4 text-gray-400" />
                 <span>Address</span>
               </li>
             </ul>
           </button>
 
+          {/* Super Premium - Gold Badge */}
           <button
             type="button"
             onClick={() => setTier('super_premium')}
-            className={`p-4 rounded-lg border-2 transition-all ${
+            className={`p-6 rounded-lg border-2 transition-all ${
               tier === 'super_premium'
-                ? 'border-yellow-500 bg-yellow-50'
+                ? 'border-yellow-400 bg-yellow-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold">
-                G
+            <div className="flex flex-col items-center text-center mb-4">
+              {/* Gold Badge Icon */}
+              <div className="w-16 h-16 mb-3 flex items-center justify-center">
+                <div className="relative">
+                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 rounded-full border-2 border-yellow-600 flex items-center justify-center shadow-md">
+                    <FiCheck className="w-8 h-8 text-white" />
+                  </div>
+                  {/* Extra shine effect */}
+                  <div className="absolute top-2 left-3 w-3 h-3 bg-yellow-200 rounded-full opacity-60"></div>
+                </div>
               </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-gray-900">Super Premium</h3>
-                <p className="text-sm text-gray-600">100+ NFTs required</p>
-              </div>
+              <h3 className="font-semibold text-gray-900 text-lg">Super Premium</h3>
+              <p className="text-sm bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent font-semibold mt-1">Gold Badge</p>
+              <p className="text-xs text-gray-500 mt-2">100+ NFTs required</p>
             </div>
-            <ul className="text-sm text-gray-600 space-y-1 mt-2">
+            <ul className="text-sm text-gray-600 space-y-2 mt-4 border-t border-gray-200 pt-4">
               <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4" />
+                <FiMail className="w-4 h-4 text-yellow-600" />
                 <span>Email address</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiGlobe className="w-4 h-4" />
+                <FiGlobe className="w-4 h-4 text-yellow-600" />
                 <span>Country location</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4" />
+                <FiHome className="w-4 h-4 text-yellow-600" />
                 <span>House address</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiShield className="w-4 h-4" />
+                <FiShield className="w-4 h-4 text-yellow-600" />
                 <span>ID verification</span>
               </li>
             </ul>

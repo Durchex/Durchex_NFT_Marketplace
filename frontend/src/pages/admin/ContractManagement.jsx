@@ -3,6 +3,7 @@ import { ICOContent } from "../../Context";
 import { contractAddresses } from "../../Context/constants";
 import { ErrorToast } from "../../app/Toast/Error";
 import { SuccessToast } from "../../app/Toast/Success";
+import TezosWithdrawUI from "../../components/TezosWithdrawUI";
 import { 
   FiDollarSign, 
   FiUsers, 
@@ -372,33 +373,39 @@ const ContractManagement = () => {
           </Card>
 
           {/* Withdraw Funds */}
-          <Card title="Withdraw Funds" icon={FiDownload} color="green">
-            <p className="text-sm text-gray-600 mb-4 font-display">
-              Withdraw accumulated funds from the contract
-            </p>
-            <div className="mb-3">
-              <label className="block text-sm text-gray-600 mb-2">Network</label>
-              <select
-                value={selectedNetwork}
-                onChange={(e) => setSelectedNetwork(e.target.value)}
-                className="w-full p-3 mb-2 rounded-lg bg-white border border-gray-300 text-gray-900"
-              >
-                {Object.keys(contractAddresses).map((net) => (
-                  <option key={net} value={net}>{net}</option>
-                ))}
-              </select>
-              <div className="text-xs text-gray-500">
-                Contract: {contractAddresses[selectedNetwork]?.vendorNFT || 'Not configured'}
-              </div>
+          {selectedNetwork === 'tezos' ? (
+            <div className="col-span-1">
+              <TezosWithdrawUI />
             </div>
-            <button
-              onClick={withdrawFunds}
-              disabled={isLoading}
-              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-display font-medium transition-colors"
-            >
-              {isLoading ? "Processing..." : "Withdraw Funds"}
-            </button>
-          </Card>
+          ) : (
+            <Card title="Withdraw Funds" icon={FiDownload} color="green">
+              <p className="text-sm text-gray-600 mb-4 font-display">
+                Withdraw accumulated funds from the contract
+              </p>
+              <div className="mb-3">
+                <label className="block text-sm text-gray-600 mb-2">Network</label>
+                <select
+                  value={selectedNetwork}
+                  onChange={(e) => setSelectedNetwork(e.target.value)}
+                  className="w-full p-3 mb-2 rounded-lg bg-white border border-gray-300 text-gray-900"
+                >
+                  {Object.keys(contractAddresses).map((net) => (
+                    <option key={net} value={net}>{net}</option>
+                  ))}
+                </select>
+                <div className="text-xs text-gray-500">
+                  Contract: {contractAddresses[selectedNetwork]?.vendorNFT || 'Not configured'}
+                </div>
+              </div>
+              <button
+                onClick={withdrawFunds}
+                disabled={isLoading}
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-display font-medium transition-colors"
+              >
+                {isLoading ? "Processing..." : "Withdraw Funds"}
+              </button>
+            </Card>
+          )}
 
           {/* Check Airdrop Eligibility */}
           <Card title="Check Airdrop Eligibility" icon={FiCheckCircle} color="blue">
