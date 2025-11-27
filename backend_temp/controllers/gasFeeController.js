@@ -177,3 +177,75 @@ export const toggleGasFeeRegulation = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get global service charge configuration
+export const getGlobalServiceCharge = async (req, res) => {
+  try {
+    let serviceCharge = await gasFeeModel.findOne({ network: 'global' });
+
+    // If no global service charge exists, create default
+    if (!serviceCharge) {
+      serviceCharge = await gasFeeModel.create({
+        network: 'global',
+        serviceChargeUSD: 0,
+        isActive: true,
+        updatedAt: new Date(),
+      });
+    }
+
+    res.json(serviceCharge);
+  } catch (error) {
+    console.error('Error getting global service charge:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update global service charge (Admin only)
+export const updateGlobalServiceCharge = async (req, res) => {
+  try {
+    const updates = req.body;
+    const { updatedBy } = req.body;
+
+    // Validate serviceChargeUSD
+    if (updates.serviceChargeUSD !== undefined && isNaN(updates.serviceChargeUSD)) {
+      return res.status(400).json({ error: 'serviceChargeUSD must be a valid number' });
+    }
+
+    const serviceCharge = await gasFeeModel.findOneAndUpdate(
+      { network: 'global' },
+      { ...updates, updatedBy, updatedAt: new Date() },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Global service charge updated successfully',
+      serviceCharge,
+    });
+  } catch (error) {
+    console.error('Error updating global service charge:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Toggle global service charge active status
+export const toggleGlobalServiceCharge = async (req, res) => {
+  try {
+    const { isActive, updatedBy } = req.body;
+
+    const serviceCharge = await gasFeeModel.findOneAndUpdate(
+      { network: 'global' },
+      { isActive, updatedBy, updatedAt: new Date() },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: `Global service charge ${isActive ? 'activated' : 'deactivated'}`,
+      serviceCharge,
+    });
+  } catch (error) {
+    console.error('Error toggling global service charge:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
