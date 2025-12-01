@@ -40,6 +40,11 @@ const gasFeeSchema = new Schema(
       type: Number,
       default: 0,
     },
+    // Percentage cut on sale that goes to platform (e.g., 2.5 means 2.5%)
+    salePercentage: {
+      type: Number,
+      default: 0,
+    },
     regulations: {
       enabled: {
         type: Boolean,
