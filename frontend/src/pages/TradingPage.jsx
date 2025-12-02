@@ -395,7 +395,7 @@ const TradingPage = () => {
                   </span>
                 </div>
               </button>
-            ))}
+            )))}
           </div>
         </div>
 
