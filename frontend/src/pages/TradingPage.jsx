@@ -3,6 +3,7 @@ import TokenTradingChart from '../components/TokenTradingChart';
 import Header from '../components/Header';
 import { useNetwork } from '../Context/NetworkContext';
 import { ICOContent } from '../Context';
+import { nftAPI } from '../services/api';
 import { 
   FiTrendingUp, 
   FiTrendingDown, 
@@ -23,8 +24,8 @@ const TradingPage = () => {
   const [selectedNetworkFilter, setSelectedNetworkFilter] = useState('all');
   const [watchlist, setWatchlist] = useState(['ETH', 'MATIC', 'BNB', 'USDT', 'USDC']);
 
-  // Define tokens/projects for each supported network
-  const allTokens = [
+  // Fallback static tokens/projects (used if backend unavailable)
+  const staticTokens = [
     // Ethereum tokens
     { 
       symbol: 'ETH', 
@@ -190,8 +191,12 @@ const TradingPage = () => {
     },
   ];
 
+  // Dynamic tokens state (will be populated from backend when available)
+  const [tokens, setTokens] = useState(staticTokens);
+  const [loadingTokens, setLoadingTokens] = useState(false);
+
   // Filter tokens by network
-  const filteredTokens = allTokens.filter(token => {
+  const filteredTokens = tokens.filter(token => {
     const matchesNetwork = selectedNetworkFilter === 'all' || token.network === selectedNetworkFilter;
     const matchesSearch = searchQuery === '' || 
       token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -200,10 +205,10 @@ const TradingPage = () => {
   });
 
   // Get latest projects (new tokens)
-  const latestProjects = allTokens.filter(token => token.isNew).slice(0, 6);
+  const latestProjects = tokens.filter(token => token.isNew).slice(0, 6);
 
   // Get supported networks for filter
-  const supportedNetworks = ['all', ...Array.from(new Set(allTokens.map(t => t.network)))];
+  const supportedNetworks = ['all', ...Array.from(new Set(tokens.map(t => t.network)))];
 
   const formatNumber = (num) => {
     if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
@@ -220,6 +225,86 @@ const TradingPage = () => {
     );
     toast.success(`${symbol} ${watchlist.includes(symbol) ? 'removed from' : 'added to'} watchlist`);
   };
+
+  // Fetch dynamic token/project data from backend
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchTokens = async () => {
+      setLoadingTokens(true);
+      try {
+        // Attempt to fetch collections or NFTs for the selected network filter
+        if (selectedNetworkFilter && selectedNetworkFilter !== 'all') {
+          // backend likely expects lowercase network identifiers
+          const netKey = selectedNetworkFilter.toLowerCase();
+          const resp = await nftAPI.getCollectionsByNetwork(netKey).catch(() => null);
+          if (resp && !cancelled) {
+            // resp may be an array or object with collections
+            const collections = Array.isArray(resp) ? resp : resp.collections || resp.data || [];
+            if (collections && collections.length > 0) {
+              const mapped = collections.map((c) => ({
+                symbol: c.symbol || (c.name ? c.name.slice(0,4).toUpperCase() : 'PRJ'),
+                name: c.name || c.collectionName || c.contractName || c.contractAddress,
+                network: selectedNetworkFilter,
+                chainId: c.chainId || c.chain || 0,
+                icon: c.icon || c.image || c.logo || 'data:image/svg+xml;base64,PHN2ZyB4bWxu...==',
+                price: c.floorPrice || c.price || 0,
+                change24h: c.change24h || 0,
+                volume24h: c.volume || c.volume24h || 0,
+                liquidity: c.liquidity || 0,
+                marketCap: c.marketCap || 0,
+                isNew: !!c.isNew || !!c.recent
+              }));
+              setTokens(mapped);
+              setLoadingTokens(false);
+              return;
+            }
+          }
+        }
+
+        // If 'all' selected or collection fetch failed, try fetching single NFTs across networks
+        const fallbackTokens = [];
+        for (const net of networks) {
+          const netKey = (net.name || net.id || '').toLowerCase();
+          if (!netKey) continue;
+          const resp = await nftAPI.getSingleNfts(netKey).catch(() => null);
+          const items = resp && (Array.isArray(resp) ? resp : resp.items || resp.data) ? (Array.isArray(resp) ? resp : (resp.items || resp.data)) : [];
+          for (const it of items.slice(0,6)) {
+            fallbackTokens.push({
+              symbol: it.symbol || (it.name ? it.name.slice(0,4).toUpperCase() : 'NFT'),
+              name: it.name || it.title || it.tokenName || it.collection || it.contractAddress,
+              network: net.name || netKey,
+              chainId: net.chainId || net.chainId || 0,
+              icon: it.image || it.metadata?.image || it.icon || 'data:image/svg+xml;base64,PHN2ZyB4bWxu...==',
+              price: it.price || 0,
+              change24h: 0,
+              volume24h: it.volume || 0,
+              liquidity: 0,
+              marketCap: 0,
+              isNew: !!it.isNew || false
+            });
+          }
+        }
+
+        if (fallbackTokens.length > 0 && !cancelled) {
+          setTokens(fallbackTokens);
+        } else {
+          // fallback to static tokens
+          setTokens(staticTokens);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tokens for trading page:', error);
+        toast.error('Unable to load live projects — showing sample data');
+        setTokens(staticTokens);
+      } finally {
+        if (!cancelled) setLoadingTokens(false);
+      }
+    };
+
+    fetchTokens();
+
+    return () => { cancelled = true; };
+  }, [selectedNetworkFilter, networks]);
 
   // Create market object for selected token
   const selectedMarket = selectedToken ? {
@@ -257,7 +342,12 @@ const TradingPage = () => {
 
           {/* Latest Projects Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {latestProjects.map((token, index) => (
+            {loadingTokens ? (
+              <div className="col-span-full flex items-center justify-center p-6">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
+              </div>
+            ) : (
+              latestProjects.map((token, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedToken(token)}
@@ -527,7 +617,7 @@ const TradingPage = () => {
               <h3 className="font-display font-bold text-lg mb-4">Watchlist</h3>
               <div className="space-y-2">
                 {watchlist.slice(0, 5).map((symbol) => {
-                  const token = allTokens.find(t => t.symbol === symbol);
+                  const token = tokens.find(t => t.symbol === symbol);
                   if (!token) return null;
                   
                   return (

@@ -14,6 +14,12 @@ import {
 } from 'chart.js';
 import { ICOContent } from '../Context';
 import { useNetwork } from '../Context/NetworkContext';
+import smartContractService from '../services/smartContractService';
+import { nftAPI } from '../services/api';
+import swapService from '../services/swapService';
+import uniswapService from '../services/uniswapService';
+import tokenRegistry from '../services/tokenRegistry';
+import { ethers } from 'ethers';
 import { FiTrendingUp, FiTrendingDown, FiRefreshCw, FiArrowUp, FiArrowDown, FiDollarSign, FiPercent } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -59,15 +65,41 @@ const TokenTradingChart = ({ selectedMarket }) => {
   }, [selectedMarket]);
   const [timeframe, setTimeframe] = useState('1D');
   const [isSwapping, setIsSwapping] = useState(false);
+  const [showDexModal, setShowDexModal] = useState(false);
+  const [dexSellAmount, setDexSellAmount] = useState('');
+  const [dexSlippage, setDexSlippage] = useState(1); // percent
+  const [dexQuote, setDexQuote] = useState(null);
+  const [dexQuoting, setDexQuoting] = useState(false);
+  const [dexExecuting, setDexExecuting] = useState(false);
+  const [dexTxPreview, setDexTxPreview] = useState(null);
+  const [useUniswap, setUseUniswap] = useState(false);
+  const [showListModal, setShowListModal] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [modalTokenId, setModalTokenId] = useState('');
+  const [modalPrice, setModalPrice] = useState('');
+  const [actionInProgress, setActionInProgress] = useState(false);
 
-  // Mock token data - in production, this would come from APIs
-  const tokens = [
-    { symbol: 'ETH', name: 'Ethereum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K', balance: 0 },
-    { symbol: 'MATIC', name: 'Polygon', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==', balance: 0 },
-    { symbol: 'BNB', name: 'Binance Coin', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==', balance: 0 },
-    { symbol: 'USDT', name: 'Tether', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==', balance: 0 },
-    { symbol: 'USDC', name: 'USD Coin', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyNkE0RjQiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==', balance: 0 },
-  ];
+  // Build token list from registry for selected network
+  const networkKey = getNetworkKey();
+  const registryTokens = tokenRegistry.registry[getNetworkKey()] || {};
+  const tokens = Object.keys(registryTokens).map((sym) => ({
+    symbol: sym,
+    name: registryTokens[sym].name || sym,
+    icon: '',
+    balance: 0,
+  }));
+
+  // Ensure selected tokens exist in registry; fall back to first two
+  useEffect(() => {
+    const symbols = tokens.map(t => t.symbol);
+    if (symbols.length === 0) return;
+    setSwapData(prev => ({
+      ...prev,
+      fromToken: symbols.includes(prev.fromToken) ? prev.fromToken : symbols[0],
+      toToken: symbols.includes(prev.toToken) ? prev.toToken : symbols[1] || symbols[0],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNetwork]);
 
   // Chart options
   const chartOptions = {
@@ -273,9 +305,193 @@ const TokenTradingChart = ({ selectedMarket }) => {
     }));
   };
 
+  // DEX (0x) Quote & Execution
+  const handleGetDexQuote = async () => {
+    if (!address) return toast.error('Connect wallet to get a quote');
+    if (!dexSellAmount || isNaN(dexSellAmount) || Number(dexSellAmount) <= 0) return toast.error('Enter a valid amount');
+
+    setDexQuoting(true);
+    setDexQuote(null);
+    try {
+      const sellToken = swapData.fromToken; // symbol like ETH, USDT
+      const buyToken = swapData.toToken;
+      const taker = address;
+      const networkKey = getNetworkKey();
+      let quote;
+      if (useUniswap) {
+        const resolvedIn = tokenRegistry.resolve(sellToken, networkKey);
+        const resolvedOut = tokenRegistry.resolve(buyToken, networkKey);
+        const tokenInAddr = resolvedIn?.address || sellToken;
+        const tokenOutAddr = resolvedOut?.address || buyToken;
+        const provider = window.ethereum ? new ethers.providers.Web3Provider(window.ethereum) : null;
+        const quoteUniswap = await uniswapService.getUniswapQuoteAndTx(provider, address, tokenInAddr, tokenOutAddr, dexSellAmount, dexSlippage, 3000, networkKey);
+        quote = quoteUniswap;
+        setDexQuote(quoteUniswap);
+        setDexTxPreview({
+          to: quoteUniswap.txRequest.to,
+          value: quoteUniswap.txRequest.value || '0',
+          dataSize: quoteUniswap.txRequest.data ? quoteUniswap.txRequest.data.length : 0,
+          estimatedGas: quoteUniswap.amountOutRaw ? null : null,
+        });
+      } else {
+        const quote0x = await swapService.get0xQuote(sellToken, buyToken, dexSellAmount, taker, dexSlippage, networkKey);
+        quote = quote0x;
+        setDexQuote(quote0x);
+        setDexTxPreview({
+          to: quote0x.to,
+          value: quote0x.value || '0',
+          dataSize: quote0x.data ? quote0x.data.length : 0,
+          estimatedGas: quote0x.estimatedGas || quote0x.gas || null,
+        });
+      }
+
+      toast.success('Quote retrieved. Review preview and execute if happy.');
+    } catch (err) {
+      console.error('DEX quote error', err);
+      toast.error('Failed to retrieve quote: ' + (err?.message || err));
+    } finally {
+      setDexQuoting(false);
+    }
+  };
+
+  const handleExecuteDexSwap = async () => {
+    if (!dexQuote) return toast.error('No quote available');
+    setDexExecuting(true);
+    const loadingId = 'dex-exec';
+    toast.loading('Executing swap on-chain...', { id: loadingId });
+    try {
+      if (!window.ethereum) throw new Error('No injected web3 provider');
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      // Ensure approvals and execute via chosen provider
+      let tx;
+      if (useUniswap) {
+        // uniswap service expects quote object returned from getUniswapQuoteAndTx
+        dexQuote.tokenIn = dexQuote.tokenIn || null;
+        tx = await uniswapService.executeUniswapSwap({ ...dexQuote, tokenIn: dexQuote.tokenIn }, signer);
+      } else {
+        tx = await swapService.executeSwap(dexQuote, signer);
+      }
+      toast.success('Swap transaction submitted. Waiting for confirmation...', { id: loadingId });
+      await tx.wait();
+      toast.success('Swap confirmed');
+      setShowDexModal(false);
+      setDexQuote(null);
+      setDexSellAmount('');
+      setDexTxPreview(null);
+    } catch (err) {
+      console.error('DEX execute error', err);
+      toast.error('Swap execution failed: ' + (err?.message || err), { id: 'dex-exec' });
+    } finally {
+      setDexExecuting(false);
+      toast.remove('dex-exec');
+    }
+  };
+
+  // Helper to get network key for smartContractService (lowercase)
+  const getNetworkKey = () => (selectedNetwork?.name || 'ethereum').toLowerCase();
+
+  // List NFT on marketplace
+  const handleListSubmit = async () => {
+    if (!address) return toast.error('Connect your wallet first');
+    if (!modalTokenId) return toast.error('Enter token/item id');
+    if (!modalPrice || isNaN(modalPrice) || Number(modalPrice) <= 0) return toast.error('Enter a valid price');
+
+    const networkKey = getNetworkKey();
+    setActionInProgress(true);
+    const loadingId = 'list';
+    toast.loading('Listing NFT on-chain...', { id: loadingId });
+
+    try {
+      const priceWei = ethers.utils.parseUnits(modalPrice.toString(), 'ether');
+      const result = await smartContractService.listNFT(networkKey, modalTokenId, priceWei);
+      if (!result || !result.success) throw new Error(result?.error || 'Listing transaction failed');
+
+      // Update backend record to mark as listed
+      try {
+        await nftAPI.editSingleNft(networkKey, modalTokenId, { currentlyListed: true, price: modalPrice });
+      } catch (err) {
+        console.warn('Failed to update backend after listing:', err.message || err);
+      }
+
+      toast.success('NFT listed successfully', { id: loadingId });
+      setShowListModal(false);
+      setModalTokenId('');
+      setModalPrice('');
+    } catch (error) {
+      console.error('List error:', error);
+      toast.error(`Listing failed: ${error.message || error}` , { id: 'list' });
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  // Buy NFT from marketplace
+  const handleBuySubmit = async () => {
+    if (!address) return toast.error('Connect your wallet first');
+    if (!modalTokenId) return toast.error('Enter token/item id');
+    if (!modalPrice || isNaN(modalPrice) || Number(modalPrice) <= 0) return toast.error('Enter a valid price');
+
+    const networkKey = getNetworkKey();
+    setActionInProgress(true);
+    const loadingId = 'buy';
+    toast.loading('Processing purchase on-chain...', { id: loadingId });
+
+    try {
+      const priceWei = ethers.utils.parseUnits(modalPrice.toString(), 'ether');
+      const result = await smartContractService.buyNFT(networkKey, modalTokenId, { value: priceWei });
+      if (!result || !result.success) throw new Error(result?.error || 'Buy transaction failed');
+
+      // Update backend owner
+      try {
+        await nftAPI.updateNftOwner({ network: networkKey, itemId: modalTokenId, tokenId: modalTokenId, newOwner: address, listed: false });
+      } catch (err) {
+        console.warn('Failed to update backend after purchase:', err.message || err);
+      }
+
+      toast.success('Purchase successful', { id: loadingId });
+      setShowBuyModal(false);
+      setModalTokenId('');
+      setModalPrice('');
+    } catch (error) {
+      console.error('Buy error:', error);
+      toast.error(`Purchase failed: ${error.message || error}`, { id: loadingId });
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
   const selectedToken = tokens.find(t => t.symbol === swapData.fromToken);
   const priceChange = priceData[swapData.fromToken]?.change24h || null;
   const currentPrice = priceData[swapData.fromToken]?.price || null;
+
+  // Derived DEX quote display values
+  let dexSellDisplay = null;
+  let dexBuyDisplay = null;
+  let dexPriceDisplay = null;
+  if (dexQuote) {
+    try {
+      if (dexQuote._sellResolved) {
+        const sellDecimals = dexQuote._sellResolved.decimals || 18;
+        const buyDecimals = dexQuote._buyResolved?.decimals || 18;
+        const sellRaw = dexQuote.sellAmount || dexQuote.sellAmountBase || dexQuote.amountInRaw || '0';
+        const buyRaw = dexQuote.buyAmount || dexQuote.toAmount || dexQuote.amountOutRaw || '0';
+        dexSellDisplay = ethers.utils.formatUnits(String(sellRaw), sellDecimals);
+        dexBuyDisplay = ethers.utils.formatUnits(String(buyRaw), buyDecimals);
+        dexPriceDisplay = dexQuote.price || (Number(dexBuyDisplay) && Number(dexSellDisplay) ? (Number(dexBuyDisplay) / Number(dexSellDisplay)) : null);
+      } else if (dexQuote.amountInRaw) {
+        // Uniswap style
+        const sellDecimals = dexQuote.resolvedIn?.decimals || 18;
+        const buyDecimals = dexQuote.resolvedOut?.decimals || 18;
+        dexSellDisplay = ethers.utils.formatUnits(String(dexQuote.amountInRaw), sellDecimals);
+        dexBuyDisplay = ethers.utils.formatUnits(String(dexQuote.amountOutRaw), buyDecimals);
+        dexPriceDisplay = dexQuote.price || (Number(dexBuyDisplay) && Number(dexSellDisplay) ? (Number(dexBuyDisplay) / Number(dexSellDisplay)) : null);
+      }
+    } catch (e) {
+      // ignore formatting errors
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
@@ -318,6 +534,21 @@ const TokenTradingChart = ({ selectedMarket }) => {
                     )}
                   </div>
                 </div>
+              </div>
+              {/* List / Buy Buttons */}
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={() => setShowListModal(true)}
+                  className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm font-semibold"
+                >
+                  List on Marketplace
+                </button>
+                <button
+                  onClick={() => setShowBuyModal(true)}
+                  className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold"
+                >
+                  Buy from Marketplace
+                </button>
               </div>
 
               {/* Timeframe Selector */}
@@ -490,6 +721,16 @@ const TokenTradingChart = ({ selectedMarket }) => {
                   'Connect Wallet in Header'
                 )}
               </button>
+              {/* Advanced DEX Swap */}
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowDexModal(true)}
+                  disabled={!address}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-display font-semibold py-3 rounded-lg transition-all"
+                >
+                  {address ? 'Advanced DEX Swap (0x Quote)' : 'Connect Wallet to Use DEX'}
+                </button>
+              </div>
             </div>
 
             {/* Token List */}
@@ -526,8 +767,89 @@ const TokenTradingChart = ({ selectedMarket }) => {
           </div>
         </div>
       </div>
+      {/* DEX Swap Modal */}
+      {showDexModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-lg">
+            <h3 className="font-display text-lg font-bold mb-2">Advanced DEX Swap (0x)</h3>
+            <p className="text-sm text-gray-400 mb-4">Get a 0x quote, preview the transaction, and execute the swap on-chain.</p>
+
+            <label className="text-sm text-gray-300">Sell Amount ({swapData.fromToken})</label>
+            <input value={dexSellAmount} onChange={(e) => setDexSellAmount(e.target.value)} className="w-full p-2 my-2 bg-gray-800 rounded" placeholder="0.0" />
+
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-sm text-gray-300">Slippage %</label>
+              <input type="number" value={dexSlippage} onChange={(e) => setDexSlippage(Number(e.target.value))} className="w-20 p-2 bg-gray-800 rounded" />
+              <button onClick={handleGetDexQuote} disabled={dexQuoting || !dexSellAmount} className="ml-auto px-3 py-2 bg-blue-600 rounded">{dexQuoting ? 'Quoting...' : 'Get Quote'}</button>
+            </div>
+
+            {dexQuote && (
+              <div className="bg-gray-800 p-3 rounded mb-3">
+                <div className="text-sm text-gray-300 mb-2">Quote Summary</div>
+                <div className="text-white text-sm">Sell: {dexSellDisplay ?? (swapData.fromAmount || 'N/A')} {swapData.fromToken}</div>
+                <div className="text-white text-sm">Buy (estimated): {dexBuyDisplay ?? (dexQuote.toAmount || 'N/A')} {swapData.toToken}</div>
+                <div className="text-white text-sm">Price: {dexPriceDisplay ?? (dexQuote.price || 'N/A')}</div>
+                <div className="text-sm text-gray-400">Estimated Gas: {dexQuote.estimatedGas || dexQuote.gas || 'N/A'}</div>
+                <div className="text-sm text-gray-400">Allowance Target: {dexQuote.allowanceTarget || dexQuote.router || 'N/A'}</div>
+              </div>
+            )}
+
+            {dexTxPreview && (
+              <div className="bg-gray-800 p-3 rounded mb-3">
+                <div className="text-sm text-gray-300 mb-2">Transaction Preview</div>
+                <div className="text-white text-sm">To: {dexTxPreview.to}</div>
+                <div className="text-white text-sm">Value: {dexTxPreview.value ? ethers.utils.formatEther(dexTxPreview.value.toString()) : '0'} ETH</div>
+                <div className="text-sm text-gray-400">Data size: {dexTxPreview.dataSize} bytes</div>
+                <div className="text-sm text-gray-400">Estimated Gas: {dexTxPreview.estimatedGas || 'N/A'}</div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setShowDexModal(false); setDexQuote(null); setDexTxPreview(null); }} className="px-3 py-2 bg-gray-700 rounded">Close</button>
+              <button onClick={handleExecuteDexSwap} disabled={dexExecuting || !dexQuote} className="px-3 py-2 bg-green-600 rounded font-semibold">{dexExecuting ? 'Executing...' : 'Execute Swap'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* List Modal */}
+      {showListModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md">
+            <h3 className="font-display text-lg font-bold mb-2">List NFT on Marketplace</h3>
+            <p className="text-sm text-gray-400 mb-4">Enter the item ID and price (in native token, e.g., ETH/MATIC).</p>
+            <label className="text-sm text-gray-300">Item ID</label>
+            <input value={modalTokenId} onChange={(e) => setModalTokenId(e.target.value)} className="w-full p-2 my-2 bg-gray-800 rounded" />
+            <label className="text-sm text-gray-300">Price (native)</label>
+            <input value={modalPrice} onChange={(e) => setModalPrice(e.target.value)} className="w-full p-2 my-2 bg-gray-800 rounded" />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setShowListModal(false); }} className="px-3 py-2 bg-gray-700 rounded">Cancel</button>
+              <button onClick={handleListSubmit} disabled={actionInProgress} className="px-3 py-2 bg-yellow-600 rounded font-semibold">{actionInProgress ? 'Listing...' : 'List'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buy Modal */}
+      {showBuyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md">
+            <h3 className="font-display text-lg font-bold mb-2">Buy NFT</h3>
+            <p className="text-sm text-gray-400 mb-4">Enter the item ID and price (in native token) to purchase.</p>
+            <label className="text-sm text-gray-300">Item ID</label>
+            <input value={modalTokenId} onChange={(e) => setModalTokenId(e.target.value)} className="w-full p-2 my-2 bg-gray-800 rounded" />
+            <label className="text-sm text-gray-300">Price (native)</label>
+            <input value={modalPrice} onChange={(e) => setModalPrice(e.target.value)} className="w-full p-2 my-2 bg-gray-800 rounded" />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setShowBuyModal(false); }} className="px-3 py-2 bg-gray-700 rounded">Cancel</button>
+              <button onClick={handleBuySubmit} disabled={actionInProgress} className="px-3 py-2 bg-green-600 rounded font-semibold">{actionInProgress ? 'Buying...' : 'Buy'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default TokenTradingChart;
+
