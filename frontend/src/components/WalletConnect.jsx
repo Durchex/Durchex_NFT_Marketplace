@@ -30,7 +30,16 @@ const WalletConnect = () => {
       name: 'MetaMask',
       icon: '🦊',
       description: 'Connect using MetaMask',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && window.ethereum.isMetaMask) return true;
+        // Some browsers expose multiple providers
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isMetaMask);
+        }
+        // Fallback: any injected ethereum provider likely supports MetaMask-like behavior
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       downloadUrl: 'https://metamask.io/download/'
     },
     {
@@ -38,7 +47,14 @@ const WalletConnect = () => {
       name: 'Coinbase Wallet',
       icon: '🔷',
       description: 'Connect using Coinbase Wallet',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && window.ethereum.isCoinbaseWallet) return true;
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isCoinbaseWallet);
+        }
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       downloadUrl: 'https://www.coinbase.com/wallet'
     },
     {
@@ -46,7 +62,7 @@ const WalletConnect = () => {
       name: 'WalletConnect',
       icon: '🔗',
       description: 'Connect using WalletConnect',
-      isInstalled: () => false, // WalletConnect is always available
+      isInstalled: () => true, // WalletConnect is available as a protocol (QR/mobile)
       downloadUrl: 'https://walletconnect.com/'
     },
     {
@@ -54,7 +70,14 @@ const WalletConnect = () => {
       name: 'Trust Wallet',
       icon: '🛡️',
       description: 'Connect using Trust Wallet',
-      isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isTrust,
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && (window.ethereum.isTrust || window.ethereum.isTrustWallet)) return true;
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isTrust || p.isTrustWallet);
+        }
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       downloadUrl: 'https://trustwallet.com/'
     }
   ];
@@ -89,7 +112,7 @@ const WalletConnect = () => {
       }
 
       // Connect to the selected wallet
-      await connectWallet();
+      await connectWallet(wallet.id);
       toast.success(`Connected to ${wallet.name}!`);
     } catch (error) {
       console.error('Connection error:', error);

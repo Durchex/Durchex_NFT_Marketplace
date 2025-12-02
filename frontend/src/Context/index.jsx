@@ -2,6 +2,7 @@ import axios from "axios";
 import { ethers } from "ethers";
 import React, { createContext, useEffect, useState } from "react";
 import { ErrorToast } from "../app/Toast/Error.jsx";
+import EthereumProvider from '@walletconnect/ethereum-provider';
 import VendorNFT from "./VendorNFT.json";
 import MarketPlace from "./NFTMarketplace.json";
 import gasService from "../services/gasService";
@@ -30,6 +31,7 @@ export const Index = ({ children }) => {
   const [currency, setCurrency] = useState("MATIC");
   const [selectedChain, setSelectedChain] = useState("polygon");
   const [cartItems, setCartItems] = useState([]);
+  const [wcProvider, setWcProvider] = useState(null);
 
   //FUNCTION
   const checkIfWalletConnected = async () => {
@@ -187,6 +189,9 @@ export const Index = ({ children }) => {
   }, [address]);
 
   const connectWallet = async () => {
+    // Support calling with a specific wallet id (e.g. 'metamask', 'coinbase', 'walletconnect')
+    // If a wallet id is passed, the caller can rely on UI detection to ensure the right provider is available.
+    const walletId = arguments[0];
     // Get the wallet provider - check for multiple providers
     let provider = null;
     
@@ -205,8 +210,59 @@ export const Index = ({ children }) => {
       }
     }
 
+    // If caller explicitly requested WalletConnect, initialize WalletConnect provider
+    if (walletId === 'walletconnect') {
+      try {
+        const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+        if (!projectId) {
+          ErrorToast('WalletConnect project ID not configured. Set VITE_WALLETCONNECT_PROJECT_ID in your .env');
+          return null;
+        }
+
+        let wprovider = wcProvider;
+        if (!wprovider) {
+          wprovider = await EthereumProvider.init({
+            projectId,
+            chains: [1, 137, 56, 42161, 43114],
+            showQrModal: true,
+          });
+          setWcProvider(wprovider);
+
+          // wire events
+          if (wprovider.on) {
+            wprovider.on('accountsChanged', (accounts) => {
+              if (!accounts || accounts.length === 0) {
+                setAddress(null);
+                setAccountBalance(null);
+              } else {
+                setAddress(accounts[0]);
+              }
+            });
+            wprovider.on('chainChanged', () => {
+              checkIfWalletConnected();
+            });
+            wprovider.on('disconnect', () => {
+              setAddress(null);
+              setAccountBalance(null);
+            });
+          }
+        }
+
+        provider = wprovider;
+      } catch (err) {
+        console.error('Error initializing WalletConnect provider:', err);
+        ErrorToast('Failed to initialize WalletConnect. Check console for details.');
+        return null;
+      }
+    }
+
     if (!provider) {
-      ErrorToast("No wallet provider found. Please install MetaMask or another wallet extension.");
+      // If a specific wallet was requested, give a tailored message
+      if (walletId) {
+        ErrorToast(`No ${walletId} provider found. Please install ${walletId} or use another wallet.`);
+      } else {
+        ErrorToast("No wallet provider found. Please install MetaMask or another wallet extension.");
+      }
       return null;
     }
 
@@ -277,6 +333,46 @@ export const Index = ({ children }) => {
       
       ErrorToast(errorMessage);
       return null;
+    }
+  };
+
+  // Disconnect wallet helper exported to components
+  const disconnectWallet = async () => {
+    try {
+      // Clear local state
+      setAddress(null);
+      setAccountBalance(null);
+
+      // Remove any persisted wallet session
+      try {
+        localStorage.removeItem('wallet_session');
+        localStorage.removeItem('walletconnect');
+      } catch (e) {
+        // ignore
+      }
+
+      // Attempt to gracefully disconnect WalletConnect style providers
+      try {
+        // First try WalletConnect provider instance
+        if (wcProvider && typeof wcProvider.disconnect === 'function') {
+          try { await wcProvider.disconnect(); } catch (e) { console.warn('wcProvider.disconnect failed', e); }
+        }
+
+        // Also attempt to call generic provider disconnect/close
+        const provider = typeof window !== 'undefined' && (window.ethereum || window.wallet?.provider || window.__walletconnect__);
+        if (provider && typeof provider.disconnect === 'function') {
+          try { await provider.disconnect(); } catch(e) {}
+        }
+        if (provider && typeof provider.close === 'function') {
+          try { await provider.close(); } catch(e) {}
+        }
+      } catch (e) {
+        // ignore errors during provider disconnect
+      }
+
+      console.log('Wallet disconnected');
+    } catch (err) {
+      console.error('Error during disconnectWallet:', err);
     }
   };
 
@@ -1205,6 +1301,7 @@ export const Index = ({ children }) => {
         updatePointsPerTransaction,
         vendorBatchMintMint,
         connectWallet,
+          disconnectWallet,
         setMintingFee,
         vendorMint,
         publicMint,

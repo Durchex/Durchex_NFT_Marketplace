@@ -119,7 +119,14 @@ const EnhancedWalletConnect = () => {
     {
       name: 'MetaMask',
       icon: '🦊',
-      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && window.ethereum.isMetaMask) return true;
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isMetaMask);
+        }
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       connect: () => connectWallet('metamask'),
       downloadLink: 'https://metamask.io/download/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -127,7 +134,14 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Coinbase Wallet',
       icon: '🔵',
-      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && window.ethereum.isCoinbaseWallet) return true;
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isCoinbaseWallet);
+        }
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       connect: () => connectWallet('coinbase'),
       downloadLink: 'https://www.coinbase.com/wallet',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -135,7 +149,7 @@ const EnhancedWalletConnect = () => {
     {
       name: 'WalletConnect',
       icon: '🔗',
-      isInstalled: () => false,
+      isInstalled: () => true,
       connect: () => connectWallet('walletconnect'),
       downloadLink: 'https://walletconnect.com/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
@@ -143,7 +157,14 @@ const EnhancedWalletConnect = () => {
     {
       name: 'Trust Wallet',
       icon: '🛡️',
-      isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
+      isInstalled: () => {
+        if (typeof window === 'undefined') return false;
+        if (window.ethereum && (window.ethereum.isTrust || window.ethereum.isTrustWallet)) return true;
+        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
+          return window.ethereum.providers.some(p => p.isTrust || p.isTrustWallet);
+        }
+        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+      },
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
       supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
