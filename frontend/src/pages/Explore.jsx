@@ -61,6 +61,9 @@ const Explore = () => {
   const [creators, setCreators] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  
+  // Fallback: use locally generated mock NFTs when backend returns empty
+  const displayedNFTs = (popularNFTs && popularNFTs.length > 0) ? popularNFTs : generateMockNFTs(20);
   const [verificationRequest, setVerificationRequest] = useState({
     walletAddress: "",
     username: "",
@@ -239,7 +242,7 @@ const Explore = () => {
               <div className="nft-slider-container overflow-hidden">
                 <div className="nft-slider-track flex gap-4">
                   {/* Duplicate NFTs for seamless loop */}
-                  {[...popularNFTs, ...popularNFTs].map((nft, idx) => (
+                  {[...displayedNFTs, ...displayedNFTs].map((nft, idx) => (
                     <Link
                       key={`${nft.id}_${idx}`}
                       to={`/nft/${nft.id}`}

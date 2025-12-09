@@ -63,6 +63,8 @@ function App() {
   const [dummyAllNFTs, setDummyAllNFTs] = useState(nftCollections);
   const [singleNfts, setSingleNfts] = useState([]);
   const [allNfts, setallNfts] = useState([]);
+  // Fallback: use local dummy NFTs when backend returns empty
+  const displayedAllNfts = (allNfts && allNfts.length > 0) ? allNfts : dummyAllNFTs;
   console.log("🚀 ~ App ~ allNfts:", allNfts);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMoreNFTs, setHasMoreNFTs] = useState(true);
@@ -148,14 +150,14 @@ function App() {
 
   // Auto-advance NFT slider to show one at a time
   useEffect(() => {
-    if (!allNfts || allNfts.length === 0) return;
-    
+    if (!displayedAllNfts || displayedAllNfts.length === 0) return;
+
     const interval = setInterval(() => {
-      setCurrentNFTIndex((prev) => (prev + 1) % allNfts.length);
+      setCurrentNFTIndex((prev) => (prev + 1) % displayedAllNfts.length);
     }, 4000); // Change NFT every 4 seconds
 
     return () => clearInterval(interval);
-  }, [allNfts]);
+  }, [displayedAllNfts]);
 
   const fetchallnftItems = () => {
     const addressString = selectedChain.toString();
@@ -348,7 +350,7 @@ function App() {
       <main className="mx-auto mt8 px4 overflow-x-auto">
         <div className="sliding-container">
           <div className="sliding-nfts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {allNfts?.map((item, index) => {
+            {displayedAllNfts.map((item, index) => {
               // Get creator/owner address for profile link
               const creatorAddress = item.owner || item.seller || item.creator;
               // Find creator in creators array to get verification status
@@ -444,24 +446,29 @@ function App() {
 
             {/* Auto-sliding NFT Slider - One at a time, Rectangular with fixed height matching second column */}
             <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800 h-[600px]">
-              {allNfts && allNfts.length > 0 ? (
-                <Link
-                  to={`/nft/${allNfts[currentNFTIndex].tokenId}/${allNfts[currentNFTIndex].itemId}/${allNfts[currentNFTIndex].price}`}
-                  className="block group h-full flex flex-col"
-                >
-                  <div 
-                    key={currentNFTIndex}
-                    className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] h-full flex flex-col"
-                  >
-                    <div className="relative w-full flex-1 overflow-hidden min-h-0">
-                      <img
-                        src={allNfts[currentNFTIndex].image || `https://picsum.photos/800/600?random=${currentNFTIndex}`}
-                        alt={allNfts[currentNFTIndex].name || "NFT"}
-                        className="w-full h-full object-cover scale-150 group-hover:scale-[1.7] transition-transform duration-700"
-                        onError={(e) => {
-                          e.target.src = `https://picsum.photos/800/600?random=${currentNFTIndex}`;
-                        }}
-                      />
+              {displayedAllNfts && displayedAllNfts.length > 0 ? (
+                // Ensure index is within bounds of the displayed array
+                (() => {
+                  const activeIndex = displayedAllNfts.length > 0 ? currentNFTIndex % displayedAllNfts.length : 0;
+                  const activeNFT = displayedAllNfts[activeIndex];
+                  return (
+                    <Link
+                      to={`/nft/${activeNFT.tokenId}/${activeNFT.itemId}/${activeNFT.price}`}
+                      className="block group h-full flex flex-col"
+                    >
+                      <div 
+                        key={activeIndex}
+                        className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] h-full flex flex-col"
+                      >
+                        <div className="relative w-full flex-1 overflow-hidden min-h-0">
+                          <img
+                            src={activeNFT.image || `https://picsum.photos/800/600?random=${activeIndex}`}
+                            alt={activeNFT.name || "NFT"}
+                            className="w-full h-full object-cover scale-150 group-hover:scale-[1.7] transition-transform duration-700"
+                            onError={(e) => {
+                              e.target.src = `https://picsum.photos/800/600?random=${activeIndex}`;
+                            }}
+                          />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex items-center justify-between text-white">
@@ -470,20 +477,22 @@ function App() {
                             <span className="text-sm font-medium">0</span>
                           </div>
                           <div className="text-sm font-medium">
-                            {allNfts[currentNFTIndex].price ? (parseFloat(allNfts[currentNFTIndex].price) / 1e18).toFixed(4) : "0.0000"} ETH
+                            {activeNFT.price ? (parseFloat(activeNFT.price) / 1e18).toFixed(4) : "0.0000"} ETH
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="p-6 flex-shrink-0">
-                      <h3 className="font-semibold text-xl text-white mb-2">{allNfts[currentNFTIndex].name || "Unknown NFT"}</h3>
-                      <p className="text-gray-400 text-sm mb-4">{allNfts[currentNFTIndex].collection || "Collection"}</p>
+                      <h3 className="font-semibold text-xl text-white mb-2">{activeNFT.name || "Unknown NFT"}</h3>
+                      <p className="text-gray-400 text-sm mb-4">{activeNFT.collection || "Collection"}</p>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>View Details →</span>
                       </div>
                     </div>
-                  </div>
-                </Link>
+                    </div>
+                  </Link>
+                  );
+                })()
               ) : (
                 <div className="w-full h-full text-center py-12 text-gray-400 flex items-center justify-center">
                   <p>No NFTs available yet</p>
