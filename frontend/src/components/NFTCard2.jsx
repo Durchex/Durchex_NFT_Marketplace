@@ -113,8 +113,8 @@ const NFTCard2 = ({
 
   return (
     <div className="bg-gray- rounded-lg overflow-hidden relative shadow-md hover:shadow-lg transition-shadow duration-300  box-border">
-      {/* <Link to={`/nft/${tokenId}/${itemId}/${price}`} className="block"> */}
-      <Link to={`/collection/${collection}`} className="block">
+      {/* Link to NFT detail page so clicking shows the full image and details */}
+      <Link to={`/nft/${tokenId}/${itemId}/${price}/${collection || ''}`} className="block">
       {/* to={``} */}
         {/* Image Section */}
         <div className="h-[230px] relative">

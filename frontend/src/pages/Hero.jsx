@@ -375,7 +375,7 @@ function App() {
                       className="absolute top-3 left-3 z-20"
                     >
                       <div className="relative">
-                        <div className="w-12 h-12 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
                           <img
                             src={avatarUrl}
                             alt="Creator"
@@ -390,7 +390,7 @@ function App() {
                           // Support both verificationStatus (from DB) and verificationType (from mock data)
                           const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
                           const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
-                          
+
                           if (badge) {
                             return (
                               <span
@@ -406,10 +406,13 @@ function App() {
                               </span>
                             );
                           }
-                          
-                          // Online status indicator - only show if no verification badge
+
+                          // Online pulse indicator - only show if no verification badge
                           return (
-                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                            <span aria-hidden="true" className="absolute -bottom-1 -right-1 pointer-events-none z-10 flex items-center justify-center">
+                              <span className="online-pulse" />
+                              <span className="online-dot" />
+                            </span>
                           );
                         })()}
                       </div>
@@ -606,7 +609,27 @@ function App() {
           <LoadingNFTRow />
         ) : (
           <div className="sliding-container overflow-x-auto border-2 rounded-lg border-purple-950/30 ">
-            <SlidingContainer TradingNFTs={TradingNFTs} />
+            {/* Provide fallback mock collections when backend returns empty */}
+            {(() => {
+              const tradingForDisplay = (TradingNFTs && TradingNFTs.length > 0)
+                ? TradingNFTs
+                : [
+                    {
+                      name: 'Durchex Mock Collection',
+                      nfts: dummyAllNFTs.slice(0, 8).map(n => ({
+                        nft: {
+                          ...n,
+                          itemId: n.id,
+                          tokenId: n.id,
+                          price: n.price,
+                          collection: n.collection,
+                        }
+                      }))
+                    }
+                  ];
+
+              return <SlidingContainer TradingNFTs={tradingForDisplay} />;
+            })()}
           </div>
         )}
 
@@ -619,7 +642,24 @@ function App() {
         ) : (
           <div className="sliding-container overflow-x-auto border-2 rounded-lg border-purple-950/20 ">
             <React.Suspense fallback={<div>Loading...</div>}>
-              <SlidingContainerLazy TradingNFTs={singleNfts} />
+              {/* singleNfts is expected to be an array of nft objects; provide mock fallback when empty */}
+              {(() => {
+                const singleForDisplay = (singleNfts && singleNfts.length > 0)
+                  ? singleNfts.map(s => ({
+                      ...s,
+                      itemId: s.id || s.itemId || s.tokenId,
+                      tokenId: s.tokenId || s.id || s.itemId,
+                      price: s.price || s.floorPrice || '0'
+                    }))
+                  : dummyAllNFTs.slice(0, 12).map(n => ({
+                      ...n,
+                      itemId: n.id,
+                      tokenId: n.id,
+                      price: n.price,
+                    }));
+
+                return <SlidingContainerLazy TradingNFTs={singleForDisplay} />;
+              })()}
             </React.Suspense>
           </div>
         )}
@@ -658,6 +698,43 @@ function App() {
         
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Online pulse indicator styles for avatar */
+        .online-pulse {
+          position: absolute;
+          width: 12px;
+          height: 12px;
+          border-radius: 9999px;
+          background: rgba(34,197,94,0.35); /* green-400 translucent */
+          transform: translate(0, 0);
+          z-index: 0;
+          animation: durchex-pulse 1.6s infinite ease-out;
+        }
+
+        .online-dot {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 9999px;
+          background: #16a34a; /* green-600 */
+          border: 2px solid rgba(255,255,255,0.95);
+          z-index: 10;
+        }
+
+        @keyframes durchex-pulse {
+          0% {
+            transform: scale(0.6);
+            opacity: 0.8;
+          }
+          70% {
+            transform: scale(1.8);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(2);
+            opacity: 0;
+          }
         }
       `}</style>
     </div>

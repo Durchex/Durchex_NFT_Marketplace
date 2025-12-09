@@ -8,6 +8,12 @@ import nft_7 from "./assets/nft_7.jpg";
 import nft_8 from "./assets/nft_8.jpg";
 import nft_9 from "./assets/nft_9.jpg";
 import nft_10 from "./assets/nft_10.jpg"; 
+// Additional mock visuals (generated placeholder seeds) to create variety
+export const APE_IMG_1 = "https://picsum.photos/seed/ape1/600/600";
+export const APE_IMG_2 = "https://picsum.photos/seed/ape2/600/600";
+export const THREE_D_IMG_1 = "https://picsum.photos/seed/3d1/600/600";
+export const THREE_D_IMG_2 = "https://picsum.photos/seed/3d2/600/600";
+export const CARTOON_IMG_1 = "https://picsum.photos/seed/cartoon1/600/600";
  
  
  
@@ -162,5 +168,51 @@ import nft_10 from "./assets/nft_10.jpg";
       price: "460 000000000000000000",
       volume: "9.4K",
       floorPrice: "0.41 ETH",
+    },
+    // Some visually distinct mock NFTs to diversify trending look
+    {
+      id: 1257,
+      name: "Ape Astronaut",
+      image: APE_IMG_1,
+      collection: "ApeHouse",
+      price: "120000000000000000000",
+      volume: "22.1K",
+      floorPrice: "2.15 ETH",
+    },
+    {
+      id: 1258,
+      name: "3D Orbiter",
+      image: THREE_D_IMG_1,
+      collection: "Orbit3D",
+      price: "88000000000000000000",
+      volume: "3.4K",
+      floorPrice: "0.95 ETH",
+    },
+    {
+      id: 1259,
+      name: "Cyber Ape",
+      image: APE_IMG_2,
+      collection: "ApeHouse",
+      price: "450000000000000000000",
+      volume: "18.9K",
+      floorPrice: "1.34 ETH",
+    },
+    {
+      id: 1260,
+      name: "Glitch Sculpture",
+      image: THREE_D_IMG_2,
+      collection: "3DCollective",
+      price: "330000000000000000000",
+      volume: "6.7K",
+      floorPrice: "0.72 ETH",
+    },
+    {
+      id: 1261,
+      name: "Cartoon Koi",
+      image: CARTOON_IMG_1,
+      collection: "VectorPets",
+      price: "150000000000000000000",
+      volume: "4.2K",
+      floorPrice: "0.21 ETH",
     },
   ];

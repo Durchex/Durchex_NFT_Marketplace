@@ -25,6 +25,7 @@ import { formatPrice, getCurrencySymbol } from "../Context/constants";
 import MyCollection from "./MyCollection";
 import NftInfoItems from "./NftinfoItems";
 import { nftAPI } from "../services/api";
+import { nftCollections } from "../utils";
 
 function App() {
   // const { id } = useParams();
@@ -256,7 +257,17 @@ function App() {
       })
       .then((data) => {
         console.log("🚀 123456~ .then ~ data:", data);
-        setBannerImage(data.image);
+        // Use backend image if available, otherwise fallback to local mock images
+        const backendImage = data?.image;
+        let fallbackImage = null;
+        try {
+          const parsedId = Number(itemId) || Number(tokenId) || 0;
+          fallbackImage = nftCollections.find(x => Number(x.id) === parsedId)?.image || nftCollections[parsedId % nftCollections.length]?.image;
+        } catch (e) {
+          fallbackImage = nftCollections[0]?.image;
+        }
+
+        setBannerImage(backendImage || fallbackImage);
         // Store the full NFT data including network
         if (data) {
           setNftData(data);
