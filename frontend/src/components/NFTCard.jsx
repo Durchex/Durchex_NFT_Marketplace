@@ -115,7 +115,7 @@ const NFTCard = ({ collectionName, currentlyListed,
   return (
     <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden relative border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 group">
       {/* NFT Image */}
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden nft-image-container">
         <img 
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
           src={image} 
@@ -124,6 +124,7 @@ const NFTCard = ({ collectionName, currentlyListed,
             e.target.src = '/placeholder-nft.png';
           }}
         />
+        <div className="nft-watermark"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
         {/* Status Badge */}

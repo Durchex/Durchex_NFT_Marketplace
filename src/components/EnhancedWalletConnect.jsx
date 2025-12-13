@@ -75,6 +75,42 @@ const EnhancedWalletConnect = () => {
     }
   ];
 
+  // Add SIU network support
+  networks.push({
+    id: 'siu',
+    name: 'SIU',
+    symbol: 'SIU',
+    icon: '🔷',
+    chainId: 9999, // placeholder chainId; replace with real chainId
+    rpcUrl: 'https://rpc.siu.example', // placeholder RPC - update with real endpoint
+    blockExplorer: 'https://explorer.siu.example',
+    color: 'teal'
+  });
+
+  // Add Base network support
+  networks.push({
+    id: 'base',
+    name: 'Base',
+    symbol: 'ETH',
+    icon: '🟦',
+    chainId: 8453, // common Base mainnet chainId
+    rpcUrl: process.env.VITE_BASE_RPC_URL || 'https://base-mainnet.public.link',
+    blockExplorer: 'https://basescan.org',
+    color: 'sky'
+  });
+
+  // Add Monarch network support
+  networks.push({
+    id: 'monarch',
+    name: 'Monarch',
+    symbol: 'MON',
+    icon: '🟪',
+    chainId: 7777, // placeholder chainId for Monarch, replace when known
+    rpcUrl: process.env.VITE_MONARCH_RPC_URL || 'https://rpc.monarch.example',
+    blockExplorer: process.env.VITE_MONARCH_BLOCK_EXPLORER || 'https://explorer.monarch.example',
+    color: 'purple'
+  });
+
   const wallets = [
     {
       name: 'MetaMask',
@@ -82,7 +118,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
       connect: () => connectWallet('metamask'),
       downloadLink: 'https://metamask.io/download/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Coinbase Wallet',
@@ -90,7 +126,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
       connect: () => connectWallet('coinbase'),
       downloadLink: 'https://www.coinbase.com/wallet',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'WalletConnect',
@@ -98,7 +134,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => false,
       connect: () => connectWallet('walletconnect'),
       downloadLink: 'https://walletconnect.com/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Trust Wallet',
@@ -106,7 +142,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Brave Wallet',
@@ -114,7 +150,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
       connect: () => connectWallet('brave'),
       downloadLink: 'https://brave.com/wallet/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Binance Wallet',
@@ -122,7 +158,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance),
       connect: () => connectWallet('binance'),
       downloadLink: 'https://www.binance.com/en/web3wallet',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Rainbow Wallet',
@@ -130,7 +166,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
       connect: () => connectWallet('rainbow'),
       downloadLink: 'https://rainbow.me/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Phantom',
@@ -138,7 +174,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isPhantom,
       connect: () => connectWallet('phantom'),
       downloadLink: 'https://phantom.app/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'siu']
     },
     {
       name: 'OKX Wallet',
@@ -146,7 +182,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.okxwallet !== 'undefined',
       connect: () => connectWallet('okx'),
       downloadLink: 'https://www.okx.com/web3',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'siu']
     },
     {
       name: 'TokenPocket',
@@ -154,7 +190,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.tokenpocket !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket),
       connect: () => connectWallet('tokenpocket'),
       downloadLink: 'https://tokenpocket.pro/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'siu']
     },
     {
       name: 'SafePal',
@@ -162,7 +198,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.safepal !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isSafePal),
       connect: () => connectWallet('safepal'),
       downloadLink: 'https://www.safepal.com/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'siu']
     },
     {
       name: 'Frame',

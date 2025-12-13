@@ -2,6 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import bodyParse from "body-parser";
+import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
@@ -29,6 +30,17 @@ import gasFeeRouter from "./routes/gasFeeRouter.js";
 // connect db
 connectDB();
 
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: "Too many requests from this IP, please try again later."
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
 const corsOptions = {
   origin: "*",
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
@@ -39,6 +51,23 @@ app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 app.use(cors());
 app.use(bodyParse.json({ limit: "10mb" }));
+
+// Health check endpoint for socket service - BEFORE rate limiter
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    socketConnections: io.engine.clientsCount 
+  });
+});
+
+// Root endpoint - BEFORE rate limiter
+app.get('/', (req, res) => {
+  res.send('Welcome to the backend API!');
+});
+
+// Apply rate limiting to all other routes
+app.use(limiter);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -68,20 +97,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Health check endpoint for socket service
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    socketConnections: io.engine.clientsCount 
-  });
-});
-
-// auto-imported routes
-
-app.get('/', (req, res) => {
-  res.send('Welcome to the backend API!');
-});
 
 
 app.use('/api/v1/user', userRouter);

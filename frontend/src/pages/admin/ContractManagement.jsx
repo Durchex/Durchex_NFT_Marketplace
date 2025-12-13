@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ICOContent } from "../../Context";
 import { contractAddresses } from "../../Context/constants";
 import { ErrorToast } from "../../app/Toast/Error";

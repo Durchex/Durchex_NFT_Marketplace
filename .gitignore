@@ -24,3 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 frontend/.env
+
+# Deployment files
+.env
+deployments/
+artifacts/
+cache/

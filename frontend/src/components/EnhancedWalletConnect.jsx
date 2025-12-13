@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { ICOContent } from '../Context';
-import { ethers } from 'ethers';
 import { FiChevronDown, FiLogOut, FiCopy, FiExternalLink, FiUser, FiSettings, FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -76,6 +75,40 @@ const EnhancedWalletConnect = () => {
     }
   ];
 
+  // Add SIU, Base and Monarch network support (placeholders where needed)
+  networks.push({
+    id: 'siu',
+    name: 'SIU',
+    symbol: 'SIU',
+    icon: '🔷',
+    chainId: parseInt(import.meta.env.VITE_SIU_CHAIN_ID || '9999', 10),
+    rpcUrl: import.meta.env.VITE_SIU_RPC_URL || 'https://rpc.siu.example',
+    blockExplorer: import.meta.env.VITE_SIU_BLOCK_EXPLORER || 'https://explorer.siu.example',
+    color: 'teal'
+  });
+
+  networks.push({
+    id: 'base',
+    name: 'Base',
+    symbol: 'ETH',
+    icon: '🟦',
+    chainId: parseInt(import.meta.env.VITE_BASE_CHAIN_ID || '8453', 10),
+    rpcUrl: import.meta.env.VITE_BASE_RPC_URL || 'https://base-mainnet.public.link',
+    blockExplorer: import.meta.env.VITE_BASE_BLOCK_EXPLORER || 'https://basescan.org',
+    color: 'sky'
+  });
+
+  networks.push({
+    id: 'monarch',
+    name: 'Monarch',
+    symbol: 'MON',
+    icon: '🟪',
+    chainId: parseInt(import.meta.env.VITE_MONARCH_CHAIN_ID || '7777', 10),
+    rpcUrl: import.meta.env.VITE_MONARCH_RPC_URL || 'https://rpc.monarch.example',
+    blockExplorer: import.meta.env.VITE_MONARCH_BLOCK_EXPLORER || 'https://explorer.monarch.example',
+    color: 'purple'
+  });
+
   // Helper function to get the active wallet provider
   const getWalletProvider = useCallback(() => {
     if (typeof window === 'undefined') return null;
@@ -129,7 +162,7 @@ const EnhancedWalletConnect = () => {
       },
       connect: () => connectWallet('metamask'),
       downloadLink: 'https://metamask.io/download/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Coinbase Wallet',
@@ -144,7 +177,7 @@ const EnhancedWalletConnect = () => {
       },
       connect: () => connectWallet('coinbase'),
       downloadLink: 'https://www.coinbase.com/wallet',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'WalletConnect',
@@ -152,7 +185,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => true,
       connect: () => connectWallet('walletconnect'),
       downloadLink: 'https://walletconnect.com/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Trust Wallet',
@@ -167,7 +200,7 @@ const EnhancedWalletConnect = () => {
       },
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Brave Wallet',
@@ -175,7 +208,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
       connect: () => connectWallet('brave'),
       downloadLink: 'https://brave.com/wallet/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Binance Wallet',
@@ -183,7 +216,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window !== 'undefined' && (typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance)),
       connect: () => connectWallet('binance'),
       downloadLink: 'https://www.binance.com/en/web3wallet',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Rainbow Wallet',
@@ -191,7 +224,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
       connect: () => connectWallet('rainbow'),
       downloadLink: 'https://rainbow.me/',
-      supportedNetworks: ['ethereum', 'polygon', 'bsc', 'arbitrum']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
     },
     {
       name: 'Phantom',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import TokenTradingChart from '../components/TokenTradingChart';
 import Header from '../components/Header';
 import { useNetwork } from '../Context/NetworkContext';

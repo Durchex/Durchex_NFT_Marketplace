@@ -388,12 +388,13 @@ function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 py-8 md:py-12 px-2 md:px-16">
           {/* Left Column: NFT Image with proper aspect ratio */}
           <div className="flex items-start justify-center">
-            <div className="w-full max-w-md rounded-xl overflow-hidden border border-gray-700/50 shadow-lg bg-gray-900">
+            <div className="w-full max-w-md rounded-xl overflow-hidden border border-gray-700/50 shadow-lg bg-gray-900 nft-image-container">
               <img
                 src={bannerImage}
                 alt="NFT"
                 className="w-full h-full object-contain"
               />
+              <div className="nft-watermark"></div>
             </div>
           </div>
 

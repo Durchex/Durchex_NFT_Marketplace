@@ -54,7 +54,7 @@ export const updateGasFeeRegulation = async (req, res) => {
     const { updatedBy } = req.body;
 
     // Validate network
-    const validNetworks = ['ethereum', 'polygon', 'bsc', 'arbitrum', 'tezos', 'hyperliquid'];
+    const validNetworks = ['ethereum', 'polygon', 'bsc', 'arbitrum', 'tezos', 'hyperliquid', 'siu', 'base', 'monarch'];
     if (!validNetworks.includes(network)) {
       return res.status(400).json({ error: 'Invalid network' });
     }

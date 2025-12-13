@@ -11,6 +11,8 @@ const NFTCard3 = ({
   collection,
   currentlyListed,
   itemId,
+  id,
+  floorPrice,
   nftContract,
   image,
   metadata,
@@ -110,14 +112,20 @@ const NFTCard3 = ({
     // setCartItems([...cartItems, item]);
     setCartItems((prevItems) => [...prevItems, item]);
   };
+  // Normalize identifiers so mock items (which may use `id`) work
+  const safeTokenId = tokenId || (metadata && metadata.tokenId) || itemId || id || (nftContract && nftContract.substring ? nftContract.substring(0, 8) : '0');
+  const safeItemId = itemId || id || tokenId || '0';
+  const safePrice = price || floorPrice || '0';
+  const safeCollection = collection || collectionName || '';
 
   return (
     <div className="bg-gray- rounded-lg overflow-hidden relative shadow-md hover:shadow-lg transition-shadow duration-300  box-border">
-      <Link to={`/nft/${tokenId}/${itemId}/${price}`} className="block">
+      <Link to={`/nft/${encodeURIComponent(safeTokenId)}/${encodeURIComponent(safeItemId)}/${encodeURIComponent(safePrice)}/${encodeURIComponent(safeCollection)}`} className="block">
       {/* to={``} */}
         {/* Image Section */}
-        <div className="h-[230px] relative">
-          <img src={image} alt={name} className="w-full h-full object-cover" />
+        <div className="h-[230px] relative nft-image-container">
+          <img src={image || metadata?.image || `https://picsum.photos/seed/${safeItemId}/800/600`} alt={name || 'NFT'} className="w-full h-full object-cover" />
+          <div className="nft-watermark"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
         </div>
 

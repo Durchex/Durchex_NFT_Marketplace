@@ -76,7 +76,10 @@ const PartnerNFTs = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredNfts.map((nft) => (
           <div key={nft.id} className="bg-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-200">
-            <img src={nft.image} alt={nft.name} className="w-full h-48 object-cover" />
+            <div className="nft-image-container">
+              <img src={nft.image} alt={nft.name} className="w-full h-48 object-cover" />
+              <div className="nft-watermark"></div>
+            </div>
             <div className="p-4">
               <h3 className="text-lg font-display font-bold text-gray-900 truncate">{nft.name}</h3>
               <p className="text-sm text-gray-600 font-display mb-2">{nft.collection}</p>

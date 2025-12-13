@@ -25,7 +25,28 @@ const SlidingContainer = ({ TradingNFTs }) => {
     }
   };
 
-  const allNfts = TradingNFTs.flatMap(collection => collection.nfts);
+  // Normalize incoming TradingNFTs into a flat array of nft objects
+  const itemsToRender = (() => {
+    if (!TradingNFTs) return [];
+
+    // If TradingNFTs is already a flat array of nft objects
+    if (Array.isArray(TradingNFTs) && TradingNFTs.length > 0) {
+      // Case: items are wrapped like { nft: {...} }
+      if (TradingNFTs[0].nft) {
+        return TradingNFTs.map(item => ({ ...item.nft }));
+      }
+
+      // Case: each item is a collection with a `nfts` array
+      if (TradingNFTs[0].nfts && Array.isArray(TradingNFTs[0].nfts)) {
+        return TradingNFTs.flatMap(col => col.nfts.map(x => (x.nft ? x.nft : x)));
+      }
+
+      // Otherwise assume it's already the correct shape
+      return TradingNFTs.map(x => x);
+    }
+
+    return [];
+  })();
 
   return (
     <div className="relative">
@@ -43,11 +64,10 @@ const SlidingContainer = ({ TradingNFTs }) => {
         style={{ scrollBehavior: "smooth" }} // Optional: Smooth scrolling style
       >
         {/* Items */}
-        {TradingNFTs.map((nft, index) => (
+        {itemsToRender.map((nft, index) => (
           <div key={index} className="slide-item sm:w-[200px] md:w-[250px]">
-            {/* NFTCard inside a container */}
             <div className="relative">
-              <NFTCard2 {...nft.nft} />
+              <NFTCard2 {...nft} />
             </div>
           </div>
         ))}

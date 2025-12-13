@@ -17,7 +17,7 @@ export const NetworkProvider = ({ children }) => {
     symbol: "ETH",
     icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
     chainId: 1,
-    rpcUrl: "https://rpc.ankr.com/eth_sepolia",
+    rpcUrl: "https://rpc.ankr.com/eth",
     blockExplorerUrl: "https://etherscan.io"
   });
 
@@ -27,7 +27,7 @@ export const NetworkProvider = ({ children }) => {
       symbol: "ETH", 
       icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
       chainId: 1,
-      rpcUrl: "https://rpc.ankr.com/eth_sepolia",
+      rpcUrl: "https://rpc.ankr.com/eth",
       blockExplorerUrl: "https://etherscan.io",
       isEVM: true,
       walletType: "evm"
@@ -63,6 +63,26 @@ export const NetworkProvider = ({ children }) => {
       walletType: "evm"
     },
     { 
+      name: "Optimism", 
+      symbol: "OP", 
+      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGQzAwMDEiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      chainId: 10,
+      rpcUrl: "https://rpc.ankr.com/optimism",
+      blockExplorerUrl: "https://optimistic.etherscan.io",
+      isEVM: true,
+      walletType: "evm"
+    },
+    { 
+      name: "Avalanche", 
+      symbol: "AVAX", 
+      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNFODQyNDIiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      chainId: 43114,
+      rpcUrl: "https://rpc.ankr.com/avalanche",
+      blockExplorerUrl: "https://snowtrace.io",
+      isEVM: true,
+      walletType: "evm"
+    },
+    { 
       name: "Tezos", 
       symbol: "XTZ", 
       icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0MDQwNDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0iIzAwQzVGRiIvPgo8L3N2Zz4K",
@@ -74,13 +94,44 @@ export const NetworkProvider = ({ children }) => {
     },
     { 
       name: "Hyperliquid", 
-      symbol: "HL", 
+      symbol: "HYPE", 
       icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEZGNzciLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
-      chainId: 421614, // Hyperliquid Testnet
-      rpcUrl: "https://api.hyperliquid-testnet.xyz/evm",
-      blockExplorerUrl: "https://explorer.hyperliquid.xyz",
-      isEVM: true, // Hyperliquid has EVM compatibility
+      chainId: 999,
+      rpcUrl: "https://rpc.hyperliquid.xyz/evm",
+      blockExplorerUrl: "https://hypurrscan.io",
+      isEVM: true,
       walletType: "evm"
+    },
+    // Custom networks: SIU, Base, Monarch
+    {
+      name: "SIU",
+      symbol: "SIU",
+      icon: "🔷",
+      chainId: parseInt(import.meta.env.VITE_SIU_CHAIN_ID || '9999', 10),
+      rpcUrl: import.meta.env.VITE_SIU_RPC_URL || 'https://rpc.siu.network', // Placeholder - needs actual RPC
+      blockExplorerUrl: import.meta.env.VITE_SIU_BLOCK_EXPLORER || 'https://explorer.siu.network', // Placeholder - needs actual explorer
+      isEVM: true,
+      walletType: 'evm'
+    },
+    {
+      name: "Base",
+      symbol: "ETH",
+      icon: "🟦",
+      chainId: parseInt(import.meta.env.VITE_BASE_CHAIN_ID || '8453', 10),
+      rpcUrl: import.meta.env.VITE_BASE_RPC_URL || 'https://mainnet.base.org',
+      blockExplorerUrl: import.meta.env.VITE_BASE_BLOCK_EXPLORER || 'https://basescan.org',
+      isEVM: true,
+      walletType: 'evm'
+    },
+    {
+      name: "Monarch",
+      symbol: "MON",
+      icon: "🟪",
+      chainId: parseInt(import.meta.env.VITE_MONARCH_CHAIN_ID || '7777', 10),
+      rpcUrl: import.meta.env.VITE_MONARCH_RPC_URL || 'https://rpc.monarch.network', // Placeholder - needs actual RPC
+      blockExplorerUrl: import.meta.env.VITE_MONARCH_BLOCK_EXPLORER || 'https://explorer.monarch.network', // Placeholder - needs actual explorer
+      isEVM: true,
+      walletType: 'evm'
     },
   ];
 

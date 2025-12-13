@@ -7,6 +7,7 @@ import AboutUs from "./FooterComponents/AboutUs";
 import FAQ from "./FooterComponents/FAQ";
 import MultipleMint from "./pages/MultipleMint";
 import CollectionPage from "./pages/CollectionPage";
+import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 
 // Lazy-loaded components
 const Hero = lazy(() => import("./pages/Hero"));
@@ -44,6 +45,7 @@ export default function App() {
   
   return (
     <BrowserRouter>
+      <AntiScreenshotWarning />
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ethers } from "ethers";
-import React, { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import EthereumProvider from '@walletconnect/ethereum-provider';
 import VendorNFT from "./VendorNFT.json";

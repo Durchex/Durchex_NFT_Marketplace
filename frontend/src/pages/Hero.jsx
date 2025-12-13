@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Header from "../components/Header";
 import LoadingNFTRow from "../components/LoadingNftRow";
 import { ICOContent } from "../Context/index";
@@ -367,27 +367,42 @@ function App() {
                   key={index}
                   className="bg-red-600 rounded-lg h-[250px] sm:w-[200px] md:w-[250px] flex items-end relative slide-item overflow-hidden group"
                 >
-                  {/* WhatsApp-style Profile Icon - Clickable to creator profile */}
-                  {creatorAddress && (
-                    <Link
-                      to={`/profile/${creatorAddress}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute top-3 left-3 z-20"
-                    >
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
-                          <img
-                            src={avatarUrl}
-                            alt="Creator"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorAddress}`;
-                            }}
-                          />
-                        </div>
-                        {/* Verification Badge */}
+                  {/* WhatsApp-style Profile Icon - Clickable to creator profile (always render) */}
+                      <div className="absolute top-3 left-3 z-30 pointer-events-auto">
+                        {creatorAddress ? (
+                          <Link
+                            to={`/profile/${creatorAddress}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative"
+                          >
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
+                              <img
+                                src={avatarUrl}
+                                alt={creator?.username || 'Creator'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorAddress || (item.name || index)}`;
+                                }}
+                              />
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="relative" title={item.name || 'Creator'}>
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
+                              <img
+                                src={avatarUrl}
+                                alt={item.name || 'Creator'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name || index}`;
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Verification badge or online indicator (preserve previous logic) */}
                         {(() => {
-                          // Support both verificationStatus (from DB) and verificationType (from mock data)
                           const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
                           const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
 
@@ -395,7 +410,7 @@ function App() {
                             return (
                               <span
                                 title={badge.title}
-                                className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-5 h-5 z-10 pointer-events-none"
+                                className="absolute top-[42px] left-[42px] inline-flex items-center justify-center w-5 h-5 z-40 pointer-events-none"
                               >
                                 <img
                                   src={badge.imageUrl}
@@ -407,17 +422,14 @@ function App() {
                             );
                           }
 
-                          // Online pulse indicator - only show if no verification badge
                           return (
-                            <span aria-hidden="true" className="absolute -bottom-1 -right-1 pointer-events-none z-10 flex items-center justify-center">
+                            <span aria-hidden="true" className="absolute top-[42px] left-[42px] pointer-events-none z-40 flex items-center justify-center">
                               <span className="online-pulse" />
                               <span className="online-dot" />
                             </span>
                           );
                         })()}
                       </div>
-                    </Link>
-                  )}
 
                   {/* NFT Image - Clickable to NFT details */}
                   <Link 
@@ -463,7 +475,7 @@ function App() {
                         key={activeIndex}
                         className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] h-full flex flex-col"
                       >
-                        <div className="relative w-full flex-1 overflow-hidden min-h-0">
+                        <div className="relative w-full flex-1 overflow-hidden min-h-0 nft-image-container">
                           <img
                             src={activeNFT.image || `https://picsum.photos/800/600?random=${activeIndex}`}
                             alt={activeNFT.name || "NFT"}
@@ -472,6 +484,7 @@ function App() {
                               e.target.src = `https://picsum.photos/800/600?random=${activeIndex}`;
                             }}
                           />
+                          <div className="nft-watermark"></div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex items-center justify-between text-white">
@@ -735,6 +748,40 @@ function App() {
             transform: scale(2);
             opacity: 0;
           }
+        }
+
+        /* Watermark overlay for NFT images to deter screenshots */
+        .nft-image-container {
+          position: relative;
+        }
+
+        .nft-watermark {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+          z-index: 20;
+        }
+
+        .nft-image-container:hover .nft-watermark {
+          opacity: 1;
+        }
+
+        .nft-watermark::before {
+          content: "Durchex NFT Marketplace";
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 24px;
+          font-weight: bold;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+          transform: rotate(-45deg);
         }
       `}</style>
     </div>
