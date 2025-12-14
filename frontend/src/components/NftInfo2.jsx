@@ -394,7 +394,6 @@ function App() {
                 alt="NFT"
                 className="w-full h-full object-contain"
               />
-              <div className="nft-watermark"></div>
             </div>
           </div>
 

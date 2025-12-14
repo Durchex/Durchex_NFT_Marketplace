@@ -78,7 +78,6 @@ const PartnerNFTs = () => {
           <div key={nft.id} className="bg-gray-50 rounded-lg shadow-sm overflow-hidden border border-gray-200">
             <div className="nft-image-container">
               <img src={nft.image} alt={nft.name} className="w-full h-48 object-cover" />
-              <div className="nft-watermark"></div>
             </div>
             <div className="p-4">
               <h3 className="text-lg font-display font-bold text-gray-900 truncate">{nft.name}</h3>

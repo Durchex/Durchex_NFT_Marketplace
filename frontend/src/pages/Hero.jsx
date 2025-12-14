@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Header from "../components/Header";
 import LoadingNFTRow from "../components/LoadingNftRow";
 import { ICOContent } from "../Context/index";
@@ -484,7 +484,6 @@ function App() {
                               e.target.src = `https://picsum.photos/800/600?random=${activeIndex}`;
                             }}
                           />
-                          <div className="nft-watermark"></div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="flex items-center justify-between text-white">
@@ -748,40 +747,6 @@ function App() {
             transform: scale(2);
             opacity: 0;
           }
-        }
-
-        /* Watermark overlay for NFT images to deter screenshots */
-        .nft-image-container {
-          position: relative;
-        }
-
-        .nft-watermark {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          pointer-events: none;
-          z-index: 20;
-        }
-
-        .nft-image-container:hover .nft-watermark {
-          opacity: 1;
-        }
-
-        .nft-watermark::before {
-          content: "Durchex NFT Marketplace";
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 24px;
-          font-weight: bold;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-          transform: rotate(-45deg);
         }
       `}</style>
     </div>

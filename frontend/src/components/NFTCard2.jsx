@@ -127,7 +127,6 @@ const NFTCard2 = ({
         {/* Image Section */}
         <div className="h-[230px] relative nft-image-container">
           <img src={image || metadata?.image || `https://picsum.photos/seed/${safeItemId}/800/600`} alt={name || 'NFT'} className="w-full h-full object-cover" />
-          <div className="nft-watermark"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
         </div>
 
