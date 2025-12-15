@@ -1,0 +1,56 @@
+[
+  {
+    "id": "metamask",
+    "name": "MetaMask",
+    "logo": "/src/assets/metamask.png",
+    "check": "window.ethereum && window.ethereum.isMetaMask"
+  },
+  {
+    "id": "walletconnect",
+    "name": "WalletConnect",
+    "logo": "https://raw.githubusercontent.com/walletconnect/walletconnect-assets/master/svg/walletconnect-logo.svg",
+    "check": null
+  },
+  {
+    "id": "coinbase",
+    "name": "Coinbase Wallet",
+    "logo": "https://avatars.githubusercontent.com/u/18060234?s=200&v=4",
+    "check": "window.ethereum && window.ethereum.isCoinbaseWallet"
+  },
+  {
+    "id": "trust",
+    "name": "Trust Wallet",
+    "logo": "https://trustwallet.com/assets/images/media/assets/TWT.png",
+    "check": "window.ethereum && window.ethereum.isTrust"
+  },
+  {
+    "id": "okx",
+    "name": "OKX Wallet",
+    "logo": "https://static.okx.com/cdn/wallet/logo_okxwallet.png",
+    "check": "window.okxwallet"
+  },
+  {
+    "id": "brave",
+    "name": "Brave Wallet",
+    "logo": "https://seeklogo.com/images/B/brave-logo-8B0C0E0E0E-seeklogo.com.png",
+    "check": "window.ethereum && window.ethereum.isBraveWallet"
+  },
+  {
+    "id": "bitkeep",
+    "name": "BitKeep Wallet",
+    "logo": "https://bitkeep.com/static/media/logo.6b6b6b6b.svg",
+    "check": "window.bitkeep"
+  },
+  {
+    "id": "zerion",
+    "name": "Zerion Wallet",
+    "logo": "https://cdn.zerion.io/logos/zerion.svg",
+    "check": "window.ethereum && window.ethereum.isZerion"
+  },
+  {
+    "id": "rainbow",
+    "name": "Rainbow Wallet",
+    "logo": "https://avatars.githubusercontent.com/u/37018832?s=200&v=4",
+    "check": "window.ethereum && window.ethereum.isRainbow"
+  }
+]

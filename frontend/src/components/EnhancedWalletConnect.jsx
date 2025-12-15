@@ -1,53 +1,43 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { ICOContent } from '../Context';
-import { FiChevronDown, FiLogOut, FiCopy, FiExternalLink, FiUser, FiSettings, FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import React from 'react';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { FiShield, FiChevronDown } from 'react-icons/fi';
 
 const EnhancedWalletConnect = () => {
-  const { address, connectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [showWalletOptions, setShowWalletOptions] = useState(false);
-  const [selectedNetwork, setSelectedNetwork] = useState('ethereum');
-  const [networkBalance, setNetworkBalance] = useState('0');
-  const [currentChainId, setCurrentChainId] = useState(null);
+  const { open } = useAppKit();
+  const { address, isConnected } = useAppKitAccount();
 
-  const networks = [
-    {
-      id: 'ethereum',
-      name: 'Ethereum',
-      symbol: 'ETH',
-      icon: '🔷',
-      chainId: 1,
-      rpcUrl: 'https://ethereum-sepolia.core.chainstack.com/390cec07d0dbe1818b3bb25db398c3ca',
-      blockExplorer: 'https://etherscan.io',
-      color: 'blue'
-    },
-    {
-      id: 'polygon',
-      name: 'Polygon',
-      symbol: 'MATIC',
-      icon: '🟣',
-      chainId: 137,
-      rpcUrl: 'https://polygon-mumbai.g.alchemy.com/v2/demo',
-      blockExplorer: 'https://polygonscan.com',
-      color: 'purple'
-    },
-    {
-      id: 'bsc',
-      name: 'BSC',
-      symbol: 'BNB',
-      icon: '🟡',
-      chainId: 56,
-      rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-      blockExplorer: 'https://bscscan.com',
-      color: 'yellow'
-    },
-    {
-      id: 'arbitrum',
-      name: 'Arbitrum',
-      symbol: 'ETH',
-      icon: '🔵',
+  const formatAddress = (addr) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  if (isConnected && address) {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => open()}
+          className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+        >
+          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+          <span className="font-display">{formatAddress(address)}</span>
+          <FiChevronDown className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => open()}
+      className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+    >
+      <FiShield className="w-4 h-4" />
+      <span className="font-display">Connect Wallet</span>
+    </button>
+  );
+};
+
+export default EnhancedWalletConnect;
       chainId: 42161,
       rpcUrl: 'https://arbitrum-goerli.infura.io/v3/demo',
       blockExplorer: 'https://arbiscan.io',

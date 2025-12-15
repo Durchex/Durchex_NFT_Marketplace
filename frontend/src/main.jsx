@@ -14,19 +14,21 @@ import { AppKitProvider } from "./Context/AppKitProvider.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Index>
-      <UserProvider>
-        <CartProvider>
-          <AdminProvider>
-            <NetworkProvider>
-              <FilterProvider>
-                <App />
-              </FilterProvider>
-            </NetworkProvider>
-          </AdminProvider>
-        </CartProvider>
-      </UserProvider>
-      <Toaster />
-    </Index>
+    <AppKitProvider>
+      <Index>
+        <UserProvider>
+          <CartProvider>
+            <AdminProvider>
+              <NetworkProvider>
+                <FilterProvider>
+                  <App />
+                </FilterProvider>
+              </NetworkProvider>
+            </AdminProvider>
+          </CartProvider>
+        </UserProvider>
+        <Toaster />
+      </Index>
+    </AppKitProvider>
   </StrictMode>
 );

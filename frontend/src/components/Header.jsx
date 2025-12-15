@@ -7,7 +7,7 @@ import { useCart } from "../Context/CartContext";
 import { useContext, useEffect, useMemo } from "react";
 import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
-import EnhancedWalletConnect from "./EnhancedWalletConnect";
+import AppKitWalletConnectNew from "./AppKitWalletConnectNew";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
 
@@ -24,6 +24,18 @@ export default function Navbar() {
   useEffect(() => {
     if (address) initializeProfile(address);
   }, [address, initializeProfile]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen || searchOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen, searchOpen]);
 
   const avatarUrl = useMemo(() => {
     // Priority: userProfile.image -> userProfile.avatar -> localStorage profile -> dicebear -> null
@@ -58,7 +70,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-black/95 backdrop-blur-md border-b border-gray-800/50 px-4 py-4 md:py-6 relative sticky top-0 z-40 w-full" style={{ isolation: 'isolate' }}>
+    <nav className="bg-black border-b border-gray-800/50 px-4 py-4 md:py-6 sticky top-0 z-40 w-full" style={{ isolation: 'isolate' }}>
       <div className="w-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-3 z-10">
@@ -76,6 +88,7 @@ export default function Navbar() {
           <button
             onClick={toggleSearch}
             className="text-gray-300 hover:text-white p-2 mr-1"
+            aria-label="Open search"
           >
             <FiSearch className="w-5 h-5" />
           </button>
@@ -103,6 +116,7 @@ export default function Navbar() {
           <button
             onClick={toggleMobileMenu}
             className="text-gray-300 hover:text-white p-2 bg-[#19171C] rounded-lg"
+            aria-label="Open menu"
           >
             {mobileMenuOpen ? (
               <HiX className="w-6 h-6" />
@@ -163,7 +177,7 @@ export default function Navbar() {
                       e.target.nextSibling.style.display = 'flex';
                     }}
                   />
-                  <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
+                  <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full hidden items-center justify-center text-white text-xs font-bold">
                     {(selectedNetwork?.symbol || networks[0].symbol).charAt(0)}
                   </div>
                 </div>
@@ -200,7 +214,7 @@ export default function Navbar() {
                             e.target.nextSibling.style.display = 'flex';
                           }}
                         />
-                        <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
+                        <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full hidden items-center justify-center text-white text-xs font-bold">
                           {network.symbol.charAt(0)}
                         </div>
                       </div>
@@ -272,14 +286,14 @@ export default function Navbar() {
           </Link>
 
           {/* Wallet Connect */}
-            <EnhancedWalletConnect />
+            <AppKitWalletConnectNew />
         </div>
       </div>
 
       {/* Mobile Search Overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-40 flex items-start pt-20 px-4">
-          <div className="w-full max-w-xl mx-auto">
+        <div className="fixed inset-0 bg-black z-50 flex items-start pt-20 px-4" onClick={toggleSearch}>
+          <div className="w-full max-w-xl mx-auto" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -291,6 +305,7 @@ export default function Navbar() {
               <button
                 onClick={toggleSearch}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                aria-label="Close search"
               >
                 <HiX className="w-5 h-5" />
               </button>
@@ -301,14 +316,14 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black z-30 flex flex-col pt-20 pb-4 px-6">
-          <div className="flex flex-col space-y-4 bg-gray-900 rounded-lg p-6 border border-gray-600">
+        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center pt-20 px-4 w-full overflow-y-auto" onClick={() => setMobileMenuOpen(false)}>
+          <div className="w-full max-w-md space-y-4" onClick={e => e.stopPropagation()}>
             {navItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={toggleMobileMenu}
-                className={`text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors ${
+                className={`block text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors ${
                   location.pathname === item.path
                     ? "text-[#8149F4] bg-violet-500/20"
                     : "text-gray-300"
@@ -317,123 +332,46 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-
-            {/* Mobile Wallet Connect */}
-            <div className="py-3 border-b border-gray-600">
-              <div className="text-gray-400 text-sm mb-3 font-display">
-                Wallet Connection
-              </div>
-              <div className="bg-gray-800 rounded-lg p-3">
-                <EnhancedWalletConnect />
-              </div>
-            </div>
-
-            {/* Mobile Network Selector */}
-            <div className="py-3">
-              <div className="text-gray-400 text-sm mb-3 font-display">
-                Select Network
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center space-x-3 bg-gray-800 text:white px-4 py-3 rounded-lg w-full hover:bg-gray-700 transition-colors border border-gray-600"
-                >
-                  <img 
-                    src={selectedNetwork?.icon || networks[0].icon} 
-                    alt={selectedNetwork?.name || networks[0].name}
-                    className="w-6 h-6 rounded-full"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold hidden">
-                    {(selectedNetwork?.symbol || networks[0].symbol).charAt(0)}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-display font-medium">{selectedNetwork?.name || networks[0].name}</div>
-                    <div className="text-xs text-gray-400">{selectedNetwork?.symbol || networks[0].symbol}</div>
-                  </div>
-                  <HiChevronDown
-                    className={`transform transition-transform ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {isOpen && (
-                  <div className="fixed inset-0 bg-black/90 z-40 flex flex-col pt-16 pb-4 px-4 md:absolute md:left-0 md:mt-2 md:w-80 md:bg-gray-900/95 md:backdrop-blur-md md:rounded-lg md:shadow-xl md:border md:border-gray-600/50 md:py-2 md:z-50">
-                    <div className="bg-gray-900 rounded-lg border border-gray-600 md:bg-transparent md:border-0 flex flex-col max-h-full md:max-h-none">
-                      <div className="flex-shrink-0 p-6 md:p-0">
-                        <div className="flex items-center justify-between mb-6 md:hidden">
-                          <h3 className="text-xl font-display font-semibold text-white">Select Network</h3>
-                          <button
-                            onClick={() => setIsOpen(false)}
-                            className="text-gray-400 hover:text-white transition-colors"
-                          >
-                            <HiX className="w-6 h-6" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Scrollable Content */}
-                      <div className="flex-1 overflow-y-auto px-6 pb-6 md:p-0">
-                        <div className="space-y-3">
-                          {networks.map((network) => (
-                            <button
-                              key={network.name}
-                              onClick={async () => {
-                                await switchNetwork(network);
-                                setIsOpen(false);
-                              }}
-                              className="flex items-center space-x-4 w-full text-left px-4 py-4 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors rounded-lg border border-gray-700"
-                            >
-                              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-600">
-                                <img
-                                  src={network.icon}
-                                  alt={network.name}
-                                  className="w-8 h-8 rounded-full"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
-                                  }}
-                                />
-                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold hidden">
-                                  {network.symbol.charAt(0)}
-                                </div>
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-display font-medium text-lg">{network.name}</div>
-                                <div className="text-sm text-gray-500">{network.symbol}</div>
-                              </div>
-                              {selectedNetwork?.name === network.name && (
-                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Profile Link in Mobile Menu */}
+            <Link
+              to="/cart"
+              onClick={toggleMobileMenu}
+              className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300"
+            >
+              <FiShoppingBag className="w-6 h-6" />
+              <span>Cart</span>
+              {getCartItemCount() > 0 && (
+                <span className="bg-red-500 text-white text-sm rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                  {getCartItemCount()}
+                </span>
+              )}
+            </Link>
             <Link
               to="/profile"
               onClick={toggleMobileMenu}
-              className="flex items-center space-x-3 py-3 border-b border-gray-800"
+              className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300"
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-tl from-violet-700 via-blue-400 to-fuchsia-700"></div>
-                )}
-              </div>
-              <span className="text-gray-300">My Profile</span>
+              <FiUser className="w-6 h-6" />
+              <span>Profile</span>
             </Link>
+            <Link
+              to="/trading"
+              onClick={toggleMobileMenu}
+              className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300"
+            >
+              <span>Trading</span>
+            </Link>
+            {address && !localStorage.getItem('durchex_onboarding_completed') && (
+              <Link
+                to="/onboarding"
+                onClick={toggleMobileMenu}
+                className="block text-center text-white bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-lg text-lg font-medium"
+              >
+                Get Started
+              </Link>
+            )}
+            <div className="pt-2">
+              <AppKitWalletConnectNew />
+            </div>
           </div>
         </div>
       )}
