@@ -194,20 +194,29 @@ export const Index = ({ children }) => {
     const walletId = arguments[0];
     // Get the wallet provider - check for multiple providers
     let provider = null;
-    
+    console.log('[Context] connectWallet called with walletId:', walletId);
     if (typeof window !== "undefined") {
       // Check for ethereum provider
       if (window.ethereum) {
+        console.log('[Context] window.ethereum detected:', window.ethereum);
         provider = window.ethereum;
       } else if (window.BinanceChain) {
+        console.log('[Context] window.BinanceChain detected:', window.BinanceChain);
         provider = window.BinanceChain;
       } else if (window.okxwallet) {
+        console.log('[Context] window.okxwallet detected:', window.okxwallet);
         provider = window.okxwallet;
       } else if (window.tokenpocket) {
+        console.log('[Context] window.tokenpocket detected:', window.tokenpocket);
         provider = window.tokenpocket;
       } else if (window.safepal) {
+        console.log('[Context] window.safepal detected:', window.safepal);
         provider = window.safepal;
+      } else {
+        console.warn('[Context] No known wallet provider found on window');
       }
+    } else {
+      console.warn('[Context] window is undefined');
     }
 
     // If caller explicitly requested WalletConnect, initialize WalletConnect provider
@@ -258,6 +267,7 @@ export const Index = ({ children }) => {
 
     if (!provider) {
       // If a specific wallet was requested, give a tailored message
+      console.error('[Context] No provider found for walletId:', walletId);
       if (walletId) {
         ErrorToast(`No ${walletId} provider found. Please install ${walletId} or use another wallet.`);
       } else {
@@ -268,7 +278,7 @@ export const Index = ({ children }) => {
 
     try {
       let accounts;
-      
+      console.log('[Context] Attempting to request accounts from provider:', provider);
       // Request account access with proper error handling
       try {
         if (provider.request) {
@@ -282,6 +292,7 @@ export const Index = ({ children }) => {
           throw new Error("Wallet does not support connection");
         }
       } catch (requestError) {
+        console.error('[Context] Error requesting accounts:', requestError);
         if (requestError.code === 4001) {
           ErrorToast("Connection rejected by user");
           return null;
@@ -293,6 +304,7 @@ export const Index = ({ children }) => {
       }
 
       if (accounts && accounts.length > 0) {
+        console.log('[Context] Accounts received:', accounts);
         setAddress(accounts[0]);
 
         let ethersProvider;

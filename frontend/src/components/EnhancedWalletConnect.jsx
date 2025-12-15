@@ -427,6 +427,7 @@ export default EnhancedWalletConnect;
   };
 
   const handleConnectClick = () => {
+    console.log('[EnhancedWalletConnect] Connect button clicked. Address:', address);
     if (address) {
       setIsDropdownOpen(prev => !prev);
     } else {
@@ -435,6 +436,7 @@ export default EnhancedWalletConnect;
   };
 
   const handleWalletSelect = async (wallet) => {
+    console.log('[EnhancedWalletConnect] Wallet selected:', wallet);
     if (!wallet.isInstalled()) {
       toast.error(`Please install ${wallet.name} to connect.`);
       window.open(wallet.downloadLink, '_blank');

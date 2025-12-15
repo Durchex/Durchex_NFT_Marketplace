@@ -34,12 +34,20 @@ const AppKitWalletConnect = () => {
   const [showModal, setShowModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
+  // Debug logs for connection state
+  useEffect(() => {
+    console.log('[AppKitWalletConnect] address:', address);
+    console.log('[AppKitWalletConnect] isConnected:', isConnected);
+    console.log('[AppKitWalletConnect] balance:', balance);
+  }, [address, isConnected, balance]);
+
   const formatAddress = (addr) => {
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   const handleConnect = () => {
+    console.log('[AppKitWalletConnect] handleConnect called');
     setShowModal(true);
   };
 
@@ -66,19 +74,23 @@ const AppKitWalletConnect = () => {
   const handleSelectWallet = (walletId) => {
     const wallet = wallets.find(w => w.id === walletId);
     if (!installed[walletId]) {
+      console.log('[AppKitWalletConnect] Wallet not installed:', walletId);
       setInstallPrompt(wallet);
       return;
     }
+    console.log('[AppKitWalletConnect] Selecting wallet:', walletId);
     setShowModal(false);
     setInstallPrompt(null);
     try {
-      open();
+      open(walletId); // Pass walletId to open so the correct wallet is selected
+      console.log('[AppKitWalletConnect] open() called with', walletId);
     } catch (error) {
       console.error('Error opening AppKit:', error);
     }
   };
 
   const handleDisconnect = () => {
+    console.log('[AppKitWalletConnect] handleDisconnect called');
     setShowModal(false);
     disconnect();
   };
