@@ -95,10 +95,6 @@ const NFTCard3 = ({
       console.error("Failed to add item to cart in the database", error);
       ErrorToast("Failed to add item to cart, please try again.");
     }
-    } catch (error) {
-      console.error("Error adding item to cart in database", error);
-      ErrorToast("Error adding item to cart, please try again.");
-    }
   };
 
   const addToCart = (item) => {
