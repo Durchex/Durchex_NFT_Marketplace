@@ -7,6 +7,7 @@ import socketService from "../services/socketService";
 import { FiCheck, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
+import { nftAPI, userAPI } from "../services/api";
 
 import SlidingContainer from "../components/SlindingContainer";
 import { nftCollections } from "../utils";
@@ -161,10 +162,7 @@ function App() {
 
   const fetchallnftItems = () => {
     const addressString = selectedChain.toString();
-    fetch(`https://backend-2wkx.onrender.com/api/v1/nft/nfts/${addressString}`)
-      .then((res) => {
-        return res.json();
-      })
+    nftAPI.getAllNftsByNetwork(addressString)
       .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
             const first12Nfts = data.slice(0, 12); // get first 12 items
@@ -185,12 +183,7 @@ function App() {
       setTradingNFTs(storedCart);
     } else {
       const addressString = selectedChain.toString();
-      fetch(
-        `https://backend-2wkx.onrender.com/api/v1/nft/collections/${addressString}`
-      )
-        .then((res) => {
-          return res.json();
-        })
+      nftAPI.getCollectionsByNetwork(addressString)
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
             const collections = data[0].collections || [];
@@ -212,12 +205,7 @@ function App() {
     //   setTradingNFTs(storedCart);
     // } else {
     const addressString = selectedChain.toString();
-    fetch(
-      `https://backend-2wkx.onrender.com/api/v1/nft/single-nfts/${addressString}`
-    )
-      .then((res) => {
-        return res.json();
-      })
+    nftAPI.getSingleNfts(addressString)
       .then((data) => {
         console.log("🚀 123456789~ .then ~ data:", data);
 
@@ -277,21 +265,11 @@ function App() {
           formattedItem.royalties = metadata.royalties;
 
           // Now, check if the NFT exists in the backend before storing
-          const response = await fetch(
-            "https://backend-2wkx.onrender.com/api/v1/nft/nfts/check",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                itemId: formattedItem.itemId,
-                network: formattedItem.network,
-              }),
-            }
-          );
+          const data = await nftAPI.checkNftExists({
+            itemId: formattedItem.itemId,
+            network: formattedItem.network,
+          });
 
-          const data = await response.json();
           if (data.exists) {
             // console.log(
             //   `NFT with itemId ${formattedItem.itemId} already exists.`
@@ -300,18 +278,7 @@ function App() {
           }
 
           // Send the data to the backend API to save it
-          const saveResponse = await fetch(
-            "https://backend-2wkx.onrender.com/api/v1/nft/nfts",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(formattedItem),
-            }
-          );
-
-          const savedData = await saveResponse.json();
+          const savedData = await nftAPI.createNft(formattedItem);
           console.log(
             "🚀 ~ fetcooooooooooooooooooooooooooooohing ~ savedData:",
             savedData

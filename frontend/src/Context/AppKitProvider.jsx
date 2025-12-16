@@ -8,7 +8,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 const queryClient = new QueryClient();
 
 // Use a valid project ID - you should get this from https://cloud.reown.com/
-const projectId = process.env.VITE_WALLETCONNECT_PROJECT_ID || '2f05a7db73b6e7a4e0b7a8a7b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3';
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '2f05a7db73b6e7a4e0b7a8a7b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3';
 
 const metadata = {
   name: 'DURCHEX NFT Marketplace',

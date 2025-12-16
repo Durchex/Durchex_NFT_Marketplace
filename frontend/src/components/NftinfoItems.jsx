@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import LoadingNFTRow from "../components/LoadingNftRow";
 import NFTCard from "../components/NFTCard"; // Component to display each NFT card
 import { ICOContent } from "../Context";
+import { nftAPI } from "../services/api";
 
 const NftInfoItems = ({ collection }) => {
   const contexts = useContext(ICOContent);
@@ -105,14 +106,9 @@ const NftInfoItems = ({ collection }) => {
   };
 
   const fetchCollectionItems = () => {
+    const addressString = selectedChain.toString();
     if (collection) {
-      const addressString = selectedChain.toString();
-      fetch(
-        `https://backend-2wkx.onrender.com/api/v1/nft/nfts/${addressString}/collection/${collection}`
-      )
-        .then((res) => {
-          return res.json();
-        })
+      nftAPI.getCollectionNfts(addressString, collection)
         .then((data) => {
           setNfts(data);
           setBannerImage(data[0].image);
@@ -120,13 +116,7 @@ const NftInfoItems = ({ collection }) => {
         })
         .catch((err) => console.error("Error fetching cart:", err));
     } else {
-      const addressString = selectedChain.toString();
-      fetch(
-        `https://backend-2wkx.onrender.com/api/v1/nft/single-nfts/${addressString}`
-      )
-        .then((res) => {
-          return res.json();
-        })
+      nftAPI.getSingleNfts(addressString)
         .then((data) => {
           setNfts(data);
           setBannerImage(data[0].image);

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { ICOContent } from "../Context";
+import { nftAPI } from "../services/api";
 import {
   Heart,
   Share2,
@@ -249,12 +250,7 @@ function App() {
 
   const fetchSingleNftItem = () => {
     const addressString = selectedChain.toString();
-    fetch(
-      `https://backend-2wkx.onrender.com/api/v1/nft/nft/${addressString}/${itemId}/${tokenId}`
-    )
-      .then((res) => {
-        return res.json();
-      })
+    nftAPI.getSingleNft(addressString, itemId, tokenId)
       .then((data) => {
         console.log("🚀 123456~ .then ~ data:", data);
         // Use backend image if available, otherwise fallback to local mock images

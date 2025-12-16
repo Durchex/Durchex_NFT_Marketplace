@@ -7,7 +7,7 @@ import { useCart } from "../Context/CartContext";
 import { useContext, useEffect, useMemo } from "react";
 import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
-import AppKitWalletConnectNew from "./AppKitWalletConnectNew";
+import WalletConnect from "./WalletConnect";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
 
@@ -286,7 +286,7 @@ export default function Navbar() {
           </Link>
 
           {/* Wallet Connect */}
-            <AppKitWalletConnectNew />
+            <WalletConnect />
         </div>
       </div>
 
@@ -370,7 +370,7 @@ export default function Navbar() {
               </Link>
             )}
             <div className="pt-2">
-              <AppKitWalletConnectNew />
+              <WalletConnect />
             </div>
           </div>
         </div>

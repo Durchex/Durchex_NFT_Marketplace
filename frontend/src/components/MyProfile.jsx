@@ -5,6 +5,7 @@ import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
 import { ICOContent } from "../Context"; // Import context
 import { getVerificationBadge, getVerificationLabel } from "../utils/verificationUtils";
+import { userAPI } from "../services/api";
 
 const MyProfile = () => {
   const { address } = useContext(ICOContent) || {};
@@ -31,12 +32,7 @@ const MyProfile = () => {
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch(
-          `https://backend-2wkx.onrender.com/api/v1/user/users/${address}`
-        );
-        if (!res.ok) throw new Error("Failed to fetch profile");
-
-        const data = await res.json();
+        const data = await userAPI.getUserProfile(address);
         console.log("🚀 ~ fetchProfile ~ data:", data);
 
         setProfileData({
@@ -111,19 +107,7 @@ const MyProfile = () => {
       };
       console.log("🚀 ~ handleSubmit ~ payload:", payload);
 
-      const response = await fetch("https://backend-2wkx.onrender.com/api/v1/user/users/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save profile");
-      }
-
-      const result = await response.json();
+      const result = await userAPI.createOrUpdateUser(payload);
       console.log("Profile saved:", result);
       SuccessToast("Profile saved successfully!");
       setIsEditing(false); // turn off edit mode
@@ -148,16 +132,7 @@ const MyProfile = () => {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(
-        `https://backend-2wkx.onrender.com/api/v1/user/users/${address}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to delete profile");
-      }
+      await userAPI.deleteUserProfile(address);
 
       SuccessToast("Profile deleted successfully!");
       // Optional: redirect or reset state

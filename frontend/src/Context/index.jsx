@@ -6,6 +6,7 @@ import EthereumProvider from '@walletconnect/ethereum-provider';
 import VendorNFT from "./VendorNFT.json";
 import MarketPlace from "./NFTMarketplace.json";
 import gasService from "../services/gasService";
+import { cartAPI } from "../services/api";
 
 //INTERNAL IMPORT
 import {
@@ -188,10 +189,9 @@ export const Index = ({ children }) => {
     checkIfWalletConnected();
   }, [address]);
 
-  const connectWallet = async () => {
+  const connectWallet = async (walletId = null) => {
     // Support calling with a specific wallet id (e.g. 'metamask', 'coinbase', 'walletconnect')
     // If a wallet id is passed, the caller can rely on UI detection to ensure the right provider is available.
-    const walletId = arguments[0];
     // Get the wallet provider - check for multiple providers
     let provider = null;
     console.log('[Context] connectWallet called with walletId:', walletId);
@@ -279,6 +279,13 @@ export const Index = ({ children }) => {
     try {
       let accounts;
       console.log('[Context] Attempting to request accounts from provider:', provider);
+      
+      // Special handling for WalletConnect
+      if (walletId === 'walletconnect' && provider && typeof provider.connect === 'function') {
+        console.log('[Context] Calling connect() for WalletConnect provider');
+        await provider.connect();
+      }
+      
       // Request account access with proper error handling
       try {
         if (provider.request) {
@@ -403,14 +410,7 @@ export const Index = ({ children }) => {
     const addressString = address?.toLowerCase?.().toString?.();
     if (!addressString) return;
 
-    fetch(`https://backend-2wkx.onrender.com/api/v1/cart/cart/${addressString}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          // 404 or other non-JSON responses
-          throw new Error(`Cart request failed: ${res.status}`);
-        }
-        return res.json();
-      })
+    cartAPI.getUserCart(addressString)
       .then((data) => {
         setCartItems(Array.isArray(data) ? data : []);
         localStorage.setItem("cartItems", JSON.stringify(Array.isArray(data) ? data : []));

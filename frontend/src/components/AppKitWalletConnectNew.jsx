@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import wallets from '../assets/wallets.json';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { FiShield, FiX, FiLogOut } from 'react-icons/fi';
+import { ICOContent } from '../Context';
 
 function getWalletInstallUrl(id) {
   switch (id) {
@@ -31,6 +32,7 @@ function getWalletInstallUrl(id) {
 const AppKitWalletConnect = () => {
   const { open, disconnect } = useAppKit();
   const { address, isConnected, balance } = useAppKitAccount();
+  const { connectWallet } = useContext(ICOContent);
   const [showModal, setShowModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
@@ -82,10 +84,11 @@ const AppKitWalletConnect = () => {
     setShowModal(false);
     setInstallPrompt(null);
     try {
-      open(walletId); // Pass walletId to open so the correct wallet is selected
-      console.log('[AppKitWalletConnect] open() called with', walletId);
+      console.log('[AppKitWalletConnect] Attempting to connect to wallet:', walletId);
+      connectWallet(walletId); // Call the context's connectWallet function
+      console.log('[AppKitWalletConnect] connectWallet() called with', walletId);
     } catch (error) {
-      console.error('Error opening AppKit:', error);
+      console.error('Error connecting wallet:', error);
     }
   };
 

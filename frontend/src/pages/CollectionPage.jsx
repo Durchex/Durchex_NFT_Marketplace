@@ -5,6 +5,7 @@ import LoadingNFTGrid from "../components/LoadingNftGrid"; // A loading spinner 
 import { ICOContent } from "../Context";
 import LoadingNFTRow from "../components/LoadingNftRow";
 import Header from "../components/Header";
+import { nftAPI } from "../services/api";
 
 const CollectionPage = () => {
   const contexts = useContext(ICOContent);
@@ -35,12 +36,7 @@ const CollectionPage = () => {
 
   const fetchCollectionItems = () => {
     const addressString = selectedChain.toString();
-    fetch(
-      `https://backend-2wkx.onrender.com/api/v1/nft/nfts/${addressString}/collection/${collection}`
-    )
-      .then((res) => {
-        return res.json();
-      })
+    nftAPI.getCollectionNfts(addressString, collection)
       .then((data) => {
         console.log("🚀 ~ .then ~ data:", data);
         setNfts(data);

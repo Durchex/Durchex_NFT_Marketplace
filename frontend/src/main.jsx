@@ -9,26 +9,23 @@ import { UserProvider } from "./Context/UserContext";
 import { CartProvider } from "./Context/CartContext";
 import { AdminProvider } from "./Context/AdminContext";
 import { NetworkProvider } from "./Context/NetworkContext";
-import { AppKitProvider } from "./Context/AppKitProvider.jsx";
 
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <AppKitProvider>
-      <Index>
-        <UserProvider>
-          <CartProvider>
-            <AdminProvider>
-              <NetworkProvider>
-                <FilterProvider>
-                  <App />
-                </FilterProvider>
-              </NetworkProvider>
-            </AdminProvider>
-          </CartProvider>
-        </UserProvider>
-        <Toaster />
-      </Index>
-    </AppKitProvider>
+    <Index>
+      <UserProvider>
+        <CartProvider>
+          <AdminProvider>
+            <NetworkProvider>
+              <FilterProvider>
+                <App />
+              </FilterProvider>
+            </NetworkProvider>
+          </AdminProvider>
+        </CartProvider>
+      </UserProvider>
+      <Toaster />
+    </Index>
   </StrictMode>
 );

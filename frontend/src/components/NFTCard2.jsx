@@ -5,6 +5,7 @@ import { ICOContent } from "../Context";
 import { ethers } from "ethers";
 import { ErrorToast } from "../app/Toast/Error";
 import { SuccessToast } from "../app/Toast/Success";
+import { cartAPI } from "../services/api";
 
 const NFTCard2 = ({
   collectionName,
@@ -74,34 +75,22 @@ const NFTCard2 = ({
 
     try {
       // Send POST request to the API to save the item to the database
-      const response = await fetch("https://backend-2wkx.onrender.com/api/v1/cart/cart", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          walletAddress: addresses,
-          nftId: Number(newItem.nftId),
-          contractAddress: newItem.contractAddress.toString(),
-        }),
+      const data = await cartAPI.addNftToCart({
+        walletAddress: addresses,
+        nftId: Number(newItem.nftId),
+        contractAddress: newItem.contractAddress.toString(),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setCartItems((prevItems) => {
-          const updatedCart = [...prevItems, newItem];
-          // Update localStorage to reflect the new cart state
-          localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-          // return updatedCart;
-        });
-        console.log("Item added to cart successfully in the database", data);
-        await fetchCartItems();
-        
-        SuccessToast("Item added to cart successfully!");
-      } else {
-        console.error("Failed to add item to cart in the database", data);
-        ErrorToast("Failed to add item to cart, please try again.");
-      }
+      setCartItems((prevItems) => {
+        const updatedCart = [...prevItems, newItem];
+        // Update localStorage to reflect the new cart state
+        localStorage.setItem("cartItems", JSON.stringify(updatedCart));
+        // return updatedCart;
+      });
+      console.log("Item added to cart successfully in the database", data);
+      await fetchCartItems();
+      
+      SuccessToast("Item added to cart successfully!");
     } catch (error) {
       console.error("Error adding item to cart in database", error);
       ErrorToast("Error adding item to cart, please try again.");

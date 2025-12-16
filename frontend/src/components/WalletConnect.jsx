@@ -9,7 +9,8 @@ import {
   FiUser,
   FiSettings,
   FiShield,
-  FiDownload
+  FiDownload,
+  FiRefreshCw
 } from 'react-icons/fi';
 import { 
   HiOutlineLogout,
@@ -124,6 +125,12 @@ const WalletConnect = () => {
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const handleSwitchWallet = () => {
+    disconnectWallet();
+    setIsDropdownOpen(false);
+    // After disconnecting, the component will automatically show the connect options
   };
 
   const handleDisconnect = () => {
@@ -311,6 +318,14 @@ const WalletConnect = () => {
             </button>
 
             <hr className="my-2 border-gray-700" />
+
+            <button
+              onClick={handleSwitchWallet}
+              className="w-full flex items-center space-x-3 px-3 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition-colors duration-200"
+            >
+              <FiRefreshCw className="w-4 h-4" />
+              <span className="font-display">Switch Wallet</span>
+            </button>
 
             <button
               onClick={handleDisconnect}
