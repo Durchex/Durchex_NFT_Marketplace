@@ -1,0 +1,101 @@
+{
+  "timestamp": "2025-12-16T16:24:15.670Z",
+  "contractGas": {
+    "VendorNFT": 49000,
+    "NFTMarketplace": 62000,
+    "total": 111000,
+    "buffer": 1.2
+  },
+  "networks": [
+    {
+      "network": "polygon",
+      "displayName": "Polygon",
+      "gasPrice": 80,
+      "vendorCost": 0.003332,
+      "marketplaceCost": 0.004216,
+      "totalCost": 0.0090576,
+      "nativeToken": "MATIC",
+      "gasCost": 0.010656
+    },
+    {
+      "network": "avalanche",
+      "displayName": "Avalanche C-Chain",
+      "gasPrice": 35,
+      "vendorCost": 0.06516999999999999,
+      "marketplaceCost": 0.08246,
+      "totalCost": 0.177156,
+      "nativeToken": "AVAX",
+      "gasCost": 0.004662
+    },
+    {
+      "network": "bsc",
+      "displayName": "BSC",
+      "gasPrice": 15,
+      "vendorCost": 0.2352,
+      "marketplaceCost": 0.29760000000000003,
+      "totalCost": 0.63936,
+      "nativeToken": "BNB",
+      "gasCost": 0.001998
+    },
+    {
+      "network": "base",
+      "displayName": "Base",
+      "gasPrice": 1.5,
+      "vendorCost": 0.25725,
+      "marketplaceCost": 0.3255,
+      "totalCost": 0.6993,
+      "nativeToken": "ETH",
+      "gasCost": 0.0001998
+    },
+    {
+      "network": "arbitrum",
+      "displayName": "Arbitrum One",
+      "gasPrice": 2,
+      "vendorCost": 0.34299999999999997,
+      "marketplaceCost": 0.434,
+      "totalCost": 0.9324000000000001,
+      "nativeToken": "ETH",
+      "gasCost": 0.0002664
+    },
+    {
+      "network": "optimism",
+      "displayName": "Optimism",
+      "gasPrice": 2,
+      "vendorCost": 0.34299999999999997,
+      "marketplaceCost": 0.434,
+      "totalCost": 0.9324000000000001,
+      "nativeToken": "ETH",
+      "gasCost": 0.0002664
+    },
+    {
+      "network": "hyperliquid",
+      "displayName": "HyperLiquid",
+      "gasPrice": 15,
+      "vendorCost": 2.5725,
+      "marketplaceCost": 3.2550000000000003,
+      "totalCost": 6.993,
+      "nativeToken": "ETH",
+      "gasCost": 0.001998
+    },
+    {
+      "network": "ethereum",
+      "displayName": "Ethereum Mainnet",
+      "gasPrice": 25,
+      "vendorCost": 4.2875,
+      "marketplaceCost": 5.425,
+      "totalCost": 11.655,
+      "nativeToken": "ETH",
+      "gasCost": 0.00333
+    }
+  ],
+  "summary": {
+    "totalUSD": 22.037673599999998,
+    "averagePerNetwork": 2.7547091999999997,
+    "networkCount": 8,
+    "costRanges": {
+      "cheap": 6,
+      "moderate": 2,
+      "expensive": 0
+    }
+  }
+}

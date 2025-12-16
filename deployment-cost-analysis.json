@@ -1,0 +1,100 @@
+{
+  "timestamp": "2025-12-16T15:52:02.295Z",
+  "contractGas": {
+    "VendorNFT": 49000,
+    "NFTMarketplace": 62000,
+    "total": 111000
+  },
+  "networks": [
+    {
+      "network": "base",
+      "displayName": "Base",
+      "gasPrice": 0.0011484858000000001,
+      "vendorCost": 0.0001969651775,
+      "marketplaceCost": 0.000249221245,
+      "totalCost": 0.00044618642250000005,
+      "nativeToken": "ETH",
+      "gasCost": 1.27481835e-7
+    },
+    {
+      "network": "polygon",
+      "displayName": "Polygon",
+      "gasPrice": 50,
+      "vendorCost": 0.00196,
+      "marketplaceCost": 0.00248,
+      "totalCost": 0.0044399999999999995,
+      "nativeToken": "MATIC",
+      "gasCost": 0.005549999999999999
+    },
+    {
+      "network": "hyperliquid",
+      "displayName": "HyperLiquid",
+      "gasPrice": 0.132950875,
+      "vendorCost": 0.022801075062500002,
+      "marketplaceCost": 0.028850339875000002,
+      "totalCost": 0.05165141493750001,
+      "nativeToken": "ETH",
+      "gasCost": 0.000014757547125000002
+    },
+    {
+      "network": "arbitrum",
+      "displayName": "Arbitrum",
+      "gasPrice": 0.2,
+      "vendorCost": 0.034300000000000004,
+      "marketplaceCost": 0.0434,
+      "totalCost": 0.0777,
+      "nativeToken": "ETH",
+      "gasCost": 0.0000222
+    },
+    {
+      "network": "optimism",
+      "displayName": "Optimism",
+      "gasPrice": 0.2,
+      "vendorCost": 0.034300000000000004,
+      "marketplaceCost": 0.0434,
+      "totalCost": 0.0777,
+      "nativeToken": "ETH",
+      "gasCost": 0.0000222
+    },
+    {
+      "network": "avalanche",
+      "displayName": "Avalanche",
+      "gasPrice": 30,
+      "vendorCost": 0.051449999999999996,
+      "marketplaceCost": 0.06509999999999999,
+      "totalCost": 0.11654999999999999,
+      "nativeToken": "AVAX",
+      "gasCost": 0.0033299999999999996
+    },
+    {
+      "network": "bsc",
+      "displayName": "BSC",
+      "gasPrice": 10,
+      "vendorCost": 0.1568,
+      "marketplaceCost": 0.1984,
+      "totalCost": 0.3552,
+      "nativeToken": "BNB",
+      "gasCost": 0.00111
+    },
+    {
+      "network": "ethereum",
+      "displayName": "Ethereum",
+      "gasPrice": 20,
+      "vendorCost": 3.4299999999999997,
+      "marketplaceCost": 4.34,
+      "totalCost": 7.7700000000000005,
+      "nativeToken": "ETH",
+      "gasCost": 0.00222
+    }
+  ],
+  "summary": {
+    "totalUSD": 8.45368760136,
+    "averagePerNetwork": 1.05671095017,
+    "networkCount": 8,
+    "costRanges": {
+      "cheap": 7,
+      "moderate": 1,
+      "expensive": 0
+    }
+  }
+}
