@@ -33,24 +33,8 @@ export default function Onboarding() {
     
     const completed = localStorage.getItem("durchex_onboarding_completed");
     if (completed === "true") {
-      // If already completed, redirect based on saved role or default to explore
-      const saved = localStorage.getItem("durchex_onboarding");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.role === "creator" || parsed.role === "both") {
-            navigate("/studio", { replace: true });
-          } else if (parsed.role === "collector") {
-            navigate("/explore", { replace: true });
-          } else {
-            navigate("/", { replace: true });
-          }
-        } catch {
-          navigate("/", { replace: true });
-        }
-      } else {
-        navigate("/", { replace: true });
-      }
+      // If already completed, redirect to profile page
+      navigate("/profile", { replace: true });
     }
   }, [navigate, isNavigating]);
 
@@ -116,13 +100,8 @@ export default function Onboarding() {
     // Show loading state
     setIsNavigating(true);
     
-    // Determine target route
-    let targetRoute = "/";
-    if (data.role === "creator" || data.role === "both") {
-      targetRoute = "/studio";
-    } else if (data.role === "collector") {
-      targetRoute = "/explore";
-    }
+    // Determine target route - redirect to profile page for all users after onboarding
+    let targetRoute = "/profile";
     
     // Navigate immediately with replace to prevent back navigation
     // Use a small delay to ensure localStorage is fully written

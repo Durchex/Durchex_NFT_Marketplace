@@ -17,7 +17,8 @@
  * PRIVATE_KEY=<key> npm run deploy:hyperliquid:mainnet
  */
 
-import { ethers } from "hardhat";
+import pkg from "hardhat";
+const { ethers } = pkg;
 import fs from "fs";
 import path from "path";
 
@@ -48,7 +49,7 @@ async function deployToHyperLiquidMainnet() {
     // Deploy VendorNFT contract
     console.log("\n⏳ Deploying VendorNFT contract...");
     const VendorNFT = await ethers.getContractFactory("VendorNFT");
-    const vendorNFT = await VendorNFT.deploy();
+    const vendorNFT = await VendorNFT.deploy(deployer.address);
     await vendorNFT.deployed();
 
     console.log(`✅ VendorNFT deployed!`);
@@ -133,16 +134,14 @@ async function deployToHyperLiquidMainnet() {
 }
 
 // Main execution
-if (require.main === module) {
-  deployToHyperLiquidMainnet()
-    .then((contracts) => {
-      console.log(`\n🎉 Contracts deployed successfully to HyperLiquid mainnet!`);
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("Fatal error:", error);
-      process.exit(1);
-    });
-}
+deployToHyperLiquidMainnet()
+  .then((contracts) => {
+    console.log(`\n🎉 Contracts deployed successfully to HyperLiquid mainnet!`);
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Fatal error:", error);
+    process.exit(1);
+  });
 
 export default deployToHyperLiquidMainnet;

@@ -7,7 +7,10 @@
  * npx hardhat run scripts/deploy.js --network <network-name>
  */
 
-import { ethers } from "hardhat";
+import pkg from "hardhat";
+const { ethers } = pkg;
+import fs from "fs";
+import path from "path";
 
 async function main() {
   console.log("🚀 Starting contract deployment...");
@@ -44,10 +47,6 @@ async function main() {
   console.log("Network:", hre.network.name);
   console.log("Block number:", await ethers.provider.getBlockNumber());
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-  // Save to deployments folder
-  const fs = require("fs");
-  const path = require("path");
 
   const deploymentInfo = {
     network: hre.network.name,
