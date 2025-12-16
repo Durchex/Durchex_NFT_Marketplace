@@ -25,7 +25,6 @@ import OffersTab from "./OffersTab";
 import { formatPrice, getCurrencySymbol } from "../Context/constants";
 import MyCollection from "./MyCollection";
 import NftInfoItems from "./NftinfoItems";
-import { nftAPI } from "../services/api";
 import { nftCollections } from "../utils";
 
 function App() {
