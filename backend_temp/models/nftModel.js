@@ -113,6 +113,11 @@ const nftSchema = new Schema(
       default: null,
       description: "Wallet address the NFT is offered to"
     },
+    giveawayClaimedAt: {
+      type: Date,
+      default: null,
+      description: "When the user claimed the giveaway NFT"
+    },
     adminNotes: {
       type: String,
       default: null

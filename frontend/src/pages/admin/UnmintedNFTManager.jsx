@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiGift, FiPercent, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiGift, FiPercent, FiCheck, FiImage, FiX } from 'react-icons/fi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -7,10 +7,13 @@ const UnmintedNFTManager = () => {
   const [unmintedNFTs, setUnmintedNFTs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCollectionForm, setShowCollectionForm] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [collectionImagePreview, setCollectionImagePreview] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    image: '',
+    image: null,
     category: 'art',
     collection: '',
     network: 'Polygon',
@@ -19,6 +22,13 @@ const UnmintedNFTManager = () => {
     adminNotes: '',
     eventStartTime: '',
     properties: {}
+  });
+  const [collectionData, setCollectionData] = useState({
+    name: '',
+    description: '',
+    image: null,
+    symbol: '',
+    network: 'Polygon'
   });
   const [filter, setFilter] = useState({ isGiveaway: 'all', network: 'all' });
 
@@ -50,6 +60,68 @@ const UnmintedNFTManager = () => {
     fetchUnmintedNFTs();
   }, [filter]);
 
+  // Handle file upload for NFT image
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          image: reader.result // Store as base64
+        }));
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file upload for collection image
+  const handleCollectionImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCollectionData(prev => ({
+          ...prev,
+          image: reader.result // Store as base64
+        }));
+        setCollectionImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Create NFT Collection
+  const handleCreateCollection = async (e) => {
+    e.preventDefault();
+    
+    if (!collectionData.name || !collectionData.description || !collectionData.image) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    try {
+      const response = await api.post('/admin/collections/create', collectionData);
+      
+      if (response.data.success) {
+        toast.success('NFT Collection created successfully');
+        setCollectionData({
+          name: '',
+          description: '',
+          image: null,
+          symbol: '',
+          network: 'Polygon'
+        });
+        setCollectionImagePreview(null);
+        setShowCollectionForm(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create collection');
+      console.error(error);
+    }
+  };
+
   // Create unminted NFT
   const handleCreateNFT = async (e) => {
     e.preventDefault();
@@ -68,7 +140,7 @@ const UnmintedNFTManager = () => {
         setFormData({
           name: '',
           description: '',
-          image: '',
+          image: null,
           category: 'art',
           collection: '',
           network: 'Polygon',
@@ -78,6 +150,7 @@ const UnmintedNFTManager = () => {
           eventStartTime: '',
           properties: {}
         });
+        setImagePreview(null);
         setShowCreateForm(false);
       }
     } catch (error) {
@@ -100,13 +173,142 @@ const UnmintedNFTManager = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-white">Unminted NFTs</h2>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all"
-        >
-          <FiPlus /> Create Unminted NFT
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCollectionForm(!showCollectionForm)}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            <FiImage /> Create Collection
+          </button>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all"
+          >
+            <FiPlus /> Create Unminted NFT
+          </button>
+        </div>
       </div>
+
+      {/* Create Collection Form */}
+      {showCollectionForm && (
+        <div className="mb-6 p-6 bg-slate-700 rounded-lg border border-slate-600">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-white">Create NFT Collection</h3>
+            <button
+              onClick={() => setShowCollectionForm(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleCreateCollection} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Collection Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Collection Name *</label>
+                <input
+                  type="text"
+                  value={collectionData.name}
+                  onChange={(e) => setCollectionData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Summer 2025"
+                  className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-green-500"
+                />
+              </div>
+
+              {/* Symbol */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Symbol (Optional)</label>
+                <input
+                  type="text"
+                  value={collectionData.symbol}
+                  onChange={(e) => setCollectionData(prev => ({ ...prev, symbol: e.target.value }))}
+                  placeholder="e.g., SUM25"
+                  className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-green-500"
+                />
+              </div>
+
+              {/* Network */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Network</label>
+                <select
+                  value={collectionData.network}
+                  onChange={(e) => setCollectionData(prev => ({ ...prev, network: e.target.value }))}
+                  className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-green-500"
+                >
+                  <option>Ethereum</option>
+                  <option>Polygon</option>
+                  <option>BSC</option>
+                  <option>Arbitrum</option>
+                  <option>Base</option>
+                  <option>Optimism</option>
+                </select>
+              </div>
+
+              {/* Collection Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Collection Image *</label>
+                <label className="flex items-center gap-2 w-full bg-slate-600 text-gray-300 border border-slate-500 rounded px-3 py-2 cursor-pointer hover:border-green-500 transition-colors">
+                  <FiImage className="w-5 h-5" />
+                  <span>{collectionImagePreview ? 'Change Image' : 'Upload Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCollectionImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Collection Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Description *</label>
+              <textarea
+                value={collectionData.description}
+                onChange={(e) => setCollectionData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe your collection..."
+                rows="3"
+                className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-green-500"
+              />
+            </div>
+
+            {/* Image Preview */}
+            {collectionImagePreview && (
+              <div className="flex items-center gap-4">
+                <img src={collectionImagePreview} alt="Collection preview" className="w-24 h-24 rounded object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCollectionImagePreview(null);
+                    setCollectionData(prev => ({ ...prev, image: null }));
+                  }}
+                  className="text-red-400 hover:text-red-300"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg transition-all font-semibold"
+              >
+                Create Collection
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCollectionForm(false)}
+                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Create Form */}
       {showCreateForm && (
@@ -191,19 +393,38 @@ const UnmintedNFTManager = () => {
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Image URL *</label>
-                <input
-                  type="url"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  placeholder="https://..."
-                  className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-purple-500"
-                />
+                <label className="block text-sm font-medium text-gray-300 mb-2">NFT Image *</label>
+                <label className="flex items-center gap-2 w-full bg-slate-600 text-gray-300 border border-slate-500 rounded px-3 py-2 cursor-pointer hover:border-purple-500 transition-colors">
+                  <FiImage className="w-5 h-5" />
+                  <span>{imagePreview ? 'Change Image' : 'Upload Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="flex items-center gap-4 mt-4">
+                <img src={imagePreview} alt="NFT preview" className="w-24 h-24 rounded object-cover" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImagePreview(null);
+                    setFormData(prev => ({ ...prev, image: null }));
+                  }}
+                  className="text-red-400 hover:text-red-300"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
 
             {/* Description */}
             <div>

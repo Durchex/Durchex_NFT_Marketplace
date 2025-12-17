@@ -24,6 +24,7 @@ import MyCollections from "../components/MyCollections.jsx";
 import MyPoints from "../components/MyPoints.jsx";
 import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
+import MyGiveawayNFTs from "./user/MyGiveawayNFTs.jsx";
 
 // import { Grid, List } from "lucide-react";
 
@@ -96,6 +97,7 @@ function App() {
   const tabs = [
     "MyProfile",
     "Owned",
+    "Giveaway NFTs",
     "My Points",
     "My Collections",
     "List NFT",
@@ -326,6 +328,7 @@ function App() {
         <main className="flex-1 p-8 overflow-y-auto">
           {activeTab === "MyProfile" && <MyProfile />}
           {activeTab === "Owned" && <MyCollections placeholder={"NFT"} />}
+          {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
           {activeTab === "My Points" && (
             <MyPoints userPoints={userPoints} isEligible={isEligible} />
           )}

@@ -907,6 +907,86 @@ export const getGiveawayNFTs = async (req, res) => {
   }
 };
 
+// Get user's giveaway NFTs
+export const getUserGiveawayNFTs = async (req, res) => {
+  try {
+    const userWallet = req.headers['x-user-wallet'] || req.query.walletAddress;
+
+    if (!userWallet) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+
+    const nfts = await nftModel.find({
+      isGiveaway: true,
+      offeredTo: userWallet.toLowerCase(),
+      giveawayStatus: { $in: ['offered', 'claimed', 'minted'] }
+    }).sort({ eventStartTime: 1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: nfts.length,
+      nfts
+    });
+  } catch (error) {
+    console.error('Error fetching user giveaway NFTs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Claim giveaway NFT (for users to claim their offered NFT)
+export const claimGiveawayNFT = async (req, res) => {
+  try {
+    const { nftId } = req.body;
+    const userWallet = req.headers['x-user-wallet'];
+
+    if (!nftId || !userWallet) {
+      return res.status(400).json({ error: 'NFT ID and wallet address are required' });
+    }
+
+    const nft = await nftModel.findById(nftId);
+
+    if (!nft) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    // Check if user is the one it was offered to
+    if (nft.offeredTo.toLowerCase() !== userWallet.toLowerCase()) {
+      return res.status(403).json({ error: 'This NFT was not offered to you' });
+    }
+
+    // Check if event is live or minting has started
+    if (nft.eventStartTime) {
+      const now = new Date();
+      const eventStart = new Date(nft.eventStartTime);
+      if (now < eventStart) {
+        return res.status(400).json({ 
+          error: 'Minting has not started yet',
+          eventStartsAt: nft.eventStartTime 
+        });
+      }
+    }
+
+    // Update NFT status to claimed
+    const updatedNFT = await nftModel.findByIdAndUpdate(
+      nftId,
+      {
+        giveawayStatus: 'claimed',
+        giveawayClaimedAt: new Date()
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'NFT claimed successfully! You can now mint it.',
+      nft: updatedNFT
+    });
+  } catch (error) {
+    console.error('Error claiming giveaway NFT:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Revoke NFT offer
 export const revokeNFTOffer = async (req, res) => {
   try {

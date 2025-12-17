@@ -18,7 +18,9 @@ import {
   getFeeSubsidyInfo,
   markNFTAsMinted,
   getGiveawayNFTs,
-  revokeNFTOffer
+  revokeNFTOffer,
+  getUserGiveawayNFTs,
+  claimGiveawayNFT
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -38,6 +40,8 @@ router.patch('/nfts/:network/:itemId', updateNFTStatus);
 router.post('/nfts/unminted/create', createUnmintedNFT);
 router.get('/nfts/unminted/list', getUnmintedNFTs);
 router.get('/nfts/giveaways/list', getGiveawayNFTs);
+router.get('/nfts/giveaways/my-nfts', getUserGiveawayNFTs);
+router.post('/nfts/giveaways/claim', claimGiveawayNFT);
 router.post('/nfts/offer', offerNFTToUser);
 router.post('/nfts/offer/revoke', revokeNFTOffer);
 router.post('/nfts/minted/mark', markNFTAsMinted);
