@@ -23,7 +23,10 @@ import {
   FiLock,
   FiCode,
   FiUserPlus,
-  FiZap
+  FiZap,
+  FiPlus,
+  FiGift,
+  FiPercent
 } from 'react-icons/fi';
 import { useAdmin } from '../Context/AdminContext';
 
@@ -37,6 +40,9 @@ const AdminSidebar = ({ isPartner = false }) => {
     { id: 'dashboard', label: 'Dashboard', icon: FiHome, path: '/admin/dashboard', description: 'Overview and analytics' },
     { id: 'users', label: 'Users', icon: FiUsers, path: '/admin/users', description: 'Manage user accounts' },
     { id: 'nfts', label: 'NFTs', icon: FiImage, path: '/admin/nfts', description: 'Manage NFT collections' },
+    { id: 'unminted-nfts', label: 'Unminted NFTs', icon: FiPlus, path: '/admin/unminted-nfts', description: 'Create and manage unminted NFTs', badge: 'New' },
+    { id: 'giveaways', label: 'Giveaways', icon: FiGift, path: '/admin/giveaways', description: 'Track giveaway campaigns', badge: 'New' },
+    { id: 'fee-subsidies', label: 'Fee Subsidies', icon: FiPercent, path: '/admin/fee-subsidies', description: 'Manage fee subsidy programs', badge: 'New' },
     { id: 'transactions', label: 'Transactions', icon: FiDollarSign, path: '/admin/transactions', description: 'View transaction history' },
     { id: 'orders', label: 'Orders', icon: FiShoppingCart, path: '/admin/orders', description: 'Manage orders and sales' },
     { id: 'contracts', label: 'Contract Management', icon: FiCode, path: '/admin/contracts', description: 'Manage smart contracts and vendors' },
@@ -138,6 +144,11 @@ const AdminSidebar = ({ isPartner = false }) => {
                     <p className={`font-display font-medium ${isActive ? 'text-white' : 'text-gray-300'}`}>
                       {item.label}
                     </p>
+                    {item.badge && (
+                      <span className="ml-auto px-2 py-0.5 bg-green-600 text-white text-xs rounded-full font-display">
+                        {item.badge}
+                      </span>
+                    )}
                     {item.readOnly && (
                       <FiEye className="w-3 h-3 text-yellow-400" title="Read-only" />
                     )}

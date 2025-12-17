@@ -16,6 +16,9 @@ import ContractManagement from "./admin/ContractManagement";
 import PartnerManagement from "./admin/PartnerManagement";
 import Verifications from "./admin/Verifications";
 import GasFeeRegulations from "./admin/GasFeeRegulations";
+import UnmintedNFTManager from "./admin/UnmintedNFTManager";
+import GiveawayCenter from "./admin/GiveawayCenter";
+import FeeSubsidyDashboard from "./admin/FeeSubsidyDashboard";
 import AdminLogin from "../components/AdminLogin";
 
 const Admin = () => {
@@ -70,6 +73,9 @@ const Admin = () => {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="users" element={<Users />} />
         <Route path="nfts" element={<NFTs />} />
+        <Route path="unminted-nfts" element={<UnmintedNFTManager />} />
+        <Route path="giveaways" element={<GiveawayCenter />} />
+        <Route path="fee-subsidies" element={<FeeSubsidyDashboard />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="orders" element={<Orders />} />
         <Route path="analytics" element={<Analytics />} />
