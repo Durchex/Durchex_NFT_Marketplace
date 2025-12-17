@@ -117,6 +117,18 @@ const nftSchema = new Schema(
       type: String,
       default: null
     },
+    // Event launch timing
+    eventStartTime: {
+      type: Date,
+      default: null,
+      description: "When users can start minting and buying this NFT"
+    },
+    eventStatus: {
+      type: String,
+      enum: ['scheduled', 'live', 'ended'],
+      default: 'scheduled',
+      description: "Current status of the event (before/during/after start time)"
+    },
   },
   { timestamps: true }
 );

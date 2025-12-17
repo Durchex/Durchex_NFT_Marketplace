@@ -17,6 +17,7 @@ const UnmintedNFTManager = () => {
     price: '',
     isGiveaway: false,
     adminNotes: '',
+    eventStartTime: '',
     properties: {}
   });
   const [filter, setFilter] = useState({ isGiveaway: 'all', network: 'all' });
@@ -74,6 +75,7 @@ const UnmintedNFTManager = () => {
           price: '',
           isGiveaway: false,
           adminNotes: '',
+          eventStartTime: '',
           properties: {}
         });
         setShowCreateForm(false);
@@ -227,6 +229,19 @@ const UnmintedNFTManager = () => {
                 rows="2"
                 className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-purple-500"
               />
+            </div>
+
+            {/* Event Start Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Event Start Time (When users can mint)</label>
+              <input
+                type="datetime-local"
+                name="eventStartTime"
+                value={formData.eventStartTime || ''}
+                onChange={handleInputChange}
+                className="w-full bg-slate-600 text-white border border-slate-500 rounded px-3 py-2 focus:outline-none focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Leave empty for immediate availability</p>
             </div>
 
             {/* Checkboxes */}

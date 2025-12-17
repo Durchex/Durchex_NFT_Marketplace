@@ -647,11 +647,21 @@ export const createUnmintedNFT = async (req, res) => {
       price,
       properties,
       isGiveaway,
-      adminNotes
+      adminNotes,
+      eventStartTime
     } = req.body;
 
     // Generate unique itemId
     const itemId = `${collection}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Determine event status based on start time
+    let eventStatus = 'scheduled';
+    if (eventStartTime) {
+      const startTime = new Date(eventStartTime);
+      if (startTime <= new Date()) {
+        eventStatus = 'live';
+      }
+    }
     
     const unmintedNFT = await nftModel.create({
       itemId,
@@ -672,7 +682,9 @@ export const createUnmintedNFT = async (req, res) => {
       isGiveaway: isGiveaway || false,
       giveawayStatus: isGiveaway ? 'pending' : 'pending',
       adminNotes: adminNotes || null,
-      royalties: {}
+      royalties: {},
+      eventStartTime: eventStartTime ? new Date(eventStartTime) : null,
+      eventStatus: eventStartTime ? eventStatus : 'scheduled'
     });
 
     res.status(201).json({
