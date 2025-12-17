@@ -65,6 +65,58 @@ const nftSchema = new Schema(
     royalties: {
       type: Object,
     },
+    // Minting status
+    isMinted: {
+      type: Boolean,
+      default: false,
+      description: "Whether the NFT has been minted on blockchain"
+    },
+    mintedAt: {
+      type: Date,
+      default: null
+    },
+    mintTxHash: {
+      type: String,
+      default: null
+    },
+    // Fee subsidy for users
+    feeSubsidyEnabled: {
+      type: Boolean,
+      default: false,
+      description: "Whether admin is subsidizing minting fees for this NFT"
+    },
+    feeSubsidyPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+      description: "Percentage of network fee admin will cover (0-100)"
+    },
+    feeSubsidyRecipients: [{
+      walletAddress: String,
+      subsidy: String, // Amount in wei or native token
+      claimed: Boolean,
+      claimedAt: Date
+    }],
+    // Giveaway tracking
+    isGiveaway: {
+      type: Boolean,
+      default: false
+    },
+    giveawayStatus: {
+      type: String,
+      enum: ['pending', 'offered', 'claimed', 'minted'],
+      default: 'pending'
+    },
+    offeredTo: {
+      type: String,
+      default: null,
+      description: "Wallet address the NFT is offered to"
+    },
+    adminNotes: {
+      type: String,
+      default: null
+    },
   },
   { timestamps: true }
 );

@@ -630,3 +630,303 @@ export const getReports = async (req, res) => {
   }
 };
 
+// ============================================
+// UNMINTED NFT & FEE SUBSIDY MANAGEMENT
+// ============================================
+
+// Create an unminted NFT (for giveaways and presale)
+export const createUnmintedNFT = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      image,
+      category,
+      collection,
+      network,
+      price,
+      properties,
+      isGiveaway,
+      adminNotes
+    } = req.body;
+
+    // Generate unique itemId
+    const itemId = `${collection}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const unmintedNFT = await nftModel.create({
+      itemId,
+      name,
+      description,
+      image,
+      category,
+      collection,
+      network,
+      price: price || '0',
+      properties: properties || {},
+      owner: 'admin', // Admin owns it until minted/given away
+      seller: 'admin',
+      nftContract: 'pending',
+      tokenId: 'pending',
+      currentlyListed: true,
+      isMinted: false,
+      isGiveaway: isGiveaway || false,
+      giveawayStatus: isGiveaway ? 'pending' : 'pending',
+      adminNotes: adminNotes || null,
+      royalties: {}
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Unminted NFT created successfully',
+      nft: unmintedNFT
+    });
+  } catch (error) {
+    console.error('Error creating unminted NFT:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get all unminted NFTs
+export const getUnmintedNFTs = async (req, res) => {
+  try {
+    const { isGiveaway, network } = req.query;
+    
+    let filter = { isMinted: false };
+    
+    if (isGiveaway !== undefined) {
+      filter.isGiveaway = isGiveaway === 'true';
+    }
+    
+    if (network) {
+      filter.network = network;
+    }
+
+    const unmintedNFTs = await nftModel.find(filter).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: unmintedNFTs.length,
+      nfts: unmintedNFTs
+    });
+  } catch (error) {
+    console.error('Error fetching unminted NFTs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Offer NFT to a specific user
+export const offerNFTToUser = async (req, res) => {
+  try {
+    const { itemId, walletAddress, subsidyPercentage } = req.body;
+
+    if (!itemId || !walletAddress) {
+      return res.status(400).json({ 
+        error: 'itemId and walletAddress are required' 
+      });
+    }
+
+    const nft = await nftModel.findOne({ itemId });
+
+    if (!nft) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    if (nft.isMinted) {
+      return res.status(400).json({ 
+        error: 'Cannot offer already minted NFTs' 
+      });
+    }
+
+    // Update NFT with offer details
+    const updatedNFT = await nftModel.findOneAndUpdate(
+      { itemId },
+      {
+        offeredTo: walletAddress,
+        giveawayStatus: 'offered',
+        feeSubsidyEnabled: subsidyPercentage > 0,
+        feeSubsidyPercentage: subsidyPercentage || 0
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: `NFT offered to ${walletAddress}`,
+      nft: updatedNFT
+    });
+  } catch (error) {
+    console.error('Error offering NFT to user:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Set fee subsidy for an NFT
+export const setFeeSubsidy = async (req, res) => {
+  try {
+    const { itemId, percentage, recipients } = req.body;
+
+    if (!itemId || percentage === undefined) {
+      return res.status(400).json({ 
+        error: 'itemId and percentage are required' 
+      });
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      return res.status(400).json({ 
+        error: 'Percentage must be between 0 and 100' 
+      });
+    }
+
+    const nft = await nftModel.findOne({ itemId });
+
+    if (!nft) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    // Update NFT with subsidy details
+    const updatedNFT = await nftModel.findOneAndUpdate(
+      { itemId },
+      {
+        feeSubsidyEnabled: percentage > 0,
+        feeSubsidyPercentage: percentage,
+        feeSubsidyRecipients: recipients || []
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: `Fee subsidy set to ${percentage}%`,
+      nft: updatedNFT
+    });
+  } catch (error) {
+    console.error('Error setting fee subsidy:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get fee subsidy info for an NFT
+export const getFeeSubsidyInfo = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    const nft = await nftModel.findOne({ itemId });
+
+    if (!nft) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    res.json({
+      success: true,
+      itemId,
+      feeSubsidyEnabled: nft.feeSubsidyEnabled,
+      feeSubsidyPercentage: nft.feeSubsidyPercentage,
+      recipients: nft.feeSubsidyRecipients || [],
+      offeredTo: nft.offeredTo
+    });
+  } catch (error) {
+    console.error('Error getting fee subsidy info:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Mark NFT as minted
+export const markNFTAsMinted = async (req, res) => {
+  try {
+    const { itemId, tokenId, txHash, nftContract } = req.body;
+
+    if (!itemId) {
+      return res.status(400).json({ error: 'itemId is required' });
+    }
+
+    const updatedNFT = await nftModel.findOneAndUpdate(
+      { itemId },
+      {
+        isMinted: true,
+        mintedAt: new Date(),
+        mintTxHash: txHash,
+        tokenId: tokenId || 'pending',
+        nftContract: nftContract || 'pending',
+        giveawayStatus: 'minted'
+      },
+      { new: true }
+    );
+
+    if (!updatedNFT) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'NFT marked as minted',
+      nft: updatedNFT
+    });
+  } catch (error) {
+    console.error('Error marking NFT as minted:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get giveaway NFTs
+export const getGiveawayNFTs = async (req, res) => {
+  try {
+    const { status, offeredTo } = req.query;
+
+    let filter = { isGiveaway: true };
+
+    if (status) {
+      filter.giveawayStatus = status;
+    }
+
+    if (offeredTo) {
+      filter.offeredTo = offeredTo.toLowerCase();
+    }
+
+    const giveaways = await nftModel.find(filter).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: giveaways.length,
+      giveaways
+    });
+  } catch (error) {
+    console.error('Error fetching giveaway NFTs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Revoke NFT offer
+export const revokeNFTOffer = async (req, res) => {
+  try {
+    const { itemId } = req.body;
+
+    if (!itemId) {
+      return res.status(400).json({ error: 'itemId is required' });
+    }
+
+    const updatedNFT = await nftModel.findOneAndUpdate(
+      { itemId },
+      {
+        offeredTo: null,
+        giveawayStatus: 'pending',
+        feeSubsidyEnabled: false,
+        feeSubsidyPercentage: 0
+      },
+      { new: true }
+    );
+
+    if (!updatedNFT) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'NFT offer revoked',
+      nft: updatedNFT
+    });
+  } catch (error) {
+    console.error('Error revoking NFT offer:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
