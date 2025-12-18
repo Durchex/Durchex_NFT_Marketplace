@@ -519,15 +519,30 @@ export const Index = ({ children }) => {
 
       console.log("Transaction confirmed:", receipt);
 
+      // Try to extract tokenId from events
+      let tokenId = null;
+      if (receipt.events) {
+        for (const event of receipt.events) {
+          if (event.event === 'Transfer' && event.args && event.args.tokenId) {
+            tokenId = event.args.tokenId.toString();
+            break;
+          }
+        }
+      }
+
       // Update NFT status in database if itemId and network are provided
       if (itemId && network && receipt.transactionHash) {
         try {
           console.log("Updating NFT status in database after minting...");
-          await adminAPI.updateNFTStatus(network, itemId, {
+          const updateData = {
             isMinted: true,
             mintedAt: new Date(),
             mintTxHash: receipt.transactionHash
-          });
+          };
+          if (tokenId) {
+            updateData.tokenId = tokenId;
+          }
+          await adminAPI.updateNFTStatus(network, itemId, updateData);
           console.log("NFT status updated successfully in database");
         } catch (dbError) {
           console.error("Failed to update NFT status in database:", dbError);
@@ -535,7 +550,7 @@ export const Index = ({ children }) => {
         }
       }
 
-      return receipt;
+      return { ...receipt, tokenId };
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
       return error;
@@ -576,15 +591,30 @@ export const Index = ({ children }) => {
 
       console.log("Transaction confirmed:", receipt);
 
+      // Try to extract tokenId from events
+      let tokenId = null;
+      if (receipt.events) {
+        for (const event of receipt.events) {
+          if (event.event === 'Transfer' && event.args && event.args.tokenId) {
+            tokenId = event.args.tokenId.toString();
+            break;
+          }
+        }
+      }
+
       // Update NFT status in database if itemId and network are provided
       if (itemId && network && receipt.transactionHash) {
         try {
           console.log("Updating NFT status in database after minting...");
-          await adminAPI.updateNFTStatus(network, itemId, {
+          const updateData = {
             isMinted: true,
             mintedAt: new Date(),
             mintTxHash: receipt.transactionHash
-          });
+          };
+          if (tokenId) {
+            updateData.tokenId = tokenId;
+          }
+          await adminAPI.updateNFTStatus(network, itemId, updateData);
           console.log("NFT status updated successfully in database");
         } catch (dbError) {
           console.error("Failed to update NFT status in database:", dbError);
@@ -592,7 +622,7 @@ export const Index = ({ children }) => {
         }
       }
 
-      return receipt;
+      return { ...receipt, tokenId };
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
       return error;
