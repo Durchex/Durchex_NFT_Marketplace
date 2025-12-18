@@ -8,9 +8,6 @@ import { ICOContent } from "../Context/index";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
-import { ErrorToast } from "../app/Toast/Error.jsx";
-import { SuccessToast } from "../app/Toast/Success";
-import { adminAPI } from "../services/adminAPI";
 import { ErrorToast, SuccessToast } from "../app/Toast/Error.jsx";
 
 function MyMintedNFTs() {
