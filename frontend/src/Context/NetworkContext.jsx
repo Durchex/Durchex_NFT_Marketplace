@@ -12,14 +12,30 @@ export const useNetwork = () => {
 };
 
 export const NetworkProvider = ({ children }) => {
-  const [selectedNetwork, setSelectedNetwork] = useState({
-    name: "Ethereum",
-    symbol: "ETH",
-    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
-    chainId: 1,
-    rpcUrl: "https://rpc.ankr.com/eth",
-    blockExplorerUrl: "https://etherscan.io"
+  // Load selected network from localStorage or default to Ethereum
+  const [_selectedNetwork, _setSelectedNetwork] = useState(() => {
+    const saved = localStorage.getItem('selectedNetwork');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Error parsing saved network:', error);
+      }
+    }
+    return {
+      name: "Ethereum",
+      symbol: "ETH",
+      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
+      chainId: 1,
+      rpcUrl: "https://rpc.ankr.com/eth",
+      blockExplorerUrl: "https://etherscan.io"
+    };
   });
+
+  const setSelectedNetwork = (network) => {
+    _setSelectedNetwork(network);
+    localStorage.setItem('selectedNetwork', JSON.stringify(network));
+  };
 
   const networks = [
     { 
@@ -138,7 +154,7 @@ export const NetworkProvider = ({ children }) => {
   const switchNetwork = async (network) => {
     try {
       // Check if the network is already selected
-      if (selectedNetwork.chainId === network.chainId) {
+      if (_selectedNetwork.chainId === network.chainId) {
         toast.success(`Already connected to ${network.name}`);
         return true;
       }
@@ -224,8 +240,6 @@ export const NetworkProvider = ({ children }) => {
               rpcUrl: network.rpcUrl,
               blockExplorerUrl: network.blockExplorerUrl
             });
-            // Still update the UI to show the selected network
-            setSelectedNetwork(network);
             toast.error(`Failed to add ${network.name} network automatically. Please add it manually in your wallet settings.`);
             return false;
           }
@@ -235,8 +249,6 @@ export const NetworkProvider = ({ children }) => {
           return false;
         } else {
           console.error('Error switching network:', switchError);
-          // Still update the UI to reflect user's intent
-          setSelectedNetwork(network);
           toast.error(`Failed to switch to ${network.name}. Please try again or add the network manually.`);
           return false;
         }
@@ -257,7 +269,7 @@ export const NetworkProvider = ({ children }) => {
       const chainId = parseInt(window.ethereum.chainId, 16);
       return getNetworkByChainId(chainId);
     }
-    return selectedNetwork;
+    return _selectedNetwork;
   };
 
   // Listen for network changes
@@ -279,7 +291,7 @@ export const NetworkProvider = ({ children }) => {
   }, []);
 
   const value = {
-    selectedNetwork,
+    selectedNetwork: _selectedNetwork,
     setSelectedNetwork,
     networks,
     switchNetwork,

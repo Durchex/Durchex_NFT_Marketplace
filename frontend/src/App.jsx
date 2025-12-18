@@ -22,6 +22,7 @@ const NftInfo2 = lazy(() => import("./components/NftInfo2"));
 const Stats = lazy(() => import("./pages/Stats"));
 const Admin = lazy(() => import("./pages/Admin"));
 const MyNfts = lazy(() => import("./pages/MyNfts"));
+const MyMintedNFTs = lazy(() => import("./pages/MyMintedNFTs"));
 const ListNft = lazy(() => import("./pages/ListNft"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -36,9 +37,26 @@ export default function App() {
   const { address } = useContext(ICOContent) || {};
   
   // Helper function to check if should redirect to onboarding
+  // Only applies to specific routes, not all routes
   const shouldRedirectToOnboarding = () => {
     if (typeof window === "undefined") return false;
     if (!address) return false;
+    
+    const restrictedRoutes = ["/mynfts", "/studio", "/explore"];
+    const currentPath = window.location.pathname;
+    
+    // Don't redirect on these pages - always allow access
+    if (currentPath === "/onboarding" || currentPath === "/profile" || currentPath === "/") {
+      return false;
+    }
+    
+    // Only enforce onboarding for specific routes
+    const isRestrictedRoute = restrictedRoutes.some(route => 
+      currentPath.startsWith(route)
+    );
+    
+    if (!isRestrictedRoute) return false;
+    
     const onboardingCompleted = localStorage.getItem("durchex_onboarding_completed");
     return onboardingCompleted !== "true";
   };
@@ -50,13 +68,7 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={
-              shouldRedirectToOnboarding() ? (
-                <Navigate to="/onboarding" replace />
-              ) : (
-                <Hero />
-              )
-            }
+            element={<Hero />}
           />
           <Route
             path="/mynfts"
@@ -65,6 +77,16 @@ export default function App() {
                 <Navigate to="/onboarding" replace />
               ) : (
                 <MyNfts />
+              )
+            }
+          />
+          <Route
+            path="/my-minted-nfts"
+            element={
+              shouldRedirectToOnboarding() ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <MyMintedNFTs />
               )
             }
           />

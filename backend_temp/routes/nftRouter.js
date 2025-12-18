@@ -11,6 +11,9 @@ import {
   deleteNftInCollection,
   checkNftExists,
   createNft,
+  fetchUserNFTs,
+  fetchUserNFTsByNetwork,
+  fetchUserMintedNFTs,
 } from "../controllers/nftController.js"; // Adjust path & file accordingly
 // import { createNft } from "../models/nftModel.js";
 
@@ -18,6 +21,12 @@ const router = express.Router();
 
 router.post("/nfts/check", checkNftExists);
 router.post("/nfts", createNft);
+
+// ✅ ISSUE #4: Fetch user's NFTs by wallet address
+router.get("/user-nfts/:walletAddress", fetchUserNFTs);
+router.get("/user-nfts/:walletAddress/:network", fetchUserNFTsByNetwork);
+router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
+router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
 
 // Route to get collections grouped by network
 router.get("/collections/:network", fetchCollectionsGroupedByNetwork);

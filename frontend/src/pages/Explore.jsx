@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context";
 import socketService from "../services/socketService";
+import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
 import { FiCheck, FiUser, FiTrendingUp, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
@@ -74,11 +75,26 @@ const Explore = () => {
     idDocument: null // For gold verification
   });
 
-    // Initialize with mock data
+    // Initialize with real data from backend, fallback to mock data if needed
   useEffect(() => {
-    const initializeData = () => {
-      const mockNFTs = generateMockNFTs(20);
-      setPopularNFTs(mockNFTs);
+    const initializeData = async () => {
+      try {
+        // ✅ Fetch real NFTs from backend
+        const nftsData = await nftAPI.getAllNftsByNetwork("polygon"); // Default to polygon
+        if (nftsData && nftsData.length > 0) {
+          // Take first 20 NFTs for display
+          setPopularNFTs(nftsData.slice(0, 20));
+        } else {
+          // Fallback to mock data if no NFTs in database
+          const mockNFTs = generateMockNFTs(20);
+          setPopularNFTs(mockNFTs);
+        }
+      } catch (error) {
+        console.error("Error fetching NFTs from backend:", error);
+        // Fallback to mock data on error
+        const mockNFTs = generateMockNFTs(20);
+        setPopularNFTs(mockNFTs);
+      }
 
       // Load creators from localStorage or generate new ones
       const savedCreators = localStorage.getItem("durchex_creators");

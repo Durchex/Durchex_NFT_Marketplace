@@ -347,6 +347,45 @@ export const nftAPI = {
       throw new Error(`Failed to delete NFT in collection: ${error.message}`);
     }
   },
+
+  // ✅ ISSUE #4: Fetch user's owned NFTs by wallet address
+  getUserNFTs: async (walletAddress) => {
+    try {
+      if (!walletAddress) {
+        throw new Error('Wallet address is required');
+      }
+      const response = await api.get(`/nft/user-nfts/${walletAddress}`);
+      return response.data.nfts || [];
+    } catch (error) {
+      console.error('Failed to fetch user NFTs:', error);
+      return [];
+    }
+  },
+
+  // Fetch user's NFTs by network
+  getUserNFTsByNetwork: async (walletAddress, network) => {
+    try {
+      if (!walletAddress || !network) {
+        throw new Error('Wallet address and network are required');
+      }
+      const response = await api.get(`/nft/user-nfts/${walletAddress}/${network}`);
+      return response.data.nfts || [];
+    } catch (error) {
+      console.error('Failed to fetch user NFTs by network:', error);
+      return [];
+    }
+  },
+
+  // Get user's minted NFTs by wallet address
+  getUserMintedNFTs: async (walletAddress) => {
+    try {
+      const response = await api.get(`/nft/user-minted-nfts/${walletAddress}`);
+      return response.data.nfts || [];
+    } catch (error) {
+      console.error('Failed to fetch user minted NFTs:', error);
+      return [];
+    }
+  },
 };
 
 // Cart API functions

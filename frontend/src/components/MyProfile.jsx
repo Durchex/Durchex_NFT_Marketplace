@@ -92,18 +92,36 @@ const MyProfile = () => {
       return;
     }
 
+    // Validate required fields
+    if (!profileData.username || profileData.username.trim() === "") {
+      ErrorToast("Username is required");
+      return;
+    }
+
+    if (!profileData.email || profileData.email.trim() === "") {
+      ErrorToast("Email is required");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profileData.email)) {
+      ErrorToast("Please enter a valid email address");
+      return;
+    }
+
     setIsLoading(true); // Start loading spinner
 
     try {
       const payload = {
         walletAddress: address, // Use actual wallet address from context
-        username: profileData.username,
-        bio: profileData.bio,
-        email: profileData.email,
+        username: profileData.username.trim(),
+        bio: profileData.bio?.trim() || "",
+        email: profileData.email.trim(),
         // verificationStatus is managed through the verification system, not editable here
         // isVerified: profileData.verificationStatus === 'premium' || profileData.verificationStatus === 'super_premium',
-        socialLinks: profileData.socialLinks,
-        image: profileData.image,
+        socialLinks: profileData.socialLinks || [],
+        image: profileData.image || "",
       };
       console.log("🚀 ~ handleSubmit ~ payload:", payload);
 
@@ -287,11 +305,18 @@ const MyProfile = () => {
       {/* Action Buttons */}
       <div className="absolute top-20 right-3 flex flex-wrap justify-center gap-2 mb-8">
         <button
-          onClick={handleToggleEdit}
-          className="flex items-center space-x-2 bg-[#2c06da] rounded-lg px-4 py-2 text-xs md:text-sm hover:bg-[#0205bd]"
+          onClick={() => {
+            if (isEditing) {
+              handleSubmit(); // Save profile when clicking button in edit mode
+            } else {
+              handleToggleEdit(); // Toggle edit mode when in view mode
+            }
+          }}
+          disabled={isLoading}
+          className="flex items-center space-x-2 bg-[#2c06da] rounded-lg px-4 py-2 text-xs md:text-sm hover:bg-[#0205bd] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Edit3 className="h-4 w-4" />
-          <span>{isEditing ? "Save" : "Edit"}</span>
+          <span>{isLoading ? "Saving..." : isEditing ? "Save" : "Edit"}</span>
         </button>
 
         <button
@@ -301,6 +326,31 @@ const MyProfile = () => {
           <Share2 className="h-4 w-4" />
           <span>Share</span>
         </button>
+
+        {isEditing && (
+          <button
+            onClick={() => {
+              setIsEditing(false);
+              // Reload profile data to discard changes
+              if (address) {
+                userAPI.getUserProfile(address).then((data) => {
+                  setProfileData({
+                    username: data.username || "",
+                    email: data.email || "",
+                    image: data.image || "",
+                    socialLinks: data.socialLinks?.length ? data.socialLinks : [""],
+                    verificationStatus: data.verificationStatus || (data.isVerified ? 'premium' : 'none'),
+                    bio: data.bio || "",
+                    favoriteCreators: data.favoriteCreators || "",
+                  });
+                });
+              }
+            }}
+            className="flex items-center space-x-2 bg-gray-600 rounded-lg px-4 py-2 text-xs md:text-sm hover:bg-gray-700"
+          >
+            <span>Cancel</span>
+          </button>
+        )}
 
         {showShareOptions && (
           <div className="bg-[#222] rounded-lg p-2 shadow-lg z-10">
@@ -392,27 +442,13 @@ const MyProfile = () => {
         )}
       </div>
       <div className="mt-6 space-y-4">
-        <div className="flex gap-3">
-          <button
-            onClick={handleDelete}
-            disabled={isLoading}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg text-sm font-semibold"
-          >
-            {isLoading ? <LoadingSpinner /> : "Delete Profile"} 
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!isEditing || isLoading} // disables button if not editing
-            className={`w-full py-3 rounded-lg text-sm font-semibold 
-    ${
-      isEditing
-        ? "bg-purple-600 hover:bg-purple-700 text-white"
-        : "bg-gray-600 text-gray-300 cursor-not-allowed"
-    }`}
-          >
-            {isLoading ? <LoadingSpinner /> : "Submit Profile"} 
-          </button>
-        </div>
+        <button
+          onClick={handleDelete}
+          disabled={isLoading}
+          className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg text-sm font-semibold"
+        >
+          {isLoading ? <LoadingSpinner /> : "Delete Profile"} 
+        </button>
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ import MyPoints from "../components/MyPoints.jsx";
 import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
 import MyGiveawayNFTs from "./user/MyGiveawayNFTs.jsx";
+import MyMintedNFTs from "./MyMintedNFTs.jsx";
+import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
 
 // import { Grid, List } from "lucide-react";
 
@@ -90,6 +92,8 @@ function App() {
   const [userPoints, setUserPoints] = useState(0);
   const [isEligible, setIsEligible] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
+  const [userNFTs, setUserNFTs] = useState([]); // ✅ ISSUE #4: State for user's NFTs
+  const [loadingNFTs, setLoadingNFTs] = useState(false); // ✅ Loading state
   const contexts = useContext(ICOContent);
   const { getUserStatu, address } = contexts || {};
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -97,6 +101,7 @@ function App() {
   const tabs = [
     "MyProfile",
     "Owned",
+    "My Minted NFTs",
     "Giveaway NFTs",
     "My Points",
     "My Collections",
@@ -104,44 +109,24 @@ function App() {
     "Verification",
   ];
 
-  const nftItems = [
-    {
-      id: 1,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1242",
-      price: "0.5 ETH",
-    },
-    {
-      id: 2,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1243",
-      price: "0.7 ETH",
-    },
-    {
-      id: 3,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1244",
-      price: "0.6 ETH",
-    },
-    {
-      id: 4,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1245",
-      price: "0.8 ETH",
-    },
-    {
-      id: 5,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1246",
-      price: "0.8 ETH",
-    },
-    {
-      id: 6,
-      collection: "Happy cow collection",
-      name: "Happy cow dance #1247",
-      price: "0.8 ETH",
-    },
-  ];
+  // ✅ ISSUE #4: Fetch user's NFTs from backend
+  const fetchUserNFTs = async (walletAddress) => {
+    if (!walletAddress) return;
+    
+    setLoadingNFTs(true);
+    try {
+      const nfts = await nftAPI.getUserNFTs(walletAddress);
+      setUserNFTs(nfts || []);
+    } catch (error) {
+      console.error("Error fetching user NFTs:", error);
+      setUserNFTs([]);
+    } finally {
+      setLoadingNFTs(false);
+    }
+  };
+
+  // ✅ Fallback empty array if no NFTs
+  const nftItems = userNFTs.length > 0 ? userNFTs : [];
 
   const getUserPoints = async () => {
     if (!getUserStatu || !address) {
@@ -174,6 +159,13 @@ function App() {
       setUserAddress(address);
     }
   }, [address]);
+
+  // ✅ ISSUE #4: Fetch NFTs when "Owned" tab is active and address exists
+  useEffect(() => {
+    if (activeTab === "Owned" && address) {
+      fetchUserNFTs(address);
+    }
+  }, [activeTab, address]);
 
   useEffect(() => {
     if (activeTab === "My Points" && address && getUserStatu) {
@@ -327,7 +319,31 @@ function App() {
         {/* Main Content Area */}
         <main className="flex-1 p-8 overflow-y-auto">
           {activeTab === "MyProfile" && <MyProfile />}
-          {activeTab === "Owned" && <MyCollections placeholder={"NFT"} />}
+          {activeTab === "Owned" && (
+            <div>
+              {/* ✅ ISSUE #4: Show user's actual NFTs from backend */}
+              {loadingNFTs ? (
+                <div className="flex justify-center items-center min-h-screen">
+                  <Loader />
+                </div>
+              ) : nftItems.length > 0 ? (
+                <div>
+                  <h2 className="text-2xl font-bold mb-4">Your NFTs ({nftItems.length})</h2>
+                  <OwnedNFTs
+                    nftItems={nftItems}
+                    viewMode={viewMode}
+                    handleViewItem={setSelectedNFT}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 text-lg">No NFTs found</p>
+                  <p className="text-gray-500 mt-2">Mint or purchase NFTs to see them here</p>
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === "My Minted NFTs" && <MyMintedNFTs />}
           {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
           {activeTab === "My Points" && (
             <MyPoints userPoints={userPoints} isEligible={isEligible} />

@@ -25,18 +25,20 @@ export default function Onboarding() {
   const [step, setStep] = useState(STEPS.ROLE);
   const [data, setData] = useState(defaultData);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   // Redirect away if onboarding is already completed
-  // Only redirect if we're not currently navigating (to prevent redirect loop)
+  // Only redirect once, and only if we're not currently navigating (to prevent redirect loop)
   useEffect(() => {
-    if (isNavigating) return; // Don't redirect while navigating
+    if (isNavigating || hasRedirected) return; // Don't redirect while navigating or if already redirected
     
     const completed = localStorage.getItem("durchex_onboarding_completed");
     if (completed === "true") {
-      // If already completed, redirect to profile page
+      // If already completed, redirect to profile page only once
+      setHasRedirected(true);
       navigate("/profile", { replace: true });
     }
-  }, [navigate, isNavigating]);
+  }, [navigate, isNavigating, hasRedirected]);
 
   useEffect(() => {
     const saved = localStorage.getItem("durchex_onboarding");

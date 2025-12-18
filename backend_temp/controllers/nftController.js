@@ -253,3 +253,83 @@ export const deleteNftInCollection = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ✅ ISSUE #4: Fetch user's owned NFTs by wallet address
+export const fetchUserNFTs = async (req, res) => {
+  const { walletAddress } = req.params;
+
+  if (!walletAddress) {
+    return res.status(400).json({ error: "Wallet address is required" });
+  }
+
+  try {
+    // Find all NFTs owned by the wallet address (normalized to lowercase)
+    const userNFTs = await nftModel.find({
+      owner: { $regex: `^${walletAddress}$`, $options: 'i' } // Case-insensitive match
+    }).sort({ mintedAt: -1 }); // Sort by minted date, newest first
+
+    res.json({
+      success: true,
+      walletAddress,
+      count: userNFTs.length,
+      nfts: userNFTs,
+    });
+  } catch (error) {
+    console.error('Error fetching user NFTs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Fetch user's NFTs by network
+export const fetchUserNFTsByNetwork = async (req, res) => {
+  const { walletAddress, network } = req.params;
+
+  if (!walletAddress || !network) {
+    return res.status(400).json({ error: "Wallet address and network are required" });
+  }
+
+  try {
+    const userNFTs = await nftModel.find({
+      owner: { $regex: `^${walletAddress}$`, $options: 'i' },
+      network
+    }).sort({ mintedAt: -1 });
+
+    res.json({
+      success: true,
+      walletAddress,
+      network,
+      count: userNFTs.length,
+      nfts: userNFTs,
+    });
+  } catch (error) {
+    console.error('Error fetching user NFTs by network:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Fetch user's minted NFTs by wallet address
+export const fetchUserMintedNFTs = async (req, res) => {
+  const { walletAddress } = req.params;
+
+  if (!walletAddress) {
+    return res.status(400).json({ error: "Wallet address is required" });
+  }
+
+  try {
+    // Find all minted NFTs owned by the wallet address (normalized to lowercase)
+    const userMintedNFTs = await nftModel.find({
+      owner: { $regex: `^${walletAddress}$`, $options: 'i' },
+      isMinted: true
+    }).sort({ mintedAt: -1 }); // Sort by minted date, newest first
+
+    res.json({
+      success: true,
+      walletAddress,
+      count: userMintedNFTs.length,
+      nfts: userMintedNFTs,
+    });
+  } catch (error) {
+    console.error('Error fetching user minted NFTs:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

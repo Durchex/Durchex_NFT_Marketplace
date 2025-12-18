@@ -4,6 +4,7 @@ import { ICOContent } from '../Context';
 import { useContext } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
+import { calculateFees, formatPrice } from '../services/feeService';
 
 const ShoppingCart = () => {
   const { cartItems, cartTotal, removeFromCart, clearCart, isLoading } = useCart();
@@ -147,24 +148,52 @@ const ShoppingCart = () => {
               <div className="bg-gray-800 rounded-lg p-6 sticky top-6">
                 <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
                 
+                {/* ✅ ISSUE #6: Fee Breakdown Display */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
-                    <span>Items ({cartItems.length})</span>
+                    <span className="text-gray-300">Items ({cartItems.length})</span>
                     <span>{cartItems.length}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{cartTotal.toFixed(4)} ETH</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Gas Fees</span>
-                    <span>~0.001 ETH</span>
-                  </div>
-                  <hr className="border-gray-600" />
                   <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span className="text-green-400">{(cartTotal + 0.001).toFixed(4)} ETH</span>
+                    <span>Subtotal</span>
+                    <span className="text-white">{cartTotal.toFixed(8)} ETH</span>
                   </div>
+                  
+                  {/* Fees Display */}
+                  {(() => {
+                    const fees = calculateFees(cartTotal);
+                    return (
+                      <>
+                        <div className="border-t border-gray-600 pt-3 mt-3">
+                          <p className="text-gray-400 text-sm font-semibold mb-2">📊 Fee Breakdown</p>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Creator Fee (2.5%)</span>
+                              <span className="text-yellow-400">{formatPrice(fees.creatorFee)} ETH</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Platform Fee (1.5%)</span>
+                              <span className="text-red-400">{formatPrice(fees.buyerFee)} ETH</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-300">Total Fees (4%)</span>
+                              <span className="text-orange-400 font-semibold">{formatPrice(fees.totalFees)} ETH</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border-t border-gray-600 pt-3">
+                          <div className="flex justify-between text-lg font-semibold text-green-400">
+                            <span>Total You Pay</span>
+                            <span>{formatPrice(fees.totalPrice)} ETH</span>
+                          </div>
+                          <p className="text-gray-500 text-xs mt-2">
+                            Includes all fees • Creators receive {formatPrice(fees.creatorReceives)} ETH
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-3">

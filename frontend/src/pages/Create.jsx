@@ -39,6 +39,7 @@ export default function Create() {
     properties: "",
     category: "",
     collection: "",
+    numberOfPieces: 1,
   });
 
   const [imageURL, setimageURL] = useState("");
@@ -458,9 +459,20 @@ export default function Create() {
     if (!nftmarketplace) return ErrorToast("No contract Address");
     console.log("🚀 ~ HandleMintNFT ~ nftmarketplace:", nftmarketplace);
 
+    // ✅ ISSUE #5: Validate 50 NFT bulk minting limit
+    const numberOfPieces = parseInt(formNftData.numberOfPieces) || 1;
+    if (numberOfPieces > 50) {
+      return ErrorToast("You cannot mint more than 50 NFTs in a single transaction. Please reduce the number of pieces.");
+    }
+
     if (isBatchMinting) {
       if (batchImageURLs.length === 0) {
         return ErrorToast("Upload at least one NFT image for batch minting!");
+      }
+
+      // ✅ Batch minting limit check
+      if (batchImageURLs.length > 50) {
+        return ErrorToast("You cannot mint more than 50 NFTs at once. Please upload fewer images or create multiple batches.");
       }
 
       try {
@@ -853,7 +865,60 @@ export default function Create() {
                 />
               </div>
 
-              {/* Buttons */}
+              <div className="flex flex-col gap-4">
+                <label className="text-white/70 font-semibold text-sm sm:text-base">
+                  Number of Pieces *
+                </label>
+                <input
+                  className="bg-gray-950 text-gray-100 rounded-lg p-2.5 w-full"
+                  type="number"
+                  placeholder="Number of pieces (1-50)"
+                  name="numberOfPieces"
+                  min="1"
+                  max="50"
+                  value={formNftData.numberOfPieces}
+                  onChange={HandleOnChange}
+                  required
+                />
+                {/* ✅ ISSUE #5: Progress bar showing limit */}
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all ${
+                      parseInt(formNftData.numberOfPieces) > 40
+                        ? "bg-red-500"
+                        : parseInt(formNftData.numberOfPieces) > 30
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                    style={{
+                      width: `${(parseInt(formNftData.numberOfPieces) / 50) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs sm:text-sm">
+                  <p className="text-white/50">
+                    {formNftData.numberOfPieces}/50 pieces
+                  </p>
+                  <p className={`${
+                    parseInt(formNftData.numberOfPieces) > 40
+                      ? "text-red-500"
+                      : "text-white/50"
+                  }`}>
+                    {50 - parseInt(formNftData.numberOfPieces)} remaining
+                  </p>
+                </div>
+                {/* ✅ Status indicators */}
+                {parseInt(formNftData.numberOfPieces) > 40 && (
+                  <p className="text-yellow-500 text-xs sm:text-sm">
+                    ⚠️ Approaching 50 NFT limit
+                  </p>
+                )}
+                {parseInt(formNftData.numberOfPieces) === 50 && (
+                  <p className="text-red-500 text-xs sm:text-sm">
+                    🔴 Maximum limit reached
+                  </p>
+                )}
+              </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
