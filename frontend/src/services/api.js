@@ -110,16 +110,34 @@ api.interceptors.response.use(
     console.log(`API Response: ${response.status} ${response.config.url}`);
     return response;
   },
-  (error) => {
+  async (error) => {
+    const { config, response } = error;
+
+    // Retry on 429 (rate limit) errors
+    if (response?.status === 429 && !config._retry) {
+      config._retry = true;
+
+      // Get retry-after header or default to 5 seconds
+      const retryAfter = parseInt(response.headers['retry-after']) || 5;
+
+      console.log(`Rate limited. Retrying in ${retryAfter} seconds...`);
+
+      // Wait for the specified time
+      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+
+      // Retry the request
+      return api(config);
+    }
+
     console.error('API Response Error:', error.response?.data || error.message);
-    
+
     // Handle database connection errors gracefully
     if (error.response?.data?.error?.includes('buffering timed out')) {
       console.warn('Database connection timeout - using fallback mode');
       // Return empty data instead of throwing error
       return { data: [] };
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -132,6 +150,11 @@ export const userAPI = {
       const response = await api.post('/user/users', userData);
       return response.data;
     } catch (error) {
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.headers['retry-after'] || 60;
+        throw new Error(`Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`);
+      }
       throw new Error(`Failed to create/update user: ${error.message}`);
     }
   },
@@ -142,6 +165,11 @@ export const userAPI = {
       const response = await api.get(`/user/users/${walletAddress}`);
       return response.data;
     } catch (error) {
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        console.warn('Rate limit hit for user profile, returning null');
+        return null; // Don't throw error for profile loading
+      }
       if (error.response?.status === 404) {
         return null; // User not found
       }

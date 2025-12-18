@@ -436,7 +436,7 @@ function App() {
                   return (
                     <Link
                       to={`/nft/${activeNFT.tokenId}/${activeNFT.itemId}/${activeNFT.price}`}
-                      className="block group h-full flex flex-col"
+                      className="group h-full flex flex-col"
                     >
                       <div 
                         key={activeIndex}

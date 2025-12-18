@@ -39,6 +39,8 @@ export const UserProvider = ({ children }) => {
       setUserProfile(profile);
     } catch (error) {
       console.error('Failed to load user profile:', error);
+      // Don't show error toast for profile loading failures (including rate limits)
+      // Just set profile to null and continue
       setUserProfile(null);
     } finally {
       setIsLoading(false);
