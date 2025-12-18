@@ -311,6 +311,8 @@ export const fetchUserNFTsByNetwork = async (req, res) => {
 export const fetchUserMintedNFTs = async (req, res) => {
   const { walletAddress } = req.params;
 
+  console.log('fetchUserMintedNFTs called with walletAddress:', walletAddress);
+
   if (!walletAddress) {
     return res.status(400).json({ error: "Wallet address is required" });
   }
@@ -321,6 +323,9 @@ export const fetchUserMintedNFTs = async (req, res) => {
       owner: { $regex: `^${walletAddress}$`, $options: 'i' },
       isMinted: true
     }).sort({ mintedAt: -1 }); // Sort by minted date, newest first
+
+    console.log('Found minted NFTs for', walletAddress, ':', userMintedNFTs.length);
+    console.log('NFTs details:', userMintedNFTs.map(nft => ({ name: nft.name, tokenId: nft.tokenId, isMinted: nft.isMinted, owner: nft.owner })));
 
     res.json({
       success: true,

@@ -1,11 +1,11 @@
-import { HiMenu, HiX } from "react-icons/hi";
+// import { HiMenu, HiX } from "react-icons/hi"; // Removed - no longer needed
 import { useContext, useEffect, useState } from "react";
 import RealTimeData from "../components/RealTimeData";
 import NFTCard from "../components/NFTCard";
-import LOGO from "../assets/logo.png";
-import metamask from "../assets/metamask.png";
+// import LOGO from "../assets/logo.png"; // Removed - no longer needed
+// import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
-import Header from "../components/Header";
+// import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI } from "../services/api";
 
 function MyMintedNFTs() {
@@ -15,21 +15,26 @@ function MyMintedNFTs() {
     connectWallet,
   } = contexts;
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // const [isMenuOpen, setIsMenuOpen] = useState(false); // Removed - no longer needed
   const [MyMintedNFTs, setMyMintedNFTs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMyMintedNFTs = async () => {
+      console.log("MyMintedNFTs: Current wallet address:", address);
+      
       if (!address) {
+        console.log("MyMintedNFTs: No wallet address, setting loading to false");
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
+        console.log("MyMintedNFTs: Fetching NFTs for address:", address);
         const nfts = await nftAPI.getUserMintedNFTs(address);
+        console.log("MyMintedNFTs: API response:", nfts);
         setMyMintedNFTs(nfts);
         setError(null);
       } catch (error) {
@@ -45,7 +50,7 @@ function MyMintedNFTs() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header />
+      {/* Header removed - already exists in Profile page */}
 
       <main className="mx-auto mt-8 px-4">
         <div className="mb-6">
