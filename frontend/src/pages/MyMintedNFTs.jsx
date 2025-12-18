@@ -6,7 +6,7 @@ import LOGO from "../assets/logo.png";
 import metamask from "../assets/metamask.png";
 import { ICOContent } from "../Context/index";
 import Header from "../components/Header";
-import { api } from "../services/api";
+import { nftAPI } from "../services/api";
 
 function MyMintedNFTs() {
   const contexts = useContext(ICOContent);
@@ -29,14 +29,9 @@ function MyMintedNFTs() {
 
       try {
         setLoading(true);
-        const response = await api.get(`/nft/user-minted-nfts/${address}`);
-        console.log("Minted NFTs response:", response);
-
-        if (response.success) {
-          setMyMintedNFTs(response.nfts || []);
-        } else {
-          setError("Failed to fetch minted NFTs");
-        }
+        const nfts = await nftAPI.getUserMintedNFTs(address);
+        setMyMintedNFTs(nfts);
+        setError(null);
       } catch (error) {
         console.error("Error fetching minted NFTs:", error);
         setError("Error fetching minted NFTs");

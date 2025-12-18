@@ -26,7 +26,6 @@ router.post("/nfts", createNft);
 router.get("/user-nfts/:walletAddress", fetchUserNFTs);
 router.get("/user-nfts/:walletAddress/:network", fetchUserNFTsByNetwork);
 router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
-router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
 
 // Route to get collections grouped by network
 router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
