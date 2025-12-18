@@ -66,8 +66,8 @@ app.get('/', (req, res) => {
   res.send('Welcome to the backend API!');
 });
 
-// Apply rate limiting to all other routes
-app.use(limiter);
+// Rate limiting temporarily disabled to prevent blocking legitimate requests
+// app.use(limiter);
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
