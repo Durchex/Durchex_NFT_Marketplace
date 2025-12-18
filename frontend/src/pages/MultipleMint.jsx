@@ -6,6 +6,8 @@ import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import Header from "../components/Header";
 import { useNavigate, Link } from "react-router-dom";
+import { nftAPI } from "../services/api";
+import { adminAPI } from "../services/adminAPI";
 
 export default function MultipleMint() {
   const contexts = useContext(ICOContent);
@@ -71,18 +73,77 @@ export default function MultipleMint() {
       const nftmarketplace = import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
       const isVendor = await isAuthorizedVendor(address);
 
+      // Create NFT records in database first
+      const nftRecords = [];
+      const timestamp = Date.now();
+      
+      for (let i = 0; i < imageURLs.length; i++) {
+        const nftData = {
+          itemId: `${timestamp}_${i}`, // Temporary itemId
+          network: 'polygon', // Assuming polygon, adjust as needed
+          nftContract: import.meta.env.VITE_APP_VENDOR_NFT_CONTRACT_ADDRESS,
+          tokenId: `${timestamp}_${i}`, // Will be updated after minting
+          owner: address,
+          seller: address,
+          price: formNftData.price || '0',
+          currentlyListed: false,
+          name: formNftData.name,
+          description: formNftData.description,
+          image: imageURLs[i],
+          category: formNftData.category,
+          properties: formNftData.properties || {},
+          isMinted: false, // Will be updated after minting
+          mintedAt: null,
+          mintTxHash: null
+        };
+
+        try {
+          const createdNft = await nftAPI.createNft(nftData);
+          nftRecords.push({ ...nftData, _id: createdNft._id });
+          console.log(`Created NFT record ${i + 1} in database:`, createdNft);
+        } catch (dbError) {
+          console.error(`Failed to create NFT record ${i + 1}:`, dbError);
+          ErrorToast(`Failed to create NFT record ${i + 1}. Please try again.`);
+          return;
+        }
+      }
+
+      // Now mint the NFTs on blockchain with itemId and network
       const mintFunction = isVendor ? vendorMint : publicMint;
-      await mintFunction(metadataArray, nftmarketplace).then((response) => {
-        if (response.status === 1) {
-          SuccessToast("NFTs Minted successfully!");
+      
+      try {
+        const mintResult = await mintFunction(metadataArray, nftmarketplace, nftRecords[0].itemId, nftRecords[0].network);
+        
+        if (mintResult && mintResult.transactionHash) {
+          // Update all NFT records with minting information
+          for (let i = 0; i < nftRecords.length; i++) {
+            try {
+              // For now, using the same transaction hash for all NFTs
+              // In a real implementation, you'd need to track individual tokenIds
+              await adminAPI.updateNFTStatus(nftRecords[i].network, nftRecords[i].itemId, {
+                isMinted: true,
+                mintedAt: new Date(),
+                mintTxHash: mintResult.transactionHash,
+                tokenId: `${timestamp}_${i}` // This should be updated with actual tokenId from contract
+              });
+              console.log(`Updated NFT ${i + 1} status in database:`, nftRecords[i].itemId);
+            } catch (updateError) {
+              console.error(`Failed to update NFT ${i + 1} status:`, updateError);
+            }
+          }
+          
+          SuccessToast("NFTs Minted and saved successfully!");
           setTimeout(() => navigate("/"), 3000);
         } else {
-          ErrorToast("Something went wrong, try again");
+          ErrorToast("Something went wrong with minting");
         }
-      });
+      } catch (mintError) {
+        console.error("Minting failed:", mintError);
+        ErrorToast("Minting failed. Please try again.");
+      }
     } catch (error) {
       console.error(error);
-      ErrorToast("An error occurred while minting NFTs");
+      ErrorToast("An error occurred while processing NFTs");
     }
   };
 

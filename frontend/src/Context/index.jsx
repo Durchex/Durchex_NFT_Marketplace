@@ -7,6 +7,7 @@ import VendorNFT from "./VendorNFT.json";
 import MarketPlace from "./NFTMarketplace.json";
 import gasService from "../services/gasService";
 import { cartAPI } from "../services/api";
+import { adminAPI } from "../services/adminAPI";
 
 //INTERNAL IMPORT
 import {
@@ -494,7 +495,7 @@ export const Index = ({ children }) => {
     }
   };
 
-  const vendorMint = async (uri, nftMarketplaceAddress) => {
+  const vendorMint = async (uri, nftMarketplaceAddress, itemId = null, network = null) => {
     console.log(
       "🚀 ~ vendorMint ~ nftMarketplaceAddress:",
       nftMarketplaceAddress
@@ -517,6 +518,23 @@ export const Index = ({ children }) => {
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+
+      // Update NFT status in database if itemId and network are provided
+      if (itemId && network && receipt.transactionHash) {
+        try {
+          console.log("Updating NFT status in database after minting...");
+          await adminAPI.updateNFTStatus(network, itemId, {
+            isMinted: true,
+            mintedAt: new Date(),
+            mintTxHash: receipt.transactionHash
+          });
+          console.log("NFT status updated successfully in database");
+        } catch (dbError) {
+          console.error("Failed to update NFT status in database:", dbError);
+          // Don't fail the minting if database update fails
+        }
+      }
+
       return receipt;
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
@@ -541,7 +559,7 @@ export const Index = ({ children }) => {
     }
   };
 
-  const publicMint = async (uri, nftMarketplaceAddress) => {
+  const publicMint = async (uri, nftMarketplaceAddress, itemId = null, network = null) => {
     try {
       const networkName = selectedChain.toLowerCase();
       const ContractInstance = await getVendorNFTContracts(networkName);
@@ -557,6 +575,23 @@ export const Index = ({ children }) => {
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+
+      // Update NFT status in database if itemId and network are provided
+      if (itemId && network && receipt.transactionHash) {
+        try {
+          console.log("Updating NFT status in database after minting...");
+          await adminAPI.updateNFTStatus(network, itemId, {
+            isMinted: true,
+            mintedAt: new Date(),
+            mintTxHash: receipt.transactionHash
+          });
+          console.log("NFT status updated successfully in database");
+        } catch (dbError) {
+          console.error("Failed to update NFT status in database:", dbError);
+          // Don't fail the minting if database update fails
+        }
+      }
+
       return receipt;
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
