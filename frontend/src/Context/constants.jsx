@@ -12,9 +12,9 @@ import { SuccessToast } from "../app/Toast/Success";
 // export const ERC20Generator_BYTECODE = ERC20Generator.bytecode;
 
 export let NFTMARKETPLACE_CONTRACT_ADDRESS = import.meta.env
-  .VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
+  .VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_POLYGON;
 export let VENDORNFT_CONTRACT_ADDRESS = import.meta.env
-  .VITE_APP_VENDORNFT_CONTRACT_ADDRESS;
+  .VITE_APP_VENDORNFT_CONTRACT_ADDRESS || import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_POLYGON;
 export const NFTMarketplace_ABI = NFTMarketplace.abi;
 export const VendorNFT_ABI = VendorNFT.abi;
 export const MargicPearl_ABI = MargicPearl.abi;
@@ -70,24 +70,48 @@ if (typeof window !== "undefined" && window.ethereum) {
 const signer = provider.getSigner();
 
 export const ContractAddress = import.meta.env
-  .VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
+  .VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_POLYGON;
 export const VendorContractAddress = import.meta.env
-  .VITE_APP_VENDORNFT_CONTRACT_ADDRESS;
+  .VITE_APP_VENDORNFT_CONTRACT_ADDRESS || import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_POLYGON;
 
-export const fetchContract = (address, abi, signer) =>
-  new ethers.Contract(address, abi, signer);
+export const getContractAddresses = (network = 'polygon') => {
+  const networkUpper = network.toUpperCase();
+  return {
+    marketplace: import.meta.env[`VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_${networkUpper}`] || ContractAddress,
+    vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress
+  };
+};
 
-export const ContractInstance = new ethers.Contract(
-  VendorContractAddress,
-  VendorNFT_ABI,
-  signer
-);
+// Create contract instances with fallbacks
+let contractInstance = null;
+let marketContractInstance = null;
 
-export const MarketContractInstance = new ethers.Contract(
-  ContractAddress,
-  NFTMarketplace_ABI,
-  signer
-);
+try {
+  if (VendorContractAddress && VendorContractAddress !== 'undefined' && VendorContractAddress !== '0x0') {
+    contractInstance = new ethers.Contract(
+      VendorContractAddress,
+      VendorNFT_ABI,
+      signer
+    );
+  }
+} catch (error) {
+  console.warn("Failed to create VendorNFT contract instance:", error);
+}
+
+try {
+  if (ContractAddress && ContractAddress !== 'undefined' && ContractAddress !== '0x0') {
+    marketContractInstance = new ethers.Contract(
+      ContractAddress,
+      NFTMarketplace_ABI,
+      signer
+    );
+  }
+} catch (error) {
+  console.warn("Failed to create Marketplace contract instance:", error);
+}
+
+export const ContractInstance = contractInstance;
+export const MarketContractInstance = marketContractInstance;
 
 export const NFTMarketplaceCONTRACT = async () => {
   // const link ="https://polygon-amoy.g.alchemy.com/v2/BNtFtcdka6PWOAZepdA62HWxAeGnHnCT";
