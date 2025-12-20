@@ -559,11 +559,17 @@ export const Index = ({ children }) => {
         
         // If still no tokenId, try to query blockchain for Transfer events
         if (!tokenId && receipt.transactionHash) {
-          console.log("Trying to query blockchain for Transfer events...");
+          console.log("VENDOR_MINT: About to query blockchain...");
           try {
             const provider = ContractInstance.provider;
             const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
+            console.log("VENDOR_MINT: Blockchain query completed");
             console.log("Full transaction receipt:", txReceipt);
+            
+            console.log("VENDOR_MINT: Checking txReceipt conditions:");
+            console.log("- txReceipt exists:", !!txReceipt);
+            console.log("- txReceipt.logs exists:", !!(txReceipt && txReceipt.logs));
+            console.log("- txReceipt.logs.length > 0:", !!(txReceipt && txReceipt.logs && txReceipt.logs.length > 0));
             
             if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
               console.log("Found", txReceipt.logs.length, "logs in transaction receipt");

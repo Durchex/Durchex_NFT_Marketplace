@@ -11,6 +11,7 @@ contract VendorNFT is ERC721, Ownable {
 
     // Authorized vendors who can mint NFTs
     mapping(address => bool) public authorizedVendors;
+    address[] public vendorList;
 
     // Minting fee
     uint256 public mintingFee = 0.001 ether; // 0.001 ETH
@@ -33,14 +34,27 @@ contract VendorNFT is ERC721, Ownable {
 
     // Add authorized vendor
     function addVendor(address _vendor) external onlyOwner {
-        authorizedVendors[_vendor] = true;
-        emit VendorAdded(_vendor);
+        if (!authorizedVendors[_vendor]) {
+            authorizedVendors[_vendor] = true;
+            vendorList.push(_vendor);
+            emit VendorAdded(_vendor);
+        }
     }
 
     // Remove authorized vendor
     function removeVendor(address _vendor) external onlyOwner {
-        authorizedVendors[_vendor] = false;
-        emit VendorRemoved(_vendor);
+        if (authorizedVendors[_vendor]) {
+            authorizedVendors[_vendor] = false;
+            // Remove from vendorList array
+            for (uint256 i = 0; i < vendorList.length; i++) {
+                if (vendorList[i] == _vendor) {
+                    vendorList[i] = vendorList[vendorList.length - 1];
+                    vendorList.pop();
+                    break;
+                }
+            }
+            emit VendorRemoved(_vendor);
+        }
     }
 
     // Check if address is authorized vendor
@@ -48,13 +62,9 @@ contract VendorNFT is ERC721, Ownable {
         return authorizedVendors[_vendor] || owner() == _vendor;
     }
 
-    // Get all authorized vendors (simplified - returns count)
+    // Get all authorized vendors
     function getAllVendors() external view returns (address[] memory) {
-        // This is a simplified implementation
-        // In production, you'd want to maintain an array of vendors
-        address[] memory vendors = new address[](1);
-        vendors[0] = owner();
-        return vendors;
+        return vendorList;
     }
 
     // Update minting fee
@@ -83,8 +93,21 @@ contract VendorNFT is ERC721, Ownable {
         return tokenId;
     }
 
-    // Developer mint function - only owner can mint for free
-    function devMint(string[] memory _tokenURIs) external onlyOwner {
+    // Vendor mint function - authorized vendors can mint NFTs
+    function vendorMint(string memory _tokenURI, address _contractAddress) external onlyAuthorizedVendor returns (uint256) {
+        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter.current();
+
+        _mint(msg.sender, tokenId);
+
+        // Note: In a real implementation, you'd set the token URI
+        // For now, we'll skip this as it requires additional setup
+
+        return tokenId;
+    }
+
+    // Vendor batch mint function - authorized vendors can mint multiple NFTs
+    function vendorBatchMint(string[] memory _tokenURIs) external onlyAuthorizedVendor {
         for (uint256 i = 0; i < _tokenURIs.length; i++) {
             _tokenIdCounter.increment();
             uint256 tokenId = _tokenIdCounter.current();
