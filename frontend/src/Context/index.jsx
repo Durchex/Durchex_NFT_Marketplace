@@ -523,7 +523,7 @@ export const Index = ({ children }) => {
 
       // Try to extract tokenId from events
       let tokenId = null;
-      if (receipt.events) {
+      if (receipt.events && receipt.events.length > 0) {
         console.log("Processing receipt.events...");
         for (const event of receipt.events) {
           console.log("Event:", event);
@@ -533,10 +533,15 @@ export const Index = ({ children }) => {
             break;
           }
         }
-      } else {
-        console.log("No receipt.events found, trying to parse logs...");
+      }
+      
+      // If no tokenId found from events, try other methods
+      if (!tokenId) {
+        console.log("No tokenId found from receipt.events, trying other methods...");
+        
         // Try to parse logs manually
-        if (receipt.logs) {
+        if (receipt.logs && receipt.logs.length > 0) {
+          console.log("Trying to parse receipt.logs...");
           const contractInterface = ContractInstance.interface;
           for (const log of receipt.logs) {
             try {
@@ -561,23 +566,30 @@ export const Index = ({ children }) => {
             const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
             console.log("Full transaction receipt:", txReceipt);
             
-            if (txReceipt && txReceipt.logs) {
+            if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
+              // Try to parse logs with VendorNFT interface first
+              const contractInterface = ContractInstance.interface;
               for (const log of txReceipt.logs) {
                 try {
-                  // Try to parse with VendorNFT interface
-                  const parsedLog = ContractInstance.interface.parseLog(log);
+                  const parsedLog = contractInterface.parseLog(log);
+                  console.log("Parsed blockchain log with VendorNFT interface:", parsedLog);
                   if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
                     tokenId = parsedLog.args.tokenId.toString();
-                    console.log("Found tokenId from blockchain query:", tokenId);
+                    console.log("Found tokenId from blockchain query (VendorNFT):", tokenId);
                     break;
                   }
                 } catch (e) {
-                  // Try with marketplace contract interface if available
-                  try {
-                    // We don't have marketplace contract interface here, but we can try
-                    console.log("Log not from VendorNFT contract:", log);
-                  } catch (e2) {
-                    // Not parseable
+                  // Try to decode as raw Transfer event
+                  if (log.topics && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+                    // Transfer event signature
+                    console.log("Found Transfer event signature in log:", log);
+                    // For ERC-721 Transfer: topics[0] = signature, topics[1] = from, topics[2] = to, topics[3] = tokenId
+                    if (log.topics.length >= 4) {
+                      const tokenIdHex = log.topics[3];
+                      tokenId = parseInt(tokenIdHex, 16).toString();
+                      console.log("Extracted tokenId from raw Transfer event:", tokenId);
+                      break;
+                    }
                   }
                 }
               }
@@ -653,7 +665,7 @@ export const Index = ({ children }) => {
 
       // Try to extract tokenId from events
       let tokenId = null;
-      if (receipt.events) {
+      if (receipt.events && receipt.events.length > 0) {
         console.log("Processing receipt.events...");
         for (const event of receipt.events) {
           console.log("Event:", event);
@@ -663,10 +675,15 @@ export const Index = ({ children }) => {
             break;
           }
         }
-      } else {
-        console.log("No receipt.events found, trying to parse logs...");
+      }
+      
+      // If no tokenId found from events, try other methods
+      if (!tokenId) {
+        console.log("No tokenId found from receipt.events, trying other methods...");
+        
         // Try to parse logs manually
-        if (receipt.logs) {
+        if (receipt.logs && receipt.logs.length > 0) {
+          console.log("Trying to parse receipt.logs...");
           const contractInterface = ContractInstance.interface;
           for (const log of receipt.logs) {
             try {
@@ -691,23 +708,30 @@ export const Index = ({ children }) => {
             const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
             console.log("Full transaction receipt:", txReceipt);
             
-            if (txReceipt && txReceipt.logs) {
+            if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
+              // Try to parse logs with VendorNFT interface first
+              const contractInterface = ContractInstance.interface;
               for (const log of txReceipt.logs) {
                 try {
-                  // Try to parse with VendorNFT interface
-                  const parsedLog = ContractInstance.interface.parseLog(log);
+                  const parsedLog = contractInterface.parseLog(log);
+                  console.log("Parsed blockchain log with VendorNFT interface:", parsedLog);
                   if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
                     tokenId = parsedLog.args.tokenId.toString();
-                    console.log("Found tokenId from blockchain query:", tokenId);
+                    console.log("Found tokenId from blockchain query (VendorNFT):", tokenId);
                     break;
                   }
                 } catch (e) {
-                  // Try with marketplace contract interface if available
-                  try {
-                    // We don't have marketplace contract interface here, but we can try
-                    console.log("Log not from VendorNFT contract:", log);
-                  } catch (e2) {
-                    // Not parseable
+                  // Try to decode as raw Transfer event
+                  if (log.topics && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+                    // Transfer event signature
+                    console.log("Found Transfer event signature in log:", log);
+                    // For ERC-721 Transfer: topics[0] = signature, topics[1] = from, topics[2] = to, topics[3] = tokenId
+                    if (log.topics.length >= 4) {
+                      const tokenIdHex = log.topics[3];
+                      tokenId = parseInt(tokenIdHex, 16).toString();
+                      console.log("Extracted tokenId from raw Transfer event:", tokenId);
+                      break;
+                    }
                   }
                 }
               }
