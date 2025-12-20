@@ -62,6 +62,11 @@ const nftSchema = new Schema(
       type: Object,
       required: true,
     },
+    metadataURI: {
+      type: String,
+      required: false, // Optional, set when NFT is created with IPFS metadata
+      description: "IPFS URI containing the NFT metadata"
+    },
     royalties: {
       type: Object,
     },

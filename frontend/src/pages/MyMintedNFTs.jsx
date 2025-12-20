@@ -21,6 +21,27 @@ function MyMintedNFTs() {
     isAuthorizedVendor
   } = contexts;
 
+  // Helper function to get marketplace address for network
+  const getMarketplaceAddress = (network) => {
+    const networkName = network?.toLowerCase();
+    // Use environment variables or constants for marketplace addresses
+    switch (networkName) {
+      case 'polygon':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_POLYGON;
+      case 'ethereum':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ETHEREUM;
+      case 'bsc':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BSC;
+      case 'arbitrum':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ARBITRUM;
+      case 'base':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE;
+      default:
+        // Fallback to default marketplace address
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
+    }
+  };
+
   // const [isMenuOpen, setIsMenuOpen] = useState(false); // Removed - no longer needed
   const [MyNFTs, setMyNFTs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,17 +148,62 @@ function MyMintedNFTs() {
     try {
       console.log("Minting NFT:", nft);
 
+      // Get marketplace contract address based on network
+      const networkName = nft.network?.toLowerCase() || 'polygon';
+      const marketplaceAddress = getMarketplaceAddress(networkName);
+      
+      if (!marketplaceAddress) {
+        ErrorToast("Marketplace contract address not found for network: " + networkName);
+        return;
+      }
+
+      // Use metadataURI if available, otherwise construct from image
+      const uri = nft.metadataURI || nft.image;
+      
+      if (!uri) {
+        ErrorToast("NFT metadata URI not found");
+        return;
+      }
+
+      console.log("Minting with params:", { uri, marketplaceAddress, itemId: nft.itemId, network: nft.network });
+
       // Call the appropriate minting function based on vendor status
       const mintFunction = isAuthorizedVendor ? vendorMint : publicMint;
-      const result = await mintFunction(nft);
+      const result = await mintFunction(uri, marketplaceAddress, nft.itemId, nft.network);
 
       console.log("Mint result:", result);
+
+      // Handle different return formats
+      let tokenId = null;
+      let txHash = null;
+
+      if (result && typeof result === 'object') {
+        // publicMint returns { ...receipt, tokenId }
+        tokenId = result.tokenId;
+        txHash = result.transactionHash || result.hash;
+      } else if (result && result.transactionHash) {
+        // vendorMint returns receipt directly
+        txHash = result.transactionHash;
+        // Try to extract tokenId from events if available
+        if (result.events) {
+          for (const event of result.events) {
+            if (event.event === 'Transfer' && event.args && event.args.tokenId) {
+              tokenId = event.args.tokenId.toString();
+              break;
+            }
+          }
+        }
+      }
+
+      if (!txHash) {
+        throw new Error("Minting transaction failed - no transaction hash returned");
+      }
 
       // Update the NFT in the database with minted status and tokenId
       await nftAPI.updateNftStatus(nft.network, nft.itemId, {
         isMinted: true,
-        tokenId: result.tokenId,
-        mintTxHash: result.txHash,
+        tokenId: tokenId,
+        mintTxHash: txHash,
         mintedAt: new Date().toISOString()
       });
 
@@ -148,18 +214,18 @@ function MyMintedNFTs() {
             ? {
                 ...n,
                 isMinted: true,
-                tokenId: result.tokenId,
-                mintTxHash: result.txHash,
+                tokenId: tokenId,
+                mintTxHash: txHash,
                 mintedAt: new Date().toISOString()
               }
             : n
         )
       );
 
-      SuccessToast("NFT minted successfully!");
+      SuccessToast(`NFT minted successfully!${tokenId ? ` Token ID: ${tokenId}` : ''}`);
     } catch (error) {
       console.error("Mint error:", error);
-      ErrorToast("Failed to mint NFT. Please try again.");
+      ErrorToast(`Minting failed: ${error.message || 'Unknown error'}`);
     } finally {
       setMintingNFT(null);
     }
