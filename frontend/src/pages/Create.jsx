@@ -148,7 +148,7 @@ export default function Create() {
       }
 
       SuccessToast("NFTs created successfully! You can now mint them from your profile.");
-      setTimeout(() => navigate("/my-minted-nfts"), 3000);
+      setTimeout(() => navigate("/profile"), 3000);
     } catch (error) {
       console.error(error);
       ErrorToast("An error occurred while creating NFTs");

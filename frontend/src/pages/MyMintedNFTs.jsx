@@ -183,17 +183,27 @@ function MyMintedNFTs() {
         // publicMint returns { ...receipt, tokenId }
         tokenId = result.tokenId;
         txHash = result.transactionHash || result.hash;
+        console.log("Extracted tokenId from result:", tokenId);
+        console.log("Transaction hash:", txHash);
+        console.log("Result has tokenId property:", 'tokenId' in result);
       } else if (result && result.transactionHash) {
         // vendorMint returns receipt directly
         txHash = result.transactionHash;
         // Try to extract tokenId from events if available
         if (result.events) {
+          console.log("Checking events for tokenId:", result.events);
           for (const event of result.events) {
+            console.log("Event object:", event);
+            console.log("Event name:", event.event);
+            console.log("Event args:", event.args);
             if (event.event === 'Transfer' && event.args && event.args.tokenId) {
               tokenId = event.args.tokenId.toString();
+              console.log("Found tokenId in events:", tokenId);
               break;
             }
           }
+        } else {
+          console.log("No events found in receipt");
         }
       }
 
@@ -202,12 +212,14 @@ function MyMintedNFTs() {
       }
 
       // Update the NFT in the database with minted status and tokenId
+      console.log("Updating database with tokenId:", tokenId, "for itemId:", nft.itemId);
       await adminAPI.updateNFTStatus(nft.network, nft.itemId, {
         isMinted: true,
         tokenId: tokenId,
         mintTxHash: txHash,
         mintedAt: new Date().toISOString()
       });
+      console.log("Database update completed");
 
       // Update local state
       setMyNFTs(prevNFTs =>
