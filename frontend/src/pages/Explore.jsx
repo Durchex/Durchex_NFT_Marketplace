@@ -8,6 +8,8 @@ import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
 import { FiCheck, FiUser, FiTrendingUp, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
+import NFTAnalyticsSection from "../components/NFTAnalyticsSection";
+import HeroAnalyticsChart from "../components/HeroAnalyticsChart";
 
 // Mock creators data
 const generateMockCreators = (count = 8) => {
@@ -253,6 +255,11 @@ const Explore = () => {
               <p className="text-gray-400 text-sm">Discover trending NFTs on Durchex</p>
             </div>
 
+            {/* Hero Analytics Chart */}
+            <div className="mb-6">
+              <HeroAnalyticsChart />
+            </div>
+
             {/* Auto-sliding NFT Slider */}
             <div className="relative overflow-hidden rounded-xl bg-gray-900/50 border border-gray-800">
               <div className="nft-slider-container overflow-hidden">
@@ -300,6 +307,11 @@ const Explore = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Analytics Section - Full Width */}
+          <div className="w-full mt-8 mb-8">
+            <NFTAnalyticsSection />
           </div>
 
           {/* Column 2: Creators List (Smaller) */}

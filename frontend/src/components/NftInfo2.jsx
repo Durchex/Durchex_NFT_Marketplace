@@ -25,6 +25,7 @@ import OffersTab from "./OffersTab";
 import { formatPrice, getCurrencySymbol } from "../Context/constants";
 import MyCollection from "./MyCollection";
 import NftInfoItems from "./NftinfoItems";
+import NFTAnalytics from "./NFTAnalytics";
 import { nftCollections } from "../utils";
 
 function App() {
@@ -636,6 +637,16 @@ function App() {
           >
             Activity
           </button>
+          <button
+            onClick={() => setActiveTab("Analytics")}
+            className={`py-4 ${
+              activeTab === "Analytics"
+                ? "border-b-2 border-purple-500 font-medium"
+                : "text-gray-400"
+            }`}
+          >
+            Analytics
+          </button>
         </div>
       </div>
 
@@ -737,6 +748,11 @@ function App() {
                 </div>
               )}
             </>
+          )}
+          {activeTab === "Analytics" && (
+            <div className="py-8 px-2 md:px-6">
+              <NFTAnalytics nftData={nftDatas} />
+            </div>
           )}
           {/* </div> */}
         </div>

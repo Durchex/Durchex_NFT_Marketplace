@@ -459,5 +459,111 @@ export const cartAPI = {
   },
 };
 
+// Analytics API functions
+export const analyticsAPI = {
+  // Get platform analytics
+  getPlatformAnalytics: async (period = '7d') => {
+    try {
+      const response = await api.get(`/admin/analytics?period=${period}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch platform analytics:', error);
+      throw error;
+    }
+  },
+
+  // Get NFT analytics (price history, volume, views, etc.)
+  getNftAnalytics: async (network, itemId, tokenId, period = '7d') => {
+    try {
+      // For now, we'll use mock data since backend doesn't have this endpoint
+      // In production, this would be: /nft/analytics/${network}/${itemId}/${tokenId}?period=${period}
+      console.log(`Fetching analytics for NFT ${network}/${itemId}/${tokenId} with period ${period}`);
+
+      // Mock analytics data structure
+      const mockData = {
+        priceHistory: [],
+        volumeHistory: [],
+        viewsHistory: [],
+        stats: {
+          totalViews: Math.floor(Math.random() * 1000) + 100,
+          totalLikes: Math.floor(Math.random() * 100) + 10,
+          floorPrice: (Math.random() * 5).toFixed(2),
+          highestBid: (Math.random() * 10).toFixed(2),
+          totalVolume: (Math.random() * 50).toFixed(2),
+          uniqueOwners: Math.floor(Math.random() * 50) + 5,
+          averagePrice: (Math.random() * 3).toFixed(2),
+          priceChange24h: (Math.random() * 20 - 10).toFixed(2),
+          volumeChange24h: (Math.random() * 15 - 5).toFixed(2)
+        }
+      };
+
+      // Generate mock historical data based on period
+      const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+      const basePrice = parseFloat(mockData.stats.floorPrice);
+
+      for (let i = days; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+
+        const priceVariation = (Math.random() - 0.5) * 2; // -1 to 1
+        const price = Math.max(0.01, basePrice + priceVariation);
+        const volume = Math.random() * 10;
+        const views = Math.floor(Math.random() * 200) + 50;
+
+        mockData.priceHistory.push({
+          date: date.toISOString().split('T')[0],
+          price: price.toFixed(2)
+        });
+
+        mockData.volumeHistory.push({
+          date: date.toISOString().split('T')[0],
+          volume: volume.toFixed(2)
+        });
+
+        mockData.viewsHistory.push({
+          date: date.toISOString().split('T')[0],
+          views: views
+        });
+      }
+
+      return mockData;
+    } catch (error) {
+      console.error('Failed to fetch NFT analytics:', error);
+      throw error;
+    }
+  },
+
+  // Get top performing NFTs
+  getTopPerformingNFTs: async (period = '7d', limit = 10) => {
+    try {
+      // For now, return mock data since backend doesn't have this endpoint
+      // In production, this would be: /nft/top-performing?period=${period}&limit=${limit}
+      console.log(`Fetching top performing NFTs for period ${period}, limit ${limit}`);
+
+      const mockNFTs = [];
+      for (let i = 0; i < limit; i++) {
+        mockNFTs.push({
+          id: `nft_${i + 1}`,
+          name: `NFT #${i + 1}`,
+          image: `https://picsum.photos/300/300?random=${i}`,
+          price: (Math.random() * 5 + 0.5).toFixed(2),
+          change24h: (Math.random() * 40 - 20).toFixed(2),
+          volume24h: (Math.random() * 20 + 5).toFixed(2),
+          views: Math.floor(Math.random() * 2000) + 500,
+          likes: Math.floor(Math.random() * 200) + 20,
+          floorPrice: (Math.random() * 3 + 0.1).toFixed(2),
+          collection: `Collection ${Math.floor(i / 3) + 1}`,
+          network: 'ethereum'
+        });
+      }
+
+      return mockNFTs;
+    } catch (error) {
+      console.error('Failed to fetch top performing NFTs:', error);
+      throw error;
+    }
+  }
+};
+
 export default api;
 
