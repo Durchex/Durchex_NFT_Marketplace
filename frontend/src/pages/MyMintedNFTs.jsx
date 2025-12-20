@@ -32,6 +32,8 @@ function MyMintedNFTs() {
     price: ''
   });
   const [mintingNFT, setMintingNFT] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'minted', 'unminted'
+  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', or specific categories
 
   useEffect(() => {
     const fetchMyNFTs = async () => {
@@ -202,13 +204,67 @@ function MyMintedNFTs() {
           </div>
         ) : (
           <div className="mb-12">
-            {/* Unminted NFTs Section */}
-            {MyNFTs.some(nft => !nft.isMinted) && (
-              <div className="mb-12">
-                <h3 className="text-2xl font-bold mb-4 text-yellow-400">Unminted NFTs</h3>
-                <p className="text-gray-400 mb-6">These NFTs need to be minted on the blockchain to get token IDs.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  {MyNFTs.filter(nft => !nft.isMinted).map((nft, index) => (
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <label className="text-gray-300 text-sm font-medium">Status:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                >
+                  <option value="all">All NFTs</option>
+                  <option value="minted">Minted Only</option>
+                  <option value="unminted">Unminted Only</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-gray-300 text-sm font-medium">Category:</label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="art">Art</option>
+                  <option value="collectibles">Collectibles</option>
+                  <option value="gaming">Gaming</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Apply filters */}
+            {(() => {
+              let filteredNFTs = MyNFTs;
+
+              // Apply status filter
+              if (statusFilter === 'minted') {
+                filteredNFTs = filteredNFTs.filter(nft => nft.isMinted);
+              } else if (statusFilter === 'unminted') {
+                filteredNFTs = filteredNFTs.filter(nft => !nft.isMinted);
+              }
+
+              // Apply category filter (assuming NFTs have a category field, or we can use a default)
+              if (categoryFilter !== 'all') {
+                filteredNFTs = filteredNFTs.filter(nft => 
+                  (nft.category && nft.category.toLowerCase() === categoryFilter) || 
+                  (!nft.category && categoryFilter === 'other')
+                );
+              }
+
+              const unmintedNFTs = filteredNFTs.filter(nft => !nft.isMinted);
+              const mintedNFTs = filteredNFTs.filter(nft => nft.isMinted);
+
+              return (
+                <>
+                  {/* Unminted NFTs Section */}
+                  {unmintedNFTs.length > 0 && (
+                    <div className="mb-12">
+                      <h3 className="text-2xl font-bold mb-4 text-yellow-400">Unminted NFTs</h3>
+                      <p className="text-gray-400 mb-6">These NFTs need to be minted on the blockchain to get token IDs.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {unmintedNFTs.map((nft, index) => (
                     <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-yellow-500">
                       <div className="mb-4">
                         <img
@@ -294,13 +350,13 @@ function MyMintedNFTs() {
               </div>
             )}
 
-            {/* Minted NFTs Section */}
-            {MyNFTs.some(nft => nft.isMinted) && (
-              <div>
-                <h3 className="text-2xl font-bold mb-4 text-green-400">Minted NFTs</h3>
-                <p className="text-gray-400 mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  {MyNFTs.filter(nft => nft.isMinted).map((nft, index) => (
+                  {/* Minted NFTs Section */}
+                  {mintedNFTs.length > 0 && (
+                    <div>
+                      <h3 className="text-2xl font-bold mb-4 text-green-400">Minted NFTs</h3>
+                      <p className="text-gray-400 mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {mintedNFTs.map((nft, index) => (
                     <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
                       <div className="mb-4">
                         <img
@@ -400,6 +456,9 @@ function MyMintedNFTs() {
                 </div>
               </div>
             )}
+          </>
+              );
+            })()}
           </div>
         )}
       </main>

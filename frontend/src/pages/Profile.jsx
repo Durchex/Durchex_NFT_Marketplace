@@ -3,12 +3,8 @@ import {
   Edit3,
   Share2,
   MoreVertical,
-  Grid,
-  List,
-  Filter,
   X,
 } from "lucide-react";
-import Loader from "../components/Loader.jsx";
 import Header from "../components/Header";
 import { ICOContent } from "../Context/index.jsx";
 import { Toaster } from "react-hot-toast";
@@ -17,8 +13,6 @@ import { BsStars } from "react-icons/bs";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
-import LoadingNFTRow from "../components/LoadingNftRow.jsx";
-import LoadingNFTGrid from "../components/LoadingNftGrid.jsx";
 import ListNft from "../components/ListNft.jsx";
 import MyCollections from "../components/MyCollections.jsx";
 import MyPoints from "../components/MyPoints.jsx";
@@ -26,107 +20,32 @@ import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
 import MyGiveawayNFTs from "./user/MyGiveawayNFTs.jsx";
 import MyMintedNFTs from "./MyMintedNFTs.jsx";
-import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
 
 // import { Grid, List } from "lucide-react";
 
-// Components for each tab section
-const OwnedNFTs = ({ nftItems, viewMode, handleViewItem }) => (
-  <NFTGrid
-    nftItems={nftItems}
-    viewMode={viewMode}
-    handleViewItem={handleViewItem}
-  />
-);
-
-// Component for displaying NFTs in grid or list view
-const NFTGrid = ({ nftItems, viewMode, handleViewItem }) => (
-  <div className="px-12 pb-12">
-    <div
-      className={viewMode === "grid" ? "grid grid-cols-4 gap-6" : "space-y-4"}
-    >
-      {nftItems?.map((item) => (
-        <div
-          key={item?.id}
-          className={`${
-            viewMode === "grid"
-              ? "bg-[#222] rounded-lg overflow-hidden hover:shadow-lg cursor-pointer"
-              : "bg-[#222] rounded-lg p-4 flex items-center space-x-4 hover:shadow-lg cursor-pointer"
-          }`}
-          onClick={() => handleViewItem(item)}
-        >
-          <div
-            className={
-              viewMode === "grid"
-                ? "aspect-square bg-[#333]"
-                : "h-20 w-20 bg-[#333] rounded"
-            }
-          ></div>
-          <div className={viewMode === "grid" ? "p-4" : "flex-1"}>
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm">{item.collection}</p>
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-purple-400">{item.price}</p>
-              </div>
-              <button className="p-1">
-                <MoreVertical className="h-5 w-5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 function App() {
-  const [activeTab, setActiveTab] = useState("Owned");
-  const [viewMode, setViewMode] = useState("grid");
+  const [activeTab, setActiveTab] = useState("My NFTs");
   const [isEditing, setIsEditing] = useState(false);
   const [profileName, setProfileName] = useState("WELCOME USER");
   const [tempName, setTempName] = useState("Welcome User");
   const [nameError, setNameError] = useState("");
   const [showShareOptions, setShowShareOptions] = useState(false);
-  const [selectedNFT, setSelectedNFT] = useState(null);
   const [userPoints, setUserPoints] = useState(0);
   const [isEligible, setIsEligible] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
-  const [userNFTs, setUserNFTs] = useState([]); // ✅ ISSUE #4: State for user's NFTs
-  const [loadingNFTs, setLoadingNFTs] = useState(false); // ✅ Loading state
   const contexts = useContext(ICOContent);
   const { getUserStatu, address } = contexts || {};
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const tabs = [
     "MyProfile",
-    "Owned",
-    "My Minted NFTs",
+    "My NFTs",
     "Giveaway NFTs",
     "My Points",
     "My Collections",
     "List NFT",
     "Verification",
   ];
-
-  // ✅ ISSUE #4: Fetch user's NFTs from backend
-  const fetchUserNFTs = async (walletAddress) => {
-    if (!walletAddress) return;
-    
-    setLoadingNFTs(true);
-    try {
-      const nfts = await nftAPI.getUserNFTs(walletAddress);
-      setUserNFTs(nfts || []);
-    } catch (error) {
-      console.error("Error fetching user NFTs:", error);
-      setUserNFTs([]);
-    } finally {
-      setLoadingNFTs(false);
-    }
-  };
-
-  // ✅ Fallback empty array if no NFTs
-  const nftItems = userNFTs.length > 0 ? userNFTs : [];
 
   const getUserPoints = async () => {
     if (!getUserStatu || !address) {
@@ -159,13 +78,6 @@ function App() {
       setUserAddress(address);
     }
   }, [address]);
-
-  // ✅ ISSUE #4: Fetch NFTs when "Owned" tab is active and address exists
-  useEffect(() => {
-    if (activeTab === "Owned" && address) {
-      fetchUserNFTs(address);
-    }
-  }, [activeTab, address]);
 
   useEffect(() => {
     if (activeTab === "My Points" && address && getUserStatu) {
@@ -319,31 +231,8 @@ function App() {
         {/* Main Content Area */}
         <main className="flex-1 p-8 overflow-y-auto">
           {activeTab === "MyProfile" && <MyProfile />}
-          {activeTab === "Owned" && (
-            <div>
-              {/* ✅ ISSUE #4: Show user's actual NFTs from backend */}
-              {loadingNFTs ? (
-                <div className="flex justify-center items-center min-h-screen">
-                  <Loader />
-                </div>
-              ) : nftItems.length > 0 ? (
-                <div>
-                  <h2 className="text-2xl font-bold mb-4">Your NFTs ({nftItems.length})</h2>
-                  <OwnedNFTs
-                    nftItems={nftItems}
-                    viewMode={viewMode}
-                    handleViewItem={setSelectedNFT}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-400 text-lg">No NFTs found</p>
-                  <p className="text-gray-500 mt-2">Mint or purchase NFTs to see them here</p>
-                </div>
-              )}
-            </div>
-          )}
-          {activeTab === "My Minted NFTs" && <MyMintedNFTs />}
+          {activeTab === "My NFTs" && <MyMintedNFTs />}
+          {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
           {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
           {activeTab === "My Points" && (
             <MyPoints userPoints={userPoints} isEligible={isEligible} />
