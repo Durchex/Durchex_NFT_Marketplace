@@ -552,6 +552,40 @@ export const Index = ({ children }) => {
             }
           }
         }
+        
+        // If still no tokenId, try to query blockchain for Transfer events
+        if (!tokenId && receipt.transactionHash) {
+          console.log("Trying to query blockchain for Transfer events...");
+          try {
+            const provider = ContractInstance.provider;
+            const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
+            console.log("Full transaction receipt:", txReceipt);
+            
+            if (txReceipt && txReceipt.logs) {
+              for (const log of txReceipt.logs) {
+                try {
+                  // Try to parse with VendorNFT interface
+                  const parsedLog = ContractInstance.interface.parseLog(log);
+                  if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                    tokenId = parsedLog.args.tokenId.toString();
+                    console.log("Found tokenId from blockchain query:", tokenId);
+                    break;
+                  }
+                } catch (e) {
+                  // Try with marketplace contract interface if available
+                  try {
+                    // We don't have marketplace contract interface here, but we can try
+                    console.log("Log not from VendorNFT contract:", log);
+                  } catch (e2) {
+                    // Not parseable
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error querying blockchain for events:", error);
+          }
+        }
       }
 
       // Update NFT status in database if itemId and network are provided
@@ -646,6 +680,40 @@ export const Index = ({ children }) => {
             } catch (e) {
               // Not a log from this contract
             }
+          }
+        }
+        
+        // If still no tokenId, try to query blockchain for Transfer events
+        if (!tokenId && receipt.transactionHash) {
+          console.log("Trying to query blockchain for Transfer events...");
+          try {
+            const provider = ContractInstance.provider;
+            const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
+            console.log("Full transaction receipt:", txReceipt);
+            
+            if (txReceipt && txReceipt.logs) {
+              for (const log of txReceipt.logs) {
+                try {
+                  // Try to parse with VendorNFT interface
+                  const parsedLog = ContractInstance.interface.parseLog(log);
+                  if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                    tokenId = parsedLog.args.tokenId.toString();
+                    console.log("Found tokenId from blockchain query:", tokenId);
+                    break;
+                  }
+                } catch (e) {
+                  // Try with marketplace contract interface if available
+                  try {
+                    // We don't have marketplace contract interface here, but we can try
+                    console.log("Log not from VendorNFT contract:", log);
+                  } catch (e2) {
+                    // Not parseable
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error querying blockchain for events:", error);
           }
         }
       }
