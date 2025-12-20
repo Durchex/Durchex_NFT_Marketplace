@@ -7,7 +7,7 @@ import { useContext, useEffect, useState } from "react";
 import { ICOContent } from "../Context/index";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI } from "../services/api";
-// import { adminAPI } from "../services/adminAPI"; // Removed - not used
+import { adminAPI } from "../services/adminAPI";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success.jsx";
 
@@ -36,6 +36,8 @@ function MyMintedNFTs() {
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ARBITRUM;
       case 'base':
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE;
+      case 'zksync':
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ZKSYNC;
       default:
         // Fallback to default marketplace address
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
@@ -200,7 +202,7 @@ function MyMintedNFTs() {
       }
 
       // Update the NFT in the database with minted status and tokenId
-      await nftAPI.updateNftStatus(nft.network, nft.itemId, {
+      await adminAPI.updateNFTStatus(nft.network, nft.itemId, {
         isMinted: true,
         tokenId: tokenId,
         mintTxHash: txHash,

@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { ICOContent } from "../Context";
 import { Toaster } from "react-hot-toast";
@@ -13,7 +13,17 @@ import { TiUpload } from "react-icons/ti";
 export default function Create() {
   const contexts = useContext(ICOContent);
   const navigate = useNavigate();
-  const { address } = contexts;
+  const { address, selectedChain } = contexts;
+
+  // Network options for NFT creation
+  const networkOptions = [
+    { value: "polygon", label: "Polygon", symbol: "POL" },
+    { value: "ethereum", label: "Ethereum", symbol: "ETH" },
+    { value: "arbitrum", label: "Arbitrum", symbol: "ETH" },
+    { value: "bsc", label: "BSC", symbol: "BNB" },
+    { value: "base", label: "Base", symbol: "ETH" },
+    { value: "zksync", label: "zkSync", symbol: "ETH" },
+  ];
 
   const [files, setFiles] = useState([]);
   const [imageURLs, setImageURLs] = useState([]);
@@ -25,7 +35,18 @@ export default function Create() {
     description: "",
     properties: "",
     category: "",
+    network: selectedChain || "polygon", // Use current network or default to polygon
   });
+
+  // Update network in form when selectedChain changes
+  useEffect(() => {
+    if (selectedChain) {
+      setFormNftData(prev => ({
+        ...prev,
+        network: selectedChain
+      }));
+    }
+  }, [selectedChain]);
 
   const handleFilesChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -98,7 +119,7 @@ export default function Create() {
       for (let i = 0; i < imageURLs.length; i++) {
         const nftData = {
           itemId: `${timestamp}_${i}`,
-          network: 'polygon', // Default to polygon, can be changed later
+          network: formNftData.network, // Use selected network instead of hardcoded 'polygon'
           nftContract: null, // Will be set after minting
           tokenId: null, // Will be set after minting
           owner: address,
@@ -292,7 +313,7 @@ export default function Create() {
               <input
                 className="bg-gray-950 text-gray-100 rounded-lg p-2.5 w-full"
                 type="number"
-                placeholder="Price in POL"
+                placeholder={`Price in ${networkOptions.find(n => n.value === formNftData.network)?.symbol || 'POL'}`}
                 name="price"
                 step="0.0001"
                 min="0"
@@ -300,6 +321,27 @@ export default function Create() {
               />
             </div>
 
+            <div className="flex flex-col gap-4">
+              <label className="text-white/70 font-semibold text-sm sm:text-base">
+                Network *
+              </label>
+              <select
+                className="bg-gray-950 text-gray-100 rounded-lg p-2.5 w-full"
+                name="network"
+                value={formNftData.network}
+                onChange={handleInputChange}
+                required
+              >
+                {networkOptions.map((network) => (
+                  <option key={network.value} value={network.value}>
+                    {network.label} ({network.symbol})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-4">
               <label className="text-white/70 font-semibold text-sm sm:text-base">
                 Category *
