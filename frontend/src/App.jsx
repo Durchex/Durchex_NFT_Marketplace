@@ -5,7 +5,6 @@ import { lazy, Suspense } from "react";
 import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
 import FAQ from "./FooterComponents/FAQ";
-import MultipleMint from "./pages/MultipleMint";
 import CollectionPage from "./pages/CollectionPage";
 import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 
@@ -103,7 +102,6 @@ export default function App() {
           <Route path="/create" element={<Create />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
-          <Route path="/multiplemint" element={<MultipleMint />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/listnft" element={<ListNft />} />
           <Route
