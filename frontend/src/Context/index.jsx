@@ -518,14 +518,38 @@ export const Index = ({ children }) => {
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+      console.log("Receipt events:", receipt.events);
+      console.log("Receipt logs:", receipt.logs);
 
       // Try to extract tokenId from events
       let tokenId = null;
       if (receipt.events) {
+        console.log("Processing receipt.events...");
         for (const event of receipt.events) {
+          console.log("Event:", event);
           if (event.event === 'Transfer' && event.args && event.args.tokenId) {
             tokenId = event.args.tokenId.toString();
+            console.log("Found tokenId from events:", tokenId);
             break;
+          }
+        }
+      } else {
+        console.log("No receipt.events found, trying to parse logs...");
+        // Try to parse logs manually
+        if (receipt.logs) {
+          const contractInterface = ContractInstance.interface;
+          for (const log of receipt.logs) {
+            try {
+              const parsedLog = contractInterface.parseLog(log);
+              console.log("Parsed log:", parsedLog);
+              if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                tokenId = parsedLog.args.tokenId.toString();
+                console.log("Found tokenId from parsed logs:", tokenId);
+                break;
+              }
+            } catch (e) {
+              // Not a log from this contract
+            }
           }
         }
       }
@@ -590,14 +614,38 @@ export const Index = ({ children }) => {
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+      console.log("Receipt events:", receipt.events);
+      console.log("Receipt logs:", receipt.logs);
 
       // Try to extract tokenId from events
       let tokenId = null;
       if (receipt.events) {
+        console.log("Processing receipt.events...");
         for (const event of receipt.events) {
+          console.log("Event:", event);
           if (event.event === 'Transfer' && event.args && event.args.tokenId) {
             tokenId = event.args.tokenId.toString();
+            console.log("Found tokenId from events:", tokenId);
             break;
+          }
+        }
+      } else {
+        console.log("No receipt.events found, trying to parse logs...");
+        // Try to parse logs manually
+        if (receipt.logs) {
+          const contractInterface = ContractInstance.interface;
+          for (const log of receipt.logs) {
+            try {
+              const parsedLog = contractInterface.parseLog(log);
+              console.log("Parsed log:", parsedLog);
+              if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                tokenId = parsedLog.args.tokenId.toString();
+                console.log("Found tokenId from parsed logs:", tokenId);
+                break;
+              }
+            } catch (e) {
+              // Not a log from this contract
+            }
           }
         }
       }
