@@ -496,8 +496,7 @@ export const Index = ({ children }) => {
   };
 
   const vendorMint = async (uri, nftMarketplaceAddress, itemId = null, network = null) => {
-    console.log(
-      "🚀 ~ vendorMint ~ nftMarketplaceAddress:",
+      console.log("🚀 ~ vendorMint ~ nftMarketplaceAddress:",
       nftMarketplaceAddress
     );
     if (!nftMarketplaceAddress || nftMarketplaceAddress.length === 0) {
@@ -567,9 +566,11 @@ export const Index = ({ children }) => {
             console.log("Full transaction receipt:", txReceipt);
             
             if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
+              console.log("Found", txReceipt.logs.length, "logs in transaction receipt");
               // Try to parse logs with VendorNFT interface first
               const contractInterface = ContractInstance.interface;
               for (const log of txReceipt.logs) {
+                console.log("Processing log:", log);
                 try {
                   const parsedLog = contractInterface.parseLog(log);
                   console.log("Parsed blockchain log with VendorNFT interface:", parsedLog);
@@ -579,9 +580,9 @@ export const Index = ({ children }) => {
                     break;
                   }
                 } catch (e) {
+                  console.log("Log not parseable with VendorNFT interface, checking for Transfer signature...");
                   // Try to decode as raw Transfer event
                   if (log.topics && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
-                    // Transfer event signature
                     console.log("Found Transfer event signature in log:", log);
                     // For ERC-721 Transfer: topics[0] = signature, topics[1] = from, topics[2] = to, topics[3] = tokenId
                     if (log.topics.length >= 4) {
@@ -590,8 +591,20 @@ export const Index = ({ children }) => {
                       console.log("Extracted tokenId from raw Transfer event:", tokenId);
                       break;
                     }
+                  } else {
+                    console.log("Log topics[0]:", log.topics ? log.topics[0] : 'no topics');
                   }
                 }
+              }
+            } else {
+              console.log("VENDOR_MINT: No logs found in transaction receipt, or txReceipt is null");
+              console.log("txReceipt exists:", !!txReceipt);
+              if (txReceipt) {
+                console.log("txReceipt.logs exists:", !!txReceipt.logs);
+                console.log("txReceipt.logs length:", txReceipt.logs ? txReceipt.logs.length : 'N/A');
+                console.log("txReceipt.status:", txReceipt.status);
+                console.log("txReceipt gasUsed:", txReceipt.gasUsed ? txReceipt.gasUsed.toString() : 'N/A');
+                console.log("Full txReceipt object keys:", Object.keys(txReceipt));
               }
             }
           } catch (error) {
@@ -599,6 +612,8 @@ export const Index = ({ children }) => {
           }
         }
       }
+
+      console.log("VENDOR_MINT_FINAL: tokenId =", tokenId);
 
       // Update NFT status in database if itemId and network are provided
       if (itemId && network && receipt.transactionHash) {
