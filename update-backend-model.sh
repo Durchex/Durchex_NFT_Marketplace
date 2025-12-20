@@ -1,3 +1,25 @@
+#!/bin/bash
+
+# Update backend_temp NFT model for unminted NFTs
+echo "🔧 Updating backend_temp NFT model for unminted NFTs..."
+
+# Path to the backend_temp directory on the server
+BACKEND_PATH="/home/durchex/htdocs/durchex.com/backend_temp"
+
+# Check if backend_temp exists
+if [ ! -d "$BACKEND_PATH" ]; then
+    echo "❌ backend_temp directory not found at $BACKEND_PATH"
+    exit 1
+fi
+
+# Navigate to backend_temp
+cd "$BACKEND_PATH"
+
+# Backup the current model
+cp models/nftModel.js models/nftModel.js.backup.$(date +%Y%m%d_%H%M%S)
+
+# Update the NFT model to make nftContract and tokenId optional
+cat > models/nftModel.js << 'EOF'
 import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
@@ -154,3 +176,20 @@ export const deleteNftByItemId = (itemId) =>
 
 export const updateNftByItemId = (itemId, values, newOption = true) =>
   nftModel.findOneAndUpdate({ itemId }, values, { new: newOption });
+EOF
+
+echo "✅ NFT model updated successfully!"
+echo "🔄 Restarting backend_temp server..."
+
+# Restart the backend_temp server
+pkill -f "node.*server.js" || true
+sleep 2
+
+# Start the backend_temp server
+cd "$BACKEND_PATH"
+npm start &
+
+echo "✅ Backend_temp server restarted!"
+echo "🎉 NFT creation should now work for unminted NFTs!"
+echo ""
+echo "Test by creating an NFT - it should save to database without requiring nftContract and tokenId."
