@@ -17,9 +17,9 @@ function normalizeURL(url) {
 
 // Helper function to validate and construct a proper base URL
 function getBaseURL() {
-  // For development, always use localhost:3000
+  // For development, always use localhost:3001
   if (import.meta.env.DEV) {
-    return 'http://localhost:3000/api/v1';
+    return 'http://localhost:3001/api/v1';
   }
   
   const envBase = import.meta.env.VITE_API_BASE_URL || 'https://durchex.com/api/v1';
