@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiSave, FiRefreshCw, FiShield, FiGlobe, FiMail, FiBell, FiDatabase, FiKey, FiUsers, FiImage, FiDollarSign, FiActivity } from 'react-icons/fi';
+import { settingsAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState({
     general: {
       siteName: 'Durchex NFT Marketplace',
@@ -40,7 +43,8 @@ const Settings = () => {
       allowedFileTypes: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'webm'],
       autoApproveListings: false,
       requireKYC: false,
-      enableBidding: true
+      enableBidding: true,
+      mintingEnabled: true
     },
     blockchain: {
       network: 'ethereum',
@@ -59,6 +63,33 @@ const Settings = () => {
       webhookUrl: 'https://durchex.com/api/webhooks'
     }
   });
+
+  // Load settings from backend on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setIsLoading(true);
+        const allSettings = await settingsAPI.getAllSettings();
+
+        // Convert array of settings to object structure
+        const settingsObject = { ...settings };
+        allSettings.forEach(setting => {
+          if (settingsObject[setting.category]) {
+            settingsObject[setting.category][setting.key] = setting.value;
+          }
+        });
+
+        setSettings(settingsObject);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast.error('Failed to load settings from server');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const tabs = [
     { id: 'general', name: 'General', icon: FiGlobe },
@@ -81,10 +112,27 @@ const Settings = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate save operation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    // In real app, this would save to backend
+    try {
+      // Convert settings object to array format for backend
+      const settingsToSave = [];
+      Object.entries(settings).forEach(([category, categorySettings]) => {
+        Object.entries(categorySettings).forEach(([key, value]) => {
+          settingsToSave.push({
+            category,
+            key,
+            value
+          });
+        });
+      });
+
+      await settingsAPI.updateMultipleSettings(settingsToSave, 'admin');
+      toast.success('Settings saved successfully!');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast.error('Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderGeneralSettings = () => (

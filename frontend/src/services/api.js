@@ -567,3 +567,67 @@ export const analyticsAPI = {
 
 export default api;
 
+// Settings API functions
+export const settingsAPI = {
+  // Get all settings
+  getAllSettings: async () => {
+    try {
+      const response = await api.get('/admin/settings');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+      throw error;
+    }
+  },
+
+  // Get settings by category
+  getSettingsByCategory: async (category) => {
+    try {
+      const response = await api.get(`/admin/settings/${category}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch settings by category:', error);
+      throw error;
+    }
+  },
+
+  // Update setting
+  updateSetting: async (category, key, value, updatedBy = 'admin') => {
+    try {
+      const response = await api.put(`/admin/settings/${category}/${key}`, {
+        value,
+        updatedBy
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update setting:', error);
+      throw error;
+    }
+  },
+
+  // Update multiple settings
+  updateMultipleSettings: async (settings, updatedBy = 'admin') => {
+    try {
+      const response = await api.put('/admin/settings', {
+        settings,
+        updatedBy
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update multiple settings:', error);
+      throw error;
+    }
+  },
+
+  // Check if minting is enabled
+  isMintingEnabled: async () => {
+    try {
+      const response = await api.get('/admin/settings/marketplace/mintingEnabled');
+      return response.data?.value ?? true; // Default to true if not set
+    } catch (error) {
+      console.error('Failed to check minting status:', error);
+      return true; // Default to enabled if error
+    }
+  }
+};
+

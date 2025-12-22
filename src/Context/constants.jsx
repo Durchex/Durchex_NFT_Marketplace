@@ -30,8 +30,10 @@ export const PINATA_SECRET_KEY =
   import.meta.env.VITE_APP_PINATA_SECRET_KEY ||
   import.meta.env.VITE_APP_PINATA_SECRECT_KEY;
 
-// Optional Pinata JWT (preferred for client-side uploads)
-export const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || import.meta.env.VITE_APP_PINATA_JWT;
+// Development mode flag
+export const IS_DEVELOPMENT = import.meta.env.DEV;
+export const CONTRACTS_DEPLOYED = ContractAddress && ContractAddress !== '0x0000000000000000000000000000000000000000' &&
+                                  VendorContractAddress && VendorContractAddress !== '0x0000000000000000000000000000000000000000';
 
 export const shortenAddress = (address) =>
   `${address?.slice(0, 4)}...${address?.slice(-4)}`;
@@ -77,17 +79,13 @@ export const VendorContractAddress = import.meta.env
 export const fetchContract = (address, abi, signer) =>
   new ethers.Contract(address, abi, signer);
 
-export const ContractInstance = new ethers.Contract(
-  VendorContractAddress,
-  VendorNFT_ABI,
-  signer
-);
+export const ContractInstance = VendorContractAddress && VendorContractAddress !== '0x0000000000000000000000000000000000000000'
+  ? new ethers.Contract(VendorContractAddress, VendorNFT_ABI, signer)
+  : null;
 
-export const MarketContractInstance = new ethers.Contract(
-  ContractAddress,
-  NFTMarketplace_ABI,
-  signer
-);
+export const MarketContractInstance = ContractAddress && ContractAddress !== '0x0000000000000000000000000000000000000000'
+  ? new ethers.Contract(ContractAddress, NFTMarketplace_ABI, signer)
+  : null;
 
 export const NFTMarketplaceCONTRACT = async () => {
   // const link ="https://polygon-amoy.g.alchemy.com/v2/BNtFtcdka6PWOAZepdA62HWxAeGnHnCT";

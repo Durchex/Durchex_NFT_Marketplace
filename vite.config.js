@@ -24,6 +24,11 @@ export default defineConfig({
   optimizeDeps: {
     include: ["buffer"],
   },
+  // Add polyfills for Node.js modules
+  define: {
+    global: "window",
+    "process.env": {},
+  },
 });
 
 

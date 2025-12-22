@@ -5,7 +5,7 @@ import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context";
 import socketService from "../services/socketService";
 import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
-import { FiCheck, FiUser, FiTrendingUp, FiStar } from "react-icons/fi";
+import { FiCheck, FiUser, FiTrendingUp, FiStar, FiClock } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
 import NFTAnalyticsSection from "../components/NFTAnalyticsSection";
@@ -58,15 +58,40 @@ const generateMockNFTs = (count = 20) => {
   }));
 };
 
+// Mock newly added NFTs with timestamps
+const generateNewlyAddedNFTs = (count = 12) => {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const hoursAgo = Math.floor(Math.random() * 24) + 1; // 1-24 hours ago
+    const addedAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+    
+    return {
+      id: `new_nft_${i}`,
+      name: `Fresh NFT #${i + 1}`,
+      image: `https://picsum.photos/300/300?random=${i + 100}`,
+      price: (Math.random() * 5 + 0.05).toFixed(3),
+      collection: `New Collection ${Math.floor(i / 3) + 1}`,
+      likes: Math.floor(Math.random() * 50),
+      views: Math.floor(Math.random() * 200),
+      addedAt: addedAt.toISOString(),
+      timeAgo: hoursAgo < 2 ? 'Just now' : `${hoursAgo}h ago`,
+      creator: `Creator ${i % 5 + 1}`,
+      description: `This is a newly added NFT with unique features and amazing artwork. Created by ${`Creator ${i % 5 + 1}`}.`
+    };
+  }).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt)); // Sort by newest first
+};
+
 const Explore = () => {
   const { address } = useContext(ICOContent) || {};
   const [popularNFTs, setPopularNFTs] = useState([]);
+  const [newlyAddedNFTs, setNewlyAddedNFTs] = useState([]);
   const [creators, setCreators] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   
   // Fallback: use locally generated mock NFTs when backend returns empty
   const displayedNFTs = (popularNFTs && popularNFTs.length > 0) ? popularNFTs : generateMockNFTs(20);
+  const displayedNewlyAddedNFTs = (newlyAddedNFTs && newlyAddedNFTs.length > 0) ? newlyAddedNFTs : generateNewlyAddedNFTs(12);
   const [verificationRequest, setVerificationRequest] = useState({
     walletAddress: "",
     username: "",
@@ -86,16 +111,28 @@ const Explore = () => {
         if (nftsData && nftsData.length > 0) {
           // Take first 20 NFTs for display
           setPopularNFTs(nftsData.slice(0, 20));
+          // Use the most recent NFTs as "newly added"
+          setNewlyAddedNFTs(nftsData.slice(0, 12).map(nft => ({
+            ...nft,
+            addedAt: new Date().toISOString(),
+            timeAgo: 'Recently added',
+            creator: nft.owner || 'Unknown Creator',
+            description: nft.description || 'Newly listed NFT on Durchex marketplace.'
+          })));
         } else {
           // Fallback to mock data if no NFTs in database
           const mockNFTs = generateMockNFTs(20);
+          const mockNewlyAdded = generateNewlyAddedNFTs(12);
           setPopularNFTs(mockNFTs);
+          setNewlyAddedNFTs(mockNewlyAdded);
         }
       } catch (error) {
         console.error("Error fetching NFTs from backend:", error);
         // Fallback to mock data on error
         const mockNFTs = generateMockNFTs(20);
+        const mockNewlyAdded = generateNewlyAddedNFTs(12);
         setPopularNFTs(mockNFTs);
+        setNewlyAddedNFTs(mockNewlyAdded);
       }
 
       // Load creators from localStorage or generate new ones
@@ -312,6 +349,82 @@ const Explore = () => {
           {/* Analytics Section - Full Width */}
           <div className="w-full mt-8 mb-8">
             <NFTAnalyticsSection />
+          </div>
+
+          {/* Newly Added NFTs Section - Full Width */}
+          <div className="w-full mt-12 mb-8">
+            <div className="mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-300 bg-clip-text text-transparent">
+                Newly Added NFTs
+              </h2>
+              <p className="text-gray-400 text-sm">Fresh listings on Durchex - discover the latest additions</p>
+            </div>
+
+            {/* Newly Added NFTs Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {displayedNewlyAddedNFTs.map((nft) => (
+                <Link
+                  key={nft.id}
+                  to={`/nft/${nft.tokenId || nft.id}/${nft.itemId || nft.id}/${nft.price}`}
+                  className="group block bg-gray-900/50 rounded-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-t-xl">
+                    <img
+                      src={nft.image}
+                      alt={nft.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.src = `https://picsum.photos/300/300?random=${nft.id}`;
+                      }}
+                    />
+                    {/* Overlay with details on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                      <div className="text-white">
+                        <p className="text-xs text-green-400 font-medium mb-1">{nft.timeAgo}</p>
+                        <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">by {nft.creator}</span>
+                          <span className="text-green-400 font-medium">{nft.price} ETH</span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* New badge */}
+                    <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-90">
+                      NEW
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-semibold text-white text-sm truncate mb-1 group-hover:text-green-400 transition-colors">
+                      {nft.name}
+                    </h3>
+                    <p className="text-gray-400 text-xs truncate mb-2">{nft.collection}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <FiStar className="text-yellow-400" />
+                          {nft.likes}
+                        </span>
+                        <span>{nft.views} views</span>
+                      </div>
+                      <span className="text-green-400 font-medium">{nft.price} ETH</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* View All Button */}
+            <div className="text-center mt-8">
+              <Link
+                to="/explore/all"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
+              >
+                View All Newly Added NFTs
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
 
           {/* Column 2: Creators List (Smaller) */}
@@ -594,6 +707,13 @@ const Explore = () => {
         
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.3);
+        }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
       `}</style>
     </div>
