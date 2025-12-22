@@ -4,32 +4,9 @@ import react from '@vitejs/plugin-react-swc'
 export default defineConfig({
   plugins: [react()],
   define: {
-    global: "window", // Fix for certain libraries expecting `global`
-  },
-  server: {
-    host: true,
-    port: 5173,
-    strictPort: true,
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-      port: 5173,
-    },
-  },
-  resolve: {
-    alias: {
-      buffer: "buffer", // Ensures buffer works in the browser
-    },
-  },
-  optimizeDeps: {
-    include: ["buffer"],
-  },
-  // Add polyfills for Node.js modules
-  define: {
     global: "window",
     "process.env": {},
   },
-});
 
 
 
