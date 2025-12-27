@@ -56,6 +56,7 @@ export default function Navbar() {
   // Navigation items array
   const navItems = [
     { name: "Explore", path: "/" },
+    { name: "Collections", path: "/collections" },
     { name: "Create", path: "/studio" },
     { name: "How It Works", path: "/welcome" },
     // { name: "Stats", path: "/stats" },

@@ -13,6 +13,7 @@ const Hero = lazy(() => import("./pages/Hero"));
 const Create = lazy(() => import("./pages/Create"));
 const Explore = lazy(() => import("./pages/Explore"));
 const Collections = lazy(() => import("./pages/Collections"));
+const NftDetailsPage = lazy(() => import("./pages/NftDetailsPage"));
 const NftCreatorForm = lazy(() => import("./components/NftCreatorForm"));
 const CreateNFTCollection = lazy(() =>
   import("./components/CreateNFTCollection")
@@ -126,6 +127,7 @@ export default function App() {
           />
           <Route path="/nft/:tokenId/:itemId/:price/:collection" element={<NftInfo />} />
           <Route path="/nft/:tokenId/:itemId/:price/" element={<NftInfo2 />} />
+          <Route path="/nft/:id" element={<NftDetailsPage />} />
           {/* Admin Routes - Partner routes must come before general admin routes */}
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin/partner/*" element={<PartnerAdmin />} />
