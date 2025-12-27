@@ -105,73 +105,13 @@ const NFTAnalyticsSection = () => {
         setLoading(true);
         setError(null);
         const data = await analyticsAPI.getTopPerformingNFTs(timeRange, 5);
+        console.log('Top NFTs data received:', data);
         setTopNFTs(data);
       } catch (err) {
         console.error('Error fetching top NFTs:', err);
         setError('Failed to load analytics data');
         // Fallback to mock data
-        setTopNFTs([
-          {
-            id: '1',
-            name: 'Cosmic Dreamer #42',
-            image: 'https://picsum.photos/300/300?random=1',
-            price: 2.5,
-            change24h: 15.3,
-            volume24h: 8.7,
-            views: 1250,
-            likes: 89,
-            floorPrice: 2.1,
-            collection: 'Cosmic Dreams'
-          },
-          {
-            id: '2',
-            name: 'Digital Phoenix',
-            image: 'https://picsum.photos/300/300?random=2',
-            price: 1.8,
-            change24h: 8.7,
-            volume24h: 12.3,
-            views: 980,
-            likes: 67,
-            floorPrice: 1.6,
-            collection: 'Mythical Creatures'
-          },
-          {
-            id: '3',
-            name: 'Neon Nights #007',
-            image: 'https://picsum.photos/300/300?random=3',
-            price: 3.2,
-            change24h: -2.1,
-            volume24h: 15.8,
-            views: 1450,
-            likes: 123,
-            floorPrice: 2.9,
-            collection: 'Neon Collection'
-          },
-          {
-            id: '4',
-            name: 'Abstract Harmony',
-            image: 'https://picsum.photos/300/300?random=4',
-            price: 1.2,
-            change24h: 22.5,
-            volume24h: 6.4,
-            views: 756,
-            likes: 45,
-            floorPrice: 1.0,
-            collection: 'Abstract Art'
-          },
-          {
-            id: '5',
-            name: 'Cyber Punk #1337',
-            image: 'https://picsum.photos/300/300?random=5',
-            price: 4.1,
-            change24h: 5.8,
-            volume24h: 9.2,
-            views: 2100,
-            likes: 156,
-            floorPrice: 3.8,
-            collection: 'Cyber Punk'
-          }
-        ]);
+        setTopNFTs(mockTopNFTs);
       } finally {
         setLoading(false);
       }
@@ -184,47 +124,69 @@ const NFTAnalyticsSection = () => {
     labels: topNFTs.slice(0, 5).map(nft => nft.name.length > 15 ? nft.name.substring(0, 15) + '...' : nft.name),
     datasets: [{
       label: '24h Volume (ETH)',
-      data: topNFTs.slice(0, 5).map(nft => nft.volume24h),
-      backgroundColor: 'rgba(139, 92, 246, 0.8)',
+      data: topNFTs.slice(0, 5).map(nft => parseFloat(nft.volume24h) || 0),
+      backgroundColor: [
+        'rgba(139, 92, 246, 0.8)',
+        'rgba(168, 85, 247, 0.8)',
+        'rgba(147, 51, 234, 0.8)',
+        'rgba(126, 34, 206, 0.8)',
+        'rgba(102, 14, 207, 0.8)',
+      ],
       borderColor: '#8b5cf6',
       borderWidth: 1,
       borderRadius: 4,
+      animation: {
+        duration: 800,
+        easing: 'easeInOutQuart'
+      }
     }]
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    indexAxis: 'y',
     plugins: {
       legend: {
         display: false,
       },
       tooltip: {
+        enabled: true,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: '#fff',
         bodyColor: '#fff',
+        borderColor: '#8b5cf6',
+        borderWidth: 1,
+        padding: 8,
+        displayColors: false,
         callbacks: {
-          label: (context) => `${context.parsed.y} ETH`
+          label: (context) => `${parseFloat(context.parsed.x).toFixed(2)} ETH`
         }
       },
     },
     scales: {
-      y: {
+      x: {
         beginAtZero: true,
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+          drawBorder: false,
         },
         ticks: {
           color: '#9ca3af',
+          font: { size: 10 },
+          callback: function(value) {
+            return value.toFixed(1) + ' ETH';
+          }
         },
       },
-      x: {
+      y: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          display: false,
+          drawBorder: false,
         },
         ticks: {
           color: '#9ca3af',
-          maxRotation: 45,
+          font: { size: 11 },
         },
       },
     },
