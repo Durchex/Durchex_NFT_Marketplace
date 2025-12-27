@@ -670,84 +670,103 @@ export const Index = ({ children }) => {
       const networkName = selectedChain.toLowerCase();
       const ContractInstance = await getVendorNFTContracts(networkName);
       console.log("🚀 ~ publicMint ~ ContractInstance:", ContractInstance);
-      // Get transaction options with gas fee regulations applied
-      const txOptions = await gasService.getTransactionOptions(networkName, {
-        value: ethers.utils.parseEther("0.01"),
-        gasLimit: 700000,
-      });
-      const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, txOptions);
-
-      // Wait for the transaction to be mined
-      const receipt = await tx.wait();
-
-      console.log("Transaction confirmed:", receipt);
-      console.log("Receipt events:", receipt.events);
-      console.log("Receipt logs:", receipt.logs);
-
-      // Try to extract tokenId from events
-      let tokenId = null;
-      if (receipt.events && receipt.events.length > 0) {
-        console.log("Processing receipt.events...");
-        for (const event of receipt.events) {
-          console.log("Event:", event);
-          if (event.event === 'Transfer' && event.args && event.args.tokenId) {
-            tokenId = event.args.tokenId.toString();
-            console.log("Found tokenId from events:", tokenId);
-            break;
-          }
+      
+      // Check account balance before attempting transaction
+      let userBalance = accountBalance;
+      if (!userBalance) {
+        try {
+          const ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = ethersProvider.getSigner();
+          const userAddress = await signer.getAddress();
+          const balance = await ethersProvider.getBalance(userAddress);
+          userBalance = ethers.utils.formatEther(balance);
+        } catch (balanceCheckError) {
+          console.warn("Could not fetch balance, attempting transaction anyway:", balanceCheckError);
         }
       }
       
-      // If no tokenId found from events, try other methods
-      if (!tokenId) {
-        console.log("No tokenId found from receipt.events, trying other methods...");
+      // Attempt transaction with estimated gas
+      try {
+        const gasEstimate = await ContractInstance.estimateGas.publicMint(uri, nftMarketplaceAddress);
+        console.log("Estimated gas:", gasEstimate.toString());
         
-        // Try to parse logs manually
-        if (receipt.logs && receipt.logs.length > 0) {
-          console.log("Trying to parse receipt.logs...");
-          const contractInterface = ContractInstance.interface;
-          for (const log of receipt.logs) {
-            try {
-              const parsedLog = contractInterface.parseLog(log);
-              console.log("Parsed log:", parsedLog);
-              if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
-                tokenId = parsedLog.args.tokenId.toString();
-                console.log("Found tokenId from parsed logs:", tokenId);
-                break;
-              }
-            } catch (e) {
-              // Not a log from this contract
+        const txOptions = await gasService.getTransactionOptions(networkName, {
+          gasLimit: gasEstimate.mul(ethers.BigNumber.from(120)).div(ethers.BigNumber.from(100)), // 120% buffer
+        });
+        
+        const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, txOptions);
+
+        // Wait for the transaction to be mined
+        const receipt = await tx.wait();
+
+        console.log("Transaction confirmed:", receipt);
+        console.log("Receipt events:", receipt.events);
+        console.log("Receipt logs:", receipt.logs);
+
+        // Try to extract tokenId from events
+        let tokenId = null;
+        if (receipt.events && receipt.events.length > 0) {
+          console.log("Processing receipt.events...");
+          for (const event of receipt.events) {
+            console.log("Event:", event);
+            if (event.event === 'Transfer' && event.args && event.args.tokenId) {
+              tokenId = event.args.tokenId.toString();
+              console.log("Found tokenId from events:", tokenId);
+              break;
             }
           }
         }
         
-        // If still no tokenId, try to query blockchain for Transfer events
-        if (!tokenId && receipt.transactionHash) {
-          console.log("Trying to query blockchain for Transfer events...");
-          try {
-            const provider = ContractInstance.provider;
-            const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
-            console.log("Full transaction receipt:", txReceipt);
-            
-            if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
-              // Try to parse logs with VendorNFT interface first
-              const contractInterface = ContractInstance.interface;
-              for (const log of txReceipt.logs) {
-                try {
-                  const parsedLog = contractInterface.parseLog(log);
-                  console.log("Parsed blockchain log with VendorNFT interface:", parsedLog);
-                  if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
-                    tokenId = parsedLog.args.tokenId.toString();
-                    console.log("Found tokenId from blockchain query (VendorNFT):", tokenId);
-                    break;
-                  }
-                } catch (e) {
-                  // Try to decode as raw Transfer event
-                  if (log.topics && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
-                    // Transfer event signature
-                    console.log("Found Transfer event signature in log:", log);
-                    // For ERC-721 Transfer: topics[0] = signature, topics[1] = from, topics[2] = to, topics[3] = tokenId
-                    if (log.topics.length >= 4) {
+        // If no tokenId found from events, try other methods
+        if (!tokenId) {
+          console.log("No tokenId found from receipt.events, trying other methods...");
+          
+          // Try to parse logs manually
+          if (receipt.logs && receipt.logs.length > 0) {
+            console.log("Trying to parse receipt.logs...");
+            const contractInterface = ContractInstance.interface;
+            for (const log of receipt.logs) {
+              try {
+                const parsedLog = contractInterface.parseLog(log);
+                console.log("Parsed log:", parsedLog);
+                if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                  tokenId = parsedLog.args.tokenId.toString();
+                  console.log("Found tokenId from parsed logs:", tokenId);
+                  break;
+                }
+              } catch (e) {
+                // Not a log from this contract
+              }
+            }
+          }
+          
+          // If still no tokenId, try to query blockchain for Transfer events
+          if (!tokenId && receipt.transactionHash) {
+            console.log("Trying to query blockchain for Transfer events...");
+            try {
+              const provider = ContractInstance.provider;
+              const txReceipt = await provider.getTransactionReceipt(receipt.transactionHash);
+              console.log("Full transaction receipt:", txReceipt);
+              
+              if (txReceipt && txReceipt.logs && txReceipt.logs.length > 0) {
+                // Try to parse logs with VendorNFT interface first
+                const contractInterface = ContractInstance.interface;
+                for (const log of txReceipt.logs) {
+                  try {
+                    const parsedLog = contractInterface.parseLog(log);
+                    console.log("Parsed blockchain log with VendorNFT interface:", parsedLog);
+                    if (parsedLog.name === 'Transfer' && parsedLog.args.tokenId) {
+                      tokenId = parsedLog.args.tokenId.toString();
+                      console.log("Found tokenId from blockchain query (VendorNFT):", tokenId);
+                      break;
+                    }
+                  } catch (e) {
+                    // Try to decode as raw Transfer event
+                    if (log.topics && log.topics[0] === '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+                      // Transfer event signature
+                      console.log("Found Transfer event signature in log:", log);
+                      // For ERC-721 Transfer: topics[0] = signature, topics[1] = from, topics[2] = to, topics[3] = tokenId
+                      if (log.topics.length >= 4) {
                       const tokenIdHex = log.topics[3];
                       tokenId = parseInt(tokenIdHex, 16).toString();
                       console.log("Extracted tokenId from raw Transfer event:", tokenId);
