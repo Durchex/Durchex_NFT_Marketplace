@@ -12,6 +12,7 @@ import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 const Hero = lazy(() => import("./pages/Hero"));
 const Create = lazy(() => import("./pages/Create"));
 const Explore = lazy(() => import("./pages/Explore"));
+const Collections = lazy(() => import("./pages/Collections"));
 const NftCreatorForm = lazy(() => import("./components/NftCreatorForm"));
 const CreateNFTCollection = lazy(() =>
   import("./components/CreateNFTCollection")
@@ -100,6 +101,7 @@ export default function App() {
             }
           />
           <Route path="/create" element={<Create />} />
+          <Route path="/collections" element={<Collections />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/stats" element={<Stats />} />
