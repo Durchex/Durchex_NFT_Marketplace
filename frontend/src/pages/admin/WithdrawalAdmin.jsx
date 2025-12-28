@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { cartAPI } from '../services/api';
+import { cartAPI } from '../../services/api';
 import {
   FiArrowDownCircle,
   FiCheckCircle,
