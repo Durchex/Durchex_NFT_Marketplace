@@ -19,6 +19,7 @@ import GasFeeRegulations from "./admin/GasFeeRegulations";
 import UnmintedNFTManager from "./admin/UnmintedNFTManager";
 import GiveawayCenter from "./admin/GiveawayCenter";
 import FeeSubsidyDashboard from "./admin/FeeSubsidyDashboard";
+import WithdrawalAdmin from "./admin/WithdrawalAdmin";
 import AdminLogin from "../components/AdminLogin";
 
 const Admin = () => {
@@ -86,6 +87,7 @@ const Admin = () => {
         <Route path="partners" element={<PartnerManagement />} />
         <Route path="verifications" element={<Verifications />} />
         <Route path="gas-fees" element={<GasFeeRegulations />} />
+        <Route path="withdrawals" element={<WithdrawalAdmin />} />
         {/* Default redirect to dashboard */}
         <Route path="" element={<Dashboard />} />
         <Route path="*" element={<Dashboard />} />

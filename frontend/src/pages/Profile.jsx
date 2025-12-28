@@ -20,6 +20,7 @@ import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
 import MyGiveawayNFTs from "./user/MyGiveawayNFTs.jsx";
 import MyMintedNFTs from "./MyMintedNFTs.jsx";
+import WithdrawalSystem from "./WithdrawalSystem.jsx";
 
 // import { Grid, List } from "lucide-react";
 
@@ -44,6 +45,7 @@ function App() {
     "My Points",
     "My Collections",
     "List NFT",
+    "Withdrawals",
     "Verification",
   ];
 
@@ -241,6 +243,7 @@ function App() {
             <MyCollections placeholder={"Collection"} />
           )}
           {activeTab === "List NFT" && <ListNft />}
+          {activeTab === "Withdrawals" && <WithdrawalSystem />}
           {activeTab === "Verification" && (
             <div className="max-w-4xl mx-auto">
               <VerificationSubmission />

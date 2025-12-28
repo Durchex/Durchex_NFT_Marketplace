@@ -52,6 +52,7 @@ const AdminSidebar = ({ isPartner = false }) => {
     { id: 'partners', label: 'Partner Management', icon: FiUserPlus, path: '/admin/partners', description: 'Manage partner accounts' },
     { id: 'verifications', label: 'Verifications', icon: FiCheckCircle, path: '/admin/verifications', description: 'Manage user verifications' },
     { id: 'gas-fees', label: 'Gas Fee Regulations', icon: FiZap, path: '/admin/gas-fees', description: 'Configure gas fee regulations' },
+    { id: 'withdrawals', label: 'Withdrawals', icon: FiDollarSign, path: '/admin/withdrawals', description: 'Manage user withdrawals', badge: 'New' },
     { id: 'settings', label: 'Settings', icon: FiSettings, path: '/admin/settings', description: 'System configuration' },
   ];
 
