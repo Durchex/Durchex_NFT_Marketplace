@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { cartAPI } from '../../services/api';
+import { withdrawalAPI } from '../../services/withdrawalAPI';
 import {
   FiArrowDownCircle,
   FiCheckCircle,
@@ -24,11 +24,12 @@ const WithdrawalAdmin = () => {
   const fetchWithdrawals = async () => {
     try {
       setLoading(true);
-      const response = await cartAPI.get(
-        `/admin/withdrawals?status=${filter}&limit=100`
-      );
-      if (response.data.success) {
-        setPendingWithdrawals(response.data.withdrawals || []);
+      const response = await withdrawalAPI.getAdminWithdrawals({
+        status: filter,
+        limit: 100,
+      });
+      if (response.success) {
+        setPendingWithdrawals(response.withdrawals);
       }
     } catch (error) {
       console.error('Error fetching withdrawals:', error);
@@ -41,11 +42,11 @@ const WithdrawalAdmin = () => {
   const handleProcessWithdrawals = async () => {
     try {
       setRefreshing(true);
-      const response = await cartAPI.post('/admin/process-withdrawals');
+      const response = await withdrawalAPI.processWithdrawals();
       
-      if (response.data.success) {
+      if (response.success) {
         toast.success(
-          `Processed ${response.data.results.length} withdrawals`
+          `Processed ${response.results.length} withdrawals`
         );
         fetchWithdrawals();
       }

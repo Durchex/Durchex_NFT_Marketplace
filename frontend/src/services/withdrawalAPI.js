@@ -62,6 +62,81 @@ export const withdrawalAPI = {
       throw error.response?.data || error;
     }
   },
+
+  // Admin: Get all withdrawals (with filtering)
+  getAdminWithdrawals: async (params = {}) => {
+    try {
+      const response = await apiInstance.get('/admin/withdrawals', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching admin withdrawals:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  // Admin: Get withdrawal analytics
+  getAdminAnalytics: async () => {
+    try {
+      const response = await apiInstance.get('/admin/withdrawals/analytics');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  // Admin: Process pending withdrawals
+  processWithdrawals: async () => {
+    try {
+      const response = await apiInstance.post('/admin/withdrawals/process-pending');
+      return response.data;
+    } catch (error) {
+      console.error('Error processing withdrawals:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  // Admin: Approve a withdrawal
+  approveWithdrawal: async (withdrawalId, notes = '') => {
+    try {
+      const response = await apiInstance.post(
+        `/admin/withdrawals/approve`,
+        { withdrawalId, notes }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error approving withdrawal:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  // Admin: Reject a withdrawal
+  rejectWithdrawal: async (withdrawalId, reason) => {
+    try {
+      const response = await apiInstance.post(
+        `/admin/withdrawals/reject`,
+        { withdrawalId, reason }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error rejecting withdrawal:', error);
+      throw error.response?.data || error;
+    }
+  },
+
+  // Admin: Resync withdrawal status
+  resyncWithdrawal: async (withdrawalId) => {
+    try {
+      const response = await apiInstance.post(
+        `/admin/withdrawals/resync`,
+        { withdrawalId }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error resyncing withdrawal:', error);
+      throw error.response?.data || error;
+    }
+  },
 };
 
 // Partner Wallet API functions

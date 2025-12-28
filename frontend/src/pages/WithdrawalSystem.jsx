@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { ICOContent } from '../Context';
-import { cartAPI } from '../services/api';
+import { withdrawalAPI } from '../services/withdrawalAPI';
 import toast from 'react-hot-toast';
 import {
   FiArrowDownCircle,
   FiArrowUpRight,
-  FiWallet,
   FiDollarSign,
   FiClock,
   FiCheck,
@@ -39,9 +38,9 @@ const WithdrawalSystem = () => {
   const fetchEarnings = async () => {
     try {
       setLoading(true);
-      const response = await cartAPI.get(`/withdrawals/earnings/${address}`);
-      if (response.data.success) {
-        setEarnings(response.data.dashboard);
+      const response = await withdrawalAPI.getEarningsDashboard(address);
+      if (response.success) {
+        setEarnings(response.dashboard);
         fetchWithdrawalHistory();
       }
     } catch (error) {
@@ -54,11 +53,11 @@ const WithdrawalSystem = () => {
 
   const fetchWithdrawalHistory = async () => {
     try {
-      const response = await cartAPI.get(
-        `/withdrawals/history/${address}?limit=10`
-      );
-      if (response.data.success) {
-        setWithdrawalHistory(response.data.withdrawals);
+      const response = await withdrawalAPI.getWithdrawalHistory(address, {
+        limit: 10,
+      });
+      if (response.success) {
+        setWithdrawalHistory(response.withdrawals);
       }
     } catch (error) {
       console.error('Error fetching withdrawal history:', error);
@@ -87,7 +86,7 @@ const WithdrawalSystem = () => {
     try {
       setProcessingWithdrawal(true);
 
-      const response = await cartAPI.post('/withdrawals/request', {
+      const response = await withdrawalAPI.requestWithdrawal({
         userWallet: address,
         targetWallet: withdrawalForm.targetWallet,
         amount: withdrawalForm.amount,
@@ -95,7 +94,7 @@ const WithdrawalSystem = () => {
         withdrawalType: 'sales_earnings',
       });
 
-      if (response.data.success) {
+      if (response.success) {
         toast.success('Withdrawal request submitted');
         setShowWithdrawalModal(false);
         setWithdrawalForm({
