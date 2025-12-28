@@ -671,6 +671,12 @@ export const Index = ({ children }) => {
       const ContractInstance = await getVendorNFTContracts(networkName);
       console.log("🚀 ~ publicMint ~ ContractInstance:", ContractInstance);
 
+      // Determine network-specific parameters for cheap networks (accessible for $1 wallets)
+      const isCheapNetwork = ['polygon', 'mumbai', 'base', 'avalanche'].includes(networkName);
+      const fallbackMintingFee = isCheapNetwork ? "0.00001" : "0.0001"; // Even lower for cheap networks
+      const fallbackGasLimit = isCheapNetwork ? 300000 : 500000; // Much lower for cheap networks
+      const bufferPercent = isCheapNetwork ? 110 : 120; // 10% buffer on cheap, 20% on expensive
+
       // Check account balance before attempting transaction
       let userBalance = accountBalance;
       if (!userBalance) {
@@ -692,25 +698,30 @@ export const Index = ({ children }) => {
         console.log("Estimated gas:", gasEstimate.toString());
       } catch (gasError) {
         console.error("Gas estimation failed:", gasError);
-        gasEstimate = ethers.BigNumber.from(700000); // Fallback gas limit
+        gasEstimate = ethers.BigNumber.from(fallbackGasLimit); // Network-specific fallback
       }
 
+      // Get minting fee from contract for accurate requirement check
+      let mintingFee = ethers.utils.parseEther(fallbackMintingFee);
+      try {
+        mintingFee = await ContractInstance.getMintingFee();
+        console.log("Retrieved minting fee from contract:", ethers.utils.formatEther(mintingFee), "ETH");
+      } catch (e) {
+        console.warn(`Could not fetch minting fee, using default ${fallbackMintingFee} ETH for ${networkName}`);
+      }
+      
       const txOptions = await gasService.getTransactionOptions(networkName, {
-        gasLimit: gasEstimate.mul(ethers.BigNumber.from(120)).div(ethers.BigNumber.from(100)), // 120% buffer
+        gasLimit: gasEstimate.mul(ethers.BigNumber.from(bufferPercent)).div(ethers.BigNumber.from(100)), // Network-specific buffer
       });
 
       // Verify sufficient balance before sending transaction
       const userBalanceInWei = ethers.utils.parseEther(userBalance || "0");
+      const estimatedTotalCost = mintingFee.add(gasEstimate.mul(ethers.BigNumber.from("1000000000"))); // More accurate gas estimate
       
-      // Get minting fee from contract for accurate requirement check
-      let mintingFee = ethers.utils.parseEther("0.001");
-      try {
-        mintingFee = await ContractInstance.getMintingFee();
-      } catch (e) {
-        console.warn("Could not fetch minting fee, using default");
-      }
-      
-      const estimatedTotalCost = mintingFee.add(gasEstimate.mul(ethers.BigNumber.from("20000000000"))); // Add gas estimate
+      console.log("Network:", networkName, "| Cheap network:", isCheapNetwork);
+      console.log("Minting fee:", ethers.utils.formatEther(mintingFee), "ETH");
+      console.log("Estimated total cost:", ethers.utils.formatEther(estimatedTotalCost), "ETH");
+      console.log("User balance:", userBalance, "ETH");
       
       if (userBalanceInWei.lt(estimatedTotalCost)) {
         const shortfallInWei = estimatedTotalCost.sub(userBalanceInWei);
