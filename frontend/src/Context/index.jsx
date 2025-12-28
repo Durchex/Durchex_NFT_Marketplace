@@ -699,12 +699,31 @@ export const Index = ({ children }) => {
         gasLimit: gasEstimate.mul(ethers.BigNumber.from(120)).div(ethers.BigNumber.from(100)), // 120% buffer
       });
 
+      // Verify sufficient balance before sending transaction
+      const userBalanceInWei = ethers.utils.parseEther(userBalance || "0");
+      
+      // Get minting fee from contract for accurate requirement check
+      let mintingFee = ethers.utils.parseEther("0.001");
+      try {
+        mintingFee = await ContractInstance.getMintingFee();
+      } catch (e) {
+        console.warn("Could not fetch minting fee, using default");
+      }
+      
+      const estimatedTotalCost = mintingFee.add(gasEstimate.mul(ethers.BigNumber.from("20000000000"))); // Add gas estimate
+      
+      if (userBalanceInWei.lt(estimatedTotalCost)) {
+        const shortfallInWei = estimatedTotalCost.sub(userBalanceInWei);
+        throw new Error(`Insufficient balance. Need ${ethers.utils.formatEther(estimatedTotalCost)} ETH but have ${userBalance} ETH (short by ${ethers.utils.formatEther(shortfallInWei)} ETH)`);
+      }
+      
       const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, txOptions);
 
       // Wait for the transaction to be mined
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+      console.log("✅ NFT minted with flexible payment - only charged what was needed!");
       console.log("Receipt events:", receipt.events);
       console.log("Receipt logs:", receipt.logs);
 

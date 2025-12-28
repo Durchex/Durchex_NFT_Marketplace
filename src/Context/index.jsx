@@ -296,16 +296,65 @@ export const Index = ({ children }) => {
       const networkName = selectedChain.toLowerCase();
       const ContractInstance = await getVendorNFTContracts(networkName);
       console.log("🚀 ~ publicMint ~ ContractInstance:", ContractInstance);
+      
+      // Get minting fee from contract (dynamic, not hardcoded 0.01 ETH)
+      let mintingFee = ethers.utils.parseEther("0.001"); // Default fallback
+      try {
+        mintingFee = await ContractInstance.getMintingFee();
+        console.log("Retrieved minting fee from contract:", ethers.utils.formatEther(mintingFee), "ETH");
+      } catch (feeError) {
+        console.warn("Could not fetch minting fee from contract, using default 0.001 ETH");
+      }
+      
+      // Estimate gas to calculate exact required balance
+      let gasEstimate = ethers.BigNumber.from(700000);
+      try {
+        gasEstimate = await ContractInstance.estimateGas.publicMint(uri, nftMarketplaceAddress, { value: mintingFee });
+        console.log("Estimated gas for minting:", gasEstimate.toString());
+      } catch (gasError) {
+        console.warn("Gas estimation failed, using fallback:", gasError.message);
+      }
+      
+      // Get current gas price from network
+      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
+      const gasCostInWei = gasEstimate.mul(gasPrice);
+      const totalCostInWei = mintingFee.add(gasCostInWei);
+      
+      console.log("Minting fee:", ethers.utils.formatEther(mintingFee), "ETH");
+      console.log("Estimated gas cost:", ethers.utils.formatEther(gasCostInWei), "ETH");
+      console.log("Total required balance:", ethers.utils.formatEther(totalCostInWei), "ETH");
+      
+      // Verify user has sufficient balance
+      let userBalance = accountBalance;
+      if (!userBalance) {
+        try {
+          const ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = ethersProvider.getSigner();
+          const userAddress = await signer.getAddress();
+          const balance = await ethersProvider.getBalance(userAddress);
+          userBalance = ethers.utils.formatEther(balance);
+        } catch (balanceError) {
+          console.warn("Could not fetch balance, will attempt transaction anyway");
+        }
+      }
+      
+      const userBalanceInWei = ethers.utils.parseEther(userBalance || "0");
+      if (userBalanceInWei.lt(totalCostInWei)) {
+        const shortfallInWei = totalCostInWei.sub(userBalanceInWei);
+        throw new Error(`Insufficient balance. Need ${ethers.utils.formatEther(totalCostInWei)} ETH but have ${userBalance} ETH (short by ${ethers.utils.formatEther(shortfallInWei)} ETH)`);
+      }
+      
+      // Execute transaction with only required amount
       const tx = await ContractInstance.publicMint(uri, nftMarketplaceAddress, {
-        // value: ethers.utils.parseEther(price.toString())
-        value: ethers.utils.parseEther("0.01"),
-        gasLimit: 700000,
+        value: mintingFee,
+        gasLimit: gasEstimate.mul(ethers.BigNumber.from(120)).div(ethers.BigNumber.from(100)), // 120% buffer for safety
       });
 
       // Wait for the transaction to be mined
       const receipt = await tx.wait();
 
       console.log("Transaction confirmed:", receipt);
+      console.log("✅ Minting completed! Only used required amount, not hardcoded 0.01 ETH");
       return receipt;
     } catch (error) {
       console.log(error + " in useMintNFT in VendorNFT ( Hook )");
