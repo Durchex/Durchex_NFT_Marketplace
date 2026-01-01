@@ -26,6 +26,8 @@ import adminRouter from "./routes/adminRouter.js";
 import adminAuthRouter from "./routes/adminAuthRouter.js";
 import verificationRouter from "./routes/verificationRouter.js";
 import gasFeeRouter from "./routes/gasFeeRouter.js";
+import withdrawalRoutes from "./routes/withdrawalRoutes.js";
+import withdrawalAdminRoutes from "./routes/withdrawalAdminRoutes.js";
 
 // connect db
 connectDB();
@@ -106,6 +108,8 @@ app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/admin-auth', adminAuthRouter);
 app.use('/api/v1/verification', verificationRouter);
 app.use('/api/v1/gas-fee', gasFeeRouter);
+app.use('/api/v1/withdrawals', withdrawalRoutes);
+app.use('/api/v1/admin', withdrawalAdminRoutes);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

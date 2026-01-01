@@ -136,6 +136,8 @@ export const rpcUrls = {
   ethereum: import.meta.env.VITE_RPC_URL_ETHEREUM || "https://eth.llamarpc.com",
   bsc: import.meta.env.VITE_RPC_URL_BSC || "https://bsc-dataseed.binance.org/",
   base: import.meta.env.VITE_RPC_URL_BASE || "https://mainnet.base.org",
+  avalanche: import.meta.env.VITE_RPC_URL_AVALANCHE || "https://api.avax.network/ext/bc/C/rpc",
+  monad: import.meta.env.VITE_RPC_URL_MONAD || "https://mainnet-rpc.monad.xyz",
   hyperliquid: import.meta.env.VITE_RPC_URL_HYPERLIQUID || "https://api.hyperliquid-testnet.xyz/evm",
 };
 
@@ -435,6 +437,28 @@ export const networks = {
     },
     rpcUrls: ["https://mainnet.base.org"],
     blockExplorerUrls: ["https://basescan.org"],
+  },
+  avalanche: {
+    chainId: `0x${Number(43114).toString(16)}`,
+    chainName: "Avalanche C-Chain",
+    nativeCurrency: {
+      name: "Avalanche",
+      symbol: "AVAX",
+      decimals: 18,
+    },
+    rpcUrls: ["https://api.avax.network/ext/bc/C/rpc"],
+    blockExplorerUrls: ["https://snowtrace.io"],
+  },
+  monad: {
+    chainId: `0x${Number(10143).toString(16)}`,
+    chainName: "Monad Mainnet",
+    nativeCurrency: {
+      name: "Monad",
+      symbol: "MON",
+      decimals: 18,
+    },
+    rpcUrls: ["https://mainnet-rpc.monad.xyz"],
+    blockExplorerUrls: ["https://monadexplorer.com"],
   },
 };
 

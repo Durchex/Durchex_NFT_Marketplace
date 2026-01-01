@@ -17,6 +17,8 @@ const MyProfile = () => {
     verificationStatus: null, // Changed to null to support 'none', 'pending', 'premium', 'super_premium', 'rejected'
     bio: "",
     favoriteCreators: "",
+    partnerWallet: "",
+    partnerSharePercentage: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Loading state
@@ -43,6 +45,8 @@ const MyProfile = () => {
           verificationStatus: data.verificationStatus || (data.isVerified ? 'premium' : 'none'), // Support both old and new format
           bio: data.bio || "",
           favoriteCreators: data.favoriteCreators || "",
+          partnerWallet: data.partnerWallet || "",
+          partnerSharePercentage: data.partnerSharePercentage || 0,
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -122,6 +126,8 @@ const MyProfile = () => {
         // isVerified: profileData.verificationStatus === 'premium' || profileData.verificationStatus === 'super_premium',
         socialLinks: profileData.socialLinks || [],
         image: profileData.image || "",
+        partnerWallet: profileData.partnerWallet?.trim() || "",
+        partnerSharePercentage: Math.max(0, Math.min(100, Number(profileData.partnerSharePercentage) || 0)),
       };
       console.log("🚀 ~ handleSubmit ~ payload:", payload);
 
@@ -162,6 +168,8 @@ const MyProfile = () => {
         verificationStatus: false,
         bio: "",
         favoriteCreators: "",
+        partnerWallet: "",
+        partnerSharePercentage: 0,
       });
       setIsEditing(false);
     } catch (error) {
@@ -342,6 +350,8 @@ const MyProfile = () => {
                     verificationStatus: data.verificationStatus || (data.isVerified ? 'premium' : 'none'),
                     bio: data.bio || "",
                     favoriteCreators: data.favoriteCreators || "",
+                    partnerWallet: data.partnerWallet || "",
+                    partnerSharePercentage: data.partnerSharePercentage || 0,
                   });
                 });
               }
@@ -430,6 +440,55 @@ const MyProfile = () => {
           className="w-full bg-[#222] text-white p-3 rounded-lg"
           disabled={!isEditing}
         />
+
+        {/* Partner Wallet Management Section */}
+        <div className="border-t border-gray-700 pt-6 mt-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Partner Management</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">Partner Wallet Address</label>
+              <input
+                type="text"
+                name="partnerWallet"
+                value={profileData.partnerWallet}
+                onChange={handleInputChange}
+                placeholder="0x..."
+                className="w-full bg-[#222] text-white p-3 rounded-lg font-mono text-sm"
+                disabled={!isEditing}
+              />
+              <p className="text-gray-500 text-xs mt-1">Enter the wallet address of your partner</p>
+            </div>
+
+            <div>
+              <label className="block text-gray-400 text-sm mb-2">Partner Share Percentage</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  name="partnerSharePercentage"
+                  value={profileData.partnerSharePercentage}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  className="w-full bg-[#222] text-white p-3 rounded-lg"
+                  disabled={!isEditing}
+                />
+                <span className="text-gray-400">%</span>
+              </div>
+              <p className="text-gray-500 text-xs mt-1">
+                Percentage of earnings to share with partner (0-100%)
+              </p>
+              {profileData.partnerSharePercentage > 0 && profileData.partnerWallet && (
+                <div className="mt-2 p-2 bg-[#333] rounded text-sm text-gray-300">
+                  <p>💰 {profileData.partnerSharePercentage}% of your earnings will be sent to the partner wallet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Favorite Creator */}
 
         {/* Verification Status Display (Read-only, managed through verification system) */}
         {!isEditing && profileData.verificationStatus && profileData.verificationStatus !== 'none' && (

@@ -27,6 +27,7 @@ export default function Create() {
 
   const [files, setFiles] = useState([]);
   const [imageURLs, setImageURLs] = useState([]);
+  const [fileTypes, setFileTypes] = useState([]); // Track file types for each upload
   const [dragActive, setDragActive] = useState(false);
   const [formNftData, setFormNftData] = useState({
     price: "",
@@ -36,7 +37,22 @@ export default function Create() {
     properties: "",
     category: "",
     network: selectedChain || "polygon", // Use current network or default to polygon
+    mediaType: "image", // Track if NFT is image or video
   });
+
+  // Supported media types for NFT creation
+  const SUPPORTED_IMAGE_TYPES = ['.svg', '.png', '.jpg', '.jpeg', '.gif'];
+  const SUPPORTED_VIDEO_TYPES = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+
+  const isVideoFile = (file) => {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    return SUPPORTED_VIDEO_TYPES.includes(ext);
+  };
+
+  const isImageFile = (file) => {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    return SUPPORTED_IMAGE_TYPES.includes(ext);
+  };
 
   // Update network in form when selectedChain changes
   useEffect(() => {
@@ -104,10 +120,15 @@ export default function Create() {
 
     try {
       const metadataArray = await Promise.all(
-        imageURLs.map(async (imageURL) => {
+        imageURLs.map(async (mediaURL, index) => {
+          const isVideo = isVideoFile(files[index]);
           const metadata = {
             ...formNftData,
-            image: imageURL,
+            name: formNftData.name || `NFT #${index + 1}`,
+            image: !isVideo ? mediaURL : undefined,
+            animation_url: isVideo ? mediaURL : undefined,
+            mediaType: isVideo ? "video" : "image",
+            videoFormat: isVideo ? files[index].name.split('.').pop().toUpperCase() : undefined,
           };
           return uploadJSONToIPFS(metadata);
         })
@@ -117,6 +138,7 @@ export default function Create() {
       const timestamp = Date.now();
 
       for (let i = 0; i < imageURLs.length; i++) {
+        const isVideo = isVideoFile(files[i]);
         const nftData = {
           itemId: `${timestamp}_${i}`,
           network: formNftData.network, // Use selected network instead of hardcoded 'polygon'
@@ -126,9 +148,12 @@ export default function Create() {
           seller: address,
           price: formNftData.price || '0',
           currentlyListed: false,
-          name: formNftData.name,
+          name: formNftData.name || `NFT #${i + 1}`,
           description: formNftData.description,
           image: imageURLs[i],
+          media: imageURLs[i], // For both image and video
+          mediaType: isVideo ? "video" : "image",
+          videoFormat: isVideo ? files[i].name.split('.').pop().toUpperCase() : undefined,
           category: formNftData.category,
           properties: formNftData.properties || {},
           isMinted: false,
@@ -222,36 +247,45 @@ export default function Create() {
               <div className="gap-3 flex flex-col items-center">
                 <TiUpload className="text-purple-500 text-4xl" />
                 <b className="text-white/80 text-sm sm:text-base">
-                  Upload NFT Images
+                  Upload NFT Media
                 </b>
                 <span className="text-white/70 text-sm sm:text-base text-center">
                   Drag or choose your files to upload
                 </span>
                 <p className="text-white/50 text-sm sm:text-base w-full text-center">
-                  PNG, GIF, JPEG, or SVG. Max 5MB each.
+                  Images: PNG, GIF, JPEG, SVG | Videos: MP4, WebM, MOV, AVI, MKV. Max 50MB each.
                 </p>
               </div>
             </label>
             <input
               id="imageUpload"
               type="file"
-              accept=".svg, .png, .jpg, .jpeg, .gif"
+              accept=".svg, .png, .jpg, .jpeg, .gif, .mp4, .webm, .mov, .avi, .mkv"
               multiple
               onChange={handleFilesChange}
               hidden
             />
 
-            {/* Image Preview Grid */}
+            {/* Media Preview Grid */}
             {imageURLs.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
                 {imageURLs.map((url, index) => (
                   <div key={index} className="relative">
-                    <img
-                      src={url}
-                      alt={`NFT ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg"
-                    />
-                    <span className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    {isVideoFile(files[index]) ? (
+                      <video
+                        src={url}
+                        className="w-full h-24 object-cover rounded-lg bg-black"
+                        controls={false}
+                      />
+                    ) : (
+                      <img
+                        src={url}
+                        alt={`NFT ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                    )}
+                    <span className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                      {isVideoFile(files[index]) && <span>🎥</span>}
                       {index + 1}
                     </span>
                   </div>

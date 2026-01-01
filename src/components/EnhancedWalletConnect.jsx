@@ -99,16 +99,28 @@ const EnhancedWalletConnect = () => {
     color: 'sky'
   });
 
-  // Add Monarch network support
+  // Add Monad network support
   networks.push({
-    id: 'monarch',
-    name: 'Monarch',
+    id: 'monad',
+    name: 'Monad',
     symbol: 'MON',
     icon: '🟪',
-    chainId: 7777, // placeholder chainId for Monarch, replace when known
-    rpcUrl: process.env.VITE_MONARCH_RPC_URL || 'https://rpc.monarch.example',
-    blockExplorer: process.env.VITE_MONARCH_BLOCK_EXPLORER || 'https://explorer.monarch.example',
+    chainId: 10143, // Monad mainnet chainId
+    rpcUrl: process.env.VITE_MONAD_RPC_URL || 'https://mainnet-rpc.monad.xyz',
+    blockExplorer: process.env.VITE_MONAD_BLOCK_EXPLORER || 'https://monadexplorer.com',
     color: 'purple'
+  });
+
+  // Add Avalanche network support
+  networks.push({
+    id: 'avalanche',
+    name: 'Avalanche',
+    symbol: 'AVAX',
+    icon: '🏔️',
+    chainId: 43114, // Avalanche C-Chain chainId
+    rpcUrl: process.env.VITE_AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc',
+    blockExplorer: process.env.VITE_AVALANCHE_BLOCK_EXPLORER || 'https://snowtrace.io',
+    color: 'red'
   });
 
   const wallets = [
@@ -118,7 +130,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask,
       connect: () => connectWallet('metamask'),
       downloadLink: 'https://metamask.io/download/',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Coinbase Wallet',
@@ -126,7 +138,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isCoinbaseWallet,
       connect: () => connectWallet('coinbase'),
       downloadLink: 'https://www.coinbase.com/wallet',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'WalletConnect',
@@ -134,7 +146,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => false,
       connect: () => connectWallet('walletconnect'),
       downloadLink: 'https://walletconnect.com/',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Trust Wallet',
@@ -142,7 +154,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && (window.ethereum.isTrust || window.ethereum.isTrustWallet),
       connect: () => connectWallet('trustwallet'),
       downloadLink: 'https://trustwallet.com/',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Brave Wallet',
@@ -150,7 +162,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet,
       connect: () => connectWallet('brave'),
       downloadLink: 'https://brave.com/wallet/',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Binance Wallet',
@@ -158,7 +170,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.BinanceChain !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance),
       connect: () => connectWallet('binance'),
       downloadLink: 'https://www.binance.com/en/web3wallet',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Rainbow Wallet',
@@ -166,7 +178,7 @@ const EnhancedWalletConnect = () => {
       isInstalled: () => typeof window.ethereum !== 'undefined' && window.ethereum.isRainbow,
       connect: () => connectWallet('rainbow'),
       downloadLink: 'https://rainbow.me/',
-      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monarch','siu']
+      supportedNetworks: ['ethereum','polygon','bsc','arbitrum','base','monad','avalanche','siu']
     },
     {
       name: 'Phantom',
@@ -792,3 +804,4 @@ const EnhancedWalletConnect = () => {
 };
 
 export default EnhancedWalletConnect;
+

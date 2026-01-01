@@ -118,7 +118,7 @@ export const NetworkProvider = ({ children }) => {
       isEVM: true,
       walletType: "evm"
     },
-    // Custom networks: SIU, Base, Monarch
+    // Custom networks: SIU, Base, Monad
     {
       name: "SIU",
       symbol: "SIU",
@@ -140,12 +140,12 @@ export const NetworkProvider = ({ children }) => {
       walletType: 'evm'
     },
     {
-      name: "Monarch",
+      name: "Monad",
       symbol: "MON",
       icon: "🟪",
-      chainId: parseInt(import.meta.env.VITE_MONARCH_CHAIN_ID || '7777', 10),
-      rpcUrl: import.meta.env.VITE_MONARCH_RPC_URL || 'https://rpc.monarch.network', // Placeholder - needs actual RPC
-      blockExplorerUrl: import.meta.env.VITE_MONARCH_BLOCK_EXPLORER || 'https://explorer.monarch.network', // Placeholder - needs actual explorer
+      chainId: parseInt(import.meta.env.VITE_MONAD_CHAIN_ID || '10143', 10),
+      rpcUrl: import.meta.env.VITE_MONAD_RPC_URL || 'https://mainnet-rpc.monad.xyz',
+      blockExplorerUrl: import.meta.env.VITE_MONAD_BLOCK_EXPLORER || 'https://monadexplorer.com',
       isEVM: true,
       walletType: 'evm'
     },
