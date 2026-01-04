@@ -165,33 +165,59 @@ function App() {
         setallNfts(latestNfts);
         localStorage.setItem("allNFTs", JSON.stringify(latestNfts));
         
-        // Extract unique creators from latest NFTs
+        // Extract unique creators from latest NFTs and fetch their user profiles
         const creatorsMap = {};
+        const creatorAddresses = new Set();
+        
         latestNfts.forEach((nft) => {
           const creatorAddress = nft.owner || nft.seller || nft.creator;
-          if (creatorAddress && !creatorsMap[creatorAddress]) {
-            creatorsMap[creatorAddress] = {
-              id: creatorAddress,
-              username: nft.creatorUsername || `Creator ${Object.keys(creatorsMap).length + 1}`,
-              walletAddress: creatorAddress,
-              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`,
-              bio: `Creator on Durchex`,
-              verificationType: null,
-              isVerified: false,
-              nftCount: 1,
-              followers: 0
-            };
-          } else if (creatorAddress && creatorsMap[creatorAddress]) {
-            creatorsMap[creatorAddress].nftCount += 1;
+          if (creatorAddress) {
+            creatorAddresses.add(creatorAddress);
+            if (!creatorsMap[creatorAddress]) {
+              creatorsMap[creatorAddress] = {
+                id: creatorAddress,
+                username: `Creator ${Object.keys(creatorsMap).length + 1}`,
+                walletAddress: creatorAddress,
+                avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`,
+                bio: `Creator on Durchex`,
+                verificationType: null,
+                isVerified: false,
+                nftCount: 1,
+                followers: 0
+              };
+            } else {
+              creatorsMap[creatorAddress].nftCount += 1;
+            }
           }
         });
         
-        const uniqueCreators = Object.values(creatorsMap).slice(0, 8);
+        // Fetch user profiles for creators to get real usernames and images
+        const creatorsWithProfiles = await Promise.all(
+          Array.from(creatorAddresses).map(async (address) => {
+            try {
+              const userProfile = await userAPI.getUserProfile(address);
+              if (userProfile) {
+                return {
+                  ...creatorsMap[address],
+                  username: userProfile.username || creatorsMap[address].username,
+                  avatar: userProfile.image || creatorsMap[address].avatar,
+                  bio: userProfile.bio || creatorsMap[address].bio,
+                  email: userProfile.email
+                };
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch profile for ${address}:`, err.message);
+            }
+            return creatorsMap[address];
+          })
+        );
+        
+        const uniqueCreators = creatorsWithProfiles.slice(0, 8);
         
         if (uniqueCreators.length > 0) {
           setCreators(uniqueCreators);
           localStorage.setItem("durchex_creators", JSON.stringify(uniqueCreators));
-          console.log(`[Hero] Extracted ${uniqueCreators.length} unique creators from latest NFTs`);
+          console.log(`[Hero] Extracted ${uniqueCreators.length} unique creators with profiles from latest NFTs`);
         }
       } else {
         console.warn("[Hero] No NFTs found from any network");
@@ -347,14 +373,14 @@ function App() {
             {displayedAllNfts.map((item, index) => {
               // Get creator/owner address for profile link
               const creatorAddress = item.owner || item.seller || item.creator;
-              // Find creator in creators array to get verification status
+              // Find creator in creators array to get verification status and real data
               const creator = creators.find(c => 
                 c.walletAddress?.toLowerCase() === creatorAddress?.toLowerCase()
               );
-              // Generate avatar from address or use default
-              const avatarUrl = creatorAddress 
+              // Use creator's profile picture if available, otherwise generate avatar
+              const avatarUrl = creator?.avatar || (creatorAddress 
                 ? `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`
-                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name || index}`;
+                : `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.name || index}`);
               
               return (
                 <div
@@ -365,19 +391,24 @@ function App() {
                       <div className="absolute top-3 left-3 z-30 pointer-events-auto">
                         {creatorAddress ? (
                           <Link
-                            to={`/profile/${creatorAddress}`}
+                            to={`/creator/${creatorAddress}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="relative"
+                            className="relative group/avatar"
+                            title={creator?.username || 'Creator'}
                           >
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative group-hover/avatar:ring-purple-400 group-hover/avatar:shadow-purple-500/50 transition-all duration-300">
                               <img
                                 src={avatarUrl}
                                 alt={creator?.username || 'Creator'}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover/avatar:scale-110 transition-transform duration-300"
                                 onError={(e) => {
-                                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creatorAddress || (item.name || index)}`;
+                                  e.currentTarget.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress || (item.name || index)}`;
                                 }}
                               />
+                            </div>
+                            {/* Creator username tooltip on hover */}
+                            <div className="absolute left-14 top-0 bg-gray-900/95 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              {creator?.username || `Creator ${creatorAddress.slice(0, 6)}...`}
                             </div>
                           </Link>
                         ) : (
@@ -597,7 +628,7 @@ function App() {
               {creators.map((creator) => (
                 <Link
                   key={creator.id}
-                  to={`/profile/${creator.walletAddress}`}
+                  to={`/creator/${creator.walletAddress}`}
                   className="block bg-gray-900/50 rounded-xl p-4 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:bg-gray-900/70"
                 >
                   <div className="flex items-start gap-3">

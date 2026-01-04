@@ -27,6 +27,7 @@ const MyMintedNFTs = lazy(() => import("./pages/MyMintedNFTs"));
 const ListNft = lazy(() => import("./pages/ListNft"));
 const Studio = lazy(() => import("./pages/Studio"));
 const Profile = lazy(() => import("./pages/Profile"));
+const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const TradingPage = lazy(() => import("./pages/TradingPage"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const ShoppingCart = lazy(() => import("./components/ShoppingCart"));
@@ -135,6 +136,7 @@ export default function App() {
           <Route path="/collection/:collection" element={<CollectionPage/>} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:walletAddress" element={<Profile />} />
+          <Route path="/creator/:walletAddress" element={<CreatorProfile />} />
           {/* FOOTER ROUTES SECTION */}
           <Route path="/aboutus" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />
