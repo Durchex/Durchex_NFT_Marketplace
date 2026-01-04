@@ -97,7 +97,8 @@ export const fetchCollectionsGroupedByNetwork = async (req, res) => {
 export const fetchAllNftsByNetwork = async (req, res) => {
   const { network } = req.params;
   try {
-    const nfts = await nftModel.find({ network });
+    // Only return NFTs that are currently listed, regardless of who created them
+    const nfts = await nftModel.find({ network, currentlyListed: true });
     res.json(nfts);
   } catch (error) {
     res.status(500).json({ error: error.message });

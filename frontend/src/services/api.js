@@ -310,6 +310,31 @@ export const nftAPI = {
     }
   },
 
+  // Get NFT by MongoDB ID
+  getNftById: async (id) => {
+    try {
+      // Try to fetch from all networks by searching through collections
+      const networks = ['ethereum', 'polygon', 'bsc', 'arbitrum'];
+      
+      for (const network of networks) {
+        try {
+          const allNfts = await api.get(`/nft/nfts/${network}`);
+          if (Array.isArray(allNfts.data)) {
+            const found = allNfts.data.find(nft => nft._id === id || nft.itemId === id);
+            if (found) return found;
+          }
+        } catch (err) {
+          // Continue to next network
+          continue;
+        }
+      }
+      
+      throw new Error('NFT not found');
+    } catch (error) {
+      throw new Error(`Failed to get NFT by ID: ${error.message}`);
+    }
+  },
+
   // Get NFTs in a specific collection
   getCollectionNfts: async (network, collection) => {
     try {

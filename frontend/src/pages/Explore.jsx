@@ -106,20 +106,38 @@ const Explore = () => {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // ✅ Fetch real NFTs from backend
-        const nftsData = await nftAPI.getAllNftsByNetwork("polygon"); // Default to polygon
+        // ✅ Fetch real NFTs from backend - try all networks
+        let nftsData = [];
+        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+        
+        for (const network of networks) {
+          try {
+            console.log(`[Explore] Fetching NFTs from ${network}...`);
+            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+            if (networkNfts && Array.isArray(networkNfts)) {
+              console.log(`[Explore] Found ${networkNfts.length} NFTs on ${network}`);
+              nftsData = [...nftsData, ...networkNfts];
+            }
+          } catch (err) {
+            console.warn(`[Explore] Error fetching from ${network}:`, err.message);
+            // Continue to next network
+          }
+        }
+
         if (nftsData && nftsData.length > 0) {
+          console.log(`[Explore] Total NFTs from all networks:`, nftsData.length);
           // Take first 20 NFTs for display
           setPopularNFTs(nftsData.slice(0, 20));
           // Use the most recent NFTs as "newly added"
           setNewlyAddedNFTs(nftsData.slice(0, 12).map(nft => ({
             ...nft,
-            addedAt: new Date().toISOString(),
+            addedAt: nft.createdAt || new Date().toISOString(),
             timeAgo: 'Recently added',
             creator: nft.owner || 'Unknown Creator',
             description: nft.description || 'Newly listed NFT on Durchex marketplace.'
           })));
         } else {
+          console.warn("[Explore] No NFTs found in backend, using mock data");
           // Fallback to mock data if no NFTs in database
           const mockNFTs = generateMockNFTs(20);
           const mockNewlyAdded = generateNewlyAddedNFTs(12);
@@ -127,7 +145,7 @@ const Explore = () => {
           setNewlyAddedNFTs(mockNewlyAdded);
         }
       } catch (error) {
-        console.error("Error fetching NFTs from backend:", error);
+        console.error("[Explore] Error fetching NFTs from backend:", error);
         // Fallback to mock data on error
         const mockNFTs = generateMockNFTs(20);
         const mockNewlyAdded = generateNewlyAddedNFTs(12);

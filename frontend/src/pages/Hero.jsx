@@ -85,27 +85,11 @@ function App() {
 
    useEffect(() => {
     fetchCollectionItems();
-    fetchallnftItems();
+    fetchLatestNftsFromAllNetworks();
     fetchAllSingleNft();
-    
-    // Load creators from localStorage or generate new ones
-    const savedCreators = localStorage.getItem("durchex_creators");
-    if (savedCreators) {
-      try {
-        setCreators(JSON.parse(savedCreators));
-      } catch {
-        const newCreators = generateMockCreators(8);
-        setCreators(newCreators);
-        localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
-      }
-    } else {
-      const newCreators = generateMockCreators(8);
-      setCreators(newCreators);
-      localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
-    }
   }, [navigate]);
   
-  // Listen for new NFT mints and remove a mock creator
+  // Listen for new NFT mints and refresh latest NFTs
   useEffect(() => {
     const socket = socketService.connect();
     
@@ -115,22 +99,11 @@ function App() {
                          (data.user && data.nftName);
       
       if (isMintEvent) {
-        setCreators((prev) => {
-          const mockCreators = prev.filter(c => c.id.startsWith("creator_"));
-          if (mockCreators.length > 0) {
-            const updated = prev.filter((_, idx) => {
-              const isFirstMockCreator = prev[idx].id.startsWith("creator_") && 
-                                        idx === prev.findIndex(c => c.id.startsWith("creator_"));
-              return !isFirstMockCreator;
-            });
-            localStorage.setItem("durchex_creators", JSON.stringify(updated));
-            setTimeout(() => {
-              toast.success("New NFT minted! Creator list updated.");
-            }, 100);
-            return updated;
-          }
-          return prev;
-        });
+        // Refresh latest NFTs when new one is minted
+        setTimeout(() => {
+          fetchLatestNftsFromAllNetworks();
+          toast.success("New NFT minted! Updating latest NFTs...");
+        }, 500);
       }
     };
 
@@ -160,20 +133,74 @@ function App() {
     return () => clearInterval(interval);
   }, [displayedAllNfts]);
 
-  const fetchallnftItems = () => {
-    const addressString = selectedChain.toString();
-    nftAPI.getAllNftsByNetwork(addressString)
-      .then((data) => {
-          if (Array.isArray(data) && data.length > 0) {
-            const first12Nfts = data.slice(0, 12); // get first 12 items
-            setallNfts(first12Nfts);
-            localStorage.setItem("allNFTs", JSON.stringify(first12Nfts));
-          } else {
-            setallNfts([]);
+  const fetchLatestNftsFromAllNetworks = async () => {
+    try {
+      let allNftsFromAllNetworks = [];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+      
+      // Fetch NFTs from all networks
+      for (const network of networks) {
+        try {
+          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+          if (Array.isArray(networkNfts) && networkNfts.length > 0) {
+            allNftsFromAllNetworks = [...allNftsFromAllNetworks, ...networkNfts];
           }
+        } catch (err) {
+          console.warn(`Error fetching from ${network}:`, err.message);
+        }
+      }
 
-        })
-      .catch((err) => console.error("Error fetching cart:", err));
+      // Sort by createdAt (newest first)
+      allNftsFromAllNetworks.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      });
+
+      // Get latest 20 NFTs
+      const latestNfts = allNftsFromAllNetworks.slice(0, 20);
+      
+      if (latestNfts.length > 0) {
+        console.log(`[Hero] Fetched ${latestNfts.length} latest NFTs from all networks`);
+        setallNfts(latestNfts);
+        localStorage.setItem("allNFTs", JSON.stringify(latestNfts));
+        
+        // Extract unique creators from latest NFTs
+        const creatorsMap = {};
+        latestNfts.forEach((nft) => {
+          const creatorAddress = nft.owner || nft.seller || nft.creator;
+          if (creatorAddress && !creatorsMap[creatorAddress]) {
+            creatorsMap[creatorAddress] = {
+              id: creatorAddress,
+              username: nft.creatorUsername || `Creator ${Object.keys(creatorsMap).length + 1}`,
+              walletAddress: creatorAddress,
+              avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`,
+              bio: `Creator on Durchex`,
+              verificationType: null,
+              isVerified: false,
+              nftCount: 1,
+              followers: 0
+            };
+          } else if (creatorAddress && creatorsMap[creatorAddress]) {
+            creatorsMap[creatorAddress].nftCount += 1;
+          }
+        });
+        
+        const uniqueCreators = Object.values(creatorsMap).slice(0, 8);
+        
+        if (uniqueCreators.length > 0) {
+          setCreators(uniqueCreators);
+          localStorage.setItem("durchex_creators", JSON.stringify(uniqueCreators));
+          console.log(`[Hero] Extracted ${uniqueCreators.length} unique creators from latest NFTs`);
+        }
+      } else {
+        console.warn("[Hero] No NFTs found from any network");
+        setallNfts([]);
+      }
+    } catch (error) {
+      console.error("[Hero] Error fetching latest NFTs:", error);
+      setallNfts([]);
+    }
   };
 
   const fetchCollectionItems = () => {

@@ -21,21 +21,40 @@ const NftDetailsPage = () => {
       setLoading(true);
       setError(null);
 
-      // Try to fetch by MongoDB _id first
+      // Try multiple approaches to fetch NFT data
       let nftData = null;
       
+      // Approach 1: Try to fetch by MongoDB _id (searches across all networks)
       try {
+        console.log('Fetching NFT by ID:', id);
         const response = await nftAPI.getNftById(id);
         nftData = response;
+        console.log('NFT found by ID:', nftData);
       } catch (err) {
-        console.warn('Could not fetch by _id, trying by itemId:', err);
-        // Fallback: Try to fetch all NFTs and find by itemId
-        const allNfts = await nftAPI.fetchAllNfts?.() || [];
-        nftData = allNfts.find(n => n.itemId === id || n._id === id);
+        console.warn('Could not fetch by _id:', err);
+        
+        // Approach 2: Try fetching from all networks
+        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+        for (const network of networks) {
+          try {
+            console.log(`Trying network: ${network}`);
+            const nfts = await nftAPI.getAllNftsByNetwork(network);
+            const found = nfts?.find(n => n.itemId === id || n._id === id);
+            if (found) {
+              nftData = found;
+              console.log(`NFT found on ${network}:`, nftData);
+              break;
+            }
+          } catch (networkErr) {
+            console.warn(`Failed to fetch from ${network}:`, networkErr);
+            continue;
+          }
+        }
       }
 
       if (!nftData) {
-        setError('NFT not found');
+        console.error('NFT not found in any network');
+        setError('NFT not found. It may have been delisted or removed.');
         setLoading(false);
         return;
       }
@@ -43,7 +62,7 @@ const NftDetailsPage = () => {
       setNft(nftData);
     } catch (err) {
       console.error('Error fetching NFT details:', err);
-      setError('Failed to load NFT details');
+      setError('Failed to load NFT details. Please try again.');
     } finally {
       setLoading(false);
     }
