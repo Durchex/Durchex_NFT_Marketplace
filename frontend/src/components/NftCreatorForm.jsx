@@ -21,6 +21,10 @@ function App() {
       "image/png",
       "image/svg+xml",
       "image/gif",
+      "image/webp",
+      "image/bmp",
+      "image/x-icon",
+      "image/tiff",
     ];
     if (
       file &&
@@ -30,7 +34,7 @@ function App() {
       setSelectedFile(file);
     } else {
       alert(
-        "Please upload a valid image file (JPG, PNG, SVG, or GIF) under 20MB"
+        "Please upload a valid image file (JPG, PNG, SVG, GIF, WebP, BMP, ICO, or TIFF) under 20MB"
       );
     }
   };
@@ -69,7 +73,7 @@ function App() {
                       Drag and drop or click to upload
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
-                      Supported file types: JPG, PNG, SVG or GIF.
+                      Supported: JPG, PNG, SVG, GIF, WebP, BMP, ICO, TIFF
                     </p>
                     <p className="text-xs text-gray-500">Max size: 20mb</p>
                   </>

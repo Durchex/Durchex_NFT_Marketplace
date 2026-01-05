@@ -4,82 +4,12 @@ import Header from "../components/Header";
 import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context";
 import socketService from "../services/socketService";
-import { nftAPI } from "../services/api.js"; // ✅ Import NFT API
+import { nftAPI, userAPI } from "../services/api.js"; // ✅ Import NFT API and User API
 import { FiCheck, FiUser, FiTrendingUp, FiStar, FiClock } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
 import NFTAnalyticsSection from "../components/NFTAnalyticsSection";
 import HeroAnalyticsChart from "../components/HeroAnalyticsChart";
-
-// Mock creators data
-const generateMockCreators = (count = 8) => {
-  const names = [
-    "ArtVanguard", "PixelPioneer", "DigitalDreams", "CryptoCanvas", 
-    "NeoNexus", "VirtualVisions", "MetaMasters", "BlockchainBrush",
-    "NFTNinja", "CryptoCreator", "DigitalDali", "PixelPunk",
-    "ArtArchive", "NFTNomad", "DigitalDynamo", "CanvasCrypto"
-  ];
-  
-  const bios = [
-    "Digital artist exploring the boundaries of NFT art",
-    "Creator of unique blockchain-based collectibles",
-    "Award-winning NFT artist with 5+ years experience",
-    "Pioneering the future of digital ownership",
-    "Curator of rare and exclusive NFT collections",
-    "Innovator in generative and AI-powered art"
-  ];
-
-  return Array.from({ length: count }, (_, i) => {
-    const verificationType = Math.random() > 0.6 ? 'gold' : (Math.random() > 0.5 ? 'white' : null);
-    return {
-      id: `creator_${i}`,
-      username: names[i % names.length],
-      walletAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${names[i % names.length]}`,
-      bio: bios[i % bios.length],
-      verificationType: verificationType, // 'gold', 'white', or null
-      isVerified: verificationType !== null,
-      nftCount: Math.floor(Math.random() * 50) + 5,
-      followers: Math.floor(Math.random() * 10000) + 100
-    };
-  });
-};
-
-// Mock popular NFTs
-const generateMockNFTs = (count = 20) => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `nft_${i}`,
-    name: `Amazing NFT #${i + 1}`,
-    image: `https://picsum.photos/400/400?random=${i}`,
-    price: (Math.random() * 10 + 0.1).toFixed(2),
-    collection: `Collection ${Math.floor(i / 5) + 1}`,
-    likes: Math.floor(Math.random() * 1000),
-    views: Math.floor(Math.random() * 5000)
-  }));
-};
-
-// Mock newly added NFTs with timestamps
-const generateNewlyAddedNFTs = (count = 12) => {
-  const now = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const hoursAgo = Math.floor(Math.random() * 24) + 1; // 1-24 hours ago
-    const addedAt = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
-    
-    return {
-      id: `new_nft_${i}`,
-      name: `Fresh NFT #${i + 1}`,
-      image: `https://picsum.photos/300/300?random=${i + 100}`,
-      price: (Math.random() * 5 + 0.05).toFixed(3),
-      collection: `New Collection ${Math.floor(i / 3) + 1}`,
-      likes: Math.floor(Math.random() * 50),
-      views: Math.floor(Math.random() * 200),
-      addedAt: addedAt.toISOString(),
-      timeAgo: hoursAgo < 2 ? 'Just now' : `${hoursAgo}h ago`,
-      creator: `Creator ${i % 5 + 1}`,
-      description: `This is a newly added NFT with unique features and amazing artwork. Created by ${`Creator ${i % 5 + 1}`}.`
-    };
-  }).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt)); // Sort by newest first
-};
 
 const Explore = () => {
   const { address } = useContext(ICOContent) || {};
@@ -89,9 +19,9 @@ const Explore = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   
-  // Fallback: use locally generated mock NFTs when backend returns empty
-  const displayedNFTs = (popularNFTs && popularNFTs.length > 0) ? popularNFTs : generateMockNFTs(20);
-  const displayedNewlyAddedNFTs = (newlyAddedNFTs && newlyAddedNFTs.length > 0) ? newlyAddedNFTs : generateNewlyAddedNFTs(12);
+  // Display real NFTs or empty array
+  const displayedNFTs = popularNFTs || [];
+  const displayedNewlyAddedNFTs = newlyAddedNFTs || [];
   const [verificationRequest, setVerificationRequest] = useState({
     walletAddress: "",
     username: "",
@@ -136,44 +66,60 @@ const Explore = () => {
             creator: nft.owner || 'Unknown Creator',
             description: nft.description || 'Newly listed NFT on Durchex marketplace.'
           })));
+
+          // ✅ Extract unique creators from NFTs (real creators with listed NFTs)
+          const uniqueCreators = new Map();
+          nftsData.forEach(nft => {
+            const creatorAddress = nft.creator || nft.owner;
+            if (creatorAddress && !uniqueCreators.has(creatorAddress)) {
+              uniqueCreators.set(creatorAddress, creatorAddress);
+            }
+          });
+
+          const creatorAddresses = Array.from(uniqueCreators.keys()).slice(0, 8);
+          console.log(`[Explore] Extracted ${creatorAddresses.length} unique creators from NFTs`);
+
+          // Fetch user profiles for these creators
+          const creatorProfiles = await Promise.all(
+            creatorAddresses.map(async (address) => {
+              try {
+                const profile = await userAPI.getUserProfile(address);
+                return {
+                  id: address,
+                  walletAddress: address,
+                  username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
+                  avatar: profile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  bio: profile?.bio || 'NFT creator on Durchex',
+                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  followers: profile?.followers || 0,
+                  verificationStatus: profile?.verificationStatus || null
+                };
+              } catch (err) {
+                console.warn(`[Explore] Error fetching profile for ${address}:`, err.message);
+                // Return basic creator info if profile fetch fails
+                return {
+                  id: address,
+                  walletAddress: address,
+                  username: address.slice(0, 6) + '...' + address.slice(-4),
+                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  bio: 'NFT creator on Durchex',
+                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  followers: 0,
+                  verificationStatus: null
+                };
+              }
+            })
+          );
+
+          console.log(`[Explore] Fetched ${creatorProfiles.length} creator profiles`);
+          setCreators(creatorProfiles);
         } else {
-          console.warn("[Explore] No NFTs found in backend, using mock data");
-          // Fallback to mock data if no NFTs in database
-          const mockNFTs = generateMockNFTs(20);
-          const mockNewlyAdded = generateNewlyAddedNFTs(12);
-          setPopularNFTs(mockNFTs);
-          setNewlyAddedNFTs(mockNewlyAdded);
+          console.warn("[Explore] No NFTs found in backend");
+          setCreators([]);
         }
       } catch (error) {
         console.error("[Explore] Error fetching NFTs from backend:", error);
-        // Fallback to mock data on error
-        const mockNFTs = generateMockNFTs(20);
-        const mockNewlyAdded = generateNewlyAddedNFTs(12);
-        setPopularNFTs(mockNFTs);
-        setNewlyAddedNFTs(mockNewlyAdded);
-      }
-
-      // Load creators from localStorage or generate new ones
-      const savedCreators = localStorage.getItem("durchex_creators");
-      if (savedCreators) {
-        try {
-          const parsed = JSON.parse(savedCreators);
-          // Filter to show only gold verified users in top creators (trending)
-          const goldVerifiedCreators = parsed.filter(c => c.verificationType === 'gold');
-          setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : parsed);
-        } catch {
-          const newCreators = generateMockCreators(8);
-          // Filter to show only gold verified users
-          const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
-          setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
-          localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
-        }
-      } else {
-        const newCreators = generateMockCreators(8);
-        // Filter to show only gold verified users
-        const goldVerifiedCreators = newCreators.filter(c => c.verificationType === 'gold');
-        setCreators(goldVerifiedCreators.length > 0 ? goldVerifiedCreators : newCreators);
-        localStorage.setItem("durchex_creators", JSON.stringify(newCreators));
+        setCreators([]);
       }
       
       // Mark as loaded after data is initialized
@@ -185,37 +131,80 @@ const Explore = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Listen for new NFT mints and remove a mock creator
+  // Listen for new NFT mints and update creators list
   useEffect(() => {
     // Initialize socket connection
     const socket = socketService.connect();
     
-    const handleNFTMinted = (data) => {
+    const handleNFTMinted = async (data) => {
       // Check if this is an NFT minting event
       const isMintEvent = data.type === "nft_minted" || 
                          (data.type === "user_activity" && data.nftName) ||
                          (data.user && data.nftName);
       
       if (isMintEvent) {
-        // Remove one mock creator when a new NFT is minted
-        setCreators((prev) => {
-          // Only remove if there are mock creators (those with generated IDs)
-          const mockCreators = prev.filter(c => c.id.startsWith("creator_"));
-          if (mockCreators.length > 0) {
-            const updated = prev.filter((_, idx) => {
-              // Remove the first mock creator
-              const isFirstMockCreator = prev[idx].id.startsWith("creator_") && 
-                                        idx === prev.findIndex(c => c.id.startsWith("creator_"));
-              return !isFirstMockCreator;
-            });
-            localStorage.setItem("durchex_creators", JSON.stringify(updated));
-            setTimeout(() => {
-              toast.success("New NFT minted! Creator list updated.");
-            }, 100);
-            return updated;
+        // Refetch creators when new NFT is minted
+        try {
+          let nftsData = [];
+          const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+          
+          for (const network of networks) {
+            try {
+              const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+              if (networkNfts && Array.isArray(networkNfts)) {
+                nftsData = [...nftsData, ...networkNfts];
+              }
+            } catch (err) {
+              // Continue to next network
+            }
           }
-          return prev;
-        });
+
+          // Extract unique creators from updated NFT data
+          const uniqueCreators = new Map();
+          nftsData.forEach(nft => {
+            const creatorAddress = nft.creator || nft.owner;
+            if (creatorAddress && !uniqueCreators.has(creatorAddress)) {
+              uniqueCreators.set(creatorAddress, creatorAddress);
+            }
+          });
+
+          const creatorAddresses = Array.from(uniqueCreators.keys()).slice(0, 8);
+
+          // Fetch user profiles for these creators
+          const creatorProfiles = await Promise.all(
+            creatorAddresses.map(async (address) => {
+              try {
+                const profile = await userAPI.getUserProfile(address);
+                return {
+                  id: address,
+                  walletAddress: address,
+                  username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
+                  avatar: profile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  bio: profile?.bio || 'NFT creator on Durchex',
+                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  followers: profile?.followers || 0,
+                  verificationStatus: profile?.verificationStatus || null
+                };
+              } catch (err) {
+                return {
+                  id: address,
+                  walletAddress: address,
+                  username: address.slice(0, 6) + '...' + address.slice(-4),
+                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  bio: 'NFT creator on Durchex',
+                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  followers: 0,
+                  verificationStatus: null
+                };
+              }
+            })
+          );
+
+          setCreators(creatorProfiles);
+          toast.success("New NFT minted! Creators list updated.");
+        } catch (err) {
+          console.warn("[Explore] Error updating creators on new mint:", err);
+        }
       }
     };
 

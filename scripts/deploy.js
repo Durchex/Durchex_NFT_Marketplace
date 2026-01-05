@@ -15,29 +15,37 @@ import path from "path";
 async function main() {
   console.log("🚀 Starting contract deployment...");
 
-  // Get deployer account
-  const [deployer] = await ethers.getSigners();
-  console.log("📝 Deploying contracts with account:", deployer.address);
+  let vendorNFT, marketplace, deployer;
 
-  // Check balance
-  const balance = await deployer.getBalance();
-  console.log("💰 Account balance:", ethers.utils.formatEther(balance), "ETH");
+  try {
+    // Get deployer account
+    [deployer] = await ethers.getSigners();
+    console.log("📝 Deploying contracts with account:", deployer.address);
 
-  // Deploy VendorNFT first
-  console.log("\n⏳ Deploying VendorNFT...");
-  const VendorNFT = await ethers.getContractFactory("VendorNFT");
-  const vendorNFT = await VendorNFT.deploy(deployer.address);
-  await vendorNFT.deployed();
+    // Deploy VendorNFT first
+    console.log("\n⏳ Deploying VendorNFT...");
+    const VendorNFT = await ethers.getContractFactory("VendorNFT");
+    vendorNFT = await VendorNFT.deploy(deployer.address);
+    await vendorNFT.deployed();
 
-  console.log("✅ VendorNFT deployed to:", vendorNFT.address);
+    console.log("✅ VendorNFT deployed to:", vendorNFT.address);
 
-  // Deploy NFTMarketplace
-  console.log("\n⏳ Deploying NFTMarketplace...");
-  const NFTMarketplace = await ethers.getContractFactory("NFTMarketplace");
-  const marketplace = await NFTMarketplace.deploy(vendorNFT.address, deployer.address);
-  await marketplace.deployed();
+    // Deploy NFTMarketplace
+    console.log("\n⏳ Deploying NFTMarketplace...");
+    const NFTMarketplace = await ethers.getContractFactory("NFTMarketplace");
+    marketplace = await NFTMarketplace.deploy(vendorNFT.address, deployer.address);
+    await marketplace.deployed();
 
-  console.log("✅ NFTMarketplace deployed to:", marketplace.address);
+    console.log("✅ NFTMarketplace deployed to:", marketplace.address);
+  } catch (error) {
+    if (error.message.includes("INSUFFICIENT_FUNDS") || error.message.includes("insufficient funds")) {
+      console.error("\n❌ Deployment failed: INSUFFICIENT FUNDS");
+      console.error("The deployment account does not have enough ETH for gas on this network.");
+      console.error("Account:", deployer?.address || "unknown");
+      process.exit(1);
+    }
+    throw error;
+  }
 
   // Log deployment info
   console.log("\n🎉 Deployment completed!");

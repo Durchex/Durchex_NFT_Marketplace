@@ -41,7 +41,7 @@ export default function Create() {
   });
 
   // Supported media types for NFT creation
-  const SUPPORTED_IMAGE_TYPES = ['.svg', '.png', '.jpg', '.jpeg', '.gif'];
+  const SUPPORTED_IMAGE_TYPES = ['.svg', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.tiff'];
   const SUPPORTED_VIDEO_TYPES = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
 
   const isVideoFile = (file) => {
