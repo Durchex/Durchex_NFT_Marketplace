@@ -58,15 +58,7 @@ const Explore = () => {
           console.log(`[Explore] Total NFTs from all networks:`, nftsData.length);
           // Take first 20 NFTs for display
           setPopularNFTs(nftsData.slice(0, 20));
-          // Use the most recent NFTs as "newly added"
-          setNewlyAddedNFTs(nftsData.slice(0, 12).map(nft => ({
-            ...nft,
-            addedAt: nft.createdAt || new Date().toISOString(),
-            timeAgo: 'Recently added',
-            creator: nft.owner || 'Unknown Creator',
-            description: nft.description || 'Newly listed NFT on Durchex marketplace.'
-          })));
-
+          
           // ✅ Extract unique creators from NFTs (real creators with listed NFTs)
           const uniqueCreators = new Map();
           nftsData.forEach(nft => {
@@ -79,8 +71,41 @@ const Explore = () => {
           const creatorAddresses = Array.from(uniqueCreators.keys()).slice(0, 8);
           console.log(`[Explore] Extracted ${creatorAddresses.length} unique creators from NFTs`);
 
-          // Fetch user profiles for these creators
+          // Fetch user profiles for creators to get real usernames
           const creatorProfiles = await Promise.all(
+            creatorAddresses.map(async (address) => {
+              try {
+                const profile = await userAPI.getUserProfile(address);
+                return {
+                  address,
+                  username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4)
+                };
+              } catch (err) {
+                return {
+                  address,
+                  username: address.slice(0, 6) + '...' + address.slice(-4)
+                };
+              }
+            })
+          );
+
+          // Create a map of address -> username for quick lookup
+          const creatorMap = new Map();
+          creatorProfiles.forEach(cp => {
+            creatorMap.set(cp.address, cp.username);
+          });
+
+          // Use the most recent NFTs as "newly added" with real creator usernames
+          setNewlyAddedNFTs(nftsData.slice(0, 12).map(nft => ({
+            ...nft,
+            addedAt: nft.createdAt || new Date().toISOString(),
+            timeAgo: 'Recently added',
+            creator: creatorMap.get(nft.owner) || creatorMap.get(nft.creator) || nft.owner?.slice(0, 6) + '...' + nft.owner?.slice(-4) || 'Unknown Creator',
+            description: nft.description || 'Newly listed NFT on Durchex marketplace.'
+          })));
+
+          // Create full creator profiles for Top Creators section
+          const fullCreatorProfiles = await Promise.all(
             creatorAddresses.map(async (address) => {
               try {
                 const profile = await userAPI.getUserProfile(address);
@@ -96,7 +121,6 @@ const Explore = () => {
                 };
               } catch (err) {
                 console.warn(`[Explore] Error fetching profile for ${address}:`, err.message);
-                // Return basic creator info if profile fetch fails
                 return {
                   id: address,
                   walletAddress: address,
@@ -111,8 +135,8 @@ const Explore = () => {
             })
           );
 
-          console.log(`[Explore] Fetched ${creatorProfiles.length} creator profiles`);
-          setCreators(creatorProfiles);
+          console.log(`[Explore] Fetched ${fullCreatorProfiles.length} creator profiles`);
+          setCreators(fullCreatorProfiles);
         } else {
           console.warn("[Explore] No NFTs found in backend");
           setCreators([]);
