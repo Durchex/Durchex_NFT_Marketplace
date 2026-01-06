@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // Pinata IPFS Configuration
-const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY || '';
-const PINATA_SECRET_KEY = import.meta.env.VITE_PINATA_SECRET_KEY || '';
+const PINATA_API_KEY = import.meta.env.VITE_APP_PINATA_API_KEY || import.meta.env.VITE_PINATA_API_KEY || '';
+const PINATA_SECRET_KEY = import.meta.env.VITE_APP_PINATA_SECRET_KEY || import.meta.env.VITE_PINATA_SECRET_KEY || '';
+const PINATA_JWT = import.meta.env.VITE_APP_PINATA_JWT_NEW || '';
 const PINATA_GATEWAY_URL = 'https://gateway.pinata.cloud/ipfs/';
 
 class PinataService {
@@ -15,8 +16,20 @@ class PinataService {
   // Upload JSON metadata to IPFS
   async uploadMetadata(metadata) {
     try {
-      if (!this.apiKey || !this.secretKey) {
-        throw new Error('Pinata API keys not configured');
+      if (!this.apiKey && !this.secretKey && !PINATA_JWT) {
+        throw new Error('Pinata API credentials not configured');
+      }
+
+      // Use JWT token if available (more reliable), otherwise use API key/secret
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (PINATA_JWT) {
+        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
+      } else {
+        headers['pinata_api_key'] = this.apiKey;
+        headers['pinata_secret_api_key'] = this.secretKey;
       }
 
       const response = await axios.post(
@@ -31,13 +44,7 @@ class PinataService {
             }
           }
         },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            pinata_api_key: this.apiKey,
-            pinata_secret_api_key: this.secretKey
-          }
-        }
+        { headers }
       );
 
       return {
@@ -58,8 +65,8 @@ class PinataService {
   // Upload image file to IPFS
   async uploadImage(file) {
     try {
-      if (!this.apiKey || !this.secretKey) {
-        throw new Error('Pinata API keys not configured');
+      if (!this.apiKey && !this.secretKey && !PINATA_JWT) {
+        throw new Error('Pinata API credentials not configured');
       }
 
       const formData = new FormData();
@@ -74,16 +81,22 @@ class PinataService {
       });
       formData.append('pinataMetadata', metadata);
 
+      // Use JWT token if available (more reliable), otherwise use API key/secret
+      const headers = {
+        'Content-Type': 'multipart/form-data'
+      };
+
+      if (PINATA_JWT) {
+        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
+      } else {
+        headers['pinata_api_key'] = this.apiKey;
+        headers['pinata_secret_api_key'] = this.secretKey;
+      }
+
       const response = await axios.post(
         `${this.baseURL}/pinning/pinFileToIPFS`,
         formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            pinata_api_key: this.apiKey,
-            pinata_secret_api_key: this.secretKey
-          }
-        }
+        { headers }
       );
 
       return {
