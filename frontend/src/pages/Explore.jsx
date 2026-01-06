@@ -129,29 +129,31 @@ const Explore = () => {
             creatorAddresses.map(async (address) => {
               try {
                 const profile = await userAPI.getUserProfile(address);
-                return {
-                  id: address,
-                  walletAddress: address,
-                  username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
-                  avatar: profile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
-                  bio: profile?.bio || 'NFT creator on Durchex',
-                  nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
-                  followers: profile?.followers || 0,
-                  verificationStatus: profile?.verificationStatus || null
-                };
+                if (profile?.username) {
+                  return {
+                    id: address,
+                    walletAddress: address,
+                    username: profile.username,
+                    avatar: profile.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                    bio: profile.bio || 'NFT creator on Durchex',
+                    nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
+                    followers: profile.followers || 0,
+                    verificationStatus: profile.verificationStatus || null
+                  };
+                }
               } catch (err) {
                 console.log(`[Explore] No profile for ${address}, using defaults`);
-                return {
-                  id: address,
-                  walletAddress: address,
-                  username: address.slice(0, 6) + '...' + address.slice(-4),
-                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
-                  bio: 'NFT creator on Durchex',
-                  nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
-                  followers: 0,
-                  verificationStatus: null
-                };
               }
+              return {
+                id: address,
+                walletAddress: address,
+                username: address.slice(0, 6) + '...' + address.slice(-4),
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                bio: 'NFT creator on Durchex',
+                nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
+                followers: 0,
+                verificationStatus: null
+              };
             })
           );
 
