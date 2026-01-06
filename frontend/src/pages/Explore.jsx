@@ -358,7 +358,7 @@ const Explore = () => {
                   {[...displayedNFTs, ...displayedNFTs].map((nft, idx) => (
                     <Link
                       key={`${nft.id}_${idx}`}
-                      to={`/nft/${nft.id}`}
+                      to={`/nft/${nft.itemId}`}
                       className="flex-shrink-0 w-[280px] sm:w-[320px] md:w-[360px] group"
                     >
                       <div className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105">
@@ -418,7 +418,7 @@ const Explore = () => {
               {displayedNewlyAddedNFTs.map((nft) => (
                 <Link
                   key={nft.id}
-                  to={`/nft/${nft.tokenId || nft.id}/${nft.itemId || nft.id}/${nft.price}`}
+                  to={`/nft/${nft.itemId}`}
                   className="group block bg-gray-900/50 rounded-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
                 >
                   <div className="relative aspect-square overflow-hidden rounded-t-xl">

@@ -278,7 +278,7 @@ const NFTs = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-display font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <Link
-                          to={`/nft/${nft.tokenId}/${nft.itemId}/${nft.price}/${nft.collection || ''}`}
+                          to={`/nft/${nft.itemId}`}
                           className="text-blue-600 hover:text-blue-900 p-1"
                           title="View NFT"
                         >

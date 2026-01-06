@@ -260,7 +260,7 @@ const NFTAnalyticsSection = () => {
         {topNFTs.map((nft, index) => (
           <Link
             key={nft.id}
-            to={`/nft/${nft.id}`}
+            to={`/nft/${nft.itemId}`}
             className="group bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105"
           >
             {/* Rank Badge */}

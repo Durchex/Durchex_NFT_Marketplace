@@ -21,39 +21,39 @@ const NftDetailsPage = () => {
       setLoading(true);
       setError(null);
 
-      // Try multiple approaches to fetch NFT data
+      // The id parameter could be: itemId, tokenId, or _id
       let nftData = null;
       
-      // Approach 1: Try to fetch by MongoDB _id (searches across all networks)
-      try {
-        console.log('Fetching NFT by ID:', id);
-        const response = await nftAPI.getNftById(id);
-        nftData = response;
-        console.log('NFT found by ID:', nftData);
-      } catch (err) {
-        console.warn('Could not fetch by _id:', err);
-        
-        // Approach 2: Try fetching from all networks
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
-        for (const network of networks) {
-          try {
-            console.log(`Trying network: ${network}`);
-            const nfts = await nftAPI.getAllNftsByNetwork(network);
-            const found = nfts?.find(n => n.itemId === id || n._id === id);
-            if (found) {
-              nftData = found;
-              console.log(`NFT found on ${network}:`, nftData);
-              break;
-            }
-          } catch (networkErr) {
-            console.warn(`Failed to fetch from ${network}:`, networkErr);
-            continue;
+      // Try to fetch from all networks by itemId or tokenId
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+      
+      for (const network of networks) {
+        try {
+          console.log(`Trying to fetch NFT from ${network} with id: ${id}`);
+          
+          // Fetch all NFTs from this network
+          const nfts = await nftAPI.getAllNftsByNetwork(network);
+          
+          // Search by itemId, tokenId, or _id
+          const found = nfts?.find(n => 
+            n.itemId === id || 
+            n.tokenId === id || 
+            n._id === id
+          );
+          
+          if (found) {
+            nftData = found;
+            console.log(`NFT found on ${network}:`, nftData);
+            break;
           }
+        } catch (networkErr) {
+          console.warn(`Failed to fetch from ${network}:`, networkErr);
+          continue;
         }
       }
 
       if (!nftData) {
-        console.error('NFT not found in any network');
+        console.error('NFT not found in any network with id:', id);
         setError('NFT not found. It may have been delisted or removed.');
         setLoading(false);
         return;

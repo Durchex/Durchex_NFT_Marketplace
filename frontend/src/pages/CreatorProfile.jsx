@@ -243,7 +243,7 @@ const CreatorProfile = () => {
               ).map((nft, index) => (
                 <Link
                   key={nft._id || index}
-                  to={`/nft/${nft.tokenId || nft.itemId}/${nft.itemId}/${nft.price}`}
+                  to={`/nft/${nft.itemId}`}
                   className="group"
                 >
                   <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">

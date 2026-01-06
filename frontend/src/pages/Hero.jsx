@@ -461,7 +461,7 @@ function App() {
 
                   {/* NFT Image - Clickable to NFT details */}
                   <Link 
-                    to={`/nft/${item.tokenId}/${item.itemId}/${item.price}`}
+                    to={`/nft/${item.itemId}`}
                     className="w-full h-full relative"
                   >
                     <img
@@ -496,7 +496,7 @@ function App() {
                   const activeNFT = displayedAllNfts[activeIndex];
                   return (
                     <Link
-                      to={`/nft/${activeNFT.tokenId}/${activeNFT.itemId}/${activeNFT.price}`}
+                      to={`/nft/${activeNFT.itemId}`}
                       className="group h-full flex flex-col"
                     >
                       <div 
@@ -577,8 +577,8 @@ function App() {
             <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
               {allNfts && allNfts.slice(0, 8).map((nft, index) => (
                 <Link
-                  key={nft.id || index}
-                  to={`/nft/${nft.id || `nft_${index}`}`}
+                  key={nft.itemId || index}
+                  to={`/nft/${nft.itemId}`}
                   className="block bg-gray-900/50 rounded-xl p-4 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:bg-gray-900/70"
                 >
                   <div className="flex items-start gap-3">
