@@ -358,8 +358,9 @@ export const Index = ({ children }) => {
 
   // Disconnect wallet helper exported to components
   const disconnectWallet = async () => {
+    console.log('[Context] disconnectWallet called');
     try {
-      // Clear local state
+      // Clear local state FIRST to prevent re-connection loops
       setAddress(null);
       setAccountBalance(null);
 
@@ -367,32 +368,63 @@ export const Index = ({ children }) => {
       try {
         localStorage.removeItem('wallet_session');
         localStorage.removeItem('walletconnect');
+        localStorage.removeItem('lastConnectedWallet');
+        sessionStorage.clear();
       } catch (e) {
-        // ignore
+        console.warn('[Context] Error clearing storage:', e);
       }
 
       // Attempt to gracefully disconnect WalletConnect style providers
       try {
         // First try WalletConnect provider instance
         if (wcProvider && typeof wcProvider.disconnect === 'function') {
-          try { await wcProvider.disconnect(); } catch (e) { console.warn('wcProvider.disconnect failed', e); }
+          try { 
+            await wcProvider.disconnect(); 
+            console.log('[Context] wcProvider.disconnect succeeded');
+          } catch (e) { 
+            console.warn('[Context] wcProvider.disconnect failed:', e); 
+          }
         }
 
         // Also attempt to call generic provider disconnect/close
         const provider = typeof window !== 'undefined' && (window.ethereum || window.wallet?.provider || window.__walletconnect__);
         if (provider && typeof provider.disconnect === 'function') {
-          try { await provider.disconnect(); } catch(e) {}
+          try { 
+            await provider.disconnect();
+            console.log('[Context] provider.disconnect succeeded');
+          } catch(e) {
+            console.warn('[Context] provider.disconnect failed:', e);
+          }
         }
         if (provider && typeof provider.close === 'function') {
-          try { await provider.close(); } catch(e) {}
+          try { 
+            await provider.close();
+            console.log('[Context] provider.close succeeded');
+          } catch(e) {
+            console.warn('[Context] provider.close failed:', e);
+          }
+        }
+        
+        // Remove event listeners to prevent auto-reconnection
+        if (provider) {
+          try {
+            provider.removeAllListeners?.();
+            provider.off?.('accountsChanged');
+            provider.off?.('chainChanged');
+            provider.off?.('connect');
+            provider.off?.('disconnect');
+            console.log('[Context] Event listeners removed');
+          } catch (e) {
+            console.warn('[Context] Error removing listeners:', e);
+          }
         }
       } catch (e) {
-        // ignore errors during provider disconnect
+        console.warn('[Context] Error during provider disconnect:', e);
       }
 
-      console.log('Wallet disconnected');
+      console.log('[Context] Wallet disconnected successfully');
     } catch (err) {
-      console.error('Error during disconnectWallet:', err);
+      console.error('[Context] Error during disconnectWallet:', err);
     }
   };
 

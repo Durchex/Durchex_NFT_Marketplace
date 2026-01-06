@@ -518,11 +518,24 @@ export default EnhancedWalletConnect;
   };
 
   const handleDisconnect = () => {
-    setAddress(null);
-    setAccountBalance(null);
-    setIsDropdownOpen(false);
-    setNetworkBalance('0');
-    toast.success('Wallet disconnected');
+    console.log('[EnhancedWalletConnect] handleDisconnect called');
+    try {
+      // Call the context disconnect function to properly handle provider disconnection
+      disconnectWallet();
+      
+      // Clear local UI state
+      setAddress(null);
+      setAccountBalance(null);
+      setIsDropdownOpen(false);
+      setNetworkBalance('0');
+      setSelectedNetwork('polygon');
+      setIsConnected(false);
+      
+      toast.success('Wallet disconnected');
+    } catch (error) {
+      console.error('[EnhancedWalletConnect] Error during disconnect:', error);
+      toast.error('Error disconnecting wallet');
+    }
   };
 
   const copyAddress = async () => {

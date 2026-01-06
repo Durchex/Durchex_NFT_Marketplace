@@ -87,11 +87,18 @@ class PinataService {
       };
 
       if (PINATA_JWT) {
+        console.log('[Pinata] Using JWT token for authentication');
         headers['Authorization'] = `Bearer ${PINATA_JWT}`;
       } else {
+        console.log('[Pinata] Using API key/secret for authentication', { 
+          hasApiKey: !!this.apiKey, 
+          hasSecret: !!this.secretKey 
+        });
         headers['pinata_api_key'] = this.apiKey;
         headers['pinata_secret_api_key'] = this.secretKey;
       }
+
+      console.log('[Pinata] Uploading image with headers:', Object.keys(headers));
 
       const response = await axios.post(
         `${this.baseURL}/pinning/pinFileToIPFS`,

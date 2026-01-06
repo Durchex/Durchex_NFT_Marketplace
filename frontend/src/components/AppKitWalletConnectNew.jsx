@@ -32,7 +32,7 @@ function getWalletInstallUrl(id) {
 const AppKitWalletConnect = () => {
   const { open, disconnect } = useAppKit();
   const { address, isConnected, balance } = useAppKitAccount();
-  const { connectWallet } = useContext(ICOContent);
+  const { connectWallet, disconnectWallet } = useContext(ICOContent);
   const [showModal, setShowModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
@@ -95,6 +95,12 @@ const AppKitWalletConnect = () => {
   const handleDisconnect = () => {
     console.log('[AppKitWalletConnect] handleDisconnect called');
     setShowModal(false);
+    // Call both AppKit disconnect and context disconnect to ensure complete disconnection
+    try {
+      disconnectWallet();
+    } catch (e) {
+      console.warn('[AppKitWalletConnect] Error calling context disconnectWallet:', e);
+    }
     disconnect();
   };
 
