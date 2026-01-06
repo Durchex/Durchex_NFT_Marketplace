@@ -14,8 +14,14 @@ class SocketService {
       return this.socket;
     }
 
+    // Convert to HTTPS for production if page is HTTPS
+    let healthCheckUrl = serverUrl;
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && serverUrl.startsWith('http://')) {
+      healthCheckUrl = serverUrl.replace('http://', 'https://');
+    }
+
     // Check if backend server is running before attempting connection
-    this.isBackendAvailable(serverUrl).then(isAvailable => {
+    this.isBackendAvailable(healthCheckUrl).then(isAvailable => {
       if (!isAvailable) {
         console.warn('Backend server not available, skipping socket connection');
         return null;
