@@ -170,13 +170,14 @@ function App() {
         const creatorAddresses = new Set();
         
         latestNfts.forEach((nft) => {
-          const creatorAddress = nft.owner || nft.seller || nft.creator;
+          // Use seller (who listed it) as the creator, fallback to owner
+          const creatorAddress = nft.seller || nft.owner;
           if (creatorAddress) {
             creatorAddresses.add(creatorAddress);
             if (!creatorsMap[creatorAddress]) {
               creatorsMap[creatorAddress] = {
                 id: creatorAddress,
-                username: `Creator ${Object.keys(creatorsMap).length + 1}`,
+                username: creatorAddress.slice(0, 6) + '...' + creatorAddress.slice(-4),
                 walletAddress: creatorAddress,
                 avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${creatorAddress}`,
                 bio: `Creator on Durchex`,
@@ -200,13 +201,14 @@ function App() {
                 return {
                   ...creatorsMap[address],
                   username: userProfile.username || creatorsMap[address].username,
-                  avatar: userProfile.image || creatorsMap[address].avatar,
+                  avatar: userProfile.profileImage || creatorsMap[address].avatar,
                   bio: userProfile.bio || creatorsMap[address].bio,
                   email: userProfile.email
                 };
               }
             } catch (err) {
-              console.warn(`Failed to fetch profile for ${address}:`, err.message);
+              // User profile doesn't exist, use default
+              console.log(`No profile for ${address}, using default`);
             }
             return creatorsMap[address];
           })

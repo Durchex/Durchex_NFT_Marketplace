@@ -59,10 +59,10 @@ const Explore = () => {
           // Take first 20 NFTs for display
           setPopularNFTs(nftsData.slice(0, 20));
           
-          // ✅ Extract unique creators from NFTs (real creators with listed NFTs)
+          // ✅ Extract unique creators from NFTs (use seller, not contract owner)
           const uniqueCreators = new Map();
           nftsData.forEach(nft => {
-            const creatorAddress = nft.creator || nft.owner;
+            const creatorAddress = nft.seller || nft.owner;
             if (creatorAddress && !uniqueCreators.has(creatorAddress)) {
               uniqueCreators.set(creatorAddress, creatorAddress);
             }
@@ -87,7 +87,7 @@ const Explore = () => {
                 };
               } catch (err) {
                 const fallback = address.slice(0, 6) + '...' + address.slice(-4);
-                console.warn(`[Explore] ⚠️  Failed to fetch profile for ${address}, using fallback: ${fallback}`, err.message);
+                console.log(`[Explore] No profile for ${address}, using fallback: ${fallback}`);
                 return {
                   address,
                   username: fallback
@@ -107,10 +107,10 @@ const Explore = () => {
 
           // Use the most recent NFTs as "newly added" with real creator usernames
           const newlyAddedWithCreators = nftsData.slice(0, 12).map(nft => {
-            const nftOwner = nft.owner || nft.creator;
-            const creatorUsername = creatorMap.get(nftOwner) || nftOwner?.slice(0, 6) + '...' + nftOwner?.slice(-4) || 'Unknown Creator';
+            const nftSeller = nft.seller || nft.owner;
+            const creatorUsername = creatorMap.get(nftSeller) || nftSeller?.slice(0, 6) + '...' + nftSeller?.slice(-4) || 'Unknown Creator';
             
-            console.log(`[Explore] NFT "${nft.name}" owner=${nftOwner}, mapped username=${creatorUsername}`);
+            console.log(`[Explore] NFT "${nft.name}" seller=${nftSeller}, mapped username=${creatorUsername}`);
             
             return {
               ...nft,
@@ -135,19 +135,19 @@ const Explore = () => {
                   username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
                   avatar: profile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
                   bio: profile?.bio || 'NFT creator on Durchex',
-                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
                   followers: profile?.followers || 0,
                   verificationStatus: profile?.verificationStatus || null
                 };
               } catch (err) {
-                console.warn(`[Explore] Error fetching profile for ${address}:`, err.message);
+                console.log(`[Explore] No profile for ${address}, using defaults`);
                 return {
                   id: address,
                   walletAddress: address,
                   username: address.slice(0, 6) + '...' + address.slice(-4),
                   avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
                   bio: 'NFT creator on Durchex',
-                  nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
+                  nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
                   followers: 0,
                   verificationStatus: null
                 };
