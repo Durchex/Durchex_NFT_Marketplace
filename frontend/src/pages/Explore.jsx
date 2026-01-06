@@ -75,34 +75,54 @@ const Explore = () => {
           const creatorProfiles = await Promise.all(
             creatorAddresses.map(async (address) => {
               try {
+                console.log(`[Explore] Fetching profile for creator: ${address}`);
                 const profile = await userAPI.getUserProfile(address);
+                
+                const username = profile?.username || address.slice(0, 6) + '...' + address.slice(-4);
+                console.log(`[Explore] ✅ Got username for ${address}: ${username}`);
+                
                 return {
                   address,
-                  username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4)
+                  username: username
                 };
               } catch (err) {
+                const fallback = address.slice(0, 6) + '...' + address.slice(-4);
+                console.warn(`[Explore] ⚠️  Failed to fetch profile for ${address}, using fallback: ${fallback}`, err.message);
                 return {
                   address,
-                  username: address.slice(0, 6) + '...' + address.slice(-4)
+                  username: fallback
                 };
               }
             })
           );
 
+          console.log(`[Explore] Creator profiles fetched:`, creatorProfiles);
+
           // Create a map of address -> username for quick lookup
           const creatorMap = new Map();
           creatorProfiles.forEach(cp => {
             creatorMap.set(cp.address, cp.username);
+            console.log(`[Explore] Added to map: ${cp.address} => ${cp.username}`);
           });
 
           // Use the most recent NFTs as "newly added" with real creator usernames
-          setNewlyAddedNFTs(nftsData.slice(0, 12).map(nft => ({
-            ...nft,
-            addedAt: nft.createdAt || new Date().toISOString(),
-            timeAgo: 'Recently added',
-            creator: creatorMap.get(nft.owner) || creatorMap.get(nft.creator) || nft.owner?.slice(0, 6) + '...' + nft.owner?.slice(-4) || 'Unknown Creator',
-            description: nft.description || 'Newly listed NFT on Durchex marketplace.'
-          })));
+          const newlyAddedWithCreators = nftsData.slice(0, 12).map(nft => {
+            const nftOwner = nft.owner || nft.creator;
+            const creatorUsername = creatorMap.get(nftOwner) || nftOwner?.slice(0, 6) + '...' + nftOwner?.slice(-4) || 'Unknown Creator';
+            
+            console.log(`[Explore] NFT "${nft.name}" owner=${nftOwner}, mapped username=${creatorUsername}`);
+            
+            return {
+              ...nft,
+              addedAt: nft.createdAt || new Date().toISOString(),
+              timeAgo: 'Recently added',
+              creator: creatorUsername,
+              description: nft.description || 'Newly listed NFT on Durchex marketplace.'
+            };
+          });
+          
+          console.log(`[Explore] Newly added NFTs with creators:`, newlyAddedWithCreators);
+          setNewlyAddedNFTs(newlyAddedWithCreators);
 
           // Create full creator profiles for Top Creators section
           const fullCreatorProfiles = await Promise.all(
