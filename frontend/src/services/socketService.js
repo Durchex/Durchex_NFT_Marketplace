@@ -14,10 +14,19 @@ class SocketService {
       return this.socket;
     }
 
-    // Convert to HTTPS for production if page is HTTPS
+    // Convert to HTTPS/WSS for production if page is HTTPS
     let healthCheckUrl = serverUrl;
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && serverUrl.startsWith('http://')) {
-      healthCheckUrl = serverUrl.replace('http://', 'https://');
+    let socketUrl = serverUrl;
+    
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      if (serverUrl.startsWith('http://')) {
+        healthCheckUrl = serverUrl.replace('http://', 'https://');
+        socketUrl = serverUrl.replace('http://', 'https://');
+      }
+      // Ensure socket URL uses wss:// for HTTPS pages
+      if (socketUrl.startsWith('https://')) {
+        socketUrl = socketUrl.replace('https://', 'wss://');
+      }
     }
 
     // Check if backend server is running before attempting connection
@@ -28,7 +37,7 @@ class SocketService {
       }
 
       try {
-        this.socket = io(serverUrl, {
+        this.socket = io(socketUrl, {
           transports: ['websocket', 'polling'],
           timeout: 5000,
           forceNew: true,

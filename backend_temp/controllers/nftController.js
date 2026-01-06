@@ -1,17 +1,18 @@
 import { nftModel } from "../models/nftModel.js"; // adjust path accordingly
 
 export const checkNftExists = async (req, res) => {
-  const { itemId, network } = req.body;
-
-  if (!itemId || !network) {
-    return res.status(400).json({ error: "itemId and network are required" });
-  }
-
   try {
+    const { itemId, network } = req.body;
+
+    if (!itemId || !network) {
+      return res.status(400).json({ error: "itemId and network are required" });
+    }
+
     const nft = await nftModel.findOne({ itemId, network });
-    res.json({ exists: !!nft });
+    return res.json({ exists: !!nft });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error checking NFT existence:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
