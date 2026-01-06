@@ -197,11 +197,16 @@ function App() {
           Array.from(creatorAddresses).map(async (address) => {
             try {
               const userProfile = await userAPI.getUserProfile(address);
-                if (userProfile?.username) {
-                  // User has a profile with username
-                  return {
-                    ...creatorsMap[address],
-                    username: userProfile.username,
+              if (userProfile?.username) {
+                // User has a profile with username
+                return {
+                  ...creatorsMap[address],
+                  username: userProfile.username,
+                  avatar: userProfile.profileImage || creatorsMap[address].avatar,
+                  bio: userProfile.bio || creatorsMap[address].bio,
+                  email: userProfile.email
+                };
+              }
             } catch (err) {
               // User profile doesn't exist, use default
               console.log(`No profile for ${address}, using default`);
