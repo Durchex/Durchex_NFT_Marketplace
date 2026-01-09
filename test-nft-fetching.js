@@ -8,7 +8,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'http://durchex.com/api/v1'; // Change to localhost:5000 if testing locally
-const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base'];
+const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
 
 async function testNFTFetching() {
   console.log('\n🧪 Testing NFT Fetching Across Networks...\n');

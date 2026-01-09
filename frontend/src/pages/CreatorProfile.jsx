@@ -41,7 +41,7 @@ const CreatorProfile = () => {
 
       // Fetch all NFTs from all networks and filter by this creator
       let allNFTs = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
       for (const network of networks) {
         try {

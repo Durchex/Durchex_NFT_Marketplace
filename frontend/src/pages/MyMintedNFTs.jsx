@@ -36,6 +36,9 @@ function MyMintedNFTs() {
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ARBITRUM;
       case 'base':
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE;
+      case 'solana':
+        // Solana uses program ID instead of contract address
+        return import.meta.env.VITE_APP_NFTMARKETPLACE_PROGRAM_ID_SOLANA;
       case 'zksync':
         return import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ZKSYNC;
       default:

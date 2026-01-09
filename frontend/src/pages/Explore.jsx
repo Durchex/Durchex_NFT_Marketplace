@@ -38,7 +38,7 @@ const Explore = () => {
       try {
         // ✅ Fetch real NFTs from backend - try all networks
         let nftsData = [];
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
         
         for (const network of networks) {
           try {
@@ -215,7 +215,7 @@ const Explore = () => {
         // Refetch creators when new NFT is minted
         try {
           let nftsData = [];
-          const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+          const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
           
           for (const network of networks) {
             try {

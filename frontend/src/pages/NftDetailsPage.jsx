@@ -25,7 +25,7 @@ const NftDetailsPage = () => {
       let nftData = null;
       
       // Try to fetch from all networks by itemId or tokenId
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
       for (const network of networks) {
         try {

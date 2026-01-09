@@ -136,7 +136,7 @@ function App() {
   const fetchLatestNftsFromAllNetworks = async () => {
     try {
       let allNftsFromAllNetworks = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum'];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
       // Fetch NFTs from all networks
       for (const network of networks) {
