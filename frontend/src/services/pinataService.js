@@ -82,9 +82,8 @@ class PinataService {
       formData.append('pinataMetadata', metadata);
 
       // Use JWT token if available (more reliable), otherwise use API key/secret
-      const headers = {
-        'Content-Type': 'multipart/form-data'
-      };
+      // NOTE: Do NOT set Content-Type for FormData - let axios/browser set it with boundary
+      const headers = {};
 
       if (PINATA_JWT) {
         console.log('[Pinata] Using JWT token for authentication');
@@ -98,7 +97,7 @@ class PinataService {
         headers['pinata_secret_api_key'] = this.secretKey;
       }
 
-      console.log('[Pinata] Uploading image with headers:', Object.keys(headers));
+      console.log('[Pinata] Uploading image with auth headers:', Object.keys(headers).filter(k => k !== 'Authorization'));
 
       const response = await axios.post(
         `${this.baseURL}/pinning/pinFileToIPFS`,
