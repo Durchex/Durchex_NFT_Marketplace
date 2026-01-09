@@ -22,6 +22,7 @@ export default function Create() {
     { value: "arbitrum", label: "Arbitrum", symbol: "ETH" },
     { value: "bsc", label: "BSC", symbol: "BNB" },
     { value: "base", label: "Base", symbol: "ETH" },
+    { value: "solana", label: "Solana", symbol: "SOL" },
     { value: "zksync", label: "zkSync", symbol: "ETH" },
   ];
 
