@@ -7,8 +7,7 @@ export default defineConfig({
     global: "window",
     "process.env": {},
   },
-
-
+});
 
 // import { defineConfig } from 'vite'
 // import react from '@vitejs/plugin-react-swc'
