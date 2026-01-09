@@ -202,7 +202,7 @@ function App() {
                 return {
                   ...creatorsMap[address],
                   username: userProfile.username,
-                  avatar: userProfile.profileImage || creatorsMap[address].avatar,
+                  avatar: userProfile.image || creatorsMap[address].avatar,
                   bio: userProfile.bio || creatorsMap[address].bio,
                   email: userProfile.email
                 };

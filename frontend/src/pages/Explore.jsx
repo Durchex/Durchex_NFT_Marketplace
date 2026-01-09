@@ -72,7 +72,7 @@ const Explore = () => {
           const creatorAddresses = Array.from(uniqueCreators.keys()).slice(0, 8);
           console.log(`[Explore] Extracted ${creatorAddresses.length} unique creators from NFTs`);
 
-          // Fetch user profiles for creators to get real usernames
+          // Fetch user profiles for creators to get real usernames and profile pictures
           const creatorProfiles = await Promise.all(
             creatorAddresses.map(async (address) => {
               try {
@@ -80,18 +80,21 @@ const Explore = () => {
                 const profile = await userAPI.getUserProfile(address);
                 
                 const username = profile?.username || address.slice(0, 6) + '...' + address.slice(-4);
-                console.log(`[Explore] ✅ Got username for ${address}: ${username}`);
+                const profilePicture = profile?.image || null; // Get profile picture URL from 'image' field
+                console.log(`[Explore] ✅ Got profile for ${address}: ${username}, picture: ${profilePicture ? 'yes' : 'no'}`);
                 
                 return {
                   address,
-                  username: username
+                  username: username,
+                  profilePicture: profilePicture // Add profile picture
                 };
               } catch (err) {
                 const fallback = address.slice(0, 6) + '...' + address.slice(-4);
                 console.log(`[Explore] No profile for ${address}, using fallback: ${fallback}`);
                 return {
                   address,
-                  username: fallback
+                  username: fallback,
+                  profilePicture: null
                 };
               }
             })
@@ -99,25 +102,31 @@ const Explore = () => {
 
           console.log(`[Explore] Creator profiles fetched:`, creatorProfiles);
 
-          // Create a map of address -> username for quick lookup
+          // Create a map of address -> {username, profilePicture} for quick lookup
           const creatorMap = new Map();
           creatorProfiles.forEach(cp => {
-            creatorMap.set(cp.address, cp.username);
+            creatorMap.set(cp.address, { username: cp.username, profilePicture: cp.profilePicture });
+
             console.log(`[Explore] Added to map: ${cp.address} => ${cp.username}`);
           });
 
-          // Use the most recent NFTs as "newly added" with real creator usernames
+          // Use the most recent NFTs as "newly added" with real creator usernames and profile pictures
           const newlyAddedWithCreators = nftsData.slice(0, 12).map(nft => {
             const nftSeller = nft.seller || nft.owner;
-            const creatorUsername = creatorMap.get(nftSeller) || nftSeller?.slice(0, 6) + '...' + nftSeller?.slice(-4) || 'Unknown Creator';
+            const creatorData = creatorMap.get(nftSeller) || {
+              username: nftSeller?.slice(0, 6) + '...' + nftSeller?.slice(-4) || 'Unknown Creator',
+              profilePicture: null
+            };
             
-            console.log(`[Explore] NFT "${nft.name}" seller=${nftSeller}, mapped username=${creatorUsername}`);
+            console.log(`[Explore] NFT "${nft.name}" seller=${nftSeller}, mapped creator=${creatorData.username}, picture=${creatorData.profilePicture ? 'yes' : 'no'}`);
             
             return {
               ...nft,
               addedAt: nft.createdAt || new Date().toISOString(),
               timeAgo: 'Recently added',
-              creator: creatorUsername,
+              creator: creatorData.username,
+              creatorProfilePicture: creatorData.profilePicture,
+              creatorWallet: nftSeller,
               description: nft.description || 'Newly listed NFT on Durchex marketplace.'
             };
           });
@@ -135,7 +144,7 @@ const Explore = () => {
                     id: address,
                     walletAddress: address,
                     username: profile.username,
-                    avatar: profile.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                    avatar: profile.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
                     bio: profile.bio || 'NFT creator on Durchex',
                     nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
                     followers: profile.followers || 0,
@@ -226,7 +235,7 @@ const Explore = () => {
                   id: address,
                   walletAddress: address,
                   username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
-                  avatar: profile?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  avatar: profile?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
                   bio: profile?.bio || 'NFT creator on Durchex',
                   nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
                   followers: profile?.followers || 0,
@@ -437,7 +446,19 @@ const Explore = () => {
                         <p className="text-xs text-green-400 font-medium mb-1">{nft.timeAgo}</p>
                         <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">by {nft.creator}</span>
+                          <div className="flex items-center gap-2">
+                            {nft.creatorProfilePicture && (
+                              <img
+                                src={nft.creatorProfilePicture}
+                                alt={nft.creator}
+                                className="w-5 h-5 rounded-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span className="text-gray-400">by {nft.creator}</span>
+                          </div>
                           <span className="text-green-400 font-medium">{nft.price} ETH</span>
                         </div>
                       </div>
