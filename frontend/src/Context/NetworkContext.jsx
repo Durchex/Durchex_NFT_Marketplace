@@ -41,7 +41,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Ethereum", 
       symbol: "ETH", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png",
       chainId: 1,
       rpcUrl: "https://rpc.ankr.com/eth",
       blockExplorerUrl: "https://etherscan.io",
@@ -51,7 +51,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Polygon", 
       symbol: "MATIC", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      icon: "https://wallet-asset.matic.network/img/tokens/pol.svg",
       chainId: 137,
       rpcUrl: "https://rpc.ankr.com/polygon",
       blockExplorerUrl: "https://polygonscan.com",
@@ -61,7 +61,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "BSC", 
       symbol: "BNB", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGM0I5MDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png",
       chainId: 56,
       rpcUrl: "https://rpc.ankr.com/bsc",
       blockExplorerUrl: "https://bscscan.com",
@@ -71,7 +71,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Arbitrum", 
       symbol: "ARB", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMyQzJEMzAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0iIzAwQzVGRiIvPgo8L3N2Zz4K",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png",
       chainId: 42161,
       rpcUrl: "https://rpc.ankr.com/arbitrum",
       blockExplorerUrl: "https://arbiscan.io",
@@ -81,7 +81,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Optimism", 
       symbol: "OP", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNGQzAwMDEiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/optimism/info/logo.png",
       chainId: 10,
       rpcUrl: "https://rpc.ankr.com/optimism",
       blockExplorerUrl: "https://optimistic.etherscan.io",
@@ -91,7 +91,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Avalanche", 
       symbol: "AVAX", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNFODQyNDIiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png",
       chainId: 43114,
       rpcUrl: "https://rpc.ankr.com/avalanche",
       blockExplorerUrl: "https://snowtrace.io",
@@ -101,7 +101,7 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Tezos", 
       symbol: "XTZ", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM0MDQwNDAiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0iIzAwQzVGRiIvPgo8L3N2Zz4K",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tezos/info/logo.png",
       chainId: 1729, // Tezos Mainnet chain ID
       rpcUrl: "https://mainnet.api.tezos.com",
       blockExplorerUrl: "https://tzstats.com",
@@ -111,43 +111,34 @@ export const NetworkProvider = ({ children }) => {
     { 
       name: "Hyperliquid", 
       symbol: "HYPE", 
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMwMEZGNzciLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png",
       chainId: 999,
       rpcUrl: "https://rpc.hyperliquid.xyz/evm",
       blockExplorerUrl: "https://hypurrscan.io",
       isEVM: true,
       walletType: "evm"
     },
-    // Custom networks: SIU, Base, Monad
-    {
-      name: "SIU",
-      symbol: "SIU",
-      icon: "🔷",
-      chainId: parseInt(import.meta.env.VITE_SIU_CHAIN_ID || '9999', 10),
-      rpcUrl: import.meta.env.VITE_SIU_RPC_URL || 'https://rpc.siu.network', // Placeholder - needs actual RPC
-      blockExplorerUrl: import.meta.env.VITE_SIU_BLOCK_EXPLORER || 'https://explorer.siu.network', // Placeholder - needs actual explorer
-      isEVM: true,
-      walletType: 'evm'
-    },
-    {
+    { 
       name: "Base",
       symbol: "ETH",
-      icon: "🟦",
-      chainId: parseInt(import.meta.env.VITE_BASE_CHAIN_ID || '8453', 10),
-      rpcUrl: import.meta.env.VITE_BASE_RPC_URL || 'https://mainnet.base.org',
-      blockExplorerUrl: import.meta.env.VITE_BASE_BLOCK_EXPLORER || 'https://basescan.org',
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png",
+      chainId: 8453,
+      rpcUrl: "https://mainnet.base.org",
+      blockExplorerUrl: "https://basescan.org",
       isEVM: true,
-      walletType: 'evm'
+      walletType: "evm"
     },
-    {
-      name: "Monad",
-      symbol: "MON",
-      icon: "🟪",
-      chainId: parseInt(import.meta.env.VITE_MONAD_CHAIN_ID || '10143', 10),
-      rpcUrl: import.meta.env.VITE_MONAD_RPC_URL || 'https://mainnet-rpc.monad.xyz',
-      blockExplorerUrl: import.meta.env.VITE_MONAD_BLOCK_EXPLORER || 'https://monadexplorer.com',
-      isEVM: true,
-      walletType: 'evm'
+    { 
+      name: "Solana", 
+      symbol: "SOL", 
+      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png",
+      chainId: 101,
+      rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
+      blockExplorerUrl: import.meta.env.VITE_SOLANA_BLOCK_EXPLORER || "https://solscan.io",
+      isEVM: false,
+      walletType: "solana"
+    },
+  ];
     },
     {
       name: "Solana",
