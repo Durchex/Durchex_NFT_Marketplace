@@ -184,15 +184,22 @@ const NFTs = () => {
             <select
               value={filterNetwork}
               onChange={(e) => setFilterNetwork(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display"
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-display appearance-none"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                backgroundPosition: 'right 0.5rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.5em 1.5em',
+                paddingRight: '2.5rem'
+              }}
             >
               <option value="all">All Networks</option>
-              <option value="ethereum">Ethereum</option>
-              <option value="polygon">Polygon</option>
-              <option value="bsc">BSC</option>
-              <option value="arbitrum">Arbitrum</option>
-              <option value="base">Base</option>
-              <option value="solana">Solana</option>
+              <option value="ethereum">🔷 Ethereum</option>
+              <option value="polygon">🟣 Polygon</option>
+              <option value="bsc">🟡 BSC</option>
+              <option value="arbitrum">🔵 Arbitrum</option>
+              <option value="base">🔷 Base</option>
+              <option value="solana">💜 Solana</option>
             </select>
           </div>
         </div>
