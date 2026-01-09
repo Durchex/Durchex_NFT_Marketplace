@@ -98,8 +98,19 @@ export const fetchCollectionsGroupedByNetwork = async (req, res) => {
 export const fetchAllNftsByNetwork = async (req, res) => {
   const { network } = req.params;
   try {
-    // Return ALL NFTs on the network (regardless of listing status)
-    // so they show on Explore. Admin controls which are actually listed for sale.
+    // Only return NFTs that are currently listed (admin has approved for sale)
+    const nfts = await nftModel.find({ network, currentlyListed: true });
+    res.json(nfts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 2b. Fetch ALL NFTs for Explore page (regardless of listing status)
+export const fetchAllNftsByNetworkForExplore = async (req, res) => {
+  const { network } = req.params;
+  try {
+    // Return ALL NFTs so they show on Explore (admin moderates which are for sale)
     const nfts = await nftModel.find({ network });
     res.json(nfts);
   } catch (error) {

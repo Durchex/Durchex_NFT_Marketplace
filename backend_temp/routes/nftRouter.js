@@ -2,6 +2,7 @@ import express from "express";
 import {
   fetchCollectionsGroupedByNetwork,
   fetchAllNftsByNetwork,
+  fetchAllNftsByNetworkForExplore,
   fetchCollectionNfts,
   fetchSingleNft,
   fetchSingleNfts,
@@ -32,8 +33,11 @@ router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
 
 // Other example routes (you can add all you want similarly)
 
-// Get all NFTs on a network
+// Get all NFTs on a network (for marketplace - only listed)
 router.get("/nfts/:network", fetchAllNftsByNetwork);
+
+// Get all NFTs for Explore page (regardless of listing status - admin moderates)
+router.get("/nfts-explore/:network", fetchAllNftsByNetworkForExplore);
 
 // Get all NFTs in a specific collection on a network
 router.get("/nfts/:network/collection/:collection", fetchCollectionNfts);

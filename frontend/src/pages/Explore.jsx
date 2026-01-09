@@ -43,7 +43,8 @@ const Explore = () => {
         for (const network of networks) {
           try {
             console.log(`[Explore] Fetching NFTs from ${network}...`);
-            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+            // Use the explore endpoint to get ALL NFTs regardless of listing status
+            const networkNfts = await nftAPI.getAllNftsByNetworkForExplore(network);
             if (networkNfts && Array.isArray(networkNfts)) {
               console.log(`[Explore] Found ${networkNfts.length} NFTs on ${network}`);
               nftsData = [...nftsData, ...networkNfts];

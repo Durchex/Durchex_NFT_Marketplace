@@ -310,6 +310,16 @@ export const nftAPI = {
     }
   },
 
+  // Get all NFTs for Explore page (regardless of listing status)
+  getAllNftsByNetworkForExplore: async (network) => {
+    try {
+      const response = await api.get(`/nft/nfts-explore/${network}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get NFTs for explore: ${error.message}`);
+    }
+  },
+
   // Get NFT by MongoDB ID
   getNftById: async (id) => {
     try {
