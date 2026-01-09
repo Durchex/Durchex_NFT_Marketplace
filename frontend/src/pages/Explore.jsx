@@ -80,13 +80,14 @@ const Explore = () => {
                 const profile = await userAPI.getUserProfile(address);
                 
                 const username = profile?.username || address.slice(0, 6) + '...' + address.slice(-4);
-                const profilePicture = profile?.image || null; // Get profile picture URL from 'image' field
-                console.log(`[Explore] ✅ Got profile for ${address}: ${username}, picture: ${profilePicture ? 'yes' : 'no'}`);
+                // Use image if available, otherwise generate avatar from username
+                const profilePicture = profile?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+                console.log(`[Explore] ✅ Got profile for ${address}: ${username}, picture: ${profilePicture ? '✅ yes' : '❌ no'}`);
                 
                 return {
                   address,
                   username: username,
-                  profilePicture: profilePicture // Add profile picture
+                  profilePicture: profilePicture // Add profile picture (with fallback avatar)
                 };
               } catch (err) {
                 const fallback = address.slice(0, 6) + '...' + address.slice(-4);
@@ -94,7 +95,7 @@ const Explore = () => {
                 return {
                   address,
                   username: fallback,
-                  profilePicture: null
+                  profilePicture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallback}` // Fallback avatar based on address
                 };
               }
             })
@@ -447,16 +448,14 @@ const Explore = () => {
                         <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
-                            {nft.creatorProfilePicture && (
-                              <img
-                                src={nft.creatorProfilePicture}
-                                alt={nft.creator}
-                                className="w-5 h-5 rounded-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                }}
-                              />
-                            )}
+                          <img
+                            src={nft.creatorProfilePicture}
+                            alt={nft.creator}
+                            className="w-5 h-5 rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creator}`;
+                            }}
+                          />
                             <span className="text-gray-400">by {nft.creator}</span>
                           </div>
                           <span className="text-green-400 font-medium">{nft.price} ETH</span>

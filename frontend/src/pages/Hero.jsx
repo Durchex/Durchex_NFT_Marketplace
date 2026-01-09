@@ -202,7 +202,7 @@ function App() {
                 return {
                   ...creatorsMap[address],
                   username: userProfile.username,
-                  avatar: userProfile.image || creatorsMap[address].avatar,
+                  avatar: userProfile.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.username}`,
                   bio: userProfile.bio || creatorsMap[address].bio,
                   email: userProfile.email
                 };
