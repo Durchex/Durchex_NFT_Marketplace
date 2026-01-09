@@ -139,18 +139,6 @@ export const NetworkProvider = ({ children }) => {
       walletType: "solana"
     },
   ];
-    },
-    {
-      name: "Solana",
-      symbol: "SOL",
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM5QjhFREIiLz4KPHBhdGggZD0iTTE2IDRMMjggMTZMMTYgMjhMOCAxNkwxNiA0WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==",
-      chainId: 101, // Solana mainnet cluster ID
-      rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
-      blockExplorerUrl: import.meta.env.VITE_SOLANA_BLOCK_EXPLORER || 'https://solscan.io',
-      isEVM: false, // Solana is NOT EVM-compatible
-      walletType: 'solana' // Requires Phantom/Solflare wallet
-    },
-  ];
 
   const switchNetwork = async (network) => {
     try {
