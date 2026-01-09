@@ -147,7 +147,7 @@ export default function Create() {
           owner: address,
           seller: address,
           price: formNftData.price || '0',
-          currentlyListed: false,
+          currentlyListed: true, // ✅ Set to true so it appears on Explore
           name: formNftData.name || `NFT #${i + 1}`,
           description: formNftData.description,
           image: imageURLs[i],
