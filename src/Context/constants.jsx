@@ -30,6 +30,10 @@ export const PINATA_SECRET_KEY =
   import.meta.env.VITE_APP_PINATA_SECRET_KEY ||
   import.meta.env.VITE_APP_PINATA_SECRECT_KEY;
 
+export const PINATA_JWT =
+  import.meta.env.VITE_APP_PINATA_JWT_NEW ||
+  import.meta.env.VITE_PINATA_JWT;
+
 // Development mode flag
 export const IS_DEVELOPMENT = import.meta.env.DEV;
 export const CONTRACTS_DEPLOYED = ContractAddress && ContractAddress !== '0x0000000000000000000000000000000000000000' &&
