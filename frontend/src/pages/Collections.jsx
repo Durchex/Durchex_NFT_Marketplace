@@ -253,6 +253,8 @@ const Collections = () => {
             <option value="polygon">Polygon</option>
             <option value="bsc">BSC</option>
             <option value="arbitrum">Arbitrum</option>
+            <option value="base">Base</option>
+            <option value="solana">Solana</option>
           </select>
         </div>
 
