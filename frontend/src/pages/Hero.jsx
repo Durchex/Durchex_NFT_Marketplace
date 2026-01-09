@@ -199,10 +199,12 @@ function App() {
               const userProfile = await userAPI.getUserProfile(address);
               if (userProfile?.username) {
                 // User has a profile with username
+                // Priority: image -> avatar -> dicebear (same as Header.jsx)
+                const avatarUrl = userProfile.image || userProfile.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`;
                 return {
                   ...creatorsMap[address],
                   username: userProfile.username,
-                  avatar: userProfile.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.username}`,
+                  avatar: avatarUrl,
                   bio: userProfile.bio || creatorsMap[address].bio,
                   email: userProfile.email
                 };

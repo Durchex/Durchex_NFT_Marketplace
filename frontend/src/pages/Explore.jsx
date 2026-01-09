@@ -73,29 +73,41 @@ const Explore = () => {
           console.log(`[Explore] Extracted ${creatorAddresses.length} unique creators from NFTs`);
 
           // Fetch user profiles for creators to get real usernames and profile pictures
+          // Using the same pattern as Header.jsx avatarUrl logic
           const creatorProfiles = await Promise.all(
             creatorAddresses.map(async (address) => {
               try {
                 console.log(`[Explore] Fetching profile for creator: ${address}`);
                 const profile = await userAPI.getUserProfile(address);
+                console.log(`[Explore] Profile data for ${address}:`, profile);
                 
                 const username = profile?.username || address.slice(0, 6) + '...' + address.slice(-4);
-                // Use image if available, otherwise generate avatar from username
-                const profilePicture = profile?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-                console.log(`[Explore] ✅ Got profile for ${address}: ${username}, picture: ${profilePicture ? '✅ yes' : '❌ no'}`);
+                
+                // Priority: image -> avatar -> dicebear (same as Header.jsx)
+                let profilePicture;
+                if (profile?.image) {
+                  profilePicture = profile.image;
+                  console.log(`[Explore] ✅ Using profile.image for ${address}: ${profilePicture}`);
+                } else if (profile?.avatar) {
+                  profilePicture = profile.avatar;
+                  console.log(`[Explore] ✅ Using profile.avatar for ${address}: ${profilePicture}`);
+                } else {
+                  profilePicture = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+                  console.log(`[Explore] Using generated avatar for ${address}`);
+                }
                 
                 return {
                   address,
                   username: username,
-                  profilePicture: profilePicture // Add profile picture (with fallback avatar)
+                  profilePicture: profilePicture
                 };
               } catch (err) {
                 const fallback = address.slice(0, 6) + '...' + address.slice(-4);
-                console.log(`[Explore] No profile for ${address}, using fallback: ${fallback}`);
+                console.log(`[Explore] No profile for ${address}, error: ${err.message}`);
                 return {
                   address,
                   username: fallback,
-                  profilePicture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallback}` // Fallback avatar based on address
+                  profilePicture: `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`
                 };
               }
             })
@@ -145,7 +157,7 @@ const Explore = () => {
                     id: address,
                     walletAddress: address,
                     username: profile.username,
-                    avatar: profile.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                    avatar: profile.image || profile.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`,
                     bio: profile.bio || 'NFT creator on Durchex',
                     nftCount: nftsData.filter(nft => (nft.seller || nft.owner) === address).length,
                     followers: profile.followers || 0,
@@ -236,7 +248,7 @@ const Explore = () => {
                   id: address,
                   walletAddress: address,
                   username: profile?.username || address.slice(0, 6) + '...' + address.slice(-4),
-                  avatar: profile?.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`,
+                  avatar: profile?.image || profile?.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${address}`,
                   bio: profile?.bio || 'NFT creator on Durchex',
                   nftCount: nftsData.filter(nft => (nft.creator || nft.owner) === address).length,
                   followers: profile?.followers || 0,
