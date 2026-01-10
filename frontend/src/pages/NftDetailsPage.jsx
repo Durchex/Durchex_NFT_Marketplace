@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2 } from 'react-icons/fi';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import { nftAPI } from '../services/api';
 
@@ -11,10 +12,46 @@ const NftDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
+  const [priceData, setPriceData] = useState([]);
+  const [tradeData, setTradeData] = useState([]);
 
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
+
+  // Generate simulated price movement data
+  const generatePriceData = (basePrice = 1.5) => {
+    const data = [];
+    let currentPrice = parseFloat(basePrice);
+    for (let i = 0; i < 24; i++) {
+      const change = (Math.random() - 0.48) * 0.15; // Slight upward bias
+      currentPrice = Math.max(currentPrice + change, currentPrice * 0.85);
+      data.push({
+        time: `${i}:00`,
+        price: parseFloat(currentPrice.toFixed(4)),
+        volume: Math.floor(Math.random() * 50 + 10)
+      });
+    }
+    return data;
+  };
+
+  // Generate simulated trading activity
+  const generateTradeData = () => {
+    const traders = ['0x742d...', '0x8a5f...', '0x3c2b...', '0x9e1f...', '0x4d8c...'];
+    const trades = [];
+    for (let i = 0; i < 8; i++) {
+      const isBuy = Math.random() > 0.5;
+      trades.push({
+        id: i,
+        trader: traders[Math.floor(Math.random() * traders.length)],
+        type: isBuy ? 'Buy' : 'Sell',
+        price: (Math.random() * 0.5 + 1.2).toFixed(4),
+        quantity: Math.floor(Math.random() * 3 + 1),
+        time: `${Math.floor(Math.random() * 60)}m ago`
+      });
+    }
+    return trades;
+  };
 
   const fetchNftDetails = async () => {
     try {
@@ -60,6 +97,9 @@ const NftDetailsPage = () => {
       }
 
       setNft(nftData);
+      // Generate simulated trading data
+      setPriceData(generatePriceData(parseFloat(nftData.price) || 1.5));
+      setTradeData(generateTradeData());
     } catch (err) {
       console.error('Error fetching NFT details:', err);
       setError('Failed to load NFT details. Please try again.');
@@ -252,6 +292,137 @@ const NftDetailsPage = () => {
               <button className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors">
                 Make an Offer
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Market Analytics & Price Chart Section */}
+        <div className="mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left: Market Analytics */}
+            <div className="lg:col-span-1">
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <FiBarChart2 className="text-purple-400" />
+                  Market Analytics
+                </h2>
+
+                {/* Floor Price */}
+                <div className="mb-6 pb-6 border-b border-gray-700">
+                  <div className="text-sm text-gray-400 mb-2">Floor Price</div>
+                  <div className="flex items-end gap-2">
+                    <div className="text-2xl font-bold text-green-400">
+                      {parseFloat(nft.price || 1.5).toFixed(4)} ETH
+                    </div>
+                    <div className="flex items-center gap-1 text-green-400 text-sm mb-1">
+                      <FiTrendingUp className="w-4 h-4" />
+                      +2.5%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collection Stats */}
+                <div className="mb-6 pb-6 border-b border-gray-700">
+                  <div className="text-sm text-gray-400 mb-3">Collection Stats</div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">24h Volume</span>
+                      <span className="font-semibold">{(Math.random() * 50 + 20).toFixed(2)} ETH</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">24h Sales</span>
+                      <span className="font-semibold">{Math.floor(Math.random() * 15 + 5)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Collection Size</span>
+                      <span className="font-semibold">{Math.floor(Math.random() * 5000 + 1000)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Owners</span>
+                      <span className="font-semibold">{Math.floor(Math.random() * 800 + 200)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rarity Rank */}
+                <div>
+                  <div className="text-sm text-gray-400 mb-3">Rarity Rank</div>
+                  <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-lg p-4 border border-purple-500/30">
+                    <div className="text-3xl font-bold text-purple-400 mb-1">
+                      #{Math.floor(Math.random() * 500 + 1)}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Rarity Score: {(Math.random() * 40 + 60).toFixed(1)}/100
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Price Chart & Trading Activity */}
+            <div className="lg:col-span-2">
+              {/* Price Movement Chart */}
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6 mb-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <FiTrendingUp className="text-blue-400" />
+                  Price Movement (24h)
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={priceData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="time" stroke="#666" />
+                    <YAxis stroke="#666" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #666' }}
+                      formatter={(value) => `${value.toFixed(4)} ETH`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="price" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Trading Activity */}
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <FiUser className="text-green-400" />
+                  Recent Trading Activity
+                </h2>
+                <div className="space-y-3">
+                  {tradeData.map((trade) => (
+                    <div key={trade.id} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                          trade.type === 'Buy' 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {trade.type}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-300">{trade.trader}</div>
+                          <div className="text-xs text-gray-500">{trade.time}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-white">{trade.price} ETH</div>
+                        <div className="text-xs text-gray-400">x{trade.quantity}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <button className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors">
+                    View All Transactions →
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
