@@ -4,10 +4,11 @@ import LoadingNFTRow from "../components/LoadingNftRow";
 import { ICOContent } from "../Context/index";
 import Footer from "../FooterComponents/Footer";
 import socketService from "../services/socketService";
-import { FiCheck, FiStar } from "react-icons/fi";
+import { FiCheck, FiStar, FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
 import { nftAPI, userAPI } from "../services/api";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 import SlidingContainer from "../components/SlindingContainer";
 import { nftCollections } from "../utils";
@@ -48,6 +49,21 @@ const generateMockCreators = (count = 8) => {
       followers: Math.floor(Math.random() * 10000) + 100
     };
   });
+};
+
+// Generate mini chart data for NFT cards
+const generateMiniChartData = (basePrice = 1.5) => {
+  const data = [];
+  let currentPrice = parseFloat(basePrice);
+  for (let i = 0; i < 7; i++) {
+    const change = (Math.random() - 0.45) * 0.1;
+    currentPrice = Math.max(currentPrice + change, currentPrice * 0.9);
+    data.push({
+      time: i,
+      price: parseFloat(currentPrice.toFixed(4))
+    });
+  }
+  return data;
 };
 
 function App() {
@@ -577,39 +593,69 @@ function App() {
 
             {/* Top NFTs List */}
             <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
-              {allNfts && allNfts.slice(0, 8).map((nft, index) => (
-                <Link
-                  key={nft.itemId || index}
-                  to={`/nft/${nft.itemId}`}
-                  className="block bg-gray-900/50 rounded-xl p-4 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:bg-gray-900/70"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="relative">
-                      <img
-                        src={nft.image}
-                        alt={nft.name || `NFT ${index + 1}`}
-                        className="w-12 h-12 rounded-lg object-cover border-2 border-gray-700"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute -top-2 -left-2 bg-purple-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                        {index + 1}
+              {allNfts && allNfts.slice(0, 8).map((nft, index) => {
+                const chartData = generateMiniChartData(parseFloat(nft.price) || 1.5);
+                const priceChange = ((Math.random() - 0.45) * 10).toFixed(2);
+                const isPositive = priceChange > 0;
+                
+                return (
+                  <Link
+                    key={nft.itemId || index}
+                    to={`/nft/${nft.itemId}`}
+                    className="block bg-gray-900/50 rounded-xl p-4 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:bg-gray-900/70"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="relative">
+                        <img
+                          src={nft.image}
+                          alt={nft.name || `NFT ${index + 1}`}
+                          className="w-12 h-12 rounded-lg object-cover border-2 border-gray-700"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute -top-2 -left-2 bg-purple-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                          {index + 1}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-white truncate text-sm">{nft.name || `NFT #${index + 1}`}</h3>
+                        </div>
+                        <p className="text-gray-400 text-xs truncate mb-2">{nft.collection || "Collection"}</p>
+                        
+                        {/* Mini Chart */}
+                        <div className="mb-2 h-8 -mx-2">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 2, right: 5, left: -25, bottom: 0 }}>
+                              <Line 
+                                type="monotone" 
+                                dataKey="price" 
+                                stroke={isPositive ? "#10b981" : "#ef4444"} 
+                                strokeWidth={1.5}
+                                dot={false}
+                                isAnimationActive={false}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        
+                        {/* Analytics Row */}
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400">{nft.price ? `${parseFloat(nft.price) / 1e18}` : "0.00"} ETH</span>
+                            <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded ${isPositive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                              {isPositive ? <FiTrendingUp className="w-3 h-3" /> : <FiTrendingDown className="w-3 h-3" />}
+                              <span className="font-semibold text-xs">{Math.abs(priceChange)}%</span>
+                            </div>
+                          </div>
+                          <span className="text-gray-500">Vol: {(Math.random() * 10 + 2).toFixed(1)}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-white truncate text-sm">{nft.name || `NFT #${index + 1}`}</h3>
-                      </div>
-                      <p className="text-gray-400 text-xs truncate mb-2">{nft.collection || "Collection"}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>{nft.price ? `${parseFloat(nft.price) / 1e18} ETH` : "0.00 ETH"}</span>
-                        <span>#{index + 1}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
 
               {(!allNfts || allNfts.length === 0) && (
                 <div className="text-center py-8 text-gray-400">
