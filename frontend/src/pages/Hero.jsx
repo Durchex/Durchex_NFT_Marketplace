@@ -80,8 +80,8 @@ function App() {
   const [dummyAllNFTs, setDummyAllNFTs] = useState(nftCollections);
   const [singleNfts, setSingleNfts] = useState([]);
   const [allNfts, setallNfts] = useState([]);
-  // Fallback: use local dummy NFTs when backend returns empty
-  const displayedAllNfts = (allNfts && allNfts.length > 0) ? allNfts : dummyAllNFTs;
+  // Only display real NFTs from backend - no dummy data fallback
+  const displayedAllNfts = allNfts && allNfts.length > 0 ? allNfts : [];
   console.log("🚀 ~ App ~ allNfts:", allNfts);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMoreNFTs, setHasMoreNFTs] = useState(true);
@@ -555,8 +555,13 @@ function App() {
                   );
                 })()
               ) : (
-                <div className="w-full h-full text-center py-12 text-gray-400 flex items-center justify-center">
-                  <p>No NFTs available yet</p>
+                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-700 animate-pulse flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <div className="inline-block">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-purple-500 mx-auto"></div>
+                    </div>
+                    <p className="text-gray-400 text-sm">Loading NFTs...</p>
+                  </div>
                 </div>
               )}
               
