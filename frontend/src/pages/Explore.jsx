@@ -385,13 +385,13 @@ const Explore = () => {
                       className="flex-shrink-0 w-[280px] sm:w-[320px] md:w-[360px] group"
                     >
                       <div className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105">
-                        <div className="relative aspect-square overflow-hidden">
+                        <div className="relative aspect-square overflow-hidden bg-gray-800">
                           <img
                             src={nft.image}
                             alt={nft.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             onError={(e) => {
-                              e.target.src = `https://picsum.photos/400/400?random=${idx}`;
+                              e.target.style.display = 'none';
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -444,13 +444,13 @@ const Explore = () => {
                   to={`/nft/${nft.itemId}`}
                   className="group block bg-gray-900/50 rounded-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-t-xl">
+                  <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gray-800">
                     <img
                       src={nft.image}
                       alt={nft.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
-                        e.target.src = `https://picsum.photos/300/300?random=${nft.id}`;
+                        e.target.style.display = 'none';
                       }}
                     />
                     {/* Overlay with details on hover */}
