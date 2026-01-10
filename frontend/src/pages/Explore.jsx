@@ -357,10 +357,10 @@ const Explore = () => {
       <Header />
       
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Two Column Flex Layout */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full">
-          {/* Column 1: Popular NFTs Slider (Larger) */}
-          <div className="w-full lg:w-[65%] lg:flex-[3]">
+        {/* Three Column Flex Layout - Hero Section */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 w-full mb-12">
+          {/* Column 1: Popular NFTs Slider */}
+          <div className="w-full lg:w-[35%]">
             <div className="mb-6">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-300 bg-clip-text text-transparent">
                 Most Popular NFTs
@@ -439,112 +439,19 @@ const Explore = () => {
             </div>
           </div>
 
-          {/* Analytics Section - Full Width */}
-          <div className="w-full mt-8 mb-8">
+          {/* Column 2: Top NFTs Table */}
+          <div className="w-full lg:w-[35%]">
+            <div className="mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
+                Top NFTs
+              </h2>
+              <p className="text-gray-400 text-sm">Trending NFTs on Durchex</p>
+            </div>
             <NFTAnalyticsSection />
           </div>
 
-          {/* Newly Added NFTs Section - Full Width */}
-          <div className="w-full mt-12 mb-8">
-            <div className="mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-300 bg-clip-text text-transparent">
-                Newly Added NFTs
-              </h2>
-              <p className="text-gray-400 text-sm">Fresh listings on Durchex - discover the latest additions</p>
-            </div>
-
-            {/* Newly Added NFTs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {displayedNewlyAddedNFTs && displayedNewlyAddedNFTs.length > 0 ? (
-                displayedNewlyAddedNFTs.map((nft) => (
-                  <Link
-                    key={nft.id}
-                    to={`/nft/${nft.itemId}`}
-                    className="group block bg-gray-900/50 rounded-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
-                  >
-                    <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gray-800">
-                      <img
-                        src={nft.image}
-                        alt={nft.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      {/* Overlay with details on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                        <div className="text-white">
-                          <p className="text-xs text-green-400 font-medium mb-1">{nft.timeAgo}</p>
-                          <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                            <img
-                              src={nft.creatorProfilePicture}
-                              alt={nft.creator}
-                              className="w-5 h-5 rounded-full object-cover"
-                              onError={(e) => {
-                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creator}`;
-                              }}
-                            />
-                              <span className="text-gray-400">by {nft.creator}</span>
-                            </div>
-                            <span className="text-green-400 font-medium">{nft.price} ETH</span>
-                          </div>
-                        </div>
-                      </div>
-                      {/* New badge */}
-                      <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-90">
-                        NEW
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-semibold text-white text-sm truncate mb-1 group-hover:text-green-400 transition-colors">
-                        {nft.name}
-                      </h3>
-                      <p className="text-gray-400 text-xs truncate mb-2">{nft.collection}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <FiStar className="text-yellow-400" />
-                            {nft.likes}
-                          </span>
-                          <span>{nft.views} views</span>
-                        </div>
-                        <span className="text-green-400 font-medium">{nft.price} ETH</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                /* Loading Skeleton Grid */
-                Array(6).fill(0).map((_, idx) => (
-                  <div key={idx} className="group block bg-gray-900/50 rounded-xl border border-gray-800 animate-pulse">
-                    <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gradient-to-br from-gray-800 to-gray-700" />
-                    <div className="p-3 space-y-2">
-                      <div className="h-3 bg-gray-700 rounded w-3/4"></div>
-                      <div className="h-2 bg-gray-700 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* View All Button */}
-            <div className="text-center mt-8">
-              <Link
-                to="/explore/all"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
-              >
-                View All Newly Added NFTs
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-          {/* Column 2: Creators List (Smaller) */}
-          <div className="w-full lg:w-[35%] lg:flex-1 lg:max-w-sm">
+          {/* Column 3: Creators List */}
+          <div className="w-full lg:w-[30%]">
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-300 bg-clip-text text-transparent">
@@ -625,6 +532,105 @@ const Explore = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Newly Added NFTs Section - Full Width */}
+        <div className="w-full mt-12 mb-8">
+          <div className="mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-300 bg-clip-text text-transparent">
+              Newly Added NFTs
+            </h2>
+            <p className="text-gray-400 text-sm">Fresh listings on Durchex - discover the latest additions</p>
+          </div>
+
+          {/* Newly Added NFTs Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {displayedNewlyAddedNFTs && displayedNewlyAddedNFTs.length > 0 ? (
+                displayedNewlyAddedNFTs.map((nft) => (
+                  <Link
+                    key={nft.id}
+                    to={`/nft/${nft.itemId}`}
+                    className="group block bg-gray-900/50 rounded-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/20"
+                  >
+                    <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gray-800">
+                      <img
+                        src={nft.image}
+                        alt={nft.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      {/* Overlay with details on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+                        <div className="text-white">
+                          <p className="text-xs text-green-400 font-medium mb-1">{nft.timeAgo}</p>
+                          <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                            <img
+                              src={nft.creatorProfilePicture}
+                              alt={nft.creator}
+                              className="w-5 h-5 rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creator}`;
+                              }}
+                            />
+                              <span className="text-gray-400">by {nft.creator}</span>
+                            </div>
+                            <span className="text-green-400 font-medium">{nft.price} ETH</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* New badge */}
+                      <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-90">
+                        NEW
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-semibold text-white text-sm truncate mb-1 group-hover:text-green-400 transition-colors">
+                        {nft.name}
+                      </h3>
+                      <p className="text-gray-400 text-xs truncate mb-2">{nft.collection}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1">
+                            <FiStar className="text-yellow-400" />
+                            {nft.likes}
+                          </span>
+                          <span>{nft.views} views</span>
+                        </div>
+                        <span className="text-green-400 font-medium">{nft.price} ETH</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                /* Loading Skeleton Grid */
+                Array(6).fill(0).map((_, idx) => (
+                  <div key={idx} className="group block bg-gray-900/50 rounded-xl border border-gray-800 animate-pulse">
+                    <div className="relative aspect-square overflow-hidden rounded-t-xl bg-gradient-to-br from-gray-800 to-gray-700" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3 bg-gray-700 rounded w-3/4"></div>
+                      <div className="h-2 bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+          {/* View All Button */}
+          <div className="text-center mt-8">
+              <Link
+                to="/explore/all"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-green-500/25"
+              >
+                View All Newly Added NFTs
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
           </div>
         </div>
       </main>
