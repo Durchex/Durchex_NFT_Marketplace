@@ -344,15 +344,15 @@ const NftDetailsPage = () => {
                   </div>
                 </div>
 
-                {/* Rarity Rank */}
+                {/* Durchex Rank */}
                 <div>
-                  <div className="text-sm text-gray-400 mb-3">Rarity Rank</div>
+                  <div className="text-sm text-gray-400 mb-3">Durchex Rank</div>
                   <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-lg p-4 border border-purple-500/30">
                     <div className="text-3xl font-bold text-purple-400 mb-1">
                       #{Math.floor(Math.random() * 500 + 1)}
                     </div>
                     <div className="text-sm text-gray-400">
-                      Rarity Score: {(Math.random() * 40 + 60).toFixed(1)}/100
+                      Ranking Score: {(Math.random() * 40 + 60).toFixed(1)}/100
                     </div>
                   </div>
                 </div>
