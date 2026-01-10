@@ -12,12 +12,14 @@ const CreatorProfile = () => {
   const navigate = useNavigate();
   const [creator, setCreator] = useState(null);
   const [creatorNFTs, setCreatorNFTs] = useState([]);
+  const [creatorCollections, setCreatorCollections] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [activeTab, setActiveTab] = useState('nfts');
 
   useEffect(() => {
     fetchCreatorProfile();
+    fetchCreatorCollections();
   }, [walletAddress]);
 
   const fetchCreatorProfile = async () => {
@@ -74,6 +76,23 @@ const CreatorProfile = () => {
       toast.error('Failed to load creator profile');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCreatorCollections = async () => {
+    try {
+      // Fetch all collections and filter by creator
+      const allCollections = await nftAPI.getCollections?.();
+      if (Array.isArray(allCollections)) {
+        const creatorCollectionsFiltered = allCollections.filter(
+          collection => collection.creator?.toLowerCase() === walletAddress?.toLowerCase()
+        );
+        setCreatorCollections(creatorCollectionsFiltered);
+        console.log(`[CreatorProfile] Found ${creatorCollectionsFiltered.length} collections for creator ${walletAddress}`);
+      }
+    } catch (error) {
+      console.error('[CreatorProfile] Error fetching collections:', error);
+      setCreatorCollections([]);
     }
   };
 
@@ -193,8 +212,8 @@ const CreatorProfile = () => {
                   <div className="text-gray-400 text-sm">Listed NFTs</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-purple-400">0</div>
-                  <div className="text-gray-400 text-sm">Followers</div>
+                  <div className="text-2xl font-bold text-purple-400">{creatorCollections.length}</div>
+                  <div className="text-gray-400 text-sm">Collections</div>
                 </div>
               </div>
             </div>
@@ -223,69 +242,137 @@ const CreatorProfile = () => {
           >
             Listed ({creatorNFTs.filter(nft => nft.currentlyListed).length})
           </button>
+          <button
+            onClick={() => setActiveTab('collections')}
+            className={`px-6 py-4 font-semibold transition ${
+              activeTab === 'collections'
+                ? 'text-purple-400 border-b-2 border-purple-400'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Collections ({creatorCollections.length})
+          </button>
         </div>
 
-        {/* NFTs Grid */}
+        {/* NFTs/Collections Grid */}
         <div>
-          {creatorNFTs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">
-                {activeTab === 'nfts' 
-                  ? 'No NFTs created yet' 
-                  : 'No NFTs listed yet'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {(activeTab === 'listed' 
-                ? creatorNFTs.filter(nft => nft.currentlyListed)
-                : creatorNFTs
-              ).map((nft, index) => (
-                <Link
-                  key={nft._id || index}
-                  to={`/nft/${nft.itemId}`}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
-                    {/* NFT Image */}
-                    <div className="relative w-full aspect-square overflow-hidden bg-gray-800">
-                      <img
-                        src={nft.image}
-                        alt={nft.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
-                      {/* Listed Badge */}
-                      {nft.currentlyListed && (
-                        <div className="absolute top-2 right-2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                          Listed
-                        </div>
-                      )}
-                    </div>
+          {activeTab === 'collections' ? (
+            // Collections Tab
+            creatorCollections.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 mb-4">No collections created yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {creatorCollections.map((collection, index) => (
+                  <Link
+                    key={collection._id || index}
+                    to={`/collection/${collection._id}`}
+                    className="group"
+                  >
+                    <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+                      {/* Collection Image */}
+                      <div className="relative w-full aspect-video overflow-hidden bg-gray-800">
+                        <img
+                          src={collection.image}
+                          alt={collection.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
 
-                    {/* NFT Info */}
-                    <div className="p-4">
-                      <h3 className="font-semibold text-white mb-1 truncate group-hover:text-purple-400 transition">
-                        {nft.name}
-                      </h3>
-                      <p className="text-gray-400 text-sm mb-3 truncate">
-                        {nft.collection || 'Collection'}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">
-                          {nft.price ? `${(parseFloat(nft.price) / 1e18).toFixed(4)} ETH` : 'N/A'}
-                        </span>
-                        <span className="text-purple-400">View →</span>
+                      {/* Collection Info */}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-white mb-1 truncate group-hover:text-purple-400 transition">
+                          {collection.name}
+                        </h3>
+                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                          {collection.description || 'Collection'}
+                        </p>
+                        <div className="flex items-center justify-between text-sm mb-3">
+                          <span className="text-gray-500">
+                            {collection.nftCount || 0} items
+                          </span>
+                          <span className="text-purple-400 text-xs px-2 py-1 bg-purple-900/30 rounded">
+                            {collection.network || 'ethereum'}
+                          </span>
+                        </div>
+                        {collection.floorPrice && (
+                          <div className="text-sm text-purple-300 font-semibold">
+                            Floor: {collection.floorPrice} ETH
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )
+          ) : (
+            // NFTs Tab
+            creatorNFTs.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-400 mb-4">
+                  {activeTab === 'nfts' 
+                    ? 'No NFTs created yet' 
+                    : 'No NFTs listed yet'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {(activeTab === 'listed' 
+                  ? creatorNFTs.filter(nft => nft.currentlyListed)
+                  : creatorNFTs
+                ).map((nft, index) => (
+                  <Link
+                    key={nft._id || index}
+                    to={`/nft/${nft.itemId}`}
+                    className="group"
+                  >
+                    <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+                      {/* NFT Image */}
+                      <div className="relative w-full aspect-square overflow-hidden bg-gray-800">
+                        <img
+                          src={nft.image}
+                          alt={nft.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {/* Listed Badge */}
+                        {nft.currentlyListed && (
+                          <div className="absolute top-2 right-2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                            Listed
+                          </div>
+                        )}
+                      </div>
+
+                      {/* NFT Info */}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-white mb-1 truncate group-hover:text-purple-400 transition">
+                          {nft.name}
+                        </h3>
+                        <p className="text-gray-400 text-sm mb-3 truncate">
+                          {nft.collection || 'Collection'}
+                        </p>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">
+                            {nft.price ? `${(parseFloat(nft.price) / 1e18).toFixed(4)} ETH` : 'N/A'}
+                          </span>
+                          <span className="text-purple-400">View →</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )
           )}
         </div>
       </main>

@@ -456,6 +456,85 @@ export const nftAPI = {
       return [];
     }
   },
+
+  // ============ COLLECTION METHODS ============
+  
+  // Create a new collection
+  createCollection: async (collectionData) => {
+    try {
+      const response = await api.post('/nft/collections', collectionData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create collection:', error);
+      throw new Error(`Failed to create collection: ${error.message}`);
+    }
+  },
+
+  // Get a single collection by ID
+  getCollection: async (collectionId) => {
+    try {
+      const response = await api.get(`/nft/collections/${collectionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get collection:', error);
+      throw new Error(`Failed to get collection: ${error.message}`);
+    }
+  },
+
+  // Get all NFTs in a collection
+  getCollectionNFTs: async (collectionId) => {
+    try {
+      const response = await api.get(`/nft/collections/${collectionId}/nfts`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get collection NFTs:', error);
+      throw new Error(`Failed to get collection NFTs: ${error.message}`);
+    }
+  },
+
+  // Update a collection
+  updateCollection: async (collectionId, collectionData) => {
+    try {
+      const response = await api.patch(`/nft/collections/${collectionId}`, collectionData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update collection:', error);
+      throw new Error(`Failed to update collection: ${error.message}`);
+    }
+  },
+
+  // Delete a collection
+  deleteCollection: async (collectionId) => {
+    try {
+      const response = await api.delete(`/nft/collections/${collectionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to delete collection:', error);
+      throw new Error(`Failed to delete collection: ${error.message}`);
+    }
+  },
+
+  // Get user's collections
+  getUserCollections: async (walletAddress) => {
+    try {
+      const response = await api.get(`/nft/user-collections/${walletAddress}`);
+      return response.data.collections || [];
+    } catch (error) {
+      console.error('Failed to fetch user collections:', error);
+      return [];
+    }
+  },
+
+  // Get all collections (for Collections page)
+  getCollections: async () => {
+    try {
+      const response = await api.get('/nft/collections');
+      return response.data.collections || [];
+    } catch (error) {
+      console.error('Failed to fetch all collections:', error);
+      return [];
+    }
+  },
 };
 
 // Cart API functions

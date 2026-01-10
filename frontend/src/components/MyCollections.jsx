@@ -1,13 +1,18 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ICOContent } from "../Context/index.jsx";
 
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import LoadingNFTRow from "../components/LoadingNftRow.jsx";
 import { formatPrice, getCurrencySymbol } from "../Context/constants.jsx";
+import { nftAPI } from "../services/api";
+import { FiArrowRight, FiTrash2, FiEdit2 } from "react-icons/fi";
 
 const MyCollections = ({ placeholder }) => {
+  const navigate = useNavigate();
   const contexts = useContext(ICOContent);
+  const { address } = contexts || {};
   const {
     tokenURI,
     delistNFTs,
@@ -16,6 +21,11 @@ const MyCollections = ({ placeholder }) => {
     getMyNFTs,
     selectedChain
   } = contexts;
+  
+  // Collections state
+  const [collections, setCollections] = useState([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
+  
   const [myNFTs, setMyNFTs] = useState([]);
   console.log("🚀 ~ MyCollections ~ myNFTs:", myNFTs);
   const [loading, setLoading] = useState(true);
@@ -25,6 +35,45 @@ const MyCollections = ({ placeholder }) => {
   const [selectedNFT, setSelectedNFT] = useState(null);
   console.log("🚀 ~ MyCollections ~ selectedNFT:", selectedNFT);
   const [newPrice, setNewPrice] = useState("");
+
+  // Fetch user collections
+  useEffect(() => {
+    fetchCollections();
+  }, [address]);
+
+  const fetchCollections = async () => {
+    if (!address) {
+      setCollectionsLoading(false);
+      return;
+    }
+
+    try {
+      setCollectionsLoading(true);
+      const data = await nftAPI.getUserCollections(address);
+      setCollections(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+      setCollections([]);
+    } finally {
+      setCollectionsLoading(false);
+    }
+  };
+
+  const handleDeleteCollection = async (collectionId, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this collection?")) {
+      return;
+    }
+
+    try {
+      await nftAPI.deleteCollection(collectionId);
+      setCollections(collections.filter(c => c._id !== collectionId));
+      SuccessToast("Collection deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting collection:", error);
+      ErrorToast("Failed to delete collection");
+    }
+  };
 
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -171,6 +220,113 @@ const MyCollections = ({ placeholder }) => {
 
   return (
     <div className="px-12 py-6">
+      {/* Collections Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">My Collections</h2>
+        
+        {collectionsLoading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : collections.length === 0 ? (
+          <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800">
+            <p className="text-gray-400 mb-4">You haven't created any collections yet.</p>
+            <button
+              onClick={() => navigate("/create")}
+              className="inline-block bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition-colors"
+            >
+              Create Collection
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              {collections.map((collection) => (
+                <div
+                  key={collection._id}
+                  onClick={() => navigate(`/collection/${collection._id}`)}
+                  className="bg-gray-900/50 border border-gray-800 rounded-lg overflow-hidden hover:border-blue-500/50 transition-all group cursor-pointer"
+                >
+                  {/* Collection Image */}
+                  <div className="relative h-40 bg-gray-800 overflow-hidden">
+                    {collection.image ? (
+                      <img
+                        src={collection.image}
+                        alt={collection.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">
+                        📦
+                      </div>
+                    )}
+                    
+                    {/* Overlay with buttons */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/collection/${collection._id}`);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-colors"
+                        title="View details"
+                      >
+                        <FiArrowRight className="text-white" size={20} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/collection/${collection._id}?edit=true`);
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 p-2 rounded-full transition-colors"
+                        title="Edit collection"
+                      >
+                        <FiEdit2 className="text-white" size={20} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteCollection(collection._id, e)}
+                        className="bg-red-600 hover:bg-red-700 p-2 rounded-full transition-colors"
+                        title="Delete collection"
+                      >
+                        <FiTrash2 className="text-white" size={20} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Collection Info */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 truncate">{collection.name}</h3>
+                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{collection.description}</p>
+
+                    {/* Collection Meta */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-gray-800 rounded p-2">
+                        <p className="text-gray-400 text-xs">Network</p>
+                        <p className="font-semibold text-sm capitalize">{collection.network}</p>
+                      </div>
+                      <div className="bg-gray-800 rounded p-2">
+                        <p className="text-gray-400 text-xs">Category</p>
+                        <p className="font-semibold text-sm capitalize">{collection.category}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Collection Button */}
+            <button
+              onClick={() => navigate("/create")}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 py-4 rounded-lg font-semibold text-lg transition-colors mb-8"
+            >
+              + Create New Collection
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Existing NFTs Section */}
+      <div>
       <div className="flex justify-between mb-4">
         <h2 className="text-xl font-semibold">
           {placeholder == "Collection" ? "My NFT Collection" : "MY NFT"}
@@ -254,6 +410,7 @@ const MyCollections = ({ placeholder }) => {
 </div>
 
       )}
+      </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center">

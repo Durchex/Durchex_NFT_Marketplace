@@ -13,7 +13,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { FiTrendingUp, FiBarChart, FiEye, FiHeart, FiDollarSign, FiArrowUp } from 'react-icons/fi';
+import { FiTrendingUp, FiBarChart, FiArrowUp } from 'react-icons/fi';
 import { analyticsAPI } from '../services/api.js';
 
 // Register Chart.js components
@@ -47,7 +47,8 @@ const NFTAnalyticsSection = () => {
       views: 1250,
       likes: 89,
       floorPrice: 2.1,
-      collection: 'Cosmic Dreams'
+      collection: 'Cosmic Dreams',
+      sales: 342
     },
     {
       id: '2',
@@ -59,7 +60,8 @@ const NFTAnalyticsSection = () => {
       views: 980,
       likes: 67,
       floorPrice: 1.6,
-      collection: 'Mythical Creatures'
+      collection: 'Mythical Creatures',
+      sales: 567
     },
     {
       id: '3',
@@ -71,7 +73,8 @@ const NFTAnalyticsSection = () => {
       views: 1450,
       likes: 123,
       floorPrice: 2.9,
-      collection: 'Neon Collection'
+      collection: 'Neon Collection',
+      sales: 1
     },
     {
       id: '4',
@@ -83,7 +86,8 @@ const NFTAnalyticsSection = () => {
       views: 756,
       likes: 45,
       floorPrice: 1.0,
-      collection: 'Abstract Art'
+      collection: 'Abstract Art',
+      sales: 245
     },
     {
       id: '5',
@@ -95,7 +99,8 @@ const NFTAnalyticsSection = () => {
       views: 2100,
       likes: 156,
       floorPrice: 3.8,
-      collection: 'Cyber Punk'
+      collection: 'Cyber Punk',
+      sales: 893
     }
   ];
 
@@ -255,60 +260,84 @@ const NFTAnalyticsSection = () => {
         </div>
       </div>
 
-      {/* Top NFTs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      {/* Top NFTs Table */}
+      <div className="grid grid-cols-10 text-sm text-gray-400 pb-4 border-b border-gray-700">
+        <div className="col-span-1">#</div>
+        <div className="col-span-3">Collection</div>
+        <div>Floor Offer</div>
+        <div>Volume</div>
+        <div>Sales</div>
+        <div>Listed</div>
+        <div className="col-span-2">Last 7d</div>
+      </div>
+
+      <div className="space-y-0">
         {topNFTs.map((nft, index) => (
           <Link
             key={nft.id}
             to={`/nft/${nft.itemId}`}
-            className="group bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105"
+            className="group grid grid-cols-10 py-4 border-t border-gray-700 items-center hover:bg-gray-800/20 transition-colors"
           >
-            {/* Rank Badge */}
-            <div className="relative bg-gray-800">
-              <div className="absolute top-2 left-2 z-10 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                #{index + 1}
-              </div>
-              <img
-                src={nft.image}
-                alt={nft.name}
-                className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
+            {/* Rank */}
+            <div className="col-span-1 text-white font-semibold">
+              {index + 1}
             </div>
 
-            {/* NFT Info */}
-            <div className="p-3">
-              <h4 className="font-semibold text-white text-sm truncate mb-1">{nft.name}</h4>
-              <p className="text-gray-400 text-xs truncate mb-2">{nft.collection}</p>
-
-              {/* Price & Change */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-white font-medium text-sm">{nft.price} ETH</div>
-                <div className={`flex items-center gap-1 text-xs ${
-                  nft.change24h > 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  <FiArrowUp className="text-xs" />
-                  {nft.change24h > 0 ? '+' : ''}{nft.change24h}%
-                </div>
+            {/* Collection Name & Image */}
+            <div className="col-span-3 flex items-center gap-3">
+              <div className="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                <img
+                  src={nft.image}
+                  alt={nft.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
               </div>
-
-              {/* Stats */}
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <div className="flex items-center gap-1">
-                  <FiEye className="text-xs" />
-                  {nft.views}
-                </div>
-                <div className="flex items-center gap-1">
-                  <FiHeart className="text-xs" />
-                  {nft.likes}
-                </div>
-                <div className="flex items-center gap-1">
-                  <FiDollarSign className="text-xs" />
-                  {nft.floorPrice}
-                </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-white font-semibold truncate">{nft.name}</span>
+                <span className="text-gray-500 text-xs truncate">{nft.collection}</span>
               </div>
+            </div>
+
+            {/* Floor Price */}
+            <div className="text-white font-medium">
+              {nft.floorPrice} ETH
+            </div>
+
+            {/* 24h Volume */}
+            <div className="text-white font-medium">
+              {nft.volume24h} ETH
+            </div>
+
+            {/* Sales Count */}
+            <div className="text-gray-300">
+              {nft.sales || Math.floor(Math.random() * 1000)}
+            </div>
+
+            {/* Listed Percentage */}
+            <div className={`font-semibold ${
+              nft.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {nft.change24h >= 0 ? '+' : ''}{nft.change24h}%
+            </div>
+
+            {/* 7d Chart Placeholder */}
+            <div className="col-span-2 h-10 flex items-end justify-end gap-0.5">
+              {[...Array(7)].map((_, i) => {
+                const height = Math.random() * 100;
+                const isPositive = Math.random() > 0.5;
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 rounded-sm ${
+                      isPositive ? 'bg-green-500/70' : 'bg-red-500/70'
+                    }`}
+                    style={{ height: `${30 + height * 0.7}%` }}
+                  />
+                );
+              })}
             </div>
           </Link>
         ))}

@@ -13,118 +13,6 @@ const Collections = () => {
   const [sortBy, setSortBy] = useState('volume');
   const [filterNetwork, setFilterNetwork] = useState('all');
 
-  // Mock collection data structure - in production, this would come from API
-  const [mockCollections] = useState([
-    {
-      id: 1,
-      name: 'Cosmic Dreams',
-      creator: 'Alex Creator',
-      creatorAvatar: null,
-      description: 'A collection of dreamy, cosmic-inspired artwork',
-      image: null,
-      floorPrice: 2.5,
-      volume24h: 45.3,
-      volume7d: 312.5,
-      items: 342,
-      owners: 156,
-      views: 12543,
-      likes: 892,
-      verified: true,
-      network: 'ethereum',
-      percentChange24h: 15.3,
-    },
-    {
-      id: 2,
-      name: 'Digital Phoenix',
-      creator: 'Phoenix Labs',
-      creatorAvatar: null,
-      description: 'Rising from the digital ashes - unique mythical NFTs',
-      image: null,
-      floorPrice: 1.8,
-      volume24h: 28.7,
-      volume7d: 189.2,
-      items: 567,
-      owners: 234,
-      views: 9876,
-      likes: 654,
-      verified: true,
-      network: 'polygon',
-      percentChange24h: 8.7,
-    },
-    {
-      id: 3,
-      name: 'Neon Collection',
-      creator: 'Neon Vibes Studio',
-      creatorAvatar: null,
-      description: 'Cyberpunk aesthetic meets digital art',
-      image: null,
-      floorPrice: 3.2,
-      volume24h: 67.4,
-      volume7d: 456.8,
-      items: 1200,
-      owners: 489,
-      views: 45678,
-      likes: 3456,
-      verified: true,
-      network: 'ethereum',
-      percentChange24h: -2.1,
-    },
-    {
-      id: 4,
-      name: 'Abstract Harmony',
-      creator: 'Art Collective',
-      creatorAvatar: null,
-      description: 'Harmonious abstract compositions',
-      image: null,
-      floorPrice: 1.2,
-      volume24h: 15.8,
-      volume7d: 98.5,
-      items: 245,
-      owners: 89,
-      views: 3456,
-      likes: 234,
-      verified: false,
-      network: 'bsc',
-      percentChange24h: 22.5,
-    },
-    {
-      id: 5,
-      name: 'Cyber Punk',
-      creator: 'Punk Protocol',
-      creatorAvatar: null,
-      description: 'Classic cyberpunk aesthetic reimagined',
-      image: null,
-      floorPrice: 4.1,
-      volume24h: 89.2,
-      volume7d: 612.4,
-      items: 893,
-      owners: 567,
-      views: 67890,
-      likes: 5678,
-      verified: true,
-      network: 'ethereum',
-      percentChange24h: 5.8,
-    },
-    {
-      id: 6,
-      name: 'Pixel Paradise',
-      creator: 'Retro Games Inc',
-      creatorAvatar: null,
-      description: 'Nostalgic pixel art from classic gaming era',
-      image: null,
-      floorPrice: 0.9,
-      volume24h: 12.3,
-      volume7d: 67.8,
-      items: 512,
-      owners: 234,
-      views: 8765,
-      likes: 543,
-      verified: true,
-      network: 'polygon',
-      percentChange24h: 18.2,
-    },
-  ]);
-
   useEffect(() => {
     fetchCollections();
   }, []);
@@ -136,15 +24,39 @@ const Collections = () => {
   const fetchCollections = async () => {
     try {
       setLoading(true);
-      // In production, fetch from API
-      // const response = await nftAPI.getCollections();
-      // setCollections(response);
+      // Fetch all collections from API
+      const allCollectionsData = await nftAPI.getCollections();
       
-      // For now, use mock data
-      setCollections(mockCollections);
+      if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
+        // Transform API response to ensure all fields are present
+        const transformedCollections = allCollectionsData.map((col, index) => ({
+          _id: col._id,
+          id: col._id || index,
+          name: col.name || 'Unnamed Collection',
+          creator: col.creator || 'Unknown Creator',
+          creatorAvatar: col.creatorAvatar,
+          description: col.description || '',
+          image: col.image,
+          floorPrice: col.floorPrice || 0,
+          volume24h: col.volume24h || 0,
+          volume7d: col.volume7d || 0,
+          percentChange24h: col.percentChange24h || 0,
+          items: col.nftCount || col.items || 0,
+          owners: col.ownerCount || col.owners || 0,
+          views: col.views || 0,
+          likes: col.likes || 0,
+          verified: col.verified || false,
+          network: col.network || 'ethereum',
+        }));
+        setCollections(transformedCollections);
+        console.log(`[Collections] Fetched ${transformedCollections.length} real collections from API`);
+      } else {
+        console.warn('[Collections] No collections found in API response, showing empty state');
+        setCollections([]);
+      }
     } catch (error) {
-      console.error('Error fetching collections:', error);
-      setCollections(mockCollections);
+      console.error('[Collections] Error fetching collections from API:', error);
+      setCollections([]);
     } finally {
       setLoading(false);
     }
@@ -293,7 +205,7 @@ const Collections = () => {
           {filteredCollections.map((collection) => (
             <Link
               key={collection.id}
-              to={`/collection/${collection.name}`}
+              to={`/collection/${collection._id || collection.id}`}
               className="group bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/20"
             >
               {/* Collection Image */}

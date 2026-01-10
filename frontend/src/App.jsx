@@ -6,6 +6,7 @@ import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
 import FAQ from "./FooterComponents/FAQ";
 import CollectionPage from "./pages/CollectionPage";
+import CollectionDetails from "./pages/CollectionDetails";
 import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 
 // Lazy-loaded components
@@ -134,6 +135,7 @@ export default function App() {
           <Route path="/admin/partner/*" element={<PartnerAdmin />} />
           <Route path="/admin/*" element={<Admin />} />
           <Route path="/collection/:collection" element={<CollectionPage/>} />
+          <Route path="/collection/:collectionId" element={<CollectionDetails/>} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:walletAddress" element={<Profile />} />
           <Route path="/creator/:walletAddress" element={<CreatorProfile />} />
