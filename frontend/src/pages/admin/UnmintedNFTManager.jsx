@@ -557,7 +557,7 @@ const UnmintedNFTCard = ({ nft, onUpdate }) => {
           alt={nft.name}
           className="w-full h-full object-cover"
           onError={(e) => {
-            e.target.src = 'https://via.placeholder.com/300?text=NFT';
+            e.target.style.display = 'none';
           }}
         />
         <div className="absolute top-2 right-2 flex gap-2">

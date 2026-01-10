@@ -35,12 +35,12 @@ const NFTAnalyticsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Mock high-performing NFTs data - used as fallback
+  // Mock high-performing NFTs data - used as fallback (no generated placeholder images)
   const mockTopNFTs = [
     {
       id: '1',
       name: 'Cosmic Dreamer #42',
-      image: 'https://picsum.photos/300/300?random=1',
+      image: null,
       price: 2.5,
       change24h: 15.3,
       volume24h: 8.7,
@@ -52,7 +52,7 @@ const NFTAnalyticsSection = () => {
     {
       id: '2',
       name: 'Digital Phoenix',
-      image: 'https://picsum.photos/300/300?random=2',
+      image: null,
       price: 1.8,
       change24h: 8.7,
       volume24h: 12.3,
@@ -64,7 +64,7 @@ const NFTAnalyticsSection = () => {
     {
       id: '3',
       name: 'Neon Nights #007',
-      image: 'https://picsum.photos/300/300?random=3',
+      image: null,
       price: 3.2,
       change24h: -2.1,
       volume24h: 15.8,
@@ -76,7 +76,7 @@ const NFTAnalyticsSection = () => {
     {
       id: '4',
       name: 'Abstract Harmony',
-      image: 'https://picsum.photos/300/300?random=4',
+      image: null,
       price: 1.2,
       change24h: 22.5,
       volume24h: 6.4,
@@ -88,7 +88,7 @@ const NFTAnalyticsSection = () => {
     {
       id: '5',
       name: 'Cyber Punk #1337',
-      image: 'https://picsum.photos/300/300?random=5',
+      image: null,
       price: 4.1,
       change24h: 5.8,
       volume24h: 9.2,
@@ -264,7 +264,7 @@ const NFTAnalyticsSection = () => {
             className="group bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-300 hover:scale-105"
           >
             {/* Rank Badge */}
-            <div className="relative">
+            <div className="relative bg-gray-800">
               <div className="absolute top-2 left-2 z-10 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full">
                 #{index + 1}
               </div>
@@ -273,7 +273,7 @@ const NFTAnalyticsSection = () => {
                 alt={nft.name}
                 className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
                 onError={(e) => {
-                  e.target.src = `https://picsum.photos/300/300?random=${index}`;
+                  e.target.style.display = 'none';
                 }}
               />
             </div>

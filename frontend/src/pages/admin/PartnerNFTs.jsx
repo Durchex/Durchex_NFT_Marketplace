@@ -108,7 +108,7 @@ const PartnerNFTs = () => {
               <tr key={nft._id || nft.itemId}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
-                    <img src={nft.image} alt={nft.name} className="w-10 h-10 rounded-lg object-cover" onError={(e)=>{e.target.src='https://via.placeholder.com/100'}} />
+                    <img src={nft.image} alt={nft.name} className="w-10 h-10 rounded-lg object-cover bg-gray-200" onError={(e)=>{e.target.style.display='none'}} />
                     <div>
                       <div className="text-sm font-display font-medium text-gray-900">{nft.name}</div>
                       <div className="text-xs text-gray-500 font-display">#{nft.tokenId}</div>

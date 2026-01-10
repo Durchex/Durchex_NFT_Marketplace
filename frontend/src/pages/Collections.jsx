@@ -19,9 +19,9 @@ const Collections = () => {
       id: 1,
       name: 'Cosmic Dreams',
       creator: 'Alex Creator',
-      creatorAvatar: 'https://picsum.photos/50/50?random=1',
+      creatorAvatar: null,
       description: 'A collection of dreamy, cosmic-inspired artwork',
-      image: 'https://picsum.photos/400/300?random=1',
+      image: null,
       floorPrice: 2.5,
       volume24h: 45.3,
       volume7d: 312.5,
@@ -37,9 +37,9 @@ const Collections = () => {
       id: 2,
       name: 'Digital Phoenix',
       creator: 'Phoenix Labs',
-      creatorAvatar: 'https://picsum.photos/50/50?random=2',
+      creatorAvatar: null,
       description: 'Rising from the digital ashes - unique mythical NFTs',
-      image: 'https://picsum.photos/400/300?random=2',
+      image: null,
       floorPrice: 1.8,
       volume24h: 28.7,
       volume7d: 189.2,
@@ -55,9 +55,9 @@ const Collections = () => {
       id: 3,
       name: 'Neon Collection',
       creator: 'Neon Vibes Studio',
-      creatorAvatar: 'https://picsum.photos/50/50?random=3',
+      creatorAvatar: null,
       description: 'Cyberpunk aesthetic meets digital art',
-      image: 'https://picsum.photos/400/300?random=3',
+      image: null,
       floorPrice: 3.2,
       volume24h: 67.4,
       volume7d: 456.8,
@@ -73,9 +73,9 @@ const Collections = () => {
       id: 4,
       name: 'Abstract Harmony',
       creator: 'Art Collective',
-      creatorAvatar: 'https://picsum.photos/50/50?random=4',
+      creatorAvatar: null,
       description: 'Harmonious abstract compositions',
-      image: 'https://picsum.photos/400/300?random=4',
+      image: null,
       floorPrice: 1.2,
       volume24h: 15.8,
       volume7d: 98.5,
@@ -91,9 +91,9 @@ const Collections = () => {
       id: 5,
       name: 'Cyber Punk',
       creator: 'Punk Protocol',
-      creatorAvatar: 'https://picsum.photos/50/50?random=5',
+      creatorAvatar: null,
       description: 'Classic cyberpunk aesthetic reimagined',
-      image: 'https://picsum.photos/400/300?random=5',
+      image: null,
       floorPrice: 4.1,
       volume24h: 89.2,
       volume7d: 612.4,
@@ -109,9 +109,9 @@ const Collections = () => {
       id: 6,
       name: 'Pixel Paradise',
       creator: 'Retro Games Inc',
-      creatorAvatar: 'https://picsum.photos/50/50?random=6',
+      creatorAvatar: null,
       description: 'Nostalgic pixel art from classic gaming era',
-      image: 'https://picsum.photos/400/300?random=6',
+      image: null,
       floorPrice: 0.9,
       volume24h: 12.3,
       volume7d: 67.8,
@@ -302,6 +302,9 @@ const Collections = () => {
                   src={collection.image}
                   alt={collection.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
                 
@@ -328,6 +331,9 @@ const Collections = () => {
                     src={collection.creatorAvatar}
                     alt={collection.creator}
                     className="w-6 h-6 rounded-full"
+                    onError={(e) => {
+                      e.target.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${collection.creator}`;
+                    }}
                   />
                   <span className="text-sm text-gray-400">{collection.creator}</span>
                 </div>

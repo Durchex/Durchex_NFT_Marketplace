@@ -587,7 +587,7 @@ export const analyticsAPI = {
       const topNFTs = nfts.slice(0, limit).map((nft, index) => ({
         id: nft._id || nft.id || `nft_${index}`,
         name: nft.name || `NFT #${index + 1}`,
-        image: nft.image || nft.imageURL || `https://picsum.photos/300/300?random=${index}`,
+        image: nft.image || nft.imageURL || null, // No placeholder - show gray background on missing image
         price: parseFloat(nft.price || 0).toFixed(2),
         change24h: (Math.random() * 40 - 20).toFixed(2), // Will be updated with real price history
         volume24h: (Math.random() * 20 + 5).toFixed(2), // Will be updated with real transaction data
@@ -602,24 +602,8 @@ export const analyticsAPI = {
       return topNFTs;
     } catch (error) {
       console.error('Failed to fetch top performing NFTs:', error);
-      // Fallback to mock data on error
-      const mockNFTs = [];
-      for (let i = 0; i < limit; i++) {
-        mockNFTs.push({
-          id: `nft_${i + 1}`,
-          name: `NFT #${i + 1}`,
-          image: `https://picsum.photos/300/300?random=${i}`,
-          price: (Math.random() * 5 + 0.5).toFixed(2),
-          change24h: (Math.random() * 40 - 20).toFixed(2),
-          volume24h: (Math.random() * 20 + 5).toFixed(2),
-          views: Math.floor(Math.random() * 2000) + 500,
-          likes: Math.floor(Math.random() * 200) + 20,
-          floorPrice: (Math.random() * 3 + 0.1).toFixed(2),
-          collection: `Collection ${Math.floor(i / 3) + 1}`,
-          network: 'ethereum'
-        });
-      }
-      return mockNFTs;
+      // Return empty array on error instead of mock data with generated images
+      return [];
     }
   }
 };

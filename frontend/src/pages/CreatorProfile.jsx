@@ -248,13 +248,13 @@ const CreatorProfile = () => {
                 >
                   <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
                     {/* NFT Image */}
-                    <div className="relative w-full aspect-square overflow-hidden">
+                    <div className="relative w-full aspect-square overflow-hidden bg-gray-800">
                       <img
-                        src={nft.image || `https://picsum.photos/400/400?random=${index}`}
+                        src={nft.image}
                         alt={nft.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
-                          e.currentTarget.src = `https://picsum.photos/400/400?random=${index}`;
+                          e.target.style.display = 'none';
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

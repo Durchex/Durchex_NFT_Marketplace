@@ -505,13 +505,13 @@ function App() {
                         key={activeIndex}
                         className="nft-slide-item bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition-all duration-500 hover:scale-[1.02] h-full flex flex-col"
                       >
-                        <div className="relative w-full flex-1 overflow-hidden min-h-0 nft-image-container">
+                        <div className="relative w-full flex-1 overflow-hidden min-h-0 nft-image-container bg-gray-800">
                           <img
-                            src={activeNFT.image || `https://picsum.photos/800/600?random=${activeIndex}`}
+                            src={activeNFT.image}
                             alt={activeNFT.name || "NFT"}
                             className="w-full h-full object-cover scale-150 group-hover:scale-[1.7] transition-transform duration-700"
                             onError={(e) => {
-                              e.target.src = `https://picsum.photos/800/600?random=${activeIndex}`;
+                              e.target.style.display = 'none';
                             }}
                           />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -586,11 +586,11 @@ function App() {
                   <div className="flex items-start gap-3">
                     <div className="relative">
                       <img
-                        src={nft.image || `https://picsum.photos/300/300?random=${index}`}
+                        src={nft.image}
                         alt={nft.name || `NFT ${index + 1}`}
                         className="w-12 h-12 rounded-lg object-cover border-2 border-gray-700"
                         onError={(e) => {
-                          e.target.src = `https://picsum.photos/300/300?random=${index}`;
+                          e.target.style.display = 'none';
                         }}
                       />
                       <div className="absolute -top-2 -left-2 bg-purple-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
