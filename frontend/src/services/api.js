@@ -687,6 +687,212 @@ export const analyticsAPI = {
   }
 };
 
+// Order API functions
+export const orderAPI = {
+  // Create a new order
+  createOrder: async (orderData) => {
+    try {
+      const response = await api.post('/orders', orderData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      throw error;
+    }
+  },
+
+  // Get order by ID
+  getOrderById: async (orderId) => {
+    try {
+      const response = await api.get(`/orders/order/${orderId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch order:', error);
+      throw error;
+    }
+  },
+
+  // Get user's orders (as buyer)
+  getUserOrders: async (walletAddress) => {
+    try {
+      const response = await api.get(`/orders/buyer/${walletAddress}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user orders:', error);
+      return [];
+    }
+  },
+
+  // Get seller's orders
+  getSellerOrders: async (walletAddress) => {
+    try {
+      const response = await api.get(`/orders/seller/${walletAddress}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch seller orders:', error);
+      return [];
+    }
+  },
+
+  // Get all orders for a specific NFT
+  getNFTOrders: async (contractAddress, nftId) => {
+    try {
+      const response = await api.get(`/orders/nft/${contractAddress}/${nftId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch NFT orders:', error);
+      return [];
+    }
+  },
+
+  // Confirm payment
+  confirmPayment: async (orderId, transactionHash, status = 'completed') => {
+    try {
+      const response = await api.post('/orders/confirm-payment', {
+        orderId,
+        transactionHash,
+        status
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to confirm payment:', error);
+      throw error;
+    }
+  },
+
+  // Update order status
+  updateOrderStatus: async (orderId, status, transactionHash = null) => {
+    try {
+      const response = await api.patch(`/orders/${orderId}/status`, {
+        status,
+        transactionHash
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      throw error;
+    }
+  },
+
+  // Cancel order
+  cancelOrder: async (orderId, reason = '') => {
+    try {
+      const response = await api.post('/orders/cancel', {
+        orderId,
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      throw error;
+    }
+  }
+};
+
+// Offer API functions
+export const offerAPI = {
+  // Create a new offer
+  createOffer: async (offerData) => {
+    try {
+      const response = await api.post('/offers', offerData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create offer:', error);
+      throw error;
+    }
+  },
+
+  // Get offer by ID
+  getOfferById: async (offerId) => {
+    try {
+      const response = await api.get(`/offers/${offerId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch offer:', error);
+      throw error;
+    }
+  },
+
+  // Get all offers for a specific NFT
+  getNFTOffers: async (contractAddress, nftId) => {
+    try {
+      const response = await api.get(`/offers/nft/${contractAddress}/${nftId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch NFT offers:', error);
+      return [];
+    }
+  },
+
+  // Get user's offers (made by user)
+  getUserOffers: async (walletAddress) => {
+    try {
+      const response = await api.get(`/offers/user/${walletAddress}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user offers:', error);
+      return [];
+    }
+  },
+
+  // Get offers received by user (offers on NFTs they own)
+  getReceivedOffers: async (walletAddress) => {
+    try {
+      const response = await api.get(`/offers/received/${walletAddress}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch received offers:', error);
+      return [];
+    }
+  },
+
+  // Accept an offer
+  acceptOffer: async (offerId) => {
+    try {
+      const response = await api.post(`/offers/${offerId}/accept`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to accept offer:', error);
+      throw error;
+    }
+  },
+
+  // Reject an offer
+  rejectOffer: async (offerId, reason = '') => {
+    try {
+      const response = await api.post(`/offers/${offerId}/reject`, { reason });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to reject offer:', error);
+      throw error;
+    }
+  },
+
+  // Cancel an offer (by maker)
+  cancelOffer: async (offerId) => {
+    try {
+      const response = await api.post(`/offers/${offerId}/cancel`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel offer:', error);
+      throw error;
+    }
+  },
+
+  // Update offer price
+  updateOfferPrice: async (offerId, newPrice, newAmount) => {
+    try {
+      const response = await api.patch(`/offers/${offerId}/update-price`, {
+        newPrice,
+        newAmount
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update offer price:', error);
+      throw error;
+    }
+  }
+};
+
 export default api;
 
 // Settings API functions

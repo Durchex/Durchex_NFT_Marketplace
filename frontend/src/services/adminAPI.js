@@ -71,6 +71,15 @@ export const adminAPI = {
     }
   },
 
+  delistNFT: async (network, itemId, reason = 'Violates marketplace terms') => {
+    try {
+      const response = await api.post(`/admin/nfts/${network}/${itemId}/delist`, { reason });
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to delist NFT: ${error.message}`);
+    }
+  },
+
   deleteNFT: async (network, itemId) => {
     try {
       const response = await api.delete(`/admin/nfts/${network}/${itemId}`);

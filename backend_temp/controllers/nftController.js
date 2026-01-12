@@ -110,8 +110,11 @@ export const fetchAllNftsByNetwork = async (req, res) => {
 export const fetchAllNftsByNetworkForExplore = async (req, res) => {
   const { network } = req.params;
   try {
-    // Return ALL NFTs so they show on Explore (admin moderates which are for sale)
-    const nfts = await nftModel.find({ network });
+    // Return ALL NFTs except delisted/flagged ones - admin can delist NFTs
+    const nfts = await nftModel.find({ 
+      network,
+      adminStatus: { $ne: 'delisted' } // Exclude delisted NFTs
+    });
     res.json(nfts);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -245,6 +245,38 @@ export const updateNFTStatus = async (req, res) => {
   }
 };
 
+// Delist NFT from explore and marketplace
+export const delistNFTAdmin = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const { reason = 'Violates marketplace terms' } = req.body;
+
+    const nft = await nftModel.findOneAndUpdate(
+      { network, itemId },
+      {
+        adminStatus: 'delisted',
+        adminDelistedAt: new Date(),
+        adminDelistedReason: reason,
+        currentlyListed: false
+      },
+      { new: true }
+    );
+
+    if (!nft) {
+      return res.status(404).json({ error: 'NFT not found' });
+    }
+
+    res.json({
+      success: true,
+      nft,
+      message: `NFT ${itemId} has been delisted and removed from explore`
+    });
+  } catch (error) {
+    console.error('Error delisting NFT:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Get transactions (from NFTs that have been sold)
 export const getTransactions = async (req, res) => {
   try {

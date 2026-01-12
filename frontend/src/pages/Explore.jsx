@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
 import NFTAnalyticsSection from "../components/NFTAnalyticsSection";
 import HeroAnalyticsChart from "../components/HeroAnalyticsChart";
+import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay";
 
 const Explore = () => {
   const { address } = useContext(ICOContent) || {};
@@ -18,6 +19,8 @@ const Explore = () => {
   const [creators, setCreators] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [cartItems, setCartItems] = useState(new Set()); // Track NFTs in cart
+  const [likedItems, setLikedItems] = useState(new Set()); // Track liked NFTs
   
   // Display ONLY real NFTs from backend - no fallback to dummy data
   const displayedNFTs = popularNFTs || [];
@@ -396,18 +399,36 @@ const Explore = () => {
                                   e.target.style.display = 'none';
                                 }}
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                              <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="flex items-center justify-between text-white">
-                                  <div className="flex items-center gap-2">
-                                    <FiStar className="text-yellow-400" />
-                                    <span className="text-sm font-medium">{nft.likes}</span>
-                                  </div>
-                                  <div className="text-sm font-medium">
-                                    {nft.price} ETH
-                                  </div>
-                                </div>
-                              </div>
+                              {/* Hover Overlay */}
+                              <NFTImageHoverOverlay
+                                nft={{
+                                  ...nft,
+                                  price: nft.price,
+                                  currency: 'ETH'
+                                }}
+                                isInCart={cartItems.has(nft.itemId)}
+                                isLiked={likedItems.has(nft.itemId)}
+                                onAddToCart={() => {
+                                  const newCart = new Set(cartItems);
+                                  if (newCart.has(nft.itemId)) {
+                                    newCart.delete(nft.itemId);
+                                    toast.success('Removed from cart');
+                                  } else {
+                                    newCart.add(nft.itemId);
+                                    toast.success('Added to cart!');
+                                  }
+                                  setCartItems(newCart);
+                                }}
+                                onLike={() => {
+                                  const newLiked = new Set(likedItems);
+                                  if (newLiked.has(nft.itemId)) {
+                                    newLiked.delete(nft.itemId);
+                                  } else {
+                                    newLiked.add(nft.itemId);
+                                  }
+                                  setLikedItems(newLiked);
+                                }}
+                              />
                             </div>
                             <div className="p-4">
                               <h3 className="font-semibold text-white truncate mb-1">{nft.name}</h3>
@@ -562,29 +583,38 @@ const Explore = () => {
                           e.target.style.display = 'none';
                         }}
                       />
-                      {/* Overlay with details on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                        <div className="text-white">
-                          <p className="text-xs text-green-400 font-medium mb-1">{nft.timeAgo}</p>
-                          <p className="text-xs text-gray-300 line-clamp-2 mb-2">{nft.description}</p>
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                            <img
-                              src={nft.creatorProfilePicture}
-                              alt={nft.creator}
-                              className="w-5 h-5 rounded-full object-cover"
-                              onError={(e) => {
-                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creator}`;
-                              }}
-                            />
-                              <span className="text-gray-400">by {nft.creator}</span>
-                            </div>
-                            <span className="text-green-400 font-medium">{nft.price} ETH</span>
-                          </div>
-                        </div>
-                      </div>
+                      {/* Hover Overlay */}
+                      <NFTImageHoverOverlay
+                        nft={{
+                          ...nft,
+                          price: nft.price,
+                          currency: 'ETH'
+                        }}
+                        isInCart={cartItems.has(nft.itemId)}
+                        isLiked={likedItems.has(nft.itemId)}
+                        onAddToCart={() => {
+                          const newCart = new Set(cartItems);
+                          if (newCart.has(nft.itemId)) {
+                            newCart.delete(nft.itemId);
+                            toast.success('Removed from cart');
+                          } else {
+                            newCart.add(nft.itemId);
+                            toast.success('Added to cart!');
+                          }
+                          setCartItems(newCart);
+                        }}
+                        onLike={() => {
+                          const newLiked = new Set(likedItems);
+                          if (newLiked.has(nft.itemId)) {
+                            newLiked.delete(nft.itemId);
+                          } else {
+                            newLiked.add(nft.itemId);
+                          }
+                          setLikedItems(newLiked);
+                        }}
+                      />
                       {/* New badge */}
-                      <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-90">
+                      <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-90 z-10">
                         NEW
                       </div>
                     </div>

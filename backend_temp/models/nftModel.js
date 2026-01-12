@@ -139,6 +139,23 @@ const nftSchema = new Schema(
       default: 'scheduled',
       description: "Current status of the event (before/during/after start time)"
     },
+    // Admin moderation status
+    adminStatus: {
+      type: String,
+      enum: ['active', 'delisted', 'flagged', 'pending_review'],
+      default: 'active',
+      description: "Admin moderation status of the NFT"
+    },
+    adminDelistedAt: {
+      type: Date,
+      default: null,
+      description: "When admin delisted this NFT"
+    },
+    adminDelistedReason: {
+      type: String,
+      default: null,
+      description: "Reason for admin delisting"
+    }
   },
   { timestamps: true }
 );

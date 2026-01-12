@@ -28,6 +28,8 @@ import verificationRouter from "./routes/verificationRouter.js";
 import gasFeeRouter from "./routes/gasFeeRouter.js";
 import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import withdrawalAdminRoutes from "./routes/withdrawalAdminRoutes.js";
+import orderRouter from "./routes/orderRouter.js";
+import offerRouter from "./routes/offerRouter.js";
 
 // connect db
 connectDB();
@@ -110,6 +112,8 @@ app.use('/api/v1/verification', verificationRouter);
 app.use('/api/v1/gas-fee', gasFeeRouter);
 app.use('/api/v1/withdrawals', withdrawalRoutes);
 app.use('/api/v1/admin', withdrawalAdminRoutes);
+app.use('/api/v1/orders', orderRouter);
+app.use('/api/v1/offers', offerRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

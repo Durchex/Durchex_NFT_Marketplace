@@ -5,6 +5,7 @@ import {
   updateUserStatus,
   getAllNFTsAdmin,
   updateNFTStatus,
+  delistNFTAdmin,
   getTransactions,
   getOrders,
   getAnalytics,
@@ -35,6 +36,7 @@ router.patch('/users/:walletAddress', updateUserStatus);
 // NFTs
 router.get('/nfts', getAllNFTsAdmin);
 router.patch('/nfts/:network/:itemId', updateNFTStatus);
+router.post('/nfts/:network/:itemId/delist', delistNFTAdmin);
 
 // Unminted NFT Management
 router.post('/nfts/unminted/create', createUnmintedNFT);
