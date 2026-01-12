@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiMail, FiCopy, FiCheck, FiHeart, FiShare2, FiUserPlus, FiUserMinus } from 'react-icons/fi';
+import { Edit3 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
 import { nftAPI, userAPI, engagementAPI } from '../services/api';
@@ -8,6 +9,8 @@ import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { ICOContent } from '../Context';
 import NFTImageHoverOverlay from '../components/NFTImageHoverOverlay';
+import CoverPhotoUploader from '../components/CoverPhotoUploader';
+import ListingRequestForm from '../components/ListingRequestForm';
 
 const CreatorProfile = () => {
   const { walletAddress } = useParams();
@@ -23,6 +26,8 @@ const CreatorProfile = () => {
   const [followerCount, setFollowerCount] = useState(0);
   const [cartItems, setCartItems] = useState(new Set());
   const [likedItems, setLikedItems] = useState(new Set());
+  const [coverPhotoOpen, setCoverPhotoOpen] = useState(false);
+  const [listingRequestOpen, setListingRequestOpen] = useState(false);
 
   useEffect(() => {
     fetchCreatorProfile();
@@ -235,6 +240,28 @@ const CreatorProfile = () => {
 
         {/* Creator Header */}
         <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-2xl p-8 mb-12 border border-purple-800/50">
+          {/* Cover Photo Section */}
+          <div className="relative -m-8 mb-6 -mx-8 h-40 bg-gray-800 rounded-t-2xl overflow-hidden group">
+            {creator?.coverPhoto ? (
+              <img
+                src={creator.coverPhoto}
+                alt="Cover Photo"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-r from-purple-900 to-pink-900" />
+            )}
+            {userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase() && (
+              <button
+                onClick={() => setCoverPhotoOpen(true)}
+                className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                title="Edit cover photo"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Avatar */}
             <div className="flex-shrink-0">
@@ -333,6 +360,15 @@ const CreatorProfile = () => {
                       <FiShare2 size={18} />
                       Share
                     </button>
+                    {userWalletAddress && (
+                      <button
+                        onClick={() => setListingRequestOpen(true)}
+                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+                        title="Request creator to list your NFT on their platform"
+                      >
+                        Request Listing
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -535,6 +571,34 @@ const CreatorProfile = () => {
       </main>
 
       <Footer />
+
+      {/* Cover Photo Uploader Modal */}
+      <CoverPhotoUploader 
+        isOpen={coverPhotoOpen} 
+        onClose={() => setCoverPhotoOpen(false)} 
+        type="user" 
+        entityId={walletAddress}
+        onSuccess={() => {
+          setCoverPhotoOpen(false);
+          // Refetch profile to show updated cover photo
+          if (walletAddress) {
+            userAPI.getUserProfile(walletAddress).then((data) => {
+              setCreator((prev) => ({
+                ...prev,
+                coverPhoto: data.coverPhoto || ""
+              }));
+            });
+          }
+        }}
+      />
+
+      {/* Listing Request Form Modal */}
+      <ListingRequestForm 
+        isOpen={listingRequestOpen} 
+        onClose={() => setListingRequestOpen(false)} 
+        creatorAddress={walletAddress}
+        userNFTs={creatorNFTs}
+      />
     </div>
   );
 };

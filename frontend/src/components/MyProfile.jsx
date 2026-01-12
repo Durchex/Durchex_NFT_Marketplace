@@ -6,6 +6,7 @@ import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
 import { ICOContent } from "../Context"; // Import context
 import { getVerificationBadge, getVerificationLabel } from "../utils/verificationUtils";
 import { userAPI } from "../services/api";
+import CoverPhotoUploader from "./CoverPhotoUploader";
 
 const MyProfile = () => {
   const { address } = useContext(ICOContent) || {};
@@ -23,6 +24,7 @@ const MyProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Loading state
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [coverPhotoOpen, setCoverPhotoOpen] = useState(false);
 
   const fileInputRef = useRef();
 
@@ -245,6 +247,28 @@ const MyProfile = () => {
 
   return (
     <div className="relative py-6 md:py-10 px-4 md:px-12">
+      {/* Cover Photo Section */}
+      <div className="relative mb-8 -mx-4 md:-mx-12">
+        <div className="relative w-full h-48 bg-gray-800 rounded-lg overflow-hidden group">
+          {profileData.coverPhoto ? (
+            <img
+              src={profileData.coverPhoto}
+              alt="Cover Photo"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-purple-900/30 to-blue-900/30" />
+          )}
+          <button
+            onClick={() => setCoverPhotoOpen(true)}
+            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+            title="Edit cover photo"
+          >
+            <Edit3 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Profile Image and Username */}
       <div className="flex flex-col items-center mb-8 relative">
         <div
@@ -509,6 +533,26 @@ const MyProfile = () => {
           {isLoading ? <LoadingSpinner /> : "Delete Profile"} 
         </button>
       </div>
+
+      {/* Cover Photo Uploader Modal */}
+      <CoverPhotoUploader 
+        isOpen={coverPhotoOpen} 
+        onClose={() => setCoverPhotoOpen(false)} 
+        type="user" 
+        entityId={address}
+        onSuccess={() => {
+          setCoverPhotoOpen(false);
+          // Refetch profile to show updated cover photo
+          if (address) {
+            userAPI.getUserProfile(address).then((data) => {
+              setProfileData((prev) => ({
+                ...prev,
+                coverPhoto: data.coverPhoto || ""
+              }));
+            });
+          }
+        }}
+      />
     </div>
   );
 };

@@ -10,11 +10,13 @@ import { useNetwork } from "../Context/NetworkContext";
 import WalletConnect from "./WalletConnect";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
+import CartDrawer from "./CartDrawer";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const location = useLocation();
   const { getCartItemCount } = useCart();
   const { address } = useContext(ICOContent) || {};
@@ -93,14 +95,14 @@ export default function Navbar() {
           >
             <FiSearch className="w-5 h-5" />
           </button>
-          <Link to="/cart" className="text-gray-300 hover:text-white p-2 mr-1 relative">
+          <button onClick={() => setCartDrawerOpen(true)} className="text-gray-300 hover:text-white p-2 mr-1 relative">
             <FiShoppingBag className="w-5 h-5" />
             {getCartItemCount() > 0 && (
               <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-medium">
                 {getCartItemCount()}
               </span>
             )}
-          </Link>
+          </button>
           {/* Mobile Profile - WhatsApp Status Style with avatar */}
           <Link to="/profile" className="p-1 mr-1">
             <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-green-500">
@@ -245,16 +247,16 @@ export default function Navbar() {
             </Link>
           )}
           {/* Cart with count */}
-          <Link to="/cart" className="relative">
-            <button className="text-gray-300 hover:text-white relative p-2 rounded-lg hover:bg-gray-800 transition-colors">
+          <button onClick={() => setCartDrawerOpen(true)} className="relative">
+            <div className="text-gray-300 hover:text-white relative p-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center">
               <FiShoppingBag className="w-5 h-5" />
               {getCartItemCount() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium">
                   {getCartItemCount()}
                 </span>
               )}
-            </button>
-          </Link>
+            </div>
+          </button>
 
           {/* Profile - WhatsApp Status Style with avatar */}
           <Link to="/profile">
@@ -334,9 +336,19 @@ export default function Navbar() {
               </Link>
             ))}
             <Link
-              to="/cart"
+              to="/profile"
               onClick={toggleMobileMenu}
               className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300"
+            >
+              <FiUser className="w-6 h-6" />
+              <span>Profile</span>
+            </Link>
+            <button
+              onClick={() => {
+                setCartDrawerOpen(true);
+                toggleMobileMenu();
+              }}
+              className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300 w-full"
             >
               <FiShoppingBag className="w-6 h-6" />
               <span>Cart</span>
@@ -345,15 +357,7 @@ export default function Navbar() {
                   {getCartItemCount()}
                 </span>
               )}
-            </Link>
-            <Link
-              to="/profile"
-              onClick={toggleMobileMenu}
-              className="flex items-center space-x-3 text-xl font-medium px-4 py-3 rounded-lg border-b border-gray-600 hover:bg-gray-800 transition-colors text-gray-300"
-            >
-              <FiUser className="w-6 h-6" />
-              <span>Profile</span>
-            </Link>
+            </button>
             <Link
               to="/trading"
               onClick={toggleMobileMenu}
@@ -376,6 +380,9 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={cartDrawerOpen} onClose={() => setCartDrawerOpen(false)} />
     </nav>
   );
 }

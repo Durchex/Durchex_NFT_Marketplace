@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2 } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
+import OfferModal from '../components/OfferModal';
 import { nftAPI } from '../services/api';
 
 const NftDetailsPage = () => {
@@ -14,6 +15,7 @@ const NftDetailsPage = () => {
   const [liked, setLiked] = useState(false);
   const [priceData, setPriceData] = useState([]);
   const [tradeData, setTradeData] = useState([]);
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
 
   useEffect(() => {
     fetchNftDetails();
@@ -286,10 +288,10 @@ const NftDetailsPage = () => {
 
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                <FiDollarSign /> Buy Now
+              <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <FiDollarSign /> Buy Now / Make Offer
               </button>
-              <button className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors">
+              <button onClick={() => setOfferModalOpen(true)} className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors">
                 Make an Offer
               </button>
             </div>
@@ -427,6 +429,9 @@ const NftDetailsPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Offer Modal */}
+      <OfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} nft={nft} />
     </div>
   );
 };
