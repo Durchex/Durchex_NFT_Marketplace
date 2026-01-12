@@ -1,7 +1,7 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
 import { ICOContent } from '../Context';
-import { listingRequestAPI } from '../services/api';
+import { listingRequestAPI, nftAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 const ListingRequestForm = ({ isOpen, onClose, creatorAddress, userNFTs = [], onSuccess }) => {
@@ -11,6 +11,46 @@ const ListingRequestForm = ({ isOpen, onClose, creatorAddress, userNFTs = [], on
   const [preferredPrice, setPreferredPrice] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [availableNFTs, setAvailableNFTs] = useState([]);
+  const [loadingNFTs, setLoadingNFTs] = useState(false);
+
+  // Fetch user's NFTs (both minted and unminted) when component opens
+  useEffect(() => {
+    if (isOpen && address) {
+      fetchUserNFTs();
+    }
+  }, [isOpen, address]);
+
+  const fetchUserNFTs = async () => {
+    setLoadingNFTs(true);
+    try {
+      // Fetch all NFTs from all networks
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+      let allNFTs = [];
+      
+      for (const network of networks) {
+        try {
+          const nfts = await nftAPI.getAllNftsByNetwork(network);
+          if (Array.isArray(nfts)) {
+            const userNfts = nfts.filter(nft => 
+              nft.creator?.toLowerCase() === address?.toLowerCase() ||
+              nft.owner?.toLowerCase() === address?.toLowerCase()
+            );
+            allNFTs = [...allNFTs, ...userNfts];
+          }
+        } catch (err) {
+          console.warn(`Error fetching NFTs from ${network}:`, err);
+        }
+      }
+
+      setAvailableNFTs(allNFTs);
+    } catch (error) {
+      console.error('Error fetching NFTs:', error);
+      toast.error('Failed to fetch your NFTs');
+    } finally {
+      setLoadingNFTs(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!address) {
@@ -131,21 +171,31 @@ const ListingRequestForm = ({ isOpen, onClose, creatorAddress, userNFTs = [], on
             </div>
 
             {/* NFT Selection (only for listing type) */}
-            {requestType === 'listing' && userNFTs.length > 0 && (
+            {requestType === 'listing' && (
               <div className="space-y-2">
                 <label className="block text-sm font-semibold">Select NFT</label>
-                <select
-                  value={selectedNFT}
-                  onChange={(e) => setSelectedNFT(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">Choose an NFT...</option>
-                  {userNFTs.map(nft => (
-                    <option key={nft.itemId} value={nft.itemId}>
-                      {nft.name}
-                    </option>
-                  ))}
-                </select>
+                {loadingNFTs ? (
+                  <div className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-gray-400">
+                    Loading your NFTs...
+                  </div>
+                ) : availableNFTs.length > 0 ? (
+                  <select
+                    value={selectedNFT}
+                    onChange={(e) => setSelectedNFT(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">Choose an NFT...</option>
+                    {availableNFTs.map(nft => (
+                      <option key={nft.itemId || nft._id} value={nft.itemId || nft._id}>
+                        {nft.name} {!nft.isMinted && '(Unminted)'}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-gray-400">
+                    You haven't created any NFTs yet
+                  </div>
+                )}
               </div>
             )}
 
@@ -187,7 +237,7 @@ const ListingRequestForm = ({ isOpen, onClose, creatorAddress, userNFTs = [], on
                 <p className="text-gray-300">You're requesting:</p>
                 <p className="font-semibold text-purple-300">
                   {requestType === 'listing' && selectedNFT
-                    ? `Listing: ${userNFTs.find(nft => nft.itemId === selectedNFT)?.name}`
+                    ? `Listing: ${availableNFTs.find(nft => nft.itemId === selectedNFT || nft._id === selectedNFT)?.name}`
                     : `${requestType.charAt(0).toUpperCase() + requestType.slice(1)} listing`}
                 </p>
                 {preferredPrice && (

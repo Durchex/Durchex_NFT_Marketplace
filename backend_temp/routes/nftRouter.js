@@ -31,6 +31,25 @@ router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
 // Route to get collections grouped by network
 router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
 
+// ============ COLLECTION ROUTES ============
+// Create a new collection
+router.post("/collections", createCollection);
+
+// Get a single collection by ID
+router.get("/collections/single/:collectionId", getCollection);
+
+// Get all collections by user
+router.get("/collections/user/:walletAddress", getUserCollections);
+
+// Get NFTs in a collection
+router.get("/collections/:collectionId/nfts", getCollectionNFTs);
+
+// Update collection
+router.patch("/collections/:collectionId", updateCollection);
+
+// Delete collection
+router.delete("/collections/:collectionId", deleteCollection);
+
 // Other example routes (you can add all you want similarly)
 
 // Get all NFTs on a network (for marketplace - only listed)

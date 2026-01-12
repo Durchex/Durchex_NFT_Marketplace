@@ -2,6 +2,11 @@ import React, { useState, useRef } from 'react';
 import { FiX, FiUpload } from 'react-icons/fi';
 import { coverPhotoAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+
+const PINATA_API_KEY = import.meta.env.VITE_PINATA_API_KEY;
+const PINATA_SECRET_KEY = import.meta.env.VITE_PINATA_SECRET_KEY;
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
 
 const CoverPhotoUploader = ({ isOpen, onClose, onSuccess, type = 'user', entityId }) => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -35,6 +40,31 @@ const CoverPhotoUploader = ({ isOpen, onClose, onSuccess, type = 'user', entityI
     reader.readAsDataURL(file);
   };
 
+  const uploadToIPFS = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
+        headers: PINATA_JWT
+          ? {
+              Authorization: `Bearer ${PINATA_JWT}`,
+              'Content-Type': 'multipart/form-data',
+            }
+          : {
+              pinata_api_key: PINATA_API_KEY,
+              pinata_secret_api_key: PINATA_SECRET_KEY,
+              'Content-Type': 'multipart/form-data',
+            },
+      });
+
+      return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+    } catch (error) {
+      console.error('IPFS upload error:', error);
+      throw new Error('Failed to upload to IPFS');
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedImage) {
       toast.error('Please select an image');
@@ -43,14 +73,14 @@ const CoverPhotoUploader = ({ isOpen, onClose, onSuccess, type = 'user', entityI
 
     setIsLoading(true);
     try {
-      let response;
-      const formData = new FormData();
-      formData.append('image', selectedImage);
+      // Upload to IPFS
+      const ipfsUrl = await uploadToIPFS(selectedImage);
 
+      let response;
       if (type === 'user') {
-        response = await coverPhotoAPI.updateUserCoverPhoto(entityId, selectedImage);
+        response = await coverPhotoAPI.updateUserCoverPhoto(entityId, ipfsUrl);
       } else if (type === 'collection') {
-        response = await coverPhotoAPI.updateCollectionCoverPhoto(entityId, selectedImage);
+        response = await coverPhotoAPI.updateCollectionCoverPhoto(entityId, ipfsUrl);
       }
 
       toast.success('Cover photo updated successfully!');
