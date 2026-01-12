@@ -7,8 +7,9 @@ import socketService from "../services/socketService";
 import { FiCheck, FiStar, FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getVerificationBadge } from "../utils/verificationUtils";
-import { nftAPI, userAPI } from "../services/api";
+import { nftAPI, userAPI, engagementAPI } from "../services/api";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay";
 
 import SlidingContainer from "../components/SlindingContainer";
 import { nftCollections } from "../utils";
@@ -88,8 +89,9 @@ function App() {
   const [offset, setOffset] = useState(0);
   const [creators, setCreators] = useState([]);
   const [currentNFTIndex, setCurrentNFTIndex] = useState(0);
-
-  // useEffect(() => {
+  const [cartItems, setCartItems] = useState(new Set());
+  const [likedItems, setLikedItems] = useState(new Set());
+  const { address: userWalletAddress } = useContext(ICOContent) || {};
   //   const savedNFTs = localStorage.getItem("tradingNFTs");
   //   if (savedNFTs) {
   //     setTradingNFTs(JSON.parse(savedNFTs)); // Load data from localStorage
@@ -406,10 +408,70 @@ function App() {
               return (
                 <div
                   key={index}
-                  className="bg-red-600 rounded-lg h-[250px] sm:w-[200px] md:w-[250px] flex items-end relative slide-item overflow-hidden group"
+                  className="rounded-lg h-[250px] sm:w-[200px] md:w-[250px] flex items-end relative slide-item overflow-hidden group bg-gray-800 border border-gray-700"
                 >
+                  {/* NFT Image */}
+                  <Link 
+                    to={`/nft/${item.itemId}`}
+                    className="w-full h-full relative"
+                  >
+                    <img
+                      className="w-full h-full object-cover absolute top-0 left-0"
+                      src={item.image}
+                      alt={item.name}
+                    />
+                  </Link>
+
+                  {/* Hover Overlay */}
+                  <NFTImageHoverOverlay
+                    nft={{
+                      itemId: item.itemId,
+                      name: item.name,
+                      collection: item.collection || 'Collection',
+                      price: item.price || '0',
+                      currency: 'ETH',
+                      image: item.image
+                    }}
+                    isInCart={cartItems.has(item.itemId)}
+                    isLiked={likedItems.has(item.itemId)}
+                    onAddToCart={() => {
+                      setCartItems(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(item.itemId)) {
+                          newSet.delete(item.itemId);
+                        } else {
+                          newSet.add(item.itemId);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    onLike={async () => {
+                      if (!userWalletAddress) {
+                        toast.error("Please connect your wallet");
+                        return;
+                      }
+                      try {
+                        if (likedItems.has(item.itemId)) {
+                          await engagementAPI.unlikeNFT(userWalletAddress, item.itemId);
+                          setLikedItems(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(item.itemId);
+                            return newSet;
+                          });
+                          toast.success("Removed from likes");
+                        } else {
+                          await engagementAPI.likeNFT(userWalletAddress, item.itemId);
+                          setLikedItems(prev => new Set(prev).add(item.itemId));
+                          toast.success("Added to likes");
+                        }
+                      } catch (error) {
+                        toast.error("Failed to update like");
+                      }
+                    }}
+                  />
+
                   {/* WhatsApp-style Profile Icon - Clickable to creator profile (always render) */}
-                      <div className="absolute top-3 left-3 z-30 pointer-events-auto">
+                      <div className="absolute top-3 left-3 z-20 pointer-events-auto">
                         {creatorAddress ? (
                           <Link
                             to={`/creator/${creatorAddress}`}
@@ -417,7 +479,7 @@ function App() {
                             className="relative group/avatar"
                             title={creator?.username || 'Creator'}
                           >
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative group-hover/avatar:ring-purple-400 group-hover/avatar:shadow-purple-500/50 transition-all duration-300">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative group-hover/avatar:ring-purple-400 group-hover/avatar:shadow-purple-500/50 transition-all duration-300">
                               <img
                                 src={avatarUrl}
                                 alt={creator?.username || 'Creator'}
@@ -428,13 +490,13 @@ function App() {
                               />
                             </div>
                             {/* Creator username tooltip on hover */}
-                            <div className="absolute left-14 top-0 bg-gray-900/95 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <div className="absolute left-12 top-0 bg-gray-900/95 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 pointer-events-none">
                               {creator?.username || `Creator ${creatorAddress.slice(0, 6)}...`}
                             </div>
                           </Link>
                         ) : (
                           <div className="relative" title={item.name || 'Creator'}>
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-lg ring-2 ring-purple-500/50 bg-gray-800 relative">
                               <img
                                 src={avatarUrl}
                                 alt={item.name || 'Creator'}
@@ -456,12 +518,12 @@ function App() {
                             return (
                               <span
                                 title={badge.title}
-                                className="absolute top-[42px] left-[42px] inline-flex items-center justify-center w-5 h-5 z-40 pointer-events-none"
+                                className="absolute top-[32px] left-[32px] inline-flex items-center justify-center w-4 h-4 z-30 pointer-events-none"
                               >
                                 <img
                                   src={badge.imageUrl}
                                   alt={badge.label}
-                                  className="w-5 h-5 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                                  className="w-4 h-4 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]"
                                   onError={(e)=>{ e.currentTarget.style.display='none'; }}
                                 />
                               </span>
@@ -469,25 +531,13 @@ function App() {
                           }
 
                           return (
-                            <span aria-hidden="true" className="absolute top-[42px] left-[42px] pointer-events-none z-40 flex items-center justify-center">
+                            <span aria-hidden="true" className="absolute top-[32px] left-[32px] pointer-events-none z-30 flex items-center justify-center">
                               <span className="online-pulse" />
                               <span className="online-dot" />
                             </span>
                           );
                         })()}
                       </div>
-
-                  {/* NFT Image - Clickable to NFT details */}
-                  <Link 
-                    to={`/nft/${item.itemId}`}
-                    className="w-full h-full relative"
-                  >
-                    <img
-                      className="w-full h-full object-cover absolute top-0 left-0"
-                      src={item.image}
-                      alt={item.name}
-                    />
-                  </Link>
                 </div>
               );
             })}

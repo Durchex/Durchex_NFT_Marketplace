@@ -5,9 +5,11 @@ import { Toaster } from "react-hot-toast";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import Header from "../components/Header";
-import { nftAPI } from "../services/api";
+import { nftAPI, engagementAPI } from "../services/api";
+import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FiEdit2, FiTrash2, FiArrowLeft, FiDownload } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 export default function CollectionDetails() {
   const { collectionId } = useParams();
@@ -20,6 +22,8 @@ export default function CollectionDetails() {
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [cartItems, setCartItems] = useState(new Set());
+  const [likedItems, setLikedItems] = useState(new Set());
   
   // Edit/Delete modals
   const [showEditModal, setShowEditModal] = useState(false);
@@ -325,44 +329,55 @@ export default function CollectionDetails() {
               {nfts.map((nft) => (
                 <div
                   key={nft._id}
-                  className="bg-gray-900/50 border border-gray-800 rounded-lg overflow-hidden hover:border-blue-500/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/nft-details/${nft._id}`)}
+                  className="relative group"
+                  onMouseEnter={() => {
+                    engagementAPI.trackNFTView(nft._id, address).catch(err => console.log('View tracking:', err));
+                  }}
                 >
-                  {/* NFT Image */}
-                  {nft.image ? (
-                    <img
-                      src={nft.image}
-                      alt={nft.name}
-                      className="w-full h-48 object-cover bg-gray-800"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-800 flex items-center justify-center">
-                      <span className="text-4xl">🖼️</span>
-                    </div>
-                  )}
-
-                  {/* NFT Info */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-2 truncate">{nft.name}</h3>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">{nft.description}</p>
-
-                    {/* Pricing */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-gray-800 rounded p-2">
-                        <p className="text-gray-400 text-xs">Price</p>
-                        <p className="font-semibold">{parseFloat(nft.price).toFixed(4)}</p>
-                      </div>
-                      <div className="bg-gray-800 rounded p-2">
-                        <p className="text-gray-400 text-xs">Floor</p>
-                        <p className="font-semibold">{parseFloat(nft.floorPrice).toFixed(4)}</p>
-                      </div>
-                    </div>
-
-                    {/* Category Badge */}
-                    <div className="inline-block bg-blue-900/50 text-blue-200 px-3 py-1 rounded-full text-xs font-semibold capitalize">
-                      {nft.category}
-                    </div>
-                  </div>
+                  <NFTImageHoverOverlay
+                    nft={{
+                      ...nft,
+                      itemId: nft._id,
+                      price: nft.price || '0',
+                      currency: 'ETH'
+                    }}
+                    isInCart={cartItems.has(nft._id)}
+                    isLiked={likedItems.has(nft._id)}
+                    onAddToCart={() => {
+                      setCartItems(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(nft._id)) {
+                          newSet.delete(nft._id);
+                        } else {
+                          newSet.add(nft._id);
+                        }
+                        return newSet;
+                      });
+                    }}
+                    onLike={() => {
+                      if (likedItems.has(nft._id)) {
+                        engagementAPI.unlikeNFT(nft._id, address).then(() => {
+                          setLikedItems(prev => {
+                            const newSet = new Set(prev);
+                            newSet.delete(nft._id);
+                            return newSet;
+                          });
+                          toast.success('Unliked');
+                        }).catch(err => {
+                          console.error('Unlike error:', err);
+                          toast.error('Failed to unlike');
+                        });
+                      } else {
+                        engagementAPI.likeNFT(nft._id, address).then(() => {
+                          setLikedItems(prev => new Set(prev).add(nft._id));
+                          toast.success('Liked');
+                        }).catch(err => {
+                          console.error('Like error:', err);
+                          toast.error('Failed to like');
+                        });
+                      }
+                    }}
+                  />
                 </div>
               ))}
             </div>

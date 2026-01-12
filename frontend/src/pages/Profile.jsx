@@ -5,10 +5,14 @@ import {
   MoreVertical,
   X,
 } from "lucide-react";
+import { FiHeart, FiCheck, FiCopy, FiShoppingCart } from "react-icons/fi";
 import Header from "../components/Header";
 import { ICOContent } from "../Context/index.jsx";
 import { Toaster } from "react-hot-toast";
 import { BsStars } from "react-icons/bs";
+import { engagementAPI } from "../services/api.js";
+import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay.jsx";
+import toast from "react-hot-toast";
 
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorToast } from "../app/Toast/Error.jsx";
@@ -34,6 +38,8 @@ function App() {
   const [userPoints, setUserPoints] = useState(0);
   const [isEligible, setIsEligible] = useState(false);
   const [userAddress, setUserAddress] = useState(null);
+  const [cartItems, setCartItems] = useState(new Set());
+  const [likedItems, setLikedItems] = useState(new Set());
   const contexts = useContext(ICOContent);
   const { getUserStatu, address } = contexts || {};
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

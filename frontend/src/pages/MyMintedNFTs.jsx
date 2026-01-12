@@ -1,4 +1,3 @@
-// import { HiMenu, HiX } from "react-icons/hi"; // Removed - no longer needed
 import { useContext, useEffect, useState } from "react";
 // import RealTimeData from "../components/RealTimeData"; // Removed - not used
 // import NFTCard from "../components/NFTCard"; // Removed - not used
@@ -6,10 +5,12 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
-import { nftAPI } from "../services/api";
+import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success.jsx";
+import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay.jsx";
+import toast from "react-hot-toast";
 
 function MyMintedNFTs() {
   const contexts = useContext(ICOContent);
@@ -60,6 +61,9 @@ function MyMintedNFTs() {
   const [mintingNFT, setMintingNFT] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'minted', 'unminted'
   const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', or specific categories
+  const [cartItems, setCartItems] = useState(new Set());
+  const [likedItems, setLikedItems] = useState(new Set());
+  const { address: userWalletAddress } = useContext(ICOContent) || {};
 
   useEffect(() => {
     const fetchMyNFTs = async () => {
@@ -441,11 +445,59 @@ function MyMintedNFTs() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         {mintedNFTs.map((nft, index) => (
                     <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
-                      <div className="mb-4">
+                      <div className="mb-4 relative group overflow-hidden rounded-lg">
                         <img
                           src={nft.image}
                           alt={nft.name}
                           className="w-full h-48 object-cover rounded-lg"
+                        />
+                        {/* Hover Overlay */}
+                        <NFTImageHoverOverlay
+                          nft={{
+                            itemId: nft.itemId || nft._id,
+                            name: nft.name,
+                            collection: nft.collection || 'Personal Collection',
+                            price: nft.price || '0',
+                            currency: 'ETH',
+                            image: nft.image
+                          }}
+                          isInCart={cartItems.has(nft.itemId || nft._id)}
+                          isLiked={likedItems.has(nft.itemId || nft._id)}
+                          onAddToCart={() => {
+                            setCartItems(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(nft.itemId || nft._id)) {
+                                newSet.delete(nft.itemId || nft._id);
+                              } else {
+                                newSet.add(nft.itemId || nft._id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          onLike={async () => {
+                            if (!userWalletAddress) {
+                              toast.error("Please connect your wallet");
+                              return;
+                            }
+                            try {
+                              const nftId = nft.itemId || nft._id;
+                              if (likedItems.has(nftId)) {
+                                await engagementAPI.unlikeNFT(userWalletAddress, nftId);
+                                setLikedItems(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(nftId);
+                                  return newSet;
+                                });
+                                toast.success("Removed from likes");
+                              } else {
+                                await engagementAPI.likeNFT(userWalletAddress, nftId);
+                                setLikedItems(prev => new Set(prev).add(nftId));
+                                toast.success("Added to likes");
+                              }
+                            } catch (error) {
+                              toast.error("Failed to update like");
+                            }
+                          }}
                         />
                       </div>
                       

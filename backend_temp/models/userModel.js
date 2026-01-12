@@ -23,6 +23,10 @@ const userSchema = new Schema(
     image: {
       type: String,
     },
+    coverPhoto: {
+      type: String,
+      default: null
+    },
     socialLinks: [
       {
         type: String,

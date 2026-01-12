@@ -30,6 +30,9 @@ import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import withdrawalAdminRoutes from "./routes/withdrawalAdminRoutes.js";
 import orderRouter from "./routes/orderRouter.js";
 import offerRouter from "./routes/offerRouter.js";
+import nftListingRequestRouter from "./routes/nftListingRequestRouter.js";
+import engagementRouter from "./routes/engagementRouter.js";
+import coverPhotoRouter from "./routes/coverPhotoRouter.js";
 
 // connect db
 connectDB();
@@ -114,6 +117,9 @@ app.use('/api/v1/withdrawals', withdrawalRoutes);
 app.use('/api/v1/admin', withdrawalAdminRoutes);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/offers', offerRouter);
+app.use('/api/v1/nft-listing-requests', nftListingRequestRouter);
+app.use('/api/v1/engagement', engagementRouter);
+app.use('/api/v1/cover-photos', coverPhotoRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

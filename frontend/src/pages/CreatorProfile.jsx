@@ -1,26 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMail, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiMail, FiCopy, FiCheck, FiHeart, FiShare2, FiUserPlus, FiUserMinus } from 'react-icons/fi';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
-import { nftAPI, userAPI } from '../services/api';
+import { nftAPI, userAPI, engagementAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import { ICOContent } from '../Context';
+import NFTImageHoverOverlay from '../components/NFTImageHoverOverlay';
 
 const CreatorProfile = () => {
   const { walletAddress } = useParams();
   const navigate = useNavigate();
+  const { address: userWalletAddress } = useContext(ICOContent) || {};
   const [creator, setCreator] = useState(null);
   const [creatorNFTs, setCreatorNFTs] = useState([]);
   const [creatorCollections, setCreatorCollections] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [activeTab, setActiveTab] = useState('nfts');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [cartItems, setCartItems] = useState(new Set());
+  const [likedItems, setLikedItems] = useState(new Set());
 
   useEffect(() => {
     fetchCreatorProfile();
     fetchCreatorCollections();
-  }, [walletAddress]);
+    if (userWalletAddress) {
+      checkFollowStatus();
+      loadFollowerCount();
+    }
+  }, [walletAddress, userWalletAddress]);
 
   const fetchCreatorProfile = async () => {
     setIsLoading(true);
@@ -93,6 +104,76 @@ const CreatorProfile = () => {
     } catch (error) {
       console.error('[CreatorProfile] Error fetching collections:', error);
       setCreatorCollections([]);
+    }
+  };
+
+  const checkFollowStatus = async () => {
+    try {
+      if (!userWalletAddress || userWalletAddress.toLowerCase() === walletAddress.toLowerCase()) {
+        return; // Don't check if same user
+      }
+      const result = await engagementAPI.isFollowingCreator(walletAddress, userWalletAddress);
+      setIsFollowing(result.following);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  };
+
+  const loadFollowerCount = async () => {
+    try {
+      const result = await engagementAPI.getCreatorFollowers(walletAddress, 1, 1);
+      setFollowerCount(result.total || 0);
+    } catch (error) {
+      console.error('Error loading follower count:', error);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!userWalletAddress) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+    if (userWalletAddress.toLowerCase() === walletAddress.toLowerCase()) {
+      toast.error('Cannot follow yourself');
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        await engagementAPI.unfollowCreator(walletAddress, userWalletAddress);
+        toast.success('Unfollowed');
+        setFollowerCount(prev => prev - 1);
+      } else {
+        await engagementAPI.followCreator(walletAddress, userWalletAddress, creator.username);
+        toast.success('Followed!');
+        setFollowerCount(prev => prev + 1);
+      }
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      if (error.response?.status === 409) {
+        toast.error('Already following this creator');
+      } else {
+        toast.error('Failed to toggle follow');
+      }
+    }
+  };
+
+  const handleShareProfile = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/creator/${walletAddress}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Check out ${creator.username}`,
+          text: `Explore ${creator.username}'s NFTs on Durchex`,
+          url: shareUrl
+        });
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        toast.success('Profile link copied!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
     }
   };
 
@@ -215,6 +296,45 @@ const CreatorProfile = () => {
                   <div className="text-2xl font-bold text-purple-400">{creatorCollections.length}</div>
                   <div className="text-gray-400 text-sm">Collections</div>
                 </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-400">{followerCount}</div>
+                  <div className="text-gray-400 text-sm">Followers</div>
+                </div>
+              </div>
+
+              {/* Follow and Share Buttons */}
+              <div className="flex gap-3 mt-6">
+                {userWalletAddress && userWalletAddress.toLowerCase() !== walletAddress.toLowerCase() && (
+                  <>
+                    <button
+                      onClick={handleFollowToggle}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg transition ${
+                        isFollowing
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                          : 'bg-purple-600/20 hover:bg-purple-600/40 text-purple-300'
+                      }`}
+                    >
+                      {isFollowing ? (
+                        <>
+                          <FiUserMinus size={18} />
+                          Unfollow
+                        </>
+                      ) : (
+                        <>
+                          <FiUserPlus size={18} />
+                          Follow
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleShareProfile}
+                      className="flex items-center gap-2 px-6 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
+                    >
+                      <FiShare2 size={18} />
+                      Share
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -343,11 +463,48 @@ const CreatorProfile = () => {
                             e.target.style.display = 'none';
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {/* Hover Overlay */}
+                        <NFTImageHoverOverlay
+                          nft={{
+                            ...nft,
+                            price: nft.price || '0',
+                            currency: 'ETH'
+                          }}
+                          isInCart={cartItems.has(nft.itemId)}
+                          isLiked={likedItems.has(nft.itemId)}
+                          onAddToCart={() => {
+                            const newCart = new Set(cartItems);
+                            if (newCart.has(nft.itemId)) {
+                              newCart.delete(nft.itemId);
+                              toast.success('Removed from cart');
+                            } else {
+                              newCart.add(nft.itemId);
+                              toast.success('Added to cart!');
+                            }
+                            setCartItems(newCart);
+                          }}
+                          onLike={() => {
+                            const newLiked = new Set(likedItems);
+                            if (newLiked.has(nft.itemId)) {
+                              newLiked.delete(nft.itemId);
+                            } else {
+                              newLiked.add(nft.itemId);
+                            }
+                            setLikedItems(newLiked);
+                            if (userWalletAddress) {
+                              engagementAPI.likeNFT(nft._id, nft.itemId, nft.contractAddress || nft.creator, nft.network || 'ethereum', userWalletAddress).catch(err => {
+                                if (err.response?.status === 409) {
+                                  console.log('Already liked');
+                                }
+                              });
+                            }
+                          }}
+                        />
                         
                         {/* Listed Badge */}
                         {nft.currentlyListed && (
-                          <div className="absolute top-2 right-2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                          <div className="absolute top-2 right-2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
                             Listed
                           </div>
                         )}

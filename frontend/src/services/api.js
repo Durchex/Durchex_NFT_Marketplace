@@ -893,6 +893,441 @@ export const offerAPI = {
   }
 };
 
+// NFT Listing Request API
+export const listingRequestAPI = {
+  // Create a new listing request
+  createRequest: async (requestData) => {
+    try {
+      const response = await api.post('/nft-listing-requests/requests', requestData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create listing request:', error);
+      throw error;
+    }
+  },
+
+  // Get requests received by a creator
+  getCreatorRequests: async (walletAddress, status = 'pending') => {
+    try {
+      const response = await api.get('/nft-listing-requests/creator/requests', {
+        params: {
+          walletAddress,
+          status
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch creator requests:', error);
+      throw error;
+    }
+  },
+
+  // Get requests sent by a user
+  getUserSentRequests: async (walletAddress) => {
+    try {
+      const response = await api.get('/nft-listing-requests/requests/sent', {
+        params: {
+          walletAddress
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch sent requests:', error);
+      throw error;
+    }
+  },
+
+  // Get specific request by ID
+  getRequestById: async (requestId) => {
+    try {
+      const response = await api.get(`/nft-listing-requests/requests/${requestId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch request:', error);
+      throw error;
+    }
+  },
+
+  // Approve a listing request (Admin/Creator)
+  approveRequest: async (requestId, approvalNotes) => {
+    try {
+      const response = await api.post(
+        `/nft-listing-requests/admin/requests/${requestId}/approve`,
+        {
+          approvedBy: 'admin',
+          approvalNotes: approvalNotes || ''
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to approve request:', error);
+      throw error;
+    }
+  },
+
+  // Reject a listing request
+  rejectRequest: async (requestId, rejectionReason) => {
+    try {
+      const response = await api.post(
+        `/nft-listing-requests/admin/requests/${requestId}/reject`,
+        {
+          rejectionReason
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to reject request:', error);
+      throw error;
+    }
+  },
+
+  // Cancel a listing request (User)
+  cancelRequest: async (requestId, requesterWallet) => {
+    try {
+      const response = await api.post(
+        `/nft-listing-requests/requests/${requestId}/cancel`,
+        {
+          requesterWallet
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel request:', error);
+      throw error;
+    }
+  },
+
+  // Get all requests (Admin dashboard)
+  getAllRequests: async (status, limit = 50, page = 1) => {
+    try {
+      const response = await api.get('/nft-listing-requests/admin/requests', {
+        params: {
+          status,
+          limit,
+          page
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch all requests:', error);
+      throw error;
+    }
+  }
+};
+
+// Engagement API (Likes, Follows, Views, Shares)
+export const engagementAPI = {
+  // NFT Likes
+  likeNFT: async (nftId, itemId, contractAddress, network, userWallet) => {
+    try {
+      const response = await api.post('/engagement/likes/nft', {
+        nftId,
+        itemId,
+        contractAddress,
+        network,
+        userWallet
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to like NFT:', error);
+      throw error;
+    }
+  },
+
+  unlikeNFT: async (nftId, network, userWallet) => {
+    try {
+      const response = await api.delete('/engagement/likes/nft', {
+        data: {
+          nftId,
+          network,
+          userWallet
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to unlike NFT:', error);
+      throw error;
+    }
+  },
+
+  isNFTLiked: async (nftId, userWallet) => {
+    try {
+      const response = await api.get('/engagement/likes/nft/check', {
+        params: {
+          nftId,
+          userWallet
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to check like status:', error);
+      throw error;
+    }
+  },
+
+  // Collection Likes
+  likeCollection: async (collectionId, collectionName, network, userWallet) => {
+    try {
+      const response = await api.post('/engagement/likes/collection', {
+        collectionId,
+        collectionName,
+        network,
+        userWallet
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to like collection:', error);
+      throw error;
+    }
+  },
+
+  unlikeCollection: async (collectionId, network, userWallet) => {
+    try {
+      const response = await api.delete('/engagement/likes/collection', {
+        data: {
+          collectionId,
+          network,
+          userWallet
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to unlike collection:', error);
+      throw error;
+    }
+  },
+
+  // Creator Follows
+  followCreator: async (creatorWallet, followerWallet, followerName) => {
+    try {
+      const response = await api.post('/engagement/follow', {
+        creatorWallet,
+        followerWallet,
+        followerName
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to follow creator:', error);
+      throw error;
+    }
+  },
+
+  unfollowCreator: async (creatorWallet, followerWallet) => {
+    try {
+      const response = await api.delete('/engagement/follow', {
+        data: {
+          creatorWallet,
+          followerWallet
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to unfollow creator:', error);
+      throw error;
+    }
+  },
+
+  isFollowingCreator: async (creatorWallet, followerWallet) => {
+    try {
+      const response = await api.get('/engagement/follow/check', {
+        params: {
+          creatorWallet,
+          followerWallet
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to check follow status:', error);
+      throw error;
+    }
+  },
+
+  getCreatorFollowers: async (creatorWallet, limit = 50, page = 1) => {
+    try {
+      const response = await api.get(`/engagement/followers/${creatorWallet}`, {
+        params: {
+          limit,
+          page
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch followers:', error);
+      throw error;
+    }
+  },
+
+  getFollowingList: async (followerWallet, limit = 50, page = 1) => {
+    try {
+      const response = await api.get(`/engagement/following/${followerWallet}`, {
+        params: {
+          limit,
+          page
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch following list:', error);
+      throw error;
+    }
+  },
+
+  // View Tracking
+  trackNFTView: async (nftId, itemId, contractAddress, network, userWallet) => {
+    try {
+      const response = await api.post('/engagement/views/nft', {
+        nftId,
+        itemId,
+        contractAddress,
+        network,
+        userWallet
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to track view:', error);
+      throw error;
+    }
+  },
+
+  trackCollectionView: async (collectionId, collectionName, network, userWallet) => {
+    try {
+      const response = await api.post('/engagement/views/collection', {
+        collectionId,
+        collectionName,
+        network,
+        userWallet
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to track collection view:', error);
+      throw error;
+    }
+  },
+
+  // Share Tracking
+  trackNFTShare: async (nftId, itemId, contractAddress, network, userWallet, shareMethod = 'link_copy') => {
+    try {
+      const response = await api.post('/engagement/shares/nft', {
+        nftId,
+        itemId,
+        contractAddress,
+        network,
+        userWallet,
+        shareMethod
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to track share:', error);
+      throw error;
+    }
+  },
+
+  // Get Engagement Stats
+  getStats: async (entityType, entityId, network) => {
+    try {
+      const response = await api.get('/engagement/stats', {
+        params: {
+          entityType,
+          entityId,
+          network
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+      throw error;
+    }
+  }
+};
+
+// Cover Photo API
+export const coverPhotoAPI = {
+  // User cover photos
+  updateUserCoverPhoto: async (walletAddress, coverPhotoUrl) => {
+    try {
+      const response = await api.post('/cover-photos/user/cover-photo', {
+        walletAddress,
+        coverPhotoUrl
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update cover photo:', error);
+      throw error;
+    }
+  },
+
+  removeUserCoverPhoto: async (walletAddress) => {
+    try {
+      const response = await api.delete('/cover-photos/user/cover-photo', {
+        data: { walletAddress }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to remove cover photo:', error);
+      throw error;
+    }
+  },
+
+  getUserProfile: async (walletAddress) => {
+    try {
+      const response = await api.get(`/cover-photos/user/${walletAddress}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      throw error;
+    }
+  },
+
+  // Collection cover photos
+  updateCollectionCoverPhoto: async (collectionId, coverPhotoUrl) => {
+    try {
+      const response = await api.post('/cover-photos/collection/cover-photo', {
+        collectionId,
+        coverPhotoUrl
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update collection cover photo:', error);
+      throw error;
+    }
+  },
+
+  removeCollectionCoverPhoto: async (collectionId) => {
+    try {
+      const response = await api.delete('/cover-photos/collection/cover-photo', {
+        data: { collectionId }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to remove collection cover photo:', error);
+      throw error;
+    }
+  },
+
+  updateCollectionBanner: async (collectionId, bannerUrl) => {
+    try {
+      const response = await api.post('/cover-photos/collection/banner', {
+        collectionId,
+        bannerUrl
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update collection banner:', error);
+      throw error;
+    }
+  },
+
+  getCollection: async (collectionId) => {
+    try {
+      const response = await api.get(`/cover-photos/collection/${collectionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch collection:', error);
+      throw error;
+    }
+  }
+};
+
 export default api;
 
 // Settings API functions
