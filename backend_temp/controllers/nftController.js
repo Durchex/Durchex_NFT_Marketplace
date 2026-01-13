@@ -396,6 +396,5 @@ export {
   deleteNftInCollection,
   fetchUserNFTs,
   fetchUserNFTsByNetwork,
-  fetchUserMintedNFTs,
-  createCollection
+  fetchUserMintedNFTs
 };
