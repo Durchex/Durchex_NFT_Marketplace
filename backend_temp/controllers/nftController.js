@@ -1,3 +1,28 @@
+import Collection from "../models/collectionModel.js";
+// Create a new NFT Collection
+export const createCollection = async (req, res) => {
+  try {
+    const data = req.body;
+    // Basic validation (customize as needed)
+    if (!data.name || !data.creatorWallet || !data.network) {
+      return res.status(400).json({ error: "name, creatorWallet, and network are required" });
+    }
+    // Prevent duplicate collection by name/network/creator
+    const exists = await Collection.findOne({
+      name: data.name,
+      network: data.network,
+      creatorWallet: data.creatorWallet,
+    });
+    if (exists) {
+      return res.status(409).json({ error: "Collection already exists for this creator/network" });
+    }
+    const collection = new Collection(data);
+    await collection.save();
+    res.status(201).json(collection);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 import { nftModel } from "../models/nftModel.js"; // adjust path accordingly
 
 export const checkNftExists = async (req, res) => {
@@ -354,4 +379,23 @@ export const fetchUserMintedNFTs = async (req, res) => {
     console.error('Error fetching user minted NFTs:', error);
     res.status(500).json({ error: error.message });
   }
+};
+
+export { 
+  checkNftExists,
+  createNft,
+  fetchCollectionsGroupedByNetwork,
+  fetchAllNftsByNetwork,
+  fetchAllNftsByNetworkForExplore,
+  fetchCollectionNfts,
+  fetchSingleNft,
+  fetchSingleNfts,
+  editSingleNft,
+  editNftInCollection,
+  deleteSingleNft,
+  deleteNftInCollection,
+  fetchUserNFTs,
+  fetchUserNFTsByNetwork,
+  fetchUserMintedNFTs,
+  createCollection
 };
