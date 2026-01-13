@@ -291,9 +291,6 @@ const NftDetailsPage = () => {
               <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                 <FiDollarSign /> Buy Now / Make Offer
               </button>
-              <button onClick={() => setOfferModalOpen(true)} className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors">
-                Make an Offer
-              </button>
             </div>
           </div>
         </div>

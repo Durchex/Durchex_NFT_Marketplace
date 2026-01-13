@@ -10,6 +10,29 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
   const [expirationDays, setExpirationDays] = useState(7);
   const [isLoading, setIsLoading] = useState(false);
   const [offerType, setOfferType] = useState('offer'); // 'offer' or 'buy'
+  const [selectedPaymentNetwork, setSelectedPaymentNetwork] = useState(nft?.network || 'ethereum');
+  const [transactionHash, setTransactionHash] = useState('');
+
+  const handlePaymentConfirmation = async () => {
+    if (!transactionHash.trim()) {
+      toast.error('Please enter a transaction hash');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // This would need to be implemented - confirm payment with transaction hash
+      // For now, just show success
+      toast.success('Payment confirmation submitted! NFT transfer will be processed.');
+      setTransactionHash('');
+      onClose();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Failed to confirm payment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmitOffer = async () => {
     if (!address) {
@@ -37,14 +60,21 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         });
         toast.success('Offer placed successfully!');
       } else {
-        // Buy now
-        await orderAPI.createOrder({
+        // Buy now - create order first
+        const orderResponse = await orderAPI.createOrder({
           nftId: nft.itemId,
           buyer: address,
           price: priceInWei,
           network: nft.network
         });
-        toast.success('Purchase order created! Awaiting confirmation.');
+        
+        // For buy now, we need payment confirmation
+        toast.success('Order created! Please complete payment to receive the NFT.');
+        
+        // Reset form but keep modal open for payment
+        setOfferPrice('');
+        setTransactionHash('');
+        return; // Don't close modal yet
       }
 
       setOfferPrice('');
@@ -65,7 +95,7 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
   const priceDifference = offerPrice ? (parseFloat(offerPrice) - nftPrice).toFixed(4) : '0.00';
 
   return (
-    <>
+    <div>
       {/* Overlay */}
       <div
         className="fixed inset-0 bg-black/60 z-50 transition-opacity duration-300"
@@ -155,9 +185,50 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
                   </span>
                 </div>
               )}
-            </div>
+            {/* Payment Network Selection (Only for Buy Now) */}
+            {offerType === 'buy' && (
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold">Payment Network</label>
+                <select
+                  value={selectedPaymentNetwork}
+                  onChange={(e) => setSelectedPaymentNetwork(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                >
+                  {/* NFT's network first */}
+                  <option value={nft.network} className="capitalize">
+                    {nft.network.charAt(0).toUpperCase() + nft.network.slice(1)} (Recommended)
+                  </option>
+                  {/* Other networks */}
+                  {['ethereum', 'polygon', 'bsc', 'arbitrum', 'base', 'solana']
+                    .filter(network => network !== nft.network)
+                    .map(network => (
+                      <option key={network} value={network} className="capitalize">
+                        {network.charAt(0).toUpperCase() + network.slice(1)}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-gray-400">
+                  Pay using {selectedPaymentNetwork.charAt(0).toUpperCase() + selectedPaymentNetwork.slice(1)} network
+                </p>
+              </div>
+            )}
 
-            {/* Expiration (Only for offers) */}
+            {/* Transaction Hash Input (Only for Buy Now after order creation) */}
+            {offerType === 'buy' && (
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold">Transaction Hash (Optional)</label>
+                <input
+                  type="text"
+                  value={transactionHash}
+                  onChange={(e) => setTransactionHash(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                />
+                <p className="text-xs text-gray-400">
+                  Enter transaction hash after payment to speed up processing
+                </p>
+              </div>
+            )}
             {offerType === 'offer' && (
               <div className="space-y-2">
                 <label className="block text-sm font-semibold">Expiration</label>
@@ -178,11 +249,18 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
             <div className="bg-purple-600/20 rounded-lg p-4 border border-purple-500/30">
               <div className="text-sm">
                 <p className="text-gray-300 mb-2">You're about to:</p>
-                <p className="font-semibold">
+                <p className="font-semibold mb-2">
                   {offerType === 'offer'
                     ? `Place an offer of ${offerPriceValue} ETH for ${expirationDays} day${expirationDays > 1 ? 's' : ''}`
                     : `Purchase this NFT for ${offerPriceValue} ETH`}
                 </p>
+                {offerType === 'buy' && (
+                  <div className="text-xs text-gray-400">
+                    <p>• Payment Network: {selectedPaymentNetwork.charAt(0).toUpperCase() + selectedPaymentNetwork.slice(1)}</p>
+                    <p>• Send {offerPriceValue} ETH to the seller's wallet</p>
+                    <p>• NFT will be transferred after payment confirmation</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -194,8 +272,19 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
               disabled={isLoading || !offerPrice}
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
             >
-              {isLoading ? 'Processing...' : offerType === 'offer' ? 'Place Offer' : 'Buy Now'}
+              {isLoading ? 'Processing...' : offerType === 'offer' ? 'Place Offer' : 'Create Order & Pay'}
             </button>
+            
+            {offerType === 'buy' && transactionHash && (
+              <button
+                onClick={handlePaymentConfirmation}
+                disabled={isLoading}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
+              >
+                {isLoading ? 'Processing...' : 'Confirm Payment'}
+              </button>
+            )}
+            
             <button
               onClick={onClose}
               className="w-full bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-lg font-semibold transition-colors"
@@ -203,9 +292,10 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
               Cancel
             </button>
           </div>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -4,7 +4,7 @@ import { FiArrowLeft, FiMail, FiCopy, FiCheck, FiHeart, FiShare2, FiUserPlus, Fi
 import { Edit3 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
-import { nftAPI, userAPI, engagementAPI } from '../services/api';
+import { nftAPI, userAPI, engagementAPI, offerAPI, orderAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { ICOContent } from '../Context';
@@ -28,6 +28,10 @@ const CreatorProfile = () => {
   const [likedItems, setLikedItems] = useState(new Set());
   const [coverPhotoOpen, setCoverPhotoOpen] = useState(false);
   const [listingRequestOpen, setListingRequestOpen] = useState(false);
+  const [receivedOffers, setReceivedOffers] = useState([]);
+  const [sellerOrders, setSellerOrders] = useState([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   useEffect(() => {
     fetchCreatorProfile();
@@ -35,6 +39,11 @@ const CreatorProfile = () => {
     if (userWalletAddress) {
       checkFollowStatus();
       loadFollowerCount();
+      // Only fetch offers and orders if viewing own profile
+      if (userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase()) {
+        fetchReceivedOffers();
+        fetchSellerOrders();
+      }
     }
   }, [walletAddress, userWalletAddress]);
 
@@ -187,6 +196,36 @@ const CreatorProfile = () => {
     setCopiedAddress(true);
     toast.success('Address copied to clipboard');
     setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
+  const fetchReceivedOffers = async () => {
+    if (!userWalletAddress || userWalletAddress.toLowerCase() !== walletAddress.toLowerCase()) return;
+    
+    setOffersLoading(true);
+    try {
+      const offers = await offerAPI.getReceivedOffers(walletAddress);
+      setReceivedOffers(offers);
+    } catch (error) {
+      console.error('Error fetching received offers:', error);
+      toast.error('Failed to load offers');
+    } finally {
+      setOffersLoading(false);
+    }
+  };
+
+  const fetchSellerOrders = async () => {
+    if (!userWalletAddress || userWalletAddress.toLowerCase() !== walletAddress.toLowerCase()) return;
+    
+    setOrdersLoading(true);
+    try {
+      const orders = await orderAPI.getSellerOrders(walletAddress);
+      setSellerOrders(orders);
+    } catch (error) {
+      console.error('Error fetching seller orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setOrdersLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -408,6 +447,30 @@ const CreatorProfile = () => {
           >
             Collections ({creatorCollections.length})
           </button>
+          {userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase() && (
+            <>
+              <button
+                onClick={() => setActiveTab('offers')}
+                className={`px-6 py-4 font-semibold transition ${
+                  activeTab === 'offers'
+                    ? 'text-purple-400 border-b-2 border-purple-400'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Offers ({receivedOffers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`px-6 py-4 font-semibold transition ${
+                  activeTab === 'orders'
+                    ? 'text-purple-400 border-b-2 border-purple-400'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Orders ({sellerOrders.length})
+              </button>
+            </>
+          )}
         </div>
 
         {/* NFTs/Collections Grid */}
@@ -567,6 +630,62 @@ const CreatorProfile = () => {
               </div>
             )
           )}
+
+          {/* Offers Tab */}
+          {activeTab === 'offers' && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Received Offers</h2>
+              {offersLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading offers...</p>
+                </div>
+              ) : receivedOffers.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 mb-4">No offers received yet</p>
+                  <p className="text-sm text-gray-500">Offers on your NFTs will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {receivedOffers.map((offer) => (
+                    <OfferCard 
+                      key={offer.offerId} 
+                      offer={offer} 
+                      onAction={fetchReceivedOffers}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Orders Tab */}
+          {activeTab === 'orders' && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Sales Orders</h2>
+              {ordersLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Loading orders...</p>
+                </div>
+              ) : sellerOrders.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-400 mb-4">No orders yet</p>
+                  <p className="text-sm text-gray-500">Completed sales will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sellerOrders.map((order) => (
+                    <OrderCard 
+                      key={order.orderId} 
+                      order={order} 
+                      onAction={fetchSellerOrders}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
@@ -599,6 +718,256 @@ const CreatorProfile = () => {
         creatorAddress={walletAddress}
         userNFTs={creatorNFTs}
       />
+    </div>
+  );
+};
+
+// Offer Card Component
+const OfferCard = ({ offer, onAction }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleAccept = async () => {
+    setLoading(true);
+    try {
+      await offerAPI.acceptOffer(offer.offerId);
+      toast.success('Offer accepted! Please wait for payment confirmation.');
+      onAction();
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      toast.error('Failed to accept offer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const reason = prompt('Reason for rejection (optional):');
+    setLoading(true);
+    try {
+      await offerAPI.rejectOffer(offer.offerId, reason);
+      toast.success('Offer rejected');
+      onAction();
+    } catch (error) {
+      console.error('Error rejecting offer:', error);
+      toast.error('Failed to reject offer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+      <div className="flex items-start gap-4">
+        {/* NFT Image */}
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+          <img
+            src={offer.nft?.image || '/placeholder-nft.png'}
+            alt={offer.nft?.name || 'NFT'}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.src = '/placeholder-nft.png';
+            }}
+          />
+        </div>
+
+        {/* Offer Details */}
+        <div className="flex-1">
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <h3 className="font-semibold text-white">{offer.nft?.name || 'Unknown NFT'}</h3>
+              <p className="text-sm text-gray-400">From: {offer.offerer?.slice(0, 6)}...{offer.offerer?.slice(-4)}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold text-green-400">
+                {(parseFloat(offer.offerPrice) / 1e18).toFixed(4)} ETH
+              </div>
+              <div className="text-xs text-gray-500 capitalize">{offer.network}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
+            <span>Expires: {formatDate(offer.expiresAt)}</span>
+            <span>Status: <span className="text-yellow-400 capitalize">{offer.status}</span></span>
+          </div>
+
+          {/* Action Buttons */}
+          {offer.status === 'pending' && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleAccept}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                {loading ? 'Processing...' : 'Accept Offer'}
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                {loading ? 'Processing...' : 'Reject'}
+              </button>
+            </div>
+          )}
+
+          {offer.status === 'accepted' && (
+            <div className="text-green-400 font-semibold">
+              ✓ Offer accepted - Waiting for payment
+            </div>
+          )}
+
+          {offer.status === 'rejected' && (
+            <div className="text-red-400 font-semibold">
+              ✗ Offer rejected
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Order Card Component
+const OrderCard = ({ order, onAction }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirmPayment = async () => {
+    const txHash = prompt('Enter transaction hash:');
+    if (!txHash) return;
+
+    setLoading(true);
+    try {
+      await orderAPI.confirmPayment(order.orderId, txHash, 'completed');
+      toast.success('Payment confirmed! NFT transfer initiated.');
+      onAction();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('Failed to confirm payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    const reason = prompt('Reason for cancellation:');
+    if (!reason) return;
+
+    setLoading(true);
+    try {
+      await orderAPI.cancelOrder(order.orderId, reason);
+      toast.success('Order cancelled');
+      onAction();
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      toast.error('Failed to cancel order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+      <div className="flex items-start gap-4">
+        {/* NFT Image */}
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
+          <img
+            src={order.nft?.image || '/placeholder-nft.png'}
+            alt={order.nft?.name || 'NFT'}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.src = '/placeholder-nft.png';
+            }}
+          />
+        </div>
+
+        {/* Order Details */}
+        <div className="flex-1">
+          <div className="flex items-start justify-between mb-2">
+            <div>
+              <h3 className="font-semibold text-white">{order.nft?.name || 'Unknown NFT'}</h3>
+              <p className="text-sm text-gray-400">Buyer: {order.buyer?.slice(0, 6)}...{order.buyer?.slice(-4)}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold text-green-400">
+                {(parseFloat(order.price) / 1e18).toFixed(4)} ETH
+              </div>
+              <div className="text-xs text-gray-500 capitalize">{order.network}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
+            <span>Order ID: {order.orderId}</span>
+            <span>Created: {formatDate(order.createdAt)}</span>
+            <span>Status: <span className={`capitalize ${
+              order.status === 'completed' ? 'text-green-400' :
+              order.status === 'pending' ? 'text-yellow-400' :
+              order.status === 'cancelled' ? 'text-red-400' : 'text-gray-400'
+            }`}>{order.status}</span></span>
+          </div>
+
+          {/* Transaction Hash */}
+          {order.transactionHash && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-400 mb-1">Transaction Hash:</p>
+              <code className="text-xs bg-gray-800 px-2 py-1 rounded">
+                {order.transactionHash.slice(0, 10)}...{order.transactionHash.slice(-8)}
+              </code>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {order.status === 'pending' && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmPayment}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                {loading ? 'Processing...' : 'Confirm Payment'}
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                {loading ? 'Processing...' : 'Cancel Order'}
+              </button>
+            </div>
+          )}
+
+          {order.status === 'completed' && (
+            <div className="text-green-400 font-semibold">
+              ✓ Payment confirmed - NFT transferred
+            </div>
+          )}
+
+          {order.status === 'cancelled' && (
+            <div className="text-red-400 font-semibold">
+              ✗ Order cancelled
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -41,27 +41,52 @@ const CoverPhotoUploader = ({ isOpen, onClose, onSuccess, type = 'user', entityI
   };
 
   const uploadToIPFS = async (file) => {
+    // Check if Pinata credentials are configured
+    if (!PINATA_JWT && (!PINATA_API_KEY || !PINATA_SECRET_KEY)) {
+      throw new Error('IPFS upload not configured. Please set up Pinata API credentials in environment variables.');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
+    const headers = PINATA_JWT
+      ? {
+          Authorization: `Bearer ${PINATA_JWT}`,
+          'Content-Type': 'multipart/form-data',
+        }
+      : {
+          pinata_api_key: PINATA_API_KEY,
+          pinata_secret_api_key: PINATA_SECRET_KEY,
+          'Content-Type': 'multipart/form-data',
+        };
+
     try {
+      console.log('Uploading to IPFS with headers:', Object.keys(headers));
       const response = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
-        headers: PINATA_JWT
-          ? {
-              Authorization: `Bearer ${PINATA_JWT}`,
-              'Content-Type': 'multipart/form-data',
-            }
-          : {
-              pinata_api_key: PINATA_API_KEY,
-              pinata_secret_api_key: PINATA_SECRET_KEY,
-              'Content-Type': 'multipart/form-data',
-            },
+        headers,
+        timeout: 30000, // 30 second timeout
       });
+
+      if (!response.data?.IpfsHash) {
+        throw new Error('Invalid response from IPFS service');
+      }
 
       return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
     } catch (error) {
       console.error('IPFS upload error:', error);
-      throw new Error('Failed to upload to IPFS');
+
+      // Provide specific error messages based on error type
+      if (error.code === 'ERR_NETWORK' || error.code === 'ERR_EMPTY_RESPONSE') {
+        throw new Error('IPFS service is currently unavailable. Please try again later or contact support.');
+      } else if (error.response?.status === 401) {
+        throw new Error('IPFS authentication failed. Please check API credentials.');
+      } else if (error.response?.status === 429) {
+        throw new Error('IPFS upload rate limit exceeded. Please try again in a few minutes.');
+      } else if (error.response?.status >= 500) {
+        throw new Error('IPFS service error. Please try again later.');
+      } else {
+        throw new Error(`IPFS upload failed: ${error.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -73,14 +98,35 @@ const CoverPhotoUploader = ({ isOpen, onClose, onSuccess, type = 'user', entityI
 
     setIsLoading(true);
     try {
-      // Upload to IPFS
-      const ipfsUrl = await uploadToIPFS(selectedImage);
+      let imageUrl;
+
+      // Try to upload to IPFS first
+      try {
+        imageUrl = await uploadToIPFS(selectedImage);
+        console.log('Successfully uploaded to IPFS:', imageUrl);
+      } catch (ipfsError) {
+        console.warn('IPFS upload failed, using fallback:', ipfsError.message);
+
+        // Fallback: Use base64 data URL for the image
+        // Note: This is temporary and won't persist across sessions
+        const reader = new FileReader();
+        imageUrl = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(selectedImage);
+        });
+
+        toast('IPFS upload failed - using temporary local image. Image may not persist.', {
+          icon: '⚠️',
+          duration: 5000,
+        });
+      }
 
       let response;
       if (type === 'user') {
-        response = await coverPhotoAPI.updateUserCoverPhoto(entityId, ipfsUrl);
+        response = await coverPhotoAPI.updateUserCoverPhoto(entityId, imageUrl);
       } else if (type === 'collection') {
-        response = await coverPhotoAPI.updateCollectionCoverPhoto(entityId, ipfsUrl);
+        response = await coverPhotoAPI.updateCollectionCoverPhoto(entityId, imageUrl);
       }
 
       toast.success('Cover photo updated successfully!');

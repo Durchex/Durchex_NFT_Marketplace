@@ -138,52 +138,130 @@ export default function Create() {
   };
 
   const uploadToIPFS = async (files) => {
+    // Check if Pinata credentials are configured
+    if (!PINATA_JWT && (!PINATA_API_KEY || !PINATA_SECRET_KEY)) {
+      ErrorToast("IPFS upload not configured. Please set up Pinata API credentials.");
+      return;
+    }
+
     try {
       const urls = await Promise.all(
         files.map(async (file) => {
           const formData = new FormData();
           formData.append("file", file);
-          const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
-            headers: PINATA_JWT
-              ? {
-                  Authorization: `Bearer ${PINATA_JWT}`,
-                  "Content-Type": "multipart/form-data",
-                }
-              : {
-                  pinata_api_key: PINATA_API_KEY,
-                  pinata_secret_api_key: PINATA_SECRET_KEY,
-                  "Content-Type": "multipart/form-data",
-                },
-          });
-          return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+
+          const headers = PINATA_JWT
+            ? {
+                Authorization: `Bearer ${PINATA_JWT}`,
+                "Content-Type": "multipart/form-data",
+              }
+            : {
+                pinata_api_key: PINATA_API_KEY,
+                pinata_secret_api_key: PINATA_SECRET_KEY,
+                "Content-Type": "multipart/form-data",
+              };
+
+          try {
+            console.log('Uploading file to IPFS:', file.name);
+            const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
+              headers,
+              timeout: 30000, // 30 second timeout
+            });
+
+            if (!response.data?.IpfsHash) {
+              throw new Error('Invalid response from IPFS service');
+            }
+
+            return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+          } catch (ipfsError) {
+            console.warn(`IPFS upload failed for ${file.name}:`, ipfsError.message);
+
+            // Fallback: Use base64 data URL for the file
+            // Note: This is temporary and won't persist across sessions
+            const reader = new FileReader();
+            return await new Promise((resolve, reject) => {
+              reader.onload = (e) => resolve(e.target.result);
+              reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+              reader.readAsDataURL(file);
+            });
+          }
         })
       );
+
       setImageURLs(urls);
-      SuccessToast("Images uploaded successfully!");
+
+      // Check if any uploads failed and show appropriate message
+      const ipfsUrls = urls.filter(url => url.startsWith('https://gateway.pinata.cloud'));
+      const fallbackUrls = urls.filter(url => url.startsWith('data:'));
+
+      if (ipfsUrls.length > 0 && fallbackUrls.length === 0) {
+        SuccessToast("Images uploaded successfully!");
+      } else if (ipfsUrls.length > 0 && fallbackUrls.length > 0) {
+        SuccessToast(`${ipfsUrls.length} images uploaded to IPFS, ${fallbackUrls.length} using temporary local storage.`);
+      } else {
+        ErrorToast("IPFS upload failed - using temporary local images. Images may not persist.");
+      }
     } catch (error) {
       console.error("Error uploading files to IPFS", error);
-      ErrorToast("Failed to upload images to IPFS");
+
+      // Provide specific error messages
+      if (error.code === 'ERR_NETWORK' || error.code === 'ERR_EMPTY_RESPONSE') {
+        ErrorToast("IPFS service is currently unavailable. Please try again later.");
+      } else if (error.response?.status === 401) {
+        ErrorToast("IPFS authentication failed. Please check API credentials.");
+      } else if (error.response?.status === 429) {
+        ErrorToast("IPFS upload rate limit exceeded. Please try again in a few minutes.");
+      } else {
+        ErrorToast(`Upload failed: ${error.message || 'Unknown error'}`);
+      }
     }
   };
 
   const uploadJSONToIPFS = async (metadata) => {
+    // Check if Pinata credentials are configured
+    if (!PINATA_JWT && (!PINATA_API_KEY || !PINATA_SECRET_KEY)) {
+      ErrorToast("IPFS upload not configured. Please set up Pinata API credentials.");
+      throw new Error('IPFS not configured');
+    }
+
+    const headers = PINATA_JWT
+      ? {
+          Authorization: `Bearer ${PINATA_JWT}`,
+          "Content-Type": "application/json",
+        }
+      : {
+          pinata_api_key: PINATA_API_KEY,
+          pinata_secret_api_key: PINATA_SECRET_KEY,
+          "Content-Type": "application/json",
+        };
+
     try {
+      console.log('Uploading JSON metadata to IPFS');
       const response = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", metadata, {
-        headers: PINATA_JWT
-          ? {
-              Authorization: `Bearer ${PINATA_JWT}`,
-              "Content-Type": "application/json",
-            }
-          : {
-              pinata_api_key: PINATA_API_KEY,
-              pinata_secret_api_key: PINATA_SECRET_KEY,
-              "Content-Type": "application/json",
-            },
+        headers,
+        timeout: 30000, // 30 second timeout
       });
+
+      if (!response.data?.IpfsHash) {
+        throw new Error('Invalid response from IPFS service');
+      }
+
       return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
     } catch (error) {
       console.error("Error uploading JSON to IPFS", error);
-      ErrorToast("Failed to upload metadata to IPFS");
+
+      // Provide specific error messages
+      if (error.code === 'ERR_NETWORK' || error.code === 'ERR_EMPTY_RESPONSE') {
+        ErrorToast("IPFS service is currently unavailable. Please try again later.");
+      } else if (error.response?.status === 401) {
+        ErrorToast("IPFS authentication failed. Please check API credentials.");
+      } else if (error.response?.status === 429) {
+        ErrorToast("IPFS upload rate limit exceeded. Please try again in a few minutes.");
+      } else {
+        ErrorToast(`Metadata upload failed: ${error.message || 'Unknown error'}`);
+      }
+
+      throw error; // Re-throw to prevent NFT creation
     }
   };
 
@@ -253,21 +331,51 @@ export default function Create() {
 
       // Upload collection image to IPFS if provided
       if (files.length > 0) {
+        // Check if Pinata credentials are configured
+        if (!PINATA_JWT && (!PINATA_API_KEY || !PINATA_SECRET_KEY)) {
+          ErrorToast("IPFS upload not configured. Please set up Pinata API credentials.");
+          return;
+        }
+
         const formData = new FormData();
         formData.append("file", files[0]);
-        const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
-          headers: PINATA_JWT
-            ? {
-                Authorization: `Bearer ${PINATA_JWT}`,
-                "Content-Type": "multipart/form-data",
-              }
-            : {
-                pinata_api_key: PINATA_API_KEY,
-                pinata_secret_api_key: PINATA_SECRET_KEY,
-                "Content-Type": "multipart/form-data",
-              },
-        });
-        collectionImageURL = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+
+        const headers = PINATA_JWT
+          ? {
+              Authorization: `Bearer ${PINATA_JWT}`,
+              "Content-Type": "multipart/form-data",
+            }
+          : {
+              pinata_api_key: PINATA_API_KEY,
+              pinata_secret_api_key: PINATA_SECRET_KEY,
+              "Content-Type": "multipart/form-data",
+            };
+
+        try {
+          console.log('Uploading collection image to IPFS');
+          const response = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
+            headers,
+            timeout: 30000, // 30 second timeout
+          });
+
+          if (!response.data?.IpfsHash) {
+            throw new Error('Invalid response from IPFS service');
+          }
+
+          collectionImageURL = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+        } catch (ipfsError) {
+          console.warn('IPFS upload failed for collection image:', ipfsError.message);
+
+          // Fallback: Use base64 data URL for the image
+          const reader = new FileReader();
+          collectionImageURL = await new Promise((resolve, reject) => {
+            reader.onload = (e) => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read collection image'));
+            reader.readAsDataURL(files[0]);
+          });
+
+          ErrorToast("IPFS upload failed - using temporary local image. Image may not persist.");
+        }
       }
 
       const collectionData = {
