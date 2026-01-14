@@ -106,15 +106,10 @@ const CreatorProfile = () => {
 
   const fetchCreatorCollections = async () => {
     try {
-      // Fetch all collections and filter by creator
-      const allCollections = await nftAPI.getCollections?.();
-      if (Array.isArray(allCollections)) {
-        const creatorCollectionsFiltered = allCollections.filter(
-          collection => collection.creator?.toLowerCase() === walletAddress?.toLowerCase()
-        );
-        setCreatorCollections(creatorCollectionsFiltered);
-        console.log(`[CreatorProfile] Found ${creatorCollectionsFiltered.length} collections for creator ${walletAddress}`);
-      }
+      // Fetch collections created by this creator
+      const collections = await nftAPI.getUserCollections(walletAddress);
+      setCreatorCollections(Array.isArray(collections) ? collections : []);
+      console.log(`[CreatorProfile] Found ${collections.length} collections for creator ${walletAddress}`);
     } catch (error) {
       console.error('[CreatorProfile] Error fetching collections:', error);
       setCreatorCollections([]);

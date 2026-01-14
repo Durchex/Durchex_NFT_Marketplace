@@ -517,8 +517,8 @@ export const nftAPI = {
   // Get user's collections
   getUserCollections: async (walletAddress) => {
     try {
-      const response = await api.get(`/nft/user-collections/${walletAddress}`);
-      return response.data.collections || [];
+      const response = await api.get(`/nft/collections/user/${walletAddress}`);
+      return response.data || [];
     } catch (error) {
       console.error('Failed to fetch user collections:', error);
       return [];
@@ -528,8 +528,8 @@ export const nftAPI = {
   // Get all collections (for Collections page)
   getCollections: async () => {
     try {
-      const response = await api.get('/nft/collections');
-      return response.data.collections || [];
+      const response = await api.get(`/nft/collections`);
+      return response.data || [];
     } catch (error) {
       console.error('Failed to fetch all collections:', error);
       return [];

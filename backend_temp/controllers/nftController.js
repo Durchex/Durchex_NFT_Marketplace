@@ -65,6 +65,18 @@ export const getUserCollections = async (req, res) => {
   }
 };
 
+export const getAllCollections = async (req, res) => {
+  try {
+    const collections = await Collection.find({})
+      .sort({ createdAt: -1 })
+      .limit(100); // Limit for performance
+    
+    res.status(200).json(collections);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const getCollectionNFTs = async (req, res) => {
   try {
     const { collectionId } = req.params;

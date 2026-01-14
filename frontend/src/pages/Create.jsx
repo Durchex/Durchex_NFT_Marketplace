@@ -114,11 +114,11 @@ export default function Create() {
     if (!address) return;
     try {
       // Fetch collections created by current user
-      // This will be implemented when collection API is ready
-      // For now, use placeholder
-      setUserCollections([]);
+      const collections = await nftAPI.getUserCollections(address);
+      setUserCollections(Array.isArray(collections) ? collections : []);
     } catch (error) {
       console.error("Error fetching collections:", error);
+      setUserCollections([]);
     }
   };
 

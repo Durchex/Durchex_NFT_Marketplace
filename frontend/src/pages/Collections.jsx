@@ -28,12 +28,12 @@ const Collections = () => {
       const allCollectionsData = await nftAPI.getCollections();
       
       if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Transform API response to ensure all fields are present
+        // Transform API response to match expected structure
         const transformedCollections = allCollectionsData.map((col, index) => ({
           _id: col._id,
-          id: col._id || index,
+          id: col._id || col.collectionId || index,
           name: col.name || 'Unnamed Collection',
-          creator: col.creator || 'Unknown Creator',
+          creator: col.creatorName || col.creatorWallet || 'Unknown Creator',
           creatorAvatar: col.creatorAvatar,
           description: col.description || '',
           image: col.image,
@@ -41,12 +41,14 @@ const Collections = () => {
           volume24h: col.volume24h || 0,
           volume7d: col.volume7d || 0,
           percentChange24h: col.percentChange24h || 0,
-          items: col.nftCount || col.items || 0,
+          items: col.nftCount || col.items || 0, // Will be populated by counting NFTs in collection
           owners: col.ownerCount || col.owners || 0,
           views: col.views || 0,
           likes: col.likes || 0,
           verified: col.verified || false,
-          network: col.network || 'ethereum',
+          network: col.network || 'polygon',
+          collectionId: col.collectionId,
+          creatorWallet: col.creatorWallet,
         }));
         setCollections(transformedCollections);
         console.log(`[Collections] Fetched ${transformedCollections.length} real collections from API`);

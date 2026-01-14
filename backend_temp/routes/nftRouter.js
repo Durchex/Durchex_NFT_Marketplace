@@ -15,6 +15,7 @@ import {
   createCollection,
   getCollection,
   getUserCollections,
+  getAllCollections,
   getCollectionNFTs,
   updateCollection,
   deleteCollection,
@@ -40,6 +41,9 @@ router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
 // ============ COLLECTION ROUTES ============
 // Create a new collection
 router.post("/collections", createCollection);
+
+// Get all collections
+router.get("/collections", getAllCollections);
 
 // Get a single collection by ID
 router.get("/collections/single/:collectionId", getCollection);
