@@ -21,6 +21,25 @@ const cartSchema = new Schema(
       type: Number,
       default: 1,
     },
+    // Additional NFT metadata for display
+    name: {
+      type: String,
+      required: true,
+    },
+    image: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: String,
+      default: "0",
+    },
+    tokenId: {
+      type: Number,
+    },
+    metadata: {
+      type: Schema.Types.Mixed, // Flexible metadata object
+    },
   },
   { timestamps: true }
 );

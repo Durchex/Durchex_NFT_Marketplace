@@ -6,7 +6,7 @@ import { addToCart, getCartByWalletAddress, removeFromCart, clearCart } from "..
 // Add to Cart
 export const addNFTToCart = async (req, res) => {
   try {
-    const { walletAddress, nftId, contractAddress, quantity = 1 } = req.body;
+    const { walletAddress, nftId, contractAddress, quantity = 1, name, image, price, tokenId, metadata } = req.body;
     
     // Ensure the nftId is a number
     if (typeof nftId !== "number") {
@@ -19,6 +19,11 @@ export const addNFTToCart = async (req, res) => {
       nftId,
       contractAddress,
       quantity,
+      name,
+      image,
+      price,
+      tokenId,
+      metadata,
     });
 
     res.status(201).json(cartItem);

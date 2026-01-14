@@ -126,7 +126,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   <div className="flex gap-3">
                     {/* Image */}
                     <img
-                      src={item.image}
+                      src={item.image || 'https://via.placeholder.com/64?text=NFT'}
                       alt={item.name}
                       className="w-16 h-16 rounded object-cover"
                       onError={(e) => {

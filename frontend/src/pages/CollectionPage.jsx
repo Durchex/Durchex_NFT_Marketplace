@@ -40,7 +40,10 @@ const CollectionPage = () => {
       .then((data) => {
         console.log("🚀 ~ .then ~ data:", data);
         setNfts(data);
-        setBannerImage(data[0].image);
+        // Only set banner image if there are NFTs in the collection
+        if (data && data.length > 0 && data[0].image) {
+          setBannerImage(data[0].image);
+        }
         setIsLoading(false);
       })
       .catch((err) => console.error("Error fetching cart:", err));
