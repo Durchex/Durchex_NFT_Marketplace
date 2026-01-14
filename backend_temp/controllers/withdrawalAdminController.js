@@ -1,4 +1,4 @@
-import withdrawalModel from '../models/withdrawalModel.js';
+import { withdrawalModel } from '../models/withdrawalModel.js';
 import transactionModel from '../models/transactionModel.js';
 import partnerWalletModel from '../models/partnerWalletModel.js';
 

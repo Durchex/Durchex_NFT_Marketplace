@@ -384,15 +384,15 @@ export default function Create() {
         image: collectionImageURL,
         category: collectionForm.category,
         network: collectionForm.network,
-        creator: address,
-        createdAt: new Date().toISOString(),
+        creatorWallet: address,
+        creatorName: address.substring(0, 10) + '...',
       };
 
       // Create collection in database
       const response = await nftAPI.createCollection(collectionData);
       
       SuccessToast("Collection created successfully!");
-      setTimeout(() => navigate(`/collection/${response.data._id}`), 2000);
+      setTimeout(() => navigate(`/collection/${response._id}`), 2000);
     } catch (error) {
       console.error("Error creating collection:", error);
       ErrorToast("Failed to create collection. Please try again.");

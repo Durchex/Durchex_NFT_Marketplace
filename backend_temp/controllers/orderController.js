@@ -1,5 +1,5 @@
 import OrderModel from "../models/orderModel.js";
-import NFTModel from "../models/nftModel.js";
+import { nftModel as NFTModel } from "../models/nftModel.js";
 import { v4 as uuidv4 } from "uuid";
 import toast from "react-hot-toast";
 

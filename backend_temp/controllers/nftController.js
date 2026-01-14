@@ -7,22 +7,136 @@ export const createCollection = async (req, res) => {
     if (!data.name || !data.creatorWallet || !data.network) {
       return res.status(400).json({ error: "name, creatorWallet, and network are required" });
     }
+    
+    // Generate a unique collectionId if not provided
+    const collectionId = data.collectionId || `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     // Prevent duplicate collection by name/network/creator
     const exists = await Collection.findOne({
       name: data.name,
       network: data.network,
-      creatorWallet: data.creatorWallet,
+      creatorWallet: data.creatorWallet.toLowerCase(),
     });
     if (exists) {
       return res.status(409).json({ error: "Collection already exists for this creator/network" });
     }
-    const collection = new Collection(data);
+    
+    const collectionData = {
+      ...data,
+      collectionId,
+      creatorWallet: data.creatorWallet.toLowerCase()
+    };
+    
+    const collection = new Collection(collectionData);
     await collection.save();
     res.status(201).json(collection);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getCollection = async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    
+    const collection = await Collection.findById(collectionId);
+    
+    if (!collection) {
+      return res.status(404).json({ error: "Collection not found" });
+    }
+    
+    res.status(200).json(collection);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getUserCollections = async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    
+    const collections = await Collection.find({
+      creatorWallet: walletAddress.toLowerCase()
+    }).sort({ createdAt: -1 });
+    
+    res.status(200).json(collections);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCollectionNFTs = async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    
+    const nfts = await nftModel.find({
+      collection: collectionId
+    }).sort({ createdAt: -1 });
+    
+    res.status(200).json(nfts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateCollection = async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    const updateData = req.body;
+    
+    // Remove fields that shouldn't be updated directly
+    delete updateData.collectionId;
+    delete updateData.creatorWallet;
+    delete updateData.createdAt;
+    
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date();
+    
+    // Try to find by MongoDB _id first (preferred), then by collectionId
+    let collection = await Collection.findByIdAndUpdate(
+      collectionId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    // If not found by _id, try by collectionId field
+    if (!collection) {
+      collection = await Collection.findOneAndUpdate(
+        { collectionId },
+        updateData,
+        { new: true, runValidators: true }
+      );
+    }
+    
+    if (!collection) {
+      return res.status(404).json({ error: "Collection not found" });
+    }
+    
+    res.status(200).json(collection);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteCollection = async (req, res) => {
+  try {
+    const { collectionId } = req.params;
+    
+    const collection = await Collection.findOneAndDelete({ collectionId });
+    
+    if (!collection) {
+      return res.status(404).json({ error: "Collection not found" });
+    }
+    
+    // Optionally, you might want to delete associated NFTs here
+    // await nftModel.deleteMany({ collection: collectionId });
+    
+    res.status(200).json({ message: "Collection deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 import { nftModel } from "../models/nftModel.js"; // adjust path accordingly
 
 export const checkNftExists = async (req, res) => {
@@ -379,22 +493,4 @@ export const fetchUserMintedNFTs = async (req, res) => {
     console.error('Error fetching user minted NFTs:', error);
     res.status(500).json({ error: error.message });
   }
-};
-
-export { 
-  checkNftExists,
-  createNft,
-  fetchCollectionsGroupedByNetwork,
-  fetchAllNftsByNetwork,
-  fetchAllNftsByNetworkForExplore,
-  fetchCollectionNfts,
-  fetchSingleNft,
-  fetchSingleNfts,
-  editSingleNft,
-  editNftInCollection,
-  deleteSingleNft,
-  deleteNftInCollection,
-  fetchUserNFTs,
-  fetchUserNFTsByNetwork,
-  fetchUserMintedNFTs
 };
