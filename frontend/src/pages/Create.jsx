@@ -217,53 +217,7 @@ export default function Create() {
     }
   };
 
-  const uploadJSONToIPFS = async (metadata) => {
-    // Check if Pinata credentials are configured
-    if (!PINATA_JWT && (!PINATA_API_KEY || !PINATA_SECRET_KEY)) {
-      ErrorToast("IPFS upload not configured. Please set up Pinata API credentials.");
-      throw new Error('IPFS not configured');
-    }
 
-    const headers = PINATA_JWT
-      ? {
-          Authorization: `Bearer ${PINATA_JWT}`,
-          "Content-Type": "application/json",
-        }
-      : {
-          pinata_api_key: PINATA_API_KEY,
-          pinata_secret_api_key: PINATA_SECRET_KEY,
-          "Content-Type": "application/json",
-        };
-
-    try {
-      console.log('Uploading JSON metadata to IPFS');
-      const response = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", metadata, {
-        headers,
-        timeout: 30000, // 30 second timeout
-      });
-
-      if (!response.data?.IpfsHash) {
-        throw new Error('Invalid response from IPFS service');
-      }
-
-      return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
-    } catch (error) {
-      console.error("Error uploading JSON to IPFS", error);
-
-      // Provide specific error messages
-      if (error.code === 'ERR_NETWORK' || error.code === 'ERR_EMPTY_RESPONSE') {
-        ErrorToast("IPFS service is currently unavailable. Please try again later.");
-      } else if (error.response?.status === 401) {
-        ErrorToast("IPFS authentication failed. Please check API credentials.");
-      } else if (error.response?.status === 429) {
-        ErrorToast("IPFS upload rate limit exceeded. Please try again in a few minutes.");
-      } else {
-        ErrorToast(`Metadata upload failed: ${error.message || 'Unknown error'}`);
-      }
-
-      throw error; // Re-throw to prevent NFT creation
-    }
-  };
 
   // ============ SINGLE NFT CREATION ============
   const handleCreateSingleNFT = async (event) => {

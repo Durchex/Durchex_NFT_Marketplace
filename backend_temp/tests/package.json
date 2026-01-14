@@ -14,7 +14,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:smoke": "jest --testNamePattern='(UT001|NT001|CT001)'",
-    "test:security": "jest admin-security.test.js --testNamePattern='SEC'",
+    "test:nft-creation": "jest nft-creation-collection.test.js --verbose",
     "report": "cat ../reports/test-report-latest.txt",
     "reports:list": "ls -la ../reports/",
     "clean": "rm -rf ../reports/* node_modules/.cache"
@@ -40,13 +40,17 @@
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 30000,
+    "transform": {},
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
     "collectCoverageFrom": [
       "setup.test.js",
       "core-features.test.js",
       "giveaway-payment.test.js",
       "admin-security.test.js"
     ],
-    "coverageThresholds": {
+    "coverageThreshold": {
       "global": {
         "branches": 70,
         "functions": 70,

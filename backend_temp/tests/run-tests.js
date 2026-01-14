@@ -18,13 +18,15 @@ const testDir = __dirname;
 const testFiles = [
   'core-features.test.js',
   'giveaway-payment.test.js',
-  'admin-security.test.js'
+  'admin-security.test.js',
+  'nft-creation-collection.test.js'
 ];
 
 const testSuites = {
   'Core Features': 'core-features.test.js',
   'Giveaway & Payment': 'giveaway-payment.test.js',
-  'Admin & Security': 'admin-security.test.js'
+  'Admin & Security': 'admin-security.test.js',
+  'NFT Creation & Collections': 'nft-creation-collection.test.js'
 };
 
 // ==================== Test Report ====================
@@ -35,7 +37,8 @@ class TestReport {
     this.results = {
       'Core Features': { passed: 0, failed: 0, total: 0, details: [] },
       'Giveaway & Payment': { passed: 0, failed: 0, total: 0, details: [] },
-      'Admin & Security': { passed: 0, failed: 0, total: 0, details: [] }
+      'Admin & Security': { passed: 0, failed: 0, total: 0, details: [] },
+      'NFT Creation & Collections': { passed: 0, failed: 0, total: 0, details: [] }
     };
     this.errors = [];
   }

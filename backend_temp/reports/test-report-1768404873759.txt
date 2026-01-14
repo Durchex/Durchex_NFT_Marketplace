@@ -1,0 +1,123 @@
+================================================================================
+📊 DURCHEX NFT MARKETPLACE - COMPREHENSIVE TEST REPORT
+================================================================================
+
+Report Generated: 14/01/2026, 16:34:33
+Duration: 4.71 seconds
+Environment: development
+API URL: http://localhost:3000
+
+📈 OVERALL SUMMARY
+--------------------------------------------------------------------------------
+Total Tests: 38
+Passed: ✅ 38
+Failed: ❌ 0
+Success Rate: 100.00%
+Status: 🟢 ALL TESTS PASSED
+
+📋 DETAILED RESULTS BY TEST SUITE
+================================================================================
+
+✅ Core Features
+--------------------------------------------------------------------------------
+Tests: 12 | Passed: 12 | Failed: 0 | Success: 100%
+
+  ✅ PASS UT001: User Creation
+     └─ Passed
+  ✅ PASS UT002: User Profile Retrieval
+     └─ Passed
+  ✅ PASS UT003: User Profile Update
+     └─ Passed
+  ✅ PASS UT004: Get All Users
+     └─ Passed
+  ✅ PASS NT001: Unminted NFT Creation
+     └─ Passed
+  ✅ PASS NT002: Get Unminted NFTs
+     └─ Passed
+  ✅ PASS NT003: Mark NFT as Minted
+     └─ Passed
+  ✅ PASS NT004: Filter NFTs by Network
+     └─ Passed
+  ✅ PASS CT001: Add to Cart
+     └─ Passed
+  ✅ PASS CT002: Get User Cart
+     └─ Passed
+  ✅ PASS CT003: Remove from Cart
+     └─ Passed
+  ✅ PASS CT004: Clear Cart
+     └─ Passed
+
+✅ Giveaway & Payment
+--------------------------------------------------------------------------------
+Tests: 11 | Passed: 11 | Failed: 0 | Success: 100%
+
+  ✅ PASS GA001: Create Giveaway NFT
+     └─ Passed
+  ✅ PASS GA002: Offer Giveaway to User
+     └─ Passed
+  ✅ PASS GA003: Get User Giveaway NFTs
+     └─ Passed
+  ✅ PASS GA004: Prevent Early Claim
+     └─ Passed
+  ✅ PASS GA005: Claim Giveaway When Live
+     └─ Passed
+  ✅ PASS GA006: Prevent Double Claim
+     └─ Passed
+  ✅ PASS FS001: Service Charge Calculation
+     └─ Passed
+  ✅ PASS FS002: Set Fee Subsidy
+     └─ Passed
+  ✅ PASS FS003: Apply Fee Subsidy
+     └─ Passed
+  ✅ PASS FS004: Get Fee Subsidy Info
+     └─ Passed
+  ✅ PASS RY001: Royalty Calculation
+     └─ Passed
+
+✅ Admin & Security
+--------------------------------------------------------------------------------
+Tests: 15 | Passed: 15 | Failed: 0 | Success: 100%
+
+  ✅ PASS AD001: Dashboard Stats
+     └─ Passed
+  ✅ PASS AD002: Get All Users (Admin)
+     └─ Passed
+  ✅ PASS AD003: Get All NFTs (Admin)
+     └─ Passed
+  ✅ PASS AD004: Get Transactions
+     └─ Passed
+  ✅ PASS AD005: Get Activity Log
+     └─ Passed
+  ✅ PASS UM001: Update User Status
+     └─ Passed
+  ✅ PASS UM002: Update NFT Status
+     └─ Passed
+  ✅ PASS GA001: Get All Giveaways
+     └─ Passed
+  ✅ PASS GA002: Revoke Giveaway Offer
+     └─ Passed
+  ✅ PASS AN001: Get Analytics
+     └─ Passed
+  ✅ PASS AN002: Generate Report
+     └─ Passed
+  ✅ PASS SEC001: Deny Non-Admin Access
+     └─ Passed
+  ✅ PASS SEC002: Validate Wallet Address
+     └─ Passed
+  ✅ PASS SEC003: Prevent Unauthorized Edits
+     └─ Passed
+  ✅ PASS SEC004: Sanitize User Input
+     └─ Passed
+
+✅ NFT Creation & Collections
+--------------------------------------------------------------------------------
+Tests: 0 | Passed: 0 | Failed: 0 | Success: 0%
+
+
+💡 RECOMMENDATIONS
+================================================================================
+✅ All tests passed. Platform is ready for deployment.
+
+================================================================================
+End of Report
+================================================================================

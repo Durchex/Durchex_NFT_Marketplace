@@ -70,7 +70,9 @@ async function testCollectionCreation() {
     const nftData = {
       ...testNFT,
       collection: collection.collectionId,
-      metadataURI: 'https://metadata.example.com/nft1.json',
+      // Removed metadataURI - NFT creation now works without IPFS
+      isMinted: false,
+      currentlyListed: true
     };
     
     const createNftResponse = await axios.post(`${API_BASE}/nft/nfts`, nftData);

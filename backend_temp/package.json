@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "create-admin": "node scripts/createInitialAdmin.js",
     "set-global-service-charge": "node scripts/set_global_service_charge.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:nft-creation": "jest tests/nft-creation-collection.test.js"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +28,9 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "axios": "^1.13.2",
     "dotenv": "^16.5.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.10"
   }
 }

@@ -235,92 +235,7 @@ export default function Create() {
     }
   };
 
-  const uploadJSONToIPFS = async (metadata) => {
-    if ((!imageURL || !imageURL.trim()) && !batchImageURLs.length) {
-      ErrorToast("Image URL is missing! Please ensure the image is uploaded.");
-      return;
-    }
 
-    if (isBatchMinting) {
-  
-      if (
-        !metadata.name ||
-        !metadata.description ||
-        !metadata.creator ||
-        !metadata.image ||
-        !metadata.properties ||
-        !metadata.collection ||
-        !metadata.category
-      )
-        return;
-    }
-
-    console.log("i got here", imageURL);
-
-    if (!isBatchMinting) {
-      if (
-        !metadata.name ||
-        !metadata.description ||
-        !metadata.creator ||
-        !imageURL || !imageURL.trim() ||
-        !metadata.properties ||
-        !metadata.category
-      )
-        return;
-    }
-
-    if (imageURL) {
-      console.log("🚀 ~ uploadJSONToIPFS ~ imageURL:", imageURL);
-
-      try {
-        // Prepare metadata to be uploaded
-        const data = JSON.stringify({
-          name: metadata.name,
-          description: metadata.description,
-          creator: metadata.creator,
-          image: isBatchMinting ? metadata.image : imageURL, // Use batch image URL or single image URL
-          category: metadata.category,
-          properties: metadata.properties,
-          collection: metadata.collection,
-        });
-
-        console.log("🚀 ~ Data to be uploaded to Pinata:", data); // Log data to ensure correctness
-
-        // Create FormData for uploading to Pinata
-        // Upload the metadata to Pinata
-        const response = await axios.post(
-          "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-          JSON.parse(data),
-          {
-            headers: PINATA_JWT
-              ? {
-                  Authorization: `Bearer ${PINATA_JWT}`,
-                  "Content-Type": "application/json",
-                }
-              : {
-                  pinata_api_key: PINATA_API_KEY,
-                  pinata_secret_api_key: PINATA_SECRET_KEY,
-                  "Content-Type": "application/json",
-                },
-          }
-        );
-
-        // Log the Pinata response to inspect it
-        console.log("🚀 ~ Pinata response:", response.data);
-
-        // Use the public Pinata gateway to avoid private gateway 403s
-        const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
-        console.log("🚀 ~ Metadata uploaded to IPFS. URL:", ipfsUrl);
-
-        // Return the IPFS URL (no immediate fetch to avoid 403/CORS)
-        return ipfsUrl;
-      } catch (error) {
-        console.error("Error uploading metadata to Pinata:", error);
-        ErrorToast("Failed to upload metadata. Please try again.");
-        return null;
-      }
-    }
-  };
 
   const HandleMintNF = async (event) => {
     event.preventDefault();
@@ -329,55 +244,45 @@ export default function Create() {
     }
     try {
       console.log("🚀 ~ HandleMintNFT ~ formNftData:", formNftData);
-      const Uri = await uploadJSONToIPFS(formNftData);
-      console.log("🚀 ~ HandleMintNFT ~ Uri :", Uri);
-      // const metaData = "https://copper-leading-yak-964.mypinata.cloud/ipfs/QmPhv27ETCX9xcKuF1AiExZPdhVxqEZgiHT1N9rSocKncN";
-      // console.log("🚀 ~ HandleMintNFT ~ metaData:", metaData);
-      // console.log(
-      //   "🚀 ~ awaitpublicMint ~ process.env.REACT_APP_NFTMARKETPLACE_CONTRACT_ADDRESS:",
-      //   import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS
-      // );
 
-      const nftmarketplace = import.meta.env
-        .VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS;
+      // Create NFT directly in database instead of using IPFS
+      const nftData = {
+        itemId: `${Date.now()}_${Math.random()}`,
+        network: "polygon", // default network
+        owner: address,
+        seller: address,
+        price: formNftData.price || '0',
+        floorPrice: formNftData.price || '0',
+        name: formNftData.name,
+        description: formNftData.description,
+        image: formNftData.image,
+        category: formNftData.category,
+        properties: formNftData.properties || {},
+        collection: formNftData.collection || null,
+        isMinted: false,
+        currentlyListed: true
+      };
 
-      const reallyTrue = await isAuthorizedVendor(address);
-      // const reallyTrue = await isAuthorizedVendor(UserEthAccount.account);
-      console.log("🚀 ~ HandleMintNFT ~ reallyTrue:", reallyTrue);
+      // Use the NFT API to create NFT in database
+      const response = await axios.post('/api/v1/nft/nfts', nftData);
 
-      if (reallyTrue) {
-        await vendorMint(
-          // metaData,
-          Uri,
-          nftmarketplace
-          // "0xBd41795def27c74870364e2e1Ed9aC7A4166A68A"
-        )
-          .then((response) => {
-            if (response.status === 1) {
-              SuccessToast(
-                <div>
-                  NFT Mint successfully 🎉 ! <br />
-                </div>
-              );
-              setTimeout(() => {
-                navigate("/");
-              }, 3000);
-            } else {
-              ErrorToast(<div>Something went wrong, try again 💔 !</div>);
-              // return null;
-            }
-          })
-          .catch((error) => {
-            console.error(error);
-            ErrorToast(<div>Something error happen try agin 💔 !</div>);
-          });
+      if (response.status === 201) {
+        SuccessToast(
+          <div>
+            NFT Created successfully 🎉 ! <br />
+          </div>
+        );
+        setTimeout(() => {
+          navigate("/profile");
+        }, 3000);
       } else {
-        await publicMint(
-          Uri,
-          nftmarketplace
-          // metaData,
-          // "0xBd41795def27c74870364e2e1Ed9aC7A4166A68A"
-        )
+        ErrorToast(<div>Something went wrong, try again 💔 !</div>);
+      }
+    } catch (error) {
+      console.error("Error creating NFT:", error);
+      ErrorToast(<div>Something error happen try again 💔 !</div>);
+    }
+  };
           .then((response) => {
             SuccessToast(
               <div>
@@ -464,99 +369,78 @@ export default function Create() {
       }
 
       try {
-        const reallyTrue = await isAuthorizedVendor(address);
-
-        const metadataURIs = [];
+        // Create NFTs directly in database instead of using IPFS and blockchain
+        const timestamp = Date.now();
+        const createdNFTs = [];
 
         for (let i = 0; i < batchImageURLs.length; i++) {
-          const metadata = {
+          const nftData = {
+            itemId: `${timestamp}_${i}`,
+            network: "polygon", // default network
+            owner: address,
+            seller: address,
+            price: formNftData.price || '0',
+            floorPrice: formNftData.price || '0',
             name: `${formNftData.name} #${i + 1}`,
             description: formNftData.description,
-            creator: formNftData.creator,
             image: batchImageURLs[i],
             category: formNftData.category,
-            properties: formNftData.properties,
-            collection: formNftData.collection,
+            properties: formNftData.properties || {},
+            collection: formNftData.collection || null,
+            isMinted: false,
+            currentlyListed: true
           };
 
-          const uri = await uploadJSONToIPFS(metadata);
-          console.log("🚀 ~ HandleMintNFT ~ uri:", uri);
-          if (uri) {
-            metadataURIs.push(uri);
-          } else {
-            console.error(`Failed to upload metadata for file ${i + 1}`);
+          const response = await axios.post('/api/v1/nft/nfts', nftData);
+          if (response.status === 201) {
+            createdNFTs.push(response.data);
           }
         }
 
-        if (metadataURIs.length === 0) {
-          return ErrorToast("Metadata upload failed for all images!");
-        }
-
-        if (reallyTrue) {
-          await vendorBatchMintMint(metadataURIs)
-            .then((response) => {
-              if (response.status === 1) {
-                SuccessToast(<div>Batch NFT Minted successfully 🎉!</div>);
-                setTimeout(() => navigate("/"), 3000);
-              } else {
-                ErrorToast(<div>Batch Minting failed 💔!</div>);
-              }
-            })
-            .catch((error) => {
-              console.error(error);
-              ErrorToast(
-                <div>Something went wrong during batch minting 💔!</div>
-              );
-            });
+        if (createdNFTs.length > 0) {
+          SuccessToast(<div>{createdNFTs.length} NFTs Created successfully 🎉!</div>);
+          setTimeout(() => navigate("/profile"), 3000);
         } else {
-          ErrorToast("You are not authorized for batch minting!");
+          ErrorToast(<div>Failed to create NFTs 💔!</div>);
         }
       } catch (error) {
-        console.error(error);
-        ErrorToast(<div>Unexpected error during batch minting 💔!</div>);
+        console.error("Error creating batch NFTs:", error);
+        ErrorToast(<div>Unexpected error during NFT creation 💔!</div>);
       }
     } else {
-      // Existing single mint code...
+      // Single NFT creation using database
       if (!formNftData.image) {
         return ErrorToast("Upload an NFT image!");
       }
       try {
-        const Uri = await uploadJSONToIPFS(formNftData);
-        if (!Uri || Uri.length === 0) {
-          console.log("Invalid URI:", Uri);
-          return ErrorToast("Metadata upload failed. Please try again!");
-        }
-        console.log("🚀 ~ HandleMintNFT ~ Uri:", Uri);
-        const nftmarketplace = contractAddressMarketplace;
-        const reallyTrue = await isAuthorizedVendor(address);
+        const nftData = {
+          itemId: `${Date.now()}_${Math.random()}`,
+          network: "polygon", // default network
+          owner: address,
+          seller: address,
+          price: formNftData.price || '0',
+          floorPrice: formNftData.price || '0',
+          name: formNftData.name,
+          description: formNftData.description,
+          image: formNftData.image,
+          category: formNftData.category,
+          properties: formNftData.properties || {},
+          collection: formNftData.collection || null,
+          isMinted: false,
+          currentlyListed: true
+        };
 
-        if (reallyTrue) {
-          await vendorMint(Uri, nftmarketplace)
-            .then((response) => {
-              if (response.status === 1) {
-                SuccessToast(<div>NFT Minted successfully 🎉!</div>);
-                setTimeout(() => navigate("/"), 3000);
-              } else {
-                ErrorToast(<div>Minting failed 💔!</div>);
-              }
-            })
-            .catch((error) => {
-              console.error(error);
-              ErrorToast(<div>Something went wrong 💔!</div>);
-            });
+        const response = await axios.post('/api/v1/nft/nfts', nftData);
+
+        if (response.status === 201) {
+          SuccessToast(<div>NFT Created successfully 🎉!</div>);
+          setTimeout(() => navigate("/profile"), 3000);
         } else {
-          await publicMint(Uri, nftmarketplace)
-            .then((response) => {
-              SuccessToast(<div>NFT Minted successfully 🎉!</div>);
-              setTimeout(() => navigate("/"), 3000);
-            })
-            .catch((error) => {
-              console.error(error);
-              ErrorToast(<div>Something went wrong 💔!</div>);
-            });
+          ErrorToast(<div>Failed to create NFT 💔!</div>);
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error creating NFT:", error);
+        ErrorToast(<div>Something went wrong 💔!</div>);
       }
     }
   };
