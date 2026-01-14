@@ -386,6 +386,7 @@ export default function Create() {
         network: collectionForm.network,
         creatorWallet: address,
         creatorName: address.substring(0, 10) + '...',
+        collectionId: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Temporary fix
       };
 
       // Create collection in database
