@@ -3,7 +3,7 @@ import axios from 'axios';
 // Pinata IPFS Configuration
 const PINATA_API_KEY = import.meta.env.VITE_APP_PINATA_API_KEY || import.meta.env.VITE_PINATA_API_KEY || '';
 const PINATA_SECRET_KEY = import.meta.env.VITE_APP_PINATA_SECRET_KEY || import.meta.env.VITE_PINATA_SECRET_KEY || '';
-const PINATA_JWT = import.meta.env.VITE_APP_PINATA_JWT_NEW || '';
+const PINATA_JWT = import.meta.env.VITE_APP_PINATA_JWT || import.meta.env.VITE_APP_PINATA_JWT_NEW || '';
 const PINATA_GATEWAY_URL = 'https://gateway.pinata.cloud/ipfs/';
 
 class PinataService {
