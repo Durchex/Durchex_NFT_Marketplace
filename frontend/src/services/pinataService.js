@@ -20,16 +20,18 @@ class PinataService {
         throw new Error('Pinata API credentials not configured');
       }
 
-      // Use JWT token if available (more reliable), otherwise use API key/secret
+      // Use API key/secret if available (more reliable), otherwise use JWT token
       const headers = {
         'Content-Type': 'application/json'
       };
 
-      if (PINATA_JWT) {
-        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
-      } else {
+      if (this.apiKey && this.secretKey) {
         headers['pinata_api_key'] = this.apiKey;
         headers['pinata_secret_api_key'] = this.secretKey;
+      } else if (PINATA_JWT) {
+        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
+      } else {
+        throw new Error('No valid Pinata authentication method available');
       }
 
       const response = await axios.post(
@@ -81,20 +83,22 @@ class PinataService {
       });
       formData.append('pinataMetadata', metadata);
 
-      // Use JWT token if available (more reliable), otherwise use API key/secret
+      // Use API key/secret if available (more reliable), otherwise use JWT token
       // NOTE: Do NOT set Content-Type for FormData - let axios/browser set it with boundary
       const headers = {};
 
-      if (PINATA_JWT) {
-        console.log('[Pinata] Using JWT token for authentication');
-        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
-      } else {
-        console.log('[Pinata] Using API key/secret for authentication', { 
-          hasApiKey: !!this.apiKey, 
-          hasSecret: !!this.secretKey 
+      if (this.apiKey && this.secretKey) {
+        console.log('[Pinata] Using API key/secret for authentication', {
+          hasApiKey: !!this.apiKey,
+          hasSecret: !!this.secretKey
         });
         headers['pinata_api_key'] = this.apiKey;
         headers['pinata_secret_api_key'] = this.secretKey;
+      } else if (PINATA_JWT) {
+        console.log('[Pinata] Using JWT token for authentication');
+        headers['Authorization'] = `Bearer ${PINATA_JWT}`;
+      } else {
+        throw new Error('No valid Pinata authentication method available');
       }
 
       console.log('[Pinata] Uploading image with auth headers:', Object.keys(headers).filter(k => k !== 'Authorization'));
