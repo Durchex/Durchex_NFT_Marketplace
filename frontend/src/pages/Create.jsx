@@ -281,16 +281,6 @@ export default function Create() {
       for (let i = 0; i < imageURLs.length; i++) {
         const isVideo = isVideoFile(files[i]);
         
-        const metadata = {
-          name: singleNFTForm.name || `NFT #${i + 1}`,
-          image: !isVideo ? imageURLs[i] : undefined,
-          animation_url: isVideo ? imageURLs[i] : undefined,
-          description: singleNFTForm.description,
-          properties: singleNFTForm.properties || {},
-        };
-
-        const metadataURI = await uploadJSONToIPFS(metadata);
-
         const nftData = {
           itemId: `${timestamp}_${i}`,
           network: singleNFTForm.network,
@@ -305,7 +295,7 @@ export default function Create() {
           properties: singleNFTForm.properties || {},
           collection: selectedCollectionId || null,
           isMinted: false,
-          metadataURI: metadataURI
+          currentlyListed: true
         };
 
         await nftAPI.createNft(nftData);
