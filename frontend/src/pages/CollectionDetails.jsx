@@ -49,6 +49,7 @@ export default function CollectionDetails() {
 
       // Fetch collection details
       const collectionData = await nftAPI.getCollection(collectionId);
+      console.log('Collection Data:', collectionData);
       setCollection(collectionData);
       setEditData(collectionData);
 
@@ -59,6 +60,9 @@ export default function CollectionDetails() {
 
       // Fetch NFTs in collection
       const nftsData = await nftAPI.getCollectionNFTs(collectionId);
+      console.log('NFTs Data:', nftsData);
+      console.log('NFTs Type:', typeof nftsData);
+      console.log('Is Array:', Array.isArray(nftsData));
       setNfts(Array.isArray(nftsData) ? nftsData : []);
 
       // Calculate analytics
