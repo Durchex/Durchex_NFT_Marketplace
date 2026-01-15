@@ -40,20 +40,26 @@ export const createCollection = async (req, res) => {
 export const getCollection = async (req, res) => {
   try {
     const { collectionId } = req.params;
+    console.log('🔍 getCollection called with collectionId:', collectionId);
     
     // Try to find by custom collectionId first, then by MongoDB _id
     let collection = await Collection.findOne({ collectionId });
+    console.log('📊 findOne result:', collection ? `Found: ${collection.name}` : 'Not found');
     
     if (!collection) {
       collection = await Collection.findById(collectionId);
+      console.log('📊 findById result:', collection ? `Found: ${collection.name}` : 'Not found');
     }
     
     if (!collection) {
+      console.log('❌ Collection not found for:', collectionId);
       return res.status(404).json({ error: "Collection not found" });
     }
     
+    console.log('✅ Returning collection:', collection.name);
     res.status(200).json(collection);
   } catch (error) {
+    console.error('💥 Error in getCollection:', error);
     res.status(500).json({ error: error.message });
   }
 };
