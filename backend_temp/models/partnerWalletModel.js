@@ -164,12 +164,10 @@ partnerWalletSchema.methods.withdrawEarnings = function (amount) {
 // Create and export the model
 const partnerWalletModel = mongoose.model('PartnerWallet', partnerWalletSchema);
 
-// Export static methods
-export const getPartnerWalletsByPartner = partnerWalletModel.getPartnerWalletsByPartner.bind(partnerWalletModel);
-export const getPartnerWalletsByOwner = partnerWalletModel.getPartnerWalletsByOwner.bind(partnerWalletModel);
-export const updatePartnerWallet = partnerWalletModel.updatePartnerWallet.bind(partnerWalletModel);
-
+// Export default
 export default partnerWalletModel;
+
+// Export named exports
 export {
   partnerWalletModel,
   partnerWalletSchema,
