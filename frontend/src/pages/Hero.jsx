@@ -322,11 +322,14 @@ function App() {
 
           const url = await tokenURI(formattedItem.tokenId);
 
-          // Replace any restricted gateway
-          const safeUrl = url.replace(
-            "https://copper-leading-yak-964.mypinata.cloud",
-            "https://silver-solid-beetle-367.mypinata.cloud"
-          );
+          // Replace any restricted gateway - ensure url is a string
+          let safeUrl = url;
+          if (typeof url === 'string') {
+            safeUrl = url.replace(
+              "https://copper-leading-yak-964.mypinata.cloud",
+              "https://silver-solid-beetle-367.mypinata.cloud"
+            );
+          }
 
           const metadata = await fetchMetadataFromPinata(safeUrl);
           // const metadata = await fetchMetadataFromPinata(url);
