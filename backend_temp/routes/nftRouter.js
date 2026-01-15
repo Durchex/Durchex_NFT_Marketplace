@@ -35,9 +35,6 @@ router.get("/user-nfts/:walletAddress", fetchUserNFTs);
 router.get("/user-nfts/:walletAddress/:network", fetchUserNFTsByNetwork);
 router.get("/user-minted-nfts/:walletAddress", fetchUserMintedNFTs);
 
-// Route to get collections grouped by network
-router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
-
 // ============ COLLECTION ROUTES ============
 // Create a new collection
 router.post("/collections", createCollection);
@@ -51,7 +48,7 @@ router.get("/collections/single/:collectionId", getCollection);
 // Get all collections by user
 router.get("/collections/user/:walletAddress", getUserCollections);
 
-// Get NFTs in a collection
+// Get NFTs in a collection - MUST come BEFORE the generic :network route
 router.get("/collections/:collectionId/nfts", getCollectionNFTs);
 
 // Update collection
@@ -59,6 +56,9 @@ router.patch("/collections/:collectionId", updateCollection);
 
 // Delete collection
 router.delete("/collections/:collectionId", deleteCollection);
+
+// Route to get collections grouped by network - MUST come AFTER more specific routes
+router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
 
 // Other example routes (you can add all you want similarly)
 

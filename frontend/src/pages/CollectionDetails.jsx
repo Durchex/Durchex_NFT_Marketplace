@@ -345,6 +345,15 @@ export default function CollectionDetails() {
                     engagementAPI.trackNFTView(nft._id, address).catch(err => console.log('View tracking:', err));
                   }}
                 >
+                  {/* NFT Image */}
+                  <img
+                    src={nft.image || '/placeholder-nft.png'}
+                    alt={nft.name}
+                    className="w-full h-64 object-cover rounded-lg bg-gray-900"
+                    onError={(e) => { e.target.src = '/placeholder-nft.png'; }}
+                  />
+                  
+                  {/* Hover Overlay */}
                   <NFTImageHoverOverlay
                     nft={{
                       ...nft,
