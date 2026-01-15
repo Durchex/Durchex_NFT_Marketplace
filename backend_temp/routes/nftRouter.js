@@ -42,14 +42,14 @@ router.post("/collections", createCollection);
 // Get all collections
 router.get("/collections", getAllCollections);
 
-// Get a single collection by ID
-router.get("/collections/single/:collectionId", getCollection);
-
-// Get all collections by user
+// Get all collections by user - MUST come before :collectionId
 router.get("/collections/user/:walletAddress", getUserCollections);
 
-// Get NFTs in a collection - MUST come BEFORE the generic :network route
+// Get NFTs in a collection - MUST come BEFORE the generic :collectionId route
 router.get("/collections/:collectionId/nfts", getCollectionNFTs);
+
+// Get a single collection by ID - MUST come after more specific routes
+router.get("/collections/:collectionId", getCollection);
 
 // Update collection
 router.patch("/collections/:collectionId", updateCollection);
