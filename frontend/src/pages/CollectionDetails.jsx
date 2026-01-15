@@ -49,7 +49,7 @@ export default function CollectionDetails() {
 
       // Fetch collection details
       const collectionData = await nftAPI.getCollection(collectionId);
-      console.log('Collection Data:', collectionData);
+      console.log('🔍 Collection Data:', collectionData);
       setCollection(collectionData);
       setEditData(collectionData);
 
@@ -59,16 +59,23 @@ export default function CollectionDetails() {
       }
 
       // Fetch NFTs in collection
+      console.log('📡 Fetching NFTs for collection ID:', collectionId);
       const nftsData = await nftAPI.getCollectionNFTs(collectionId);
-      console.log('NFTs Data:', nftsData);
-      console.log('NFTs Type:', typeof nftsData);
-      console.log('Is Array:', Array.isArray(nftsData));
+      console.log('✅ NFTs Data received:', nftsData);
+      console.log('✅ NFTs Type:', typeof nftsData);
+      console.log('✅ Is Array:', Array.isArray(nftsData));
+      console.log('✅ NFTs Count:', Array.isArray(nftsData) ? nftsData.length : 'N/A');
+      
+      if (Array.isArray(nftsData) && nftsData.length > 0) {
+        console.log('✅ First NFT:', nftsData[0]);
+      }
+      
       setNfts(Array.isArray(nftsData) ? nftsData : []);
 
       // Calculate analytics
       calculateAnalytics(Array.isArray(nftsData) ? nftsData : []);
     } catch (error) {
-      console.error("Error fetching collection:", error);
+      console.error("❌ Error fetching collection:", error);
       ErrorToast("Failed to load collection details");
     } finally {
       setLoading(false);
@@ -323,7 +330,7 @@ export default function CollectionDetails() {
           
           {nfts.length === 0 ? (
             <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800">
-              <p className="text-gray-400">No NFTs in this collection yet.</p>
+              <p className="text-gray-400">No NFTs in this collection yet. (nfts.length = {nfts.length})</p>
               {isOwner && (
                 <p className="text-gray-500 text-sm mt-2">Add NFTs to this collection from the Create page.</p>
               )}
