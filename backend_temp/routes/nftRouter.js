@@ -57,9 +57,6 @@ router.patch("/collections/:collectionId", updateCollection);
 // Delete collection
 router.delete("/collections/:collectionId", deleteCollection);
 
-// Route to get collections grouped by network - MUST come AFTER more specific routes
-router.get("/collections/:network", fetchCollectionsGroupedByNetwork);
-
 // Other example routes (you can add all you want similarly)
 
 // Get all NFTs on a network (for marketplace - only listed)
