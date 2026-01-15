@@ -81,8 +81,16 @@ export const getCollectionNFTs = async (req, res) => {
   try {
     const { collectionId } = req.params;
     
+    // First, get the collection by ID to retrieve its name
+    const collection = await Collection.findById(collectionId);
+    
+    if (!collection) {
+      return res.status(404).json({ error: "Collection not found" });
+    }
+    
+    // Query NFTs by the exact collection name (since NFTs store collection name as string)
     const nfts = await nftModel.find({
-      collection: collectionId
+      collection: collection.name
     }).sort({ createdAt: -1 });
     
     res.status(200).json(nfts);
