@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { ICOContent } from "../Context";
 import { Toaster } from "react-hot-toast";
 import { ErrorToast } from "../app/Toast/Error.jsx";
@@ -376,75 +376,89 @@ export default function CollectionDetails() {
           
           {nfts.length === 0 ? (
             <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800">
-              <p className="text-gray-400">No NFTs in this collection yet. (nfts.length = {nfts.length})</p>
+              <p className="text-gray-400">No NFTs found in this collection</p>
               {isOwner && (
                 <p className="text-gray-500 text-sm mt-2">Add NFTs to this collection from the Create page.</p>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {nfts.map((nft) => (
-                <div
-                  key={nft._id}
-                  className="relative group"
-                  onMouseEnter={() => {
-                    engagementAPI.trackNFTView(nft._id, address).catch(err => console.log('View tracking:', err));
-                  }}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {nfts.map((nft, index) => (
+                <Link
+                  key={nft._id || index}
+                  to={`/nft/${nft.itemId}`}
+                  className="group"
                 >
-                  {/* NFT Image */}
-                  <img
-                    src={nft.image || '/placeholder-nft.png'}
-                    alt={nft.name}
-                    className="w-full h-64 object-cover rounded-lg bg-gray-900"
-                    onError={(e) => { e.target.src = '/placeholder-nft.png'; }}
-                  />
-                  
-                  {/* Hover Overlay */}
-                  <NFTImageHoverOverlay
-                    nft={{
-                      ...nft,
-                      itemId: nft._id,
-                      price: nft.price || '0',
-                      currency: 'ETH'
-                    }}
-                    isInCart={cartItems.has(nft._id)}
-                    isLiked={likedItems.has(nft._id)}
-                    onAddToCart={() => {
-                      setCartItems(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(nft._id)) {
-                          newSet.delete(nft._id);
-                        } else {
-                          newSet.add(nft._id);
-                        }
-                        return newSet;
-                      });
-                    }}
-                    onLike={() => {
-                      if (likedItems.has(nft._id)) {
-                        engagementAPI.unlikeNFT(nft._id, address).then(() => {
-                          setLikedItems(prev => {
+                  <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+                    {/* NFT Image */}
+                    <div className="relative w-full aspect-square overflow-hidden bg-gray-800">
+                      <img
+                        src={nft.image}
+                        alt={nft.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      
+                      {/* Hover Overlay */}
+                      <NFTImageHoverOverlay
+                        nft={{
+                          ...nft,
+                          price: nft.price || '0',
+                          currency: 'ETH'
+                        }}
+                        isInCart={cartItems.has(nft.itemId)}
+                        isLiked={likedItems.has(nft.itemId)}
+                        onAddToCart={() => {
+                          setCartItems(prev => {
                             const newSet = new Set(prev);
-                            newSet.delete(nft._id);
+                            if (newSet.has(nft.itemId)) {
+                              newSet.delete(nft.itemId);
+                              toast.success('Removed from cart');
+                            } else {
+                              newSet.add(nft.itemId);
+                              toast.success('Added to cart!');
+                            }
                             return newSet;
                           });
-                          toast.success('Unliked');
-                        }).catch(err => {
-                          console.error('Unlike error:', err);
-                          toast.error('Failed to unlike');
-                        });
-                      } else {
-                        engagementAPI.likeNFT(nft._id, address).then(() => {
-                          setLikedItems(prev => new Set(prev).add(nft._id));
-                          toast.success('Liked');
-                        }).catch(err => {
-                          console.error('Like error:', err);
-                          toast.error('Failed to like');
-                        });
-                      }
-                    }}
-                  />
-                </div>
+                        }}
+                        onLike={() => {
+                          if (likedItems.has(nft.itemId)) {
+                            engagementAPI.unlikeNFT(nft._id, address).then(() => {
+                              setLikedItems(prev => {
+                                const newSet = new Set(prev);
+                                newSet.delete(nft.itemId);
+                                return newSet;
+                              });
+                              toast.success('Unliked');
+                            }).catch(err => {
+                              console.error('Unlike error:', err);
+                              toast.error('Failed to unlike');
+                            });
+                          } else {
+                            engagementAPI.likeNFT(nft._id, address).then(() => {
+                              setLikedItems(prev => new Set(prev).add(nft.itemId));
+                              toast.success('Liked');
+                            }).catch(err => {
+                              console.error('Like error:', err);
+                              toast.error('Failed to like');
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* NFT Info */}
+                    <div className="p-4">
+                      <h3 className="font-semibold text-white truncate">{nft.name}</h3>
+                      <p className="text-sm text-gray-400">{nft.collectionName}</p>
+                      {nft.price && (
+                        <p className="text-blue-400 font-semibold mt-2">{nft.price} ETH</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           )}
