@@ -58,22 +58,50 @@ export default function CollectionDetails() {
         setIsOwner(true);
       }
 
-      // Fetch NFTs in collection
-      console.log('📡 Fetching NFTs for collection ID:', collectionId);
-      const nftsData = await nftAPI.getCollectionNFTs(collectionId);
-      console.log('✅ NFTs Data received:', nftsData);
-      console.log('✅ NFTs Type:', typeof nftsData);
-      console.log('✅ Is Array:', Array.isArray(nftsData));
-      console.log('✅ NFTs Count:', Array.isArray(nftsData) ? nftsData.length : 'N/A');
+      // Fetch NFTs like in Explore page - from all networks and filter by collection ID
+      console.log('📡 Fetching NFTs from all networks for collection:', collectionId);
+      let allNFTs = [];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
-      if (Array.isArray(nftsData) && nftsData.length > 0) {
-        console.log('✅ First NFT:', nftsData[0]);
+      for (const network of networks) {
+        try {
+          console.log(`[CollectionDetails] Fetching NFTs from ${network}...`);
+          // Get all NFTs from this network
+          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+          if (networkNfts && Array.isArray(networkNfts)) {
+            console.log(`[CollectionDetails] Found ${networkNfts.length} NFTs on ${network}`);
+            allNFTs = [...allNFTs, ...networkNfts];
+          }
+        } catch (err) {
+          console.warn(`[CollectionDetails] Error fetching from ${network}:`, err.message);
+          // Continue to next network
+        }
+      }
+
+      // Filter NFTs by collection ID
+      console.log(`[CollectionDetails] Total NFTs from all networks: ${allNFTs.length}`);
+      const collectionNFTs = allNFTs.filter(nft => {
+        const nftCollection = nft.collection ? String(nft.collection).toLowerCase() : '';
+        const targetCollectionId = String(collectionId).toLowerCase();
+        return nftCollection === targetCollectionId;
+      });
+
+      console.log(`[CollectionDetails] Filtered ${collectionNFTs.length} NFTs for collection ${collectionId}`);
+      if (collectionNFTs.length > 0) {
+        console.log('✅ First filtered NFT:', collectionNFTs[0]);
       }
       
-      setNfts(Array.isArray(nftsData) ? nftsData : []);
+      // Sort by creation date (newest first)
+      collectionNFTs.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      });
+
+      setNfts(collectionNFTs);
 
       // Calculate analytics
-      calculateAnalytics(Array.isArray(nftsData) ? nftsData : []);
+      calculateAnalytics(collectionNFTs);
     } catch (error) {
       console.error("❌ Error fetching collection:", error);
       ErrorToast("Failed to load collection details");
