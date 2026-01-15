@@ -684,21 +684,11 @@ export const createUnmintedNFT = async (req, res) => {
       eventStartTime
     } = req.body;
 
-    // If collection is a MongoDB ObjectId, get the collection name
-    let collectionName = collection;
-    try {
-      // Try to find the collection by ID
-      const collectionDoc = await Collection.findById(collection);
-      if (collectionDoc) {
-        collectionName = collectionDoc.name;
-      }
-    } catch (err) {
-      // If it's not a valid ObjectId or collection not found, use the collection string as-is
-      collectionName = collection;
-    }
+    // Store collection as-is (it's the collection ID or name)
+    const collectionValue = collection;
 
     // Generate unique itemId
-    const itemId = `${collectionName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const itemId = `${collectionValue}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Determine event status based on start time
     let eventStatus = 'scheduled';
@@ -715,7 +705,7 @@ export const createUnmintedNFT = async (req, res) => {
       description,
       image,
       category,
-      collection: collectionName,
+      collection: collectionValue,
       network,
       price: price || '0',
       properties: properties || {},

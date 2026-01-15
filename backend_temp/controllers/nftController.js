@@ -1,4 +1,6 @@
 import Collection from "../models/collectionModel.js";
+import { nftModel } from "../models/nftModel.js";
+
 // Create a new NFT Collection
 export const createCollection = async (req, res) => {
   try {
@@ -81,16 +83,9 @@ export const getCollectionNFTs = async (req, res) => {
   try {
     const { collectionId } = req.params;
     
-    // First, get the collection by ID to retrieve its name
-    const collection = await Collection.findById(collectionId);
-    
-    if (!collection) {
-      return res.status(404).json({ error: "Collection not found" });
-    }
-    
-    // Query NFTs by the exact collection name (since NFTs store collection name as string)
+    // Query NFTs where the collection field matches the collectionId
     const nfts = await nftModel.find({
-      collection: collection.name
+      collection: collectionId
     }).sort({ createdAt: -1 });
     
     res.status(200).json(nfts);
@@ -156,8 +151,6 @@ export const deleteCollection = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-import { nftModel } from "../models/nftModel.js"; // adjust path accordingly
 
 export const checkNftExists = async (req, res) => {
   try {
