@@ -1317,12 +1317,13 @@ export const coverPhotoAPI = {
     }
   },
 
-  getCollection: async (collectionId) => {
+  // Get collection cover photo (renamed from getCollection to avoid conflict)
+  getCollectionCoverPhoto: async (collectionId) => {
     try {
       const response = await api.get(`/cover-photos/collection/${collectionId}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch collection:', error);
+      console.error('Failed to fetch collection cover photo:', error);
       throw error;
     }
   }
