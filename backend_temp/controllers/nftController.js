@@ -41,7 +41,12 @@ export const getCollection = async (req, res) => {
   try {
     const { collectionId } = req.params;
     
-    const collection = await Collection.findById(collectionId);
+    // Try to find by custom collectionId first, then by MongoDB _id
+    let collection = await Collection.findOne({ collectionId });
+    
+    if (!collection) {
+      collection = await Collection.findById(collectionId);
+    }
     
     if (!collection) {
       return res.status(404).json({ error: "Collection not found" });
