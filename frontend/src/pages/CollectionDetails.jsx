@@ -36,7 +36,8 @@ export default function CollectionDetails() {
     floorPrice: 0,
     volume: 0,
     nftCount: 0,
-    avgPrice: 0
+    avgPrice: 0,
+    ownerCount: 0
   });
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function CollectionDetails() {
       setEditData(collectionData);
 
       // Check if user is owner
-      if (collectionData.creator === address) {
+      if (collectionData.creatorWallet === address) {
         setIsOwner(true);
       }
 
@@ -116,7 +117,8 @@ export default function CollectionDetails() {
         floorPrice: 0,
         volume: 0,
         nftCount: 0,
-        avgPrice: 0
+        avgPrice: 0,
+        ownerCount: 0
       });
       setAnalyticsData([]);
       return;
@@ -131,11 +133,20 @@ export default function CollectionDetails() {
     // Calculate total volume (sum of all floor prices)
     const volume = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.floorPrice) || 0), 0);
 
+    // Calculate unique owner count
+    const uniqueOwners = new Set(
+      nftsList
+        .map(nft => nft.owner)
+        .filter(owner => owner) // Filter out undefined/null owners
+    );
+    const ownerCount = uniqueOwners.size;
+
     setStats({
       floorPrice: isNaN(floorPrice) ? 0 : floorPrice,
       volume: isNaN(volume) ? 0 : volume,
       nftCount: nftsList.length,
-      avgPrice: isNaN(avgPrice) ? 0 : avgPrice
+      avgPrice: isNaN(avgPrice) ? 0 : avgPrice,
+      ownerCount: ownerCount
     });
 
     // Generate analytics chart data (simulated 7-day data)
@@ -250,7 +261,9 @@ export default function CollectionDetails() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-gray-900/50 rounded-lg p-3">
                 <p className="text-gray-400 text-sm">Creator</p>
-                <p className="text-white font-semibold">{collection.creator.slice(0, 8)}...{collection.creator.slice(-6)}</p>
+                <p className="text-white font-semibold">
+                  {collection.creatorName || `${collection.creatorWallet?.slice(0, 8)}...${collection.creatorWallet?.slice(-6)}`}
+                </p>
               </div>
               <div className="bg-gray-900/50 rounded-lg p-3">
                 <p className="text-gray-400 text-sm">Network</p>
@@ -291,7 +304,7 @@ export default function CollectionDetails() {
           <h2 className="text-2xl font-bold mb-6">Collection Analytics</h2>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
               <p className="text-gray-400 text-sm mb-1">Floor Price</p>
               <p className="text-2xl font-bold text-blue-400">
@@ -316,6 +329,11 @@ export default function CollectionDetails() {
             <div className="bg-orange-900/30 border border-orange-500/30 rounded-lg p-4">
               <p className="text-gray-400 text-sm mb-1">Items in Collection</p>
               <p className="text-2xl font-bold text-orange-400">{stats.nftCount}</p>
+            </div>
+
+            <div className="bg-pink-900/30 border border-pink-500/30 rounded-lg p-4">
+              <p className="text-gray-400 text-sm mb-1">Owners</p>
+              <p className="text-2xl font-bold text-pink-400">{stats.ownerCount}</p>
             </div>
           </div>
 

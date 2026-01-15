@@ -283,25 +283,6 @@ export default function Create() {
       ErrorToast(<div>Something error happen try again 💔 !</div>);
     }
   };
-          .then((response) => {
-            SuccessToast(
-              <div>
-                NFT Mint successfully 🎉 ! <br />
-              </div>
-            );
-            setTimeout(() => {
-              navigate("/");
-            }, 3000);
-          })
-          .catch((error) => {
-            console.error(error);
-            ErrorToast(<div>Something error happen try agin 💔 !</div>);
-          });
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const HandleOnChange = (e) => {
     setFormNftData({
