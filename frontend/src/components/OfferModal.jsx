@@ -61,12 +61,34 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         toast.success('Offer placed successfully!');
       } else {
         // Buy now - create order first
-        const orderResponse = await orderAPI.createOrder({
-          nftId: nft.itemId,
+        const orderData = {
+          nftId: nft.itemId || nft.tokenId || nft._id,
           buyer: address,
+          seller: nft.owner || nft.seller, // The current NFT owner is the seller
           price: priceInWei,
-          network: nft.network
-        });
+          amount: '1', // NFTs typically have amount 1 for individual items
+          currency: 'ETHER', // Default currency
+          network: nft.network || 'ethereum',
+          contractAddress: nft.nftContract || nft.contractAddress || nft.contract,
+          nftName: nft.name,
+          nftImage: nft.image,
+          collectionName: nft.collection
+        };
+        
+        // Validate all required fields are present
+        const requiredFields = ['nftId', 'buyer', 'seller', 'price', 'amount', 'currency', 'network', 'contractAddress'];
+        const missingFields = requiredFields.filter(field => !orderData[field]);
+        
+        if (missingFields.length > 0) {
+          console.error('Missing required fields:', missingFields);
+          console.error('Order data:', orderData);
+          toast.error(`Missing required fields: ${missingFields.join(', ')}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('Creating order with data:', orderData);
+        const orderResponse = await orderAPI.createOrder(orderData);
         
         // For buy now, we need payment confirmation
         toast.success('Order created! Please complete payment to receive the NFT.');
