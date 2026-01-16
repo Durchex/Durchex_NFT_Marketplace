@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiSearch, FiFilter, FiTrendingUp, FiUsers, FiBarChart2, FiEye, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
-import { nftAPI } from '../services/api';
+import { nftAPI, userAPI } from '../services/api';
 import axios from 'axios';
 
 const Collections = () => {
@@ -44,41 +44,70 @@ const Collections = () => {
         }
         
         // Transform API response to match expected structure
-        const transformedCollections = allCollectionsData.map((col, index) => {
-          // Find all NFTs in this collection
-          const collectionNFTs = allNFTs.filter(nft => 
-            String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
-          );
-          
-          // Calculate stats
-          const prices = collectionNFTs.map(n => parseFloat(n.price || 0)).filter(p => p > 0);
-          const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
-          const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-          const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
-          
-          return {
-            _id: col._id,
-            id: col._id || col.collectionId || index,
-            name: col.name || 'Unnamed Collection',
-            creator: col.creatorName || 'Unknown Creator',
-            creatorAvatar: col.creatorAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${col.creatorWallet || col._id}`,
-            description: col.description || '',
-            image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
-            floorPrice: floorPrice.toFixed(2),
-            volume24h: volume.toFixed(2),
-            volume7d: col.volume7d || 0,
-            percentChange24h: col.percentChange24h || 0,
-            items: collectionNFTs.length,
-            owners: col.ownerCount || new Set(collectionNFTs.map(n => n.owner)).size || 0,
-            views: col.views || 0,
-            likes: col.likes || 0,
-            verified: col.verified || false,
-            network: col.network || 'polygon',
-            collectionId: col.collectionId,
-            creatorWallet: col.creatorWallet,
-          };
-        });
-        setCollections(transformedCollections);
+        const transformedCollections = await Promise.all(
+          allCollectionsData.map(async (col, index) => {
+            try {
+              // Fetch creator profile
+              let creatorInfo = {
+                name: col.creatorName || col.creatorWallet?.slice(0, 6) + '...' || 'Unknown',
+                avatar: null,
+                wallet: col.creatorWallet
+              };
+              
+              if (col.creatorWallet) {
+                try {
+                  const profile = await userAPI.getUserProfile(col.creatorWallet);
+                  if (profile) {
+                    creatorInfo.name = profile.userName || profile.creatorName || creatorInfo.name;
+                    creatorInfo.avatar = profile.profilePicture || profile.creatorAvatar;
+                  }
+                } catch (err) {
+                  console.warn(`Error fetching creator profile:`, err.message);
+                }
+              }
+              
+              // Find all NFTs in this collection
+              const collectionNFTs = allNFTs.filter(nft => 
+                String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
+              );
+              
+              // Calculate stats
+              const prices = collectionNFTs.map(n => parseFloat(n.price || n.floorPrice || 0)).filter(p => p > 0);
+              const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
+              const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+              const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+              
+              return {
+                _id: col._id,
+                id: col._id || col.collectionId || index,
+                name: col.name || 'Unnamed Collection',
+                creator: creatorInfo.name,
+                creatorAvatar: creatorInfo.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${col.creatorWallet || col._id}`,
+                description: col.description || '',
+                image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
+                floorPrice: floorPrice.toFixed(2),
+                volume24h: volume.toFixed(2),
+                volume7d: col.volume7d || 0,
+                percentChange24h: col.percentChange24h || 0,
+                items: collectionNFTs.length,
+                owners: col.ownerCount || new Set(collectionNFTs.map(n => n.owner)).size || 0,
+                views: col.views || 0,
+                likes: col.likes || 0,
+                verified: col.verified || false,
+                network: col.network || 'polygon',
+                collectionId: col.collectionId,
+                creatorWallet: col.creatorWallet,
+              };
+            } catch (error) {
+              console.error(`Error processing collection:`, error);
+              return null;
+            }
+          })
+        );
+        
+        // Filter out any null values
+        const validCollections = transformedCollections.filter(c => c !== null);
+        setCollections(validCollections);
         console.log(`[Collections] Fetched ${transformedCollections.length} real collections from API`);
       } else {
         console.warn('[Collections] No collections found in API response, showing empty state');

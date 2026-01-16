@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import Header from "../components/Header";
-import { nftAPI } from "../services/api";
+import { nftAPI, userAPI } from "../services/api";
 import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FiEdit2, FiTrash2, FiArrowLeft, FiDownload } from "react-icons/fi";
@@ -88,6 +88,22 @@ export default function CollectionDetails() {
         setCollection(collection);
         setEditData(collection);
 
+        // Fetch creator profile information
+        if (collection?.creatorWallet) {
+          try {
+            const profile = await userAPI.getUserProfile(collection.creatorWallet);
+            if (profile) {
+              collection.creatorName = profile.userName || profile.creatorName || collection.creatorName;
+              collection.creatorAvatar = profile.profilePicture || profile.creatorAvatar;
+            }
+          } catch (err) {
+            console.warn('Error fetching creator profile:', err.message);
+          }
+        }
+
+        setCollection(collection);
+        setEditData(collection);
+
         // 2. Check if user is owner
         if (collection?.creatorWallet === address) {
           setIsOwner(true);
@@ -152,9 +168,9 @@ export default function CollectionDetails() {
       return;
     }
 
-    const floorPrice = Math.min(...nftsList.map(nft => parseFloat(nft.floorPrice) || 0));
-    const avgPrice = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.price) || 0), 0) / nftsList.length;
-    const volume = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.floorPrice) || 0), 0);
+    const floorPrice = Math.min(...nftsList.map(nft => parseFloat(nft.price || nft.floorPrice || 0)).filter(p => p > 0));
+    const avgPrice = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.price || nft.floorPrice || 0)), 0) / nftsList.length;
+    const volume = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.price || nft.floorPrice || 0)), 0);
     const uniqueOwners = new Set(nftsList.map(nft => nft.owner).filter(owner => owner));
 
     setStats({
@@ -361,7 +377,7 @@ export default function CollectionDetails() {
                     <h3 className="font-bold mb-2 truncate">{nft.name}</h3>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-400">Floor</span>
-                      <span className="font-bold text-cyan-400">${nft.floorPrice || 0}</span>
+                      <span className="font-bold text-cyan-400">${parseFloat(nft.price || nft.floorPrice || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </Link>
