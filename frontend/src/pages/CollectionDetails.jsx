@@ -158,6 +158,7 @@ export default function CollectionDetails() {
 
   const calculateAnalytics = (nftsList) => {
     if (nftsList.length === 0) {
+      console.log('[CollectionDetails] No NFTs in collection');
       setStats({
         floorPrice: 0,
         volume: 0,
@@ -168,10 +169,28 @@ export default function CollectionDetails() {
       return;
     }
 
-    const floorPrice = Math.min(...nftsList.map(nft => parseFloat(nft.price || nft.floorPrice || 0)).filter(p => p > 0));
-    const avgPrice = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.price || nft.floorPrice || 0)), 0) / nftsList.length;
-    const volume = nftsList.reduce((sum, nft) => sum + (parseFloat(nft.price || nft.floorPrice || 0)), 0);
-    const uniqueOwners = new Set(nftsList.map(nft => nft.owner).filter(owner => owner));
+    // IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
+    const rawPrices = nftsList.map(nft => {
+      const price = parseFloat(nft.price || '0');
+      console.log(`[CollectionDetails] NFT price: "${nft.price}" => ${price}`);
+      return price;
+    });
+    const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
+    
+    const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
+    const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+    const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+    const uniqueOwners = new Set(nftsList.map(nft => String(nft.owner || '').toLowerCase()).filter(owner => owner));
+
+    console.log('[CollectionDetails] Calculated stats:', {
+      nftCount: nftsList.length,
+      rawPrices: nftsList.map(n => n.price),
+      parsedPrices: prices,
+      floorPrice,
+      avgPrice,
+      volume,
+      uniqueOwners: uniqueOwners.size
+    });
 
     setStats({
       floorPrice: isNaN(floorPrice) ? 0 : floorPrice,

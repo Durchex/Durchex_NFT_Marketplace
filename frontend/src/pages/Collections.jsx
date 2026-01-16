@@ -36,11 +36,30 @@ const Collections = () => {
           try {
             const networkNfts = await nftAPI.getAllNftsByNetwork(network);
             if (Array.isArray(networkNfts)) {
+              console.log(`[Collections] Fetched ${networkNfts.length} NFTs from ${network}`);
+              if (networkNfts.length > 0) {
+                console.log(`[Collections] Sample NFT from ${network}:`, {
+                  name: networkNfts[0].name,
+                  price: networkNfts[0].price,
+                  floorPrice: networkNfts[0].floorPrice,
+                  collection: networkNfts[0].collection
+                });
+              }
               allNFTs = [...allNFTs, ...networkNfts];
             }
           } catch (err) {
             console.warn(`Error fetching ${network} NFTs:`, err.message);
           }
+        }
+        
+        console.log(`[Collections] Total NFTs across all networks: ${allNFTs.length}`);
+        if (allNFTs.length > 0) {
+          console.log(`[Collections] Sample NFT:`, {
+            name: allNFTs[0].name,
+            price: allNFTs[0].price,
+            floorPrice: allNFTs[0].floorPrice,
+            collection: allNFTs[0].collection
+          });
         }
         
         // Transform API response to match expected structure
@@ -71,11 +90,40 @@ const Collections = () => {
                 String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
               );
               
-              // Calculate stats
-              const prices = collectionNFTs.map(n => parseFloat(n.price || n.floorPrice || 0)).filter(p => p > 0);
+              console.log(`[Collections] Collection "${col.name}":`, {
+                collectionId: col.collectionId || col._id,
+                nftCount: collectionNFTs.length,
+                nftSample: collectionNFTs.length > 0 ? {
+                  name: collectionNFTs[0].name,
+                  price: collectionNFTs[0].price,
+                  floorPrice: collectionNFTs[0].floorPrice,
+                  collection: collectionNFTs[0].collection
+                } : 'No NFTs'
+              });
+              
+              // Calculate stats - IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
+              const rawPrices = collectionNFTs.map(n => {
+                const price = parseFloat(n.price || '0');
+                console.log(`[Collections] NFT price: "${n.price}" => ${price}`);
+                return price;
+              });
+              const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
               const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
               const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
               const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+              
+              // Calculate unique owners
+              const owners = new Set(collectionNFTs.map(n => String(n.owner || '').toLowerCase())).size;
+              console.log(`[Collections] "${col.name}" stats:`, {
+                nftCount: collectionNFTs.length,
+                rawPrices: collectionNFTs.map(n => n.price),
+                parsedPrices: prices,
+                floorPrice,
+                avgPrice,
+                volume,
+                uniqueOwners: owners,
+                allOwners: collectionNFTs.map(n => n.owner)
+              });
               
               return {
                 _id: col._id,
@@ -90,7 +138,7 @@ const Collections = () => {
                 volume7d: col.volume7d || 0,
                 percentChange24h: col.percentChange24h || 0,
                 items: collectionNFTs.length,
-                owners: col.ownerCount || new Set(collectionNFTs.map(n => n.owner)).size || 0,
+                owners: owners,
                 views: col.views || 0,
                 likes: col.likes || 0,
                 verified: col.verified || false,
