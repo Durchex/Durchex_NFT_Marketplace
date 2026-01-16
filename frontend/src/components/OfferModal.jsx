@@ -61,14 +61,27 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         toast.success('Offer placed successfully!');
       } else {
         // Buy now - create order first
+        // Map network to valid currency enum value
+        const currencyMap = {
+          'ethereum': 'ETH',
+          'polygon': 'MATIC',
+          'bsc': 'BNB',
+          'arbitrum': 'ARB',
+          'base': 'BASE',
+          'solana': 'SOL'
+        };
+        
+        const network = nft.network || 'ethereum';
+        const currency = currencyMap[network] || 'ETH';
+        
         const orderData = {
           nftId: nft.itemId || nft.tokenId || nft._id,
           buyer: address,
           seller: nft.owner || nft.seller, // The current NFT owner is the seller
           price: priceInWei,
           amount: '1', // NFTs typically have amount 1 for individual items
-          currency: 'ETHER', // Default currency
-          network: nft.network || 'ethereum',
+          currency: currency, // Use mapped currency based on network
+          network: network,
           contractAddress: nft.nftContract || nft.contractAddress || nft.contract,
           nftName: nft.name,
           nftImage: nft.image,
