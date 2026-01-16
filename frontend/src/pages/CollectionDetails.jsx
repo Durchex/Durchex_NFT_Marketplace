@@ -50,8 +50,8 @@ export default function CollectionDetails() {
         
         if (!collectionData || (Array.isArray(collectionData) && collectionData.length === 0)) {
           // Fallback: fetch all collections and find the one matching our ID
-          console.log('⚠️ Direct API returned empty, trying getAllCollections fallback...');
-          const allCollections = await nftAPI.getAllCollections();
+          console.log('⚠️ Direct API returned empty, trying getCollections fallback...');
+          const allCollections = await nftAPI.getCollections();
           collection = allCollections.find(c => 
             String(c.collectionId || c._id).toLowerCase() === String(collectionId).toLowerCase()
           );
