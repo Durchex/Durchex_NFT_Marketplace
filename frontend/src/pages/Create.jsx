@@ -125,12 +125,17 @@ export default function Create() {
   const handleFilesChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     setFiles(selectedFiles);
-    // Convert files to simple URLs for now (avoid IPFS upload issues)
+    // Convert files to Base64 data URLs (persist across sessions)
     const urls = selectedFiles.map((file, index) => {
-      // For now, just create a placeholder URL or use object URL
-      return URL.createObjectURL(file);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          resolve(event.target.result); // Base64 data URL
+        };
+        reader.readAsDataURL(file);
+      });
     });
-    setImageURLs(urls);
+    Promise.all(urls).then(setImageURLs);
   };
 
   const handleDrop = (e) => {
@@ -139,12 +144,17 @@ export default function Create() {
     setDragActive(false);
     const selectedFiles = Array.from(e.dataTransfer.files);
     setFiles(selectedFiles);
-    // Convert files to simple URLs for now (avoid IPFS upload issues)
+    // Convert files to Base64 data URLs (persist across sessions)
     const urls = selectedFiles.map((file, index) => {
-      // For now, just create a placeholder URL or use object URL
-      return URL.createObjectURL(file);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          resolve(event.target.result); // Base64 data URL
+        };
+        reader.readAsDataURL(file);
+      });
     });
-    setImageURLs(urls);
+    Promise.all(urls).then(setImageURLs);
   };
 
 

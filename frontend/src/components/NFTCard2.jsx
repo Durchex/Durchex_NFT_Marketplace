@@ -115,7 +115,7 @@ const NFTCard2 = ({
       {/* to={``} */}
         {/* Image Section */}
         <div className="h-[230px] relative nft-image-container bg-gray-800">
-          <img src={image || metadata?.image} alt={name || 'NFT'} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src={image || metadata?.image || `https://picsum.photos/seed/${itemId || 'nft'}/400/300`} alt={name || 'NFT'} className="w-full h-full object-cover" onError={(e) => { e.target.src = `https://picsum.photos/seed/${itemId || 'nft'}/400/300`; }} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent"></div>
         </div>
 
