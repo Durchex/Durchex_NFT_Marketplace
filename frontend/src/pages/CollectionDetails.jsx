@@ -43,14 +43,27 @@ export default function CollectionDetails() {
 
         // 1. Fetch collection details
         console.log('📥 Fetching collection:', collectionId);
+        let collection = null;
+        
+        // Try direct API first
         const collectionData = await nftAPI.getCollection(collectionId);
         
         if (!collectionData || (Array.isArray(collectionData) && collectionData.length === 0)) {
-          throw new Error("Collection not found");
+          // Fallback: fetch all collections and find the one matching our ID
+          console.log('⚠️ Direct API returned empty, trying getAllCollections fallback...');
+          const allCollections = await nftAPI.getAllCollections();
+          collection = allCollections.find(c => 
+            String(c.collectionId || c._id).toLowerCase() === String(collectionId).toLowerCase()
+          );
+          
+          if (!collection) {
+            throw new Error("Collection not found");
+          }
+        } else {
+          // Handle if API returns array (shouldn't but just in case)
+          collection = Array.isArray(collectionData) ? collectionData[0] : collectionData;
         }
 
-        // Handle if API returns array (shouldn't but just in case)
-        const collection = Array.isArray(collectionData) ? collectionData[0] : collectionData;
         setCollection(collection);
         setEditData(collection);
 
