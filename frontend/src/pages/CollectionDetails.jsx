@@ -52,9 +52,30 @@ export default function CollectionDetails() {
           // Fallback: fetch all collections and find the one matching our ID
           console.log('⚠️ Direct API returned empty, trying getCollections fallback...');
           const allCollections = await nftAPI.getCollections();
+          console.log('📋 All collections found:', allCollections.length);
+          console.log('🔍 Looking for collectionId:', collectionId);
+          
+          // Try multiple matching strategies
           collection = allCollections.find(c => 
-            String(c.collectionId || c._id).toLowerCase() === String(collectionId).toLowerCase()
+            String(c.collectionId).toLowerCase() === String(collectionId).toLowerCase()
           );
+          
+          if (!collection) {
+            // Try matching by _id
+            collection = allCollections.find(c => 
+              String(c._id).toLowerCase() === String(collectionId).toLowerCase()
+            );
+          }
+          
+          if (!collection && allCollections.length > 0) {
+            // Debug: log first collection structure
+            console.log('📊 First collection structure:', allCollections[0]);
+            console.log('📊 All collections:', allCollections.map(c => ({ 
+              _id: c._id, 
+              collectionId: c.collectionId, 
+              name: c.name 
+            })));
+          }
           
           if (!collection) {
             throw new Error("Collection not found");
