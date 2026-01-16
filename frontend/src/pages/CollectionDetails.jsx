@@ -249,8 +249,23 @@ export default function CollectionDetails() {
             <div>
               <h1 className="text-4xl font-bold mb-2">{collection.name}</h1>
               <p className="text-gray-300 mb-4">{collection.description}</p>
-              <div className="flex gap-4 text-sm">
-                <span className="text-gray-400">Creator: <span className="text-white">{collection.creatorName}</span></span>
+              <div className="flex items-center gap-4">
+                {/* Creator Info */}
+                <div className="flex items-center gap-2">
+                  <img
+                    src={collection.creatorAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${collection.creatorWallet}`}
+                    alt={collection.creatorName}
+                    className="w-10 h-10 rounded-full"
+                    onError={(e) => {
+                      e.target.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${collection.creatorWallet || collection._id}`;
+                    }}
+                  />
+                  <div>
+                    <div className="text-xs text-gray-500">Creator</div>
+                    <div className="text-white font-semibold">{collection.creatorName || collection.creatorWallet?.slice(0, 6) + '...'}</div>
+                  </div>
+                </div>
+                <span className="text-gray-400">•</span>
                 <span className="text-gray-400">Network: <span className="text-cyan-400 uppercase">{collection.network}</span></span>
               </div>
             </div>

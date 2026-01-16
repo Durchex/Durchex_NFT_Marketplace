@@ -28,28 +28,56 @@ const Collections = () => {
       const allCollectionsData = await nftAPI.getCollections();
       
       if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
+        // Fetch NFTs to calculate stats
+        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+        let allNFTs = [];
+        
+        for (const network of networks) {
+          try {
+            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+            if (Array.isArray(networkNfts)) {
+              allNFTs = [...allNFTs, ...networkNfts];
+            }
+          } catch (err) {
+            console.warn(`Error fetching ${network} NFTs:`, err.message);
+          }
+        }
+        
         // Transform API response to match expected structure
-        const transformedCollections = allCollectionsData.map((col, index) => ({
-          _id: col._id,
-          id: col._id || col.collectionId || index,
-          name: col.name || 'Unnamed Collection',
-          creator: col.creatorName || col.creatorWallet || 'Unknown Creator',
-          creatorAvatar: col.creatorAvatar,
-          description: col.description || '',
-          image: col.image,
-          floorPrice: col.floorPrice || 0,
-          volume24h: col.volume24h || 0,
-          volume7d: col.volume7d || 0,
-          percentChange24h: col.percentChange24h || 0,
-          items: col.nftCount || col.items || 0, // Will be populated by counting NFTs in collection
-          owners: col.ownerCount || col.owners || 0,
-          views: col.views || 0,
-          likes: col.likes || 0,
-          verified: col.verified || false,
-          network: col.network || 'polygon',
-          collectionId: col.collectionId,
-          creatorWallet: col.creatorWallet,
-        }));
+        const transformedCollections = allCollectionsData.map((col, index) => {
+          // Find all NFTs in this collection
+          const collectionNFTs = allNFTs.filter(nft => 
+            String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
+          );
+          
+          // Calculate stats
+          const prices = collectionNFTs.map(n => parseFloat(n.price || 0)).filter(p => p > 0);
+          const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
+          const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+          const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+          
+          return {
+            _id: col._id,
+            id: col._id || col.collectionId || index,
+            name: col.name || 'Unnamed Collection',
+            creator: col.creatorName || 'Unknown Creator',
+            creatorAvatar: col.creatorAvatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${col.creatorWallet || col._id}`,
+            description: col.description || '',
+            image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
+            floorPrice: floorPrice.toFixed(2),
+            volume24h: volume.toFixed(2),
+            volume7d: col.volume7d || 0,
+            percentChange24h: col.percentChange24h || 0,
+            items: collectionNFTs.length,
+            owners: col.ownerCount || new Set(collectionNFTs.map(n => n.owner)).size || 0,
+            views: col.views || 0,
+            likes: col.likes || 0,
+            verified: col.verified || false,
+            network: col.network || 'polygon',
+            collectionId: col.collectionId,
+            creatorWallet: col.creatorWallet,
+          };
+        });
         setCollections(transformedCollections);
         console.log(`[Collections] Fetched ${transformedCollections.length} real collections from API`);
       } else {
@@ -213,11 +241,11 @@ const Collections = () => {
               {/* Collection Image */}
               <div className="relative overflow-hidden h-48 bg-gray-800">
                 <img
-                  src={collection.image}
+                  src={collection.image || `https://picsum.photos/seed/${collection.id}/400/300`}
                   alt={collection.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
-                    e.target.style.display = 'none';
+                    e.target.src = `https://picsum.photos/seed/${collection.id}/400/300`;
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
