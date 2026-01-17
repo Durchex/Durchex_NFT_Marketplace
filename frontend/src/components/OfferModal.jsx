@@ -106,30 +106,18 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         return;
       }
 
-      // Re-initialize provider after network switch with proper configuration
-      const provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
-      
-      // Get and verify signer
-      let signer;
-      try {
-        signer = provider.getSigner();
-      } catch (signerError) {
-        console.error('Failed to get signer:', signerError);
-        toast.error('Failed to connect to wallet. Please try again.');
+      // Use sendTransaction directly from window.ethereum (simpler, more compatible)
+      const signerAddress = (await window.ethereum.request({ 
+        method: 'eth_accounts' 
+      }))[0];
+
+      if (!signerAddress) {
+        toast.error('No wallet connected. Please connect your wallet first.');
         setPaymentInProgress(false);
         return;
       }
 
-      let signerAddress;
-      try {
-        signerAddress = await signer.getAddress();
-        console.log('Signer address:', signerAddress);
-      } catch (addressError) {
-        console.error('Failed to get signer address:', addressError);
-        toast.error('Failed to get wallet address. Please try again.');
-        setPaymentInProgress(false);
-        return;
-      }
+      console.log('Signer address:', signerAddress);
 
       // Verify the connected wallet matches the buyer
       if (signerAddress.toLowerCase() !== address.toLowerCase()) {
@@ -142,9 +130,6 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         return;
       }
 
-      console.log('Initiating payment from', signerAddress, 'to', currentOrder.seller);
-      console.log('Network:', currentOrder.network, 'Amount (Wei):', currentOrder.price);
-      
       // Validate transaction parameters
       if (!currentOrder.seller || !currentOrder.price) {
         throw new Error('Invalid order: missing seller or price');
@@ -154,73 +139,70 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         throw new Error('Invalid seller address');
       }
 
-      // Prepare transaction with proper formatting
-      const txValue = ethers.utils.parseEther(
-        ethers.utils.formatEther(currentOrder.price)
-      );
+      console.log('Initiating payment from', signerAddress, 'to', currentOrder.seller);
+      console.log('Amount (Wei):', currentOrder.price);
 
-      const tx = {
-        to: ethers.utils.getAddress(currentOrder.seller), // Checksum address
+      // Prepare simple transaction using ethers.js minimal format
+      const txValue = ethers.BigNumber.from(currentOrder.price.toString());
+
+      console.log('Transaction value:', ethers.utils.formatEther(txValue), 'ETH');
+
+      // Send via window.ethereum directly (most compatible)
+      const txParams = {
         from: signerAddress,
-        value: txValue,
-        data: '0x' // Empty data for ETH transfer
+        to: currentOrder.seller,
+        value: '0x' + txValue.toHexString().substring(2), // Hex format for RPC
+        data: '0x'
       };
 
-      console.log('Transaction details:', {
-        to: tx.to,
-        from: tx.from,
-        value: ethers.utils.formatEther(tx.value),
-        valueInWei: tx.value.toString()
+      console.log('Sending transaction with params:', {
+        from: txParams.from,
+        to: txParams.to,
+        value: ethers.utils.formatEther(txValue) + ' ETH',
+        valueHex: txParams.value
       });
-
-      // Estimate gas before sending
-      toast.loading('Estimating gas...');
-      let gasEstimate;
-      try {
-        gasEstimate = await provider.estimateGas(tx);
-        console.log('Estimated gas:', gasEstimate.toString());
-        
-        // Add 20% buffer to gas estimate
-        tx.gasLimit = gasEstimate.mul(120).div(100);
-        console.log('Gas limit with buffer:', tx.gasLimit.toString());
-      } catch (gasError) {
-        console.warn('Gas estimation failed, letting provider handle it:', gasError);
-        // Continue anyway - provider might handle it
-      }
 
       // Show confirmation toast
       toast.loading('Please confirm the transaction in your wallet...');
 
-      // Send transaction with comprehensive error handling
-      let txResponse;
+      // Send transaction directly via window.ethereum
+      let txHash;
       try {
-        console.log('Sending transaction...');
-        txResponse = await signer.sendTransaction(tx);
-        console.log('Transaction sent:', txResponse.hash);
+        txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [txParams]
+        });
+        console.log('Transaction sent, hash:', txHash);
       } catch (sendError) {
-        console.error('Send transaction error:', {
+        console.error('Direct RPC send error:', {
           code: sendError.code,
           message: sendError.message,
-          details: sendError,
-          stack: sendError.stack
+          error: sendError
         });
 
-        // Check if it's a provider timeout, retry once
-        if (sendError.code === -32603 || sendError.message?.includes('timeout')) {
-          console.log('Attempting retry...');
-          toast.loading('Retrying transaction...');
-          
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
+        // If direct RPC fails, try ethers.js sendTransaction as fallback
+        if (sendError.code === -32603 || sendError.message?.includes('Response has no error')) {
+          console.log('RPC provider issue detected. Trying ethers.js signer as fallback...');
+          toast.loading('Provider issue detected, trying alternative method...');
+
           try {
-            txResponse = await signer.sendTransaction(tx);
-            console.log('Transaction sent on retry:', txResponse.hash);
-          } catch (retryError) {
-            console.error('Retry failed:', retryError);
-            
-            // If retry also fails, show manual fallback option
-            toast.error('Automatic payment failed. Please try the manual method or check your wallet.');
+            const provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
+            const signer = provider.getSigner();
+
+            const tx = {
+              to: currentOrder.seller,
+              value: txValue,
+              data: '0x'
+            };
+
+            const txResponse = await signer.sendTransaction(tx);
+            txHash = txResponse.hash;
+            console.log('Transaction sent via ethers fallback:', txHash);
+          } catch (fallbackError) {
+            console.error('Ethers fallback also failed:', fallbackError);
+            toast.error(
+              'Automatic payment failed due to RPC provider issues. Please use the manual method: enter your transaction hash after sending from your wallet.'
+            );
             setPaymentInProgress(false);
             return;
           }
@@ -231,30 +213,53 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
 
       toast.loading('Transaction pending... waiting for confirmation (this may take 15-60 seconds)');
 
-      // Wait for transaction confirmation (1 block confirmation)
-      let receipt;
-      try {
-        receipt = await txResponse.wait(1);
-        console.log('Transaction confirmed:', receipt.transactionHash);
-      } catch (waitError) {
-        console.error('Wait for receipt error:', waitError);
-        toast.error('Error waiting for transaction confirmation. Please check the transaction manually.');
+      // Wait for transaction to be mined
+      let attempts = 0;
+      const maxAttempts = 30; // ~30 attempts x 2 seconds = 60 seconds
+      let receipt = null;
+
+      while (attempts < maxAttempts && !receipt) {
+        try {
+          receipt = await window.ethereum.request({
+            method: 'eth_getTransactionReceipt',
+            params: [txHash]
+          });
+
+          if (receipt) {
+            console.log('Transaction confirmed:', receipt);
+            break;
+          }
+
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (pollError) {
+          console.warn('Error polling transaction:', pollError);
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
+      if (!receipt) {
+        toast.error(
+          'Transaction is taking longer than expected. You can paste the transaction hash to confirm it manually.'
+        );
+        setTransactionHash(txHash);
         setPaymentInProgress(false);
         return;
       }
 
       // Update order in database with transaction hash
       try {
-        await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', receipt.transactionHash);
+        await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', txHash);
       } catch (updateError) {
         console.error('Error updating order status:', updateError);
         toast.error('Payment received but failed to update order. Please contact support.');
         setPaymentInProgress(false);
         return;
       }
-      
-      toast.success(`Payment successful! Transaction: ${receipt.transactionHash.slice(0, 10)}...`);
-      
+
+      toast.success(`Payment successful! Transaction: ${txHash.slice(0, 10)}...`);
+
       // Close modal after successful payment
       setTimeout(() => {
         setOrderCreated(false);
@@ -269,23 +274,19 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         code: error.code,
         message: error.message,
         data: error.data,
-        stack: error.stack
+        error: error
       });
-      
+
       if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
         toast.error('Transaction cancelled by user');
       } else if (error.code === 'INSUFFICIENT_FUNDS' || error.code === -32000) {
         toast.error('Insufficient funds in wallet');
       } else if (error.code === -32603) {
-        toast.error('RPC error. Please check your internet connection and try again.');
+        toast.error('RPC provider error. Please try the manual payment method.');
       } else if (error.code === -32602) {
-        toast.error('Invalid transaction parameters. Please try again.');
+        toast.error('Invalid transaction parameters.');
       } else if (error.message?.includes('network')) {
         toast.error(`Network error: ${error.message}`);
-      } else if (error.message?.includes('timeout')) {
-        toast.error('Transaction timeout. Please check your connection and try again.');
-      } else if (error.message?.includes('gas')) {
-        toast.error('Gas estimation failed. Try reducing the price or check your wallet.');
       } else {
         toast.error(`Payment failed: ${error.message || 'Unknown error'}`);
       }
