@@ -17,6 +17,45 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
   const [currentOrder, setCurrentOrder] = useState(null);
   const [paymentInProgress, setPaymentInProgress] = useState(false);
 
+  // Map network names to chain IDs
+  const NETWORK_CHAIN_IDS = {
+    'ethereum': 1,
+    'polygon': 137,
+    'bsc': 56,
+    'arbitrum': 42161,
+    'optimism': 10,
+    'avalanche': 43114,
+    'base': 8453,
+    'solana': 101  // Note: Solana is not EVM, will need special handling
+  };
+
+  const handleSwitchNetwork = async (networkName) => {
+    if (!window.ethereum) {
+      throw new Error('Please install MetaMask or another Web3 wallet');
+    }
+
+    const chainId = NETWORK_CHAIN_IDS[networkName?.toLowerCase()];
+    if (!chainId) {
+      throw new Error(`Unknown network: ${networkName}`);
+    }
+
+    try {
+      // Try to switch to the network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${chainId.toString(16)}` }],
+      });
+      console.log(`Switched to ${networkName} (Chain ID: ${chainId})`);
+    } catch (switchError) {
+      // If the network isn't added, throw to let caller handle it
+      if (switchError.code === 4902) {
+        console.warn(`Network ${networkName} not in wallet, will attempt to add it`);
+        throw new Error(`Please add ${networkName} network to your wallet`);
+      }
+      throw switchError;
+    }
+  };
+
   const handlePaymentWithWallet = async () => {
     if (!currentOrder) {
       toast.error('No order found. Please create an order first.');
@@ -28,6 +67,15 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       // Check if window.ethereum is available
       if (!window.ethereum) {
         toast.error('Please install MetaMask or another Web3 wallet');
+        setPaymentInProgress(false);
+        return;
+      }
+
+      // Try to switch to the correct network first
+      try {
+        await handleSwitchNetwork(currentOrder.network);
+      } catch (switchError) {
+        toast.error(`Network error: ${switchError.message}`);
         setPaymentInProgress(false);
         return;
       }
@@ -45,14 +93,13 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       }
 
       console.log('Initiating payment from', signerAddress, 'to', currentOrder.seller);
+      console.log('Network:', currentOrder.network, 'Amount (Wei):', currentOrder.price);
       
-      // Prepare transaction
+      // Prepare transaction - use the raw price which is already in wei
       const tx = {
         to: currentOrder.seller,
         from: signerAddress,
-        value: ethers.utils.parseEther(
-          (parseFloat(currentOrder.price) / 1e18).toString()
-        )
+        value: currentOrder.price  // Already in Wei from the order
       };
 
       console.log('Transaction details:', {
@@ -69,7 +116,7 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       const txResponse = await signer.sendTransaction(tx);
       console.log('Transaction sent:', txResponse.hash);
 
-      toast.loading('Transaction pending... waiting for confirmation');
+      toast.loading('Transaction pending... waiting for confirmation (this may take 15-60 seconds)');
 
       // Wait for transaction confirmation (1 block confirmation)
       const receipt = await txResponse.wait(1);
@@ -90,14 +137,24 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       }, 2000);
 
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Payment error details:', {
+        code: error.code,
+        message: error.message,
+        data: error.data
+      });
       
       if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
         toast.error('Transaction cancelled by user');
-      } else if (error.code === 'INSUFFICIENT_FUNDS') {
+      } else if (error.code === 'INSUFFICIENT_FUNDS' || error.code === -32000) {
         toast.error('Insufficient funds in wallet');
+      } else if (error.code === -32603) {
+        toast.error('Network error. Please check your connection and try again.');
+      } else if (error.code === -32602) {
+        toast.error('Invalid transaction parameters. Please try again.');
+      } else if (error.message?.includes('Network')) {
+        toast.error(`Network error: ${error.message}`);
       } else {
-        toast.error(`Payment failed: ${error.message}`);
+        toast.error(`Payment failed: ${error.message || 'Unknown error'}`);
       }
     } finally {
       setPaymentInProgress(false);
