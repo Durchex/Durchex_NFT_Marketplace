@@ -3,6 +3,7 @@ import { FiX } from 'react-icons/fi';
 import { ICOContent } from '../Context';
 import { orderAPI, offerAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import { ethers } from 'ethers';
 
 const OfferModal = ({ isOpen, onClose, nft }) => {
   const { address } = useContext(ICOContent);
@@ -12,6 +13,96 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
   const [offerType, setOfferType] = useState('offer'); // 'offer' or 'buy'
   const [selectedPaymentNetwork, setSelectedPaymentNetwork] = useState(nft?.network || 'ethereum');
   const [transactionHash, setTransactionHash] = useState('');
+  const [orderCreated, setOrderCreated] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [paymentInProgress, setPaymentInProgress] = useState(false);
+
+  const handlePaymentWithWallet = async () => {
+    if (!currentOrder) {
+      toast.error('No order found. Please create an order first.');
+      return;
+    }
+
+    setPaymentInProgress(true);
+    try {
+      // Check if window.ethereum is available
+      if (!window.ethereum) {
+        toast.error('Please install MetaMask or another Web3 wallet');
+        setPaymentInProgress(false);
+        return;
+      }
+
+      // Get provider and signer
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const signerAddress = await signer.getAddress();
+
+      // Verify the connected wallet matches the buyer
+      if (signerAddress.toLowerCase() !== address.toLowerCase()) {
+        toast.error('Connected wallet does not match buyer address');
+        setPaymentInProgress(false);
+        return;
+      }
+
+      console.log('Initiating payment from', signerAddress, 'to', currentOrder.seller);
+      
+      // Prepare transaction
+      const tx = {
+        to: currentOrder.seller,
+        from: signerAddress,
+        value: ethers.utils.parseEther(
+          (parseFloat(currentOrder.price) / 1e18).toString()
+        )
+      };
+
+      console.log('Transaction details:', {
+        to: tx.to,
+        from: tx.from,
+        value: ethers.utils.formatEther(tx.value),
+        valueInWei: tx.value.toString()
+      });
+
+      // Show confirmation toast
+      toast.loading('Please confirm the transaction in your wallet...');
+
+      // Send transaction and wait for user confirmation
+      const txResponse = await signer.sendTransaction(tx);
+      console.log('Transaction sent:', txResponse.hash);
+
+      toast.loading('Transaction pending... waiting for confirmation');
+
+      // Wait for transaction confirmation (1 block confirmation)
+      const receipt = await txResponse.wait(1);
+      console.log('Transaction confirmed:', receipt.transactionHash);
+
+      // Update order in database with transaction hash
+      await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', receipt.transactionHash);
+      
+      toast.success(`Payment successful! Transaction: ${receipt.transactionHash.slice(0, 10)}...`);
+      
+      // Close modal after successful payment
+      setTimeout(() => {
+        setOrderCreated(false);
+        setCurrentOrder(null);
+        setOfferPrice('');
+        setTransactionHash('');
+        onClose();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        toast.error('Transaction cancelled by user');
+      } else if (error.code === 'INSUFFICIENT_FUNDS') {
+        toast.error('Insufficient funds in wallet');
+      } else {
+        toast.error(`Payment failed: ${error.message}`);
+      }
+    } finally {
+      setPaymentInProgress(false);
+    }
+  };
 
   const handlePaymentConfirmation = async () => {
     if (!transactionHash.trim()) {
@@ -21,10 +112,12 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
 
     setIsLoading(true);
     try {
-      // This would need to be implemented - confirm payment with transaction hash
-      // For now, just show success
+      // Update order with transaction hash from manual entry
+      await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', transactionHash);
       toast.success('Payment confirmation submitted! NFT transfer will be processed.');
       setTransactionHash('');
+      setOrderCreated(false);
+      setCurrentOrder(null);
       onClose();
     } catch (error) {
       console.error('Error confirming payment:', error);
@@ -103,8 +196,14 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         console.log('Creating order with data:', orderData);
         const orderResponse = await orderAPI.createOrder(orderData);
         
+        console.log('Order created successfully:', orderResponse.data.order);
+        
+        // Store the order details for payment
+        setCurrentOrder(orderResponse.data.order);
+        setOrderCreated(true);
+        
         // For buy now, we need payment confirmation
-        toast.success('Order created! Please complete payment to receive the NFT.');
+        toast.success('Order created! Ready for payment.');
         
         // Reset form but keep modal open for payment
         setOfferPrice('');
@@ -221,7 +320,7 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
                 </div>
               )}
             {/* Payment Network Selection (Only for Buy Now) */}
-            {offerType === 'buy' && (
+            {offerType === 'buy' && !orderCreated && (
               <div className="space-y-2">
                 <label className="block text-sm font-semibold">Payment Network</label>
                 <select
@@ -247,23 +346,6 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
                 </p>
               </div>
             )}
-
-            {/* Transaction Hash Input (Only for Buy Now after order creation) */}
-            {offerType === 'buy' && (
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold">Transaction Hash (Optional)</label>
-                <input
-                  type="text"
-                  value={transactionHash}
-                  onChange={(e) => setTransactionHash(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                />
-                <p className="text-xs text-gray-400">
-                  Enter transaction hash after payment to speed up processing
-                </p>
-              </div>
-            )}
             {offerType === 'offer' && (
               <div className="space-y-2">
                 <label className="block text-sm font-semibold">Expiration</label>
@@ -281,51 +363,107 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
             )}
 
             {/* Summary */}
-            <div className="bg-purple-600/20 rounded-lg p-4 border border-purple-500/30">
-              <div className="text-sm">
-                <p className="text-gray-300 mb-2">You're about to:</p>
-                <p className="font-semibold mb-2">
-                  {offerType === 'offer'
-                    ? `Place an offer of ${offerPriceValue} ETH for ${expirationDays} day${expirationDays > 1 ? 's' : ''}`
-                    : `Purchase this NFT for ${offerPriceValue} ETH`}
-                </p>
-                {offerType === 'buy' && (
-                  <div className="text-xs text-gray-400">
-                    <p>• Payment Network: {selectedPaymentNetwork.charAt(0).toUpperCase() + selectedPaymentNetwork.slice(1)}</p>
-                    <p>• Send {offerPriceValue} ETH to the seller's wallet</p>
-                    <p>• NFT will be transferred after payment confirmation</p>
-                  </div>
-                )}
+            {!orderCreated ? (
+              <div className="bg-purple-600/20 rounded-lg p-4 border border-purple-500/30">
+                <div className="text-sm">
+                  <p className="text-gray-300 mb-2">You're about to:</p>
+                  <p className="font-semibold mb-2">
+                    {offerType === 'offer'
+                      ? `Place an offer of ${offerPriceValue} ETH for ${expirationDays} day${expirationDays > 1 ? 's' : ''}`
+                      : `Purchase this NFT for ${offerPriceValue} ETH`}
+                  </p>
+                  {offerType === 'buy' && (
+                    <div className="text-xs text-gray-400">
+                      <p>• Payment Network: {selectedPaymentNetwork.charAt(0).toUpperCase() + selectedPaymentNetwork.slice(1)}</p>
+                      <p>• Send {offerPriceValue} ETH to the seller's wallet</p>
+                      <p>• NFT will be transferred after payment confirmation</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-green-600/20 rounded-lg p-4 border border-green-500/30">
+                <div className="text-sm">
+                  <p className="text-green-300 font-semibold mb-2">✓ Order Created</p>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <p>• Order ID: {currentOrder?.orderId}</p>
+                    <p>• Amount: {offerPriceValue} ETH</p>
+                    <p>• Recipient: {currentOrder?.seller?.slice(0, 10)}...</p>
+                    <p className="text-yellow-400 mt-2">⏳ Awaiting payment confirmation</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
           <div className="p-6 border-t border-gray-800 space-y-3">
-            <button
-              onClick={handleSubmitOffer}
-              disabled={isLoading || !offerPrice}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
-            >
-              {isLoading ? 'Processing...' : offerType === 'offer' ? 'Place Offer' : 'Create Order & Pay'}
-            </button>
-            
-            {offerType === 'buy' && transactionHash && (
-              <button
-                onClick={handlePaymentConfirmation}
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                {isLoading ? 'Processing...' : 'Confirm Payment'}
-              </button>
+            {!orderCreated ? (
+              <>
+                <button
+                  onClick={handleSubmitOffer}
+                  disabled={isLoading || !offerPrice}
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  {isLoading ? 'Processing...' : offerType === 'offer' ? 'Place Offer' : 'Create Order & Pay'}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="w-full bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Payment Section - shown after order is created */}
+                <div className="bg-blue-600/20 rounded-lg p-4 border border-blue-500/30 mb-3">
+                  <h3 className="font-semibold mb-3">Complete Payment</h3>
+                  <button
+                    onClick={handlePaymentWithWallet}
+                    disabled={paymentInProgress || isLoading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-3 rounded-lg font-semibold transition-colors mb-2"
+                  >
+                    {paymentInProgress ? 'Processing Payment...' : '💳 Pay with Wallet'}
+                  </button>
+                  <p className="text-xs text-gray-400 mb-3 text-center">Click to send {offerPriceValue} ETH to seller</p>
+                </div>
+
+                {/* Alternative: Manual Transaction Hash */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-400">Or Enter Transaction Hash</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={transactionHash}
+                      onChange={(e) => setTransactionHash(e.target.value)}
+                      placeholder="0x..."
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      onClick={handlePaymentConfirmation}
+                      disabled={isLoading || !transactionHash.trim()}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-2 rounded-lg font-semibold transition-colors"
+                    >
+                      {isLoading ? '...' : 'Confirm'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">If you already sent the payment, paste the TX hash here</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setOrderCreated(false);
+                    setCurrentOrder(null);
+                    setTransactionHash('');
+                    setOfferPrice('');
+                  }}
+                  className="w-full bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Cancel Order
+                </button>
+              </>
             )}
-            
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Cancel
-            </button>
           </div>
           </div>
         </div>
