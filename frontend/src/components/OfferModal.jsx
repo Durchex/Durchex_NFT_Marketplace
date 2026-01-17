@@ -196,10 +196,14 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         console.log('Creating order with data:', orderData);
         const orderResponse = await orderAPI.createOrder(orderData);
         
-        console.log('Order created successfully:', orderResponse.data.order);
+        console.log('Order created successfully:', orderResponse);
+        
+        if (!orderResponse || !orderResponse.order) {
+          throw new Error('Invalid order response from server');
+        }
         
         // Store the order details for payment
-        setCurrentOrder(orderResponse.data.order);
+        setCurrentOrder(orderResponse.order);
         setOrderCreated(true);
         
         // For buy now, we need payment confirmation
