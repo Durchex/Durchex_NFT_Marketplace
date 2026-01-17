@@ -40,19 +40,40 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
     }
 
     try {
+      // Get current chain ID first
+      const currentChainId = await window.ethereum.request({
+        method: 'eth_chainId'
+      });
+      const currentChainIdNum = parseInt(currentChainId, 16);
+      
+      console.log(`Current chain ID: ${currentChainIdNum}, target chain ID: ${chainId}`);
+      
+      // If already on correct network, skip switch
+      if (currentChainIdNum === chainId) {
+        console.log(`Already on ${networkName}`);
+        return;
+      }
+
       // Try to switch to the network
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       });
+      
       console.log(`Switched to ${networkName} (Chain ID: ${chainId})`);
+      
+      // Wait for network switch to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
     } catch (switchError) {
       // If the network isn't added, throw to let caller handle it
       if (switchError.code === 4902) {
         console.warn(`Network ${networkName} not in wallet, will attempt to add it`);
         throw new Error(`Please add ${networkName} network to your wallet`);
       }
-      throw switchError;
+      if (switchError.code !== 4902) {
+        throw switchError;
+      }
     }
   };
 
@@ -71,22 +92,51 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
         return;
       }
 
+      console.log('=== Payment Initiation ===');
+      console.log('Order:', currentOrder);
+
       // Try to switch to the correct network first
       try {
+        console.log(`Switching to network: ${currentOrder.network}`);
         await handleSwitchNetwork(currentOrder.network);
       } catch (switchError) {
+        console.error('Network switch failed:', switchError);
         toast.error(`Network error: ${switchError.message}`);
         setPaymentInProgress(false);
         return;
       }
 
-      // Get provider and signer
+      // Re-initialize provider after network switch
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const signerAddress = await signer.getAddress();
+      
+      // Get and verify signer
+      let signer;
+      try {
+        signer = provider.getSigner();
+      } catch (signerError) {
+        console.error('Failed to get signer:', signerError);
+        toast.error('Failed to connect to wallet. Please try again.');
+        setPaymentInProgress(false);
+        return;
+      }
+
+      let signerAddress;
+      try {
+        signerAddress = await signer.getAddress();
+        console.log('Signer address:', signerAddress);
+      } catch (addressError) {
+        console.error('Failed to get signer address:', addressError);
+        toast.error('Failed to get wallet address. Please try again.');
+        setPaymentInProgress(false);
+        return;
+      }
 
       // Verify the connected wallet matches the buyer
       if (signerAddress.toLowerCase() !== address.toLowerCase()) {
+        console.error('Wallet mismatch:', {
+          connected: signerAddress,
+          buyer: address
+        });
         toast.error('Connected wallet does not match buyer address');
         setPaymentInProgress(false);
         return;
@@ -95,11 +145,20 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       console.log('Initiating payment from', signerAddress, 'to', currentOrder.seller);
       console.log('Network:', currentOrder.network, 'Amount (Wei):', currentOrder.price);
       
+      // Validate transaction parameters
+      if (!currentOrder.seller || !currentOrder.price) {
+        throw new Error('Invalid order: missing seller or price');
+      }
+
+      if (!ethers.utils.isAddress(currentOrder.seller)) {
+        throw new Error('Invalid seller address');
+      }
+
       // Prepare transaction - use the raw price which is already in wei
       const tx = {
-        to: currentOrder.seller,
+        to: ethers.utils.getAddress(currentOrder.seller), // Checksum address
         from: signerAddress,
-        value: currentOrder.price  // Already in Wei from the order
+        value: ethers.BigNumber.from(currentOrder.price.toString())
       };
 
       console.log('Transaction details:', {
@@ -112,18 +171,51 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       // Show confirmation toast
       toast.loading('Please confirm the transaction in your wallet...');
 
-      // Send transaction and wait for user confirmation
-      const txResponse = await signer.sendTransaction(tx);
-      console.log('Transaction sent:', txResponse.hash);
+      // Send transaction with retry logic
+      let txResponse;
+      try {
+        txResponse = await signer.sendTransaction(tx);
+        console.log('Transaction sent:', txResponse.hash);
+      } catch (sendError) {
+        console.error('Send transaction error:', {
+          code: sendError.code,
+          message: sendError.message,
+          details: sendError
+        });
+
+        // Check if it's a provider timeout, retry once
+        if (sendError.code === -32603 || sendError.message?.includes('timeout')) {
+          console.log('Retrying transaction...');
+          toast.loading('Retrying transaction...');
+          txResponse = await signer.sendTransaction(tx);
+        } else {
+          throw sendError;
+        }
+      }
 
       toast.loading('Transaction pending... waiting for confirmation (this may take 15-60 seconds)');
 
       // Wait for transaction confirmation (1 block confirmation)
-      const receipt = await txResponse.wait(1);
-      console.log('Transaction confirmed:', receipt.transactionHash);
+      let receipt;
+      try {
+        receipt = await txResponse.wait(1);
+        console.log('Transaction confirmed:', receipt.transactionHash);
+      } catch (waitError) {
+        console.error('Wait for receipt error:', waitError);
+        toast.error('Error waiting for transaction confirmation. Please check the transaction manually.');
+        setPaymentInProgress(false);
+        return;
+      }
 
       // Update order in database with transaction hash
-      await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', receipt.transactionHash);
+      try {
+        await orderAPI.updateOrderStatus(currentOrder.orderId, 'completed', receipt.transactionHash);
+      } catch (updateError) {
+        console.error('Error updating order status:', updateError);
+        toast.error('Payment received but failed to update order. Please contact support.');
+        setPaymentInProgress(false);
+        return;
+      }
       
       toast.success(`Payment successful! Transaction: ${receipt.transactionHash.slice(0, 10)}...`);
       
@@ -140,7 +232,8 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       console.error('Payment error details:', {
         code: error.code,
         message: error.message,
-        data: error.data
+        data: error.data,
+        stack: error.stack
       });
       
       if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
@@ -148,11 +241,13 @@ const OfferModal = ({ isOpen, onClose, nft }) => {
       } else if (error.code === 'INSUFFICIENT_FUNDS' || error.code === -32000) {
         toast.error('Insufficient funds in wallet');
       } else if (error.code === -32603) {
-        toast.error('Network error. Please check your connection and try again.');
+        toast.error('Network connection error. Please check your internet and try again.');
       } else if (error.code === -32602) {
         toast.error('Invalid transaction parameters. Please try again.');
-      } else if (error.message?.includes('Network')) {
+      } else if (error.message?.includes('network')) {
         toast.error(`Network error: ${error.message}`);
+      } else if (error.message?.includes('timeout')) {
+        toast.error('Transaction timeout. Please check your connection and try again.');
       } else {
         toast.error(`Payment failed: ${error.message || 'Unknown error'}`);
       }
