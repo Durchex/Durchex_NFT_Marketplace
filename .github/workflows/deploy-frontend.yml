@@ -1,0 +1,230 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'frontend/src/**'
+      - 'frontend/public/**'
+      - 'frontend/package.json'
+      - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18.17.0'
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run type check
+        working-directory: frontend
+        run: npm run type-check || true
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test:ci
+        env:
+          CI: true
+          REACT_APP_API_URL: http://localhost:5000
+          REACT_APP_ETHEREUM_RPC_URL: http://localhost:8545
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    strategy:
+      matrix:
+        environment: [staging, production]
+        include:
+          - environment: staging
+            ref: develop
+            api_url: https://staging-api.durchex.com
+          - environment: production
+            ref: main
+            api_url: https://api.durchex.com
+    if: |
+      (matrix.environment == 'staging' && github.ref == 'refs/heads/develop') ||
+      (matrix.environment == 'production' && github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build optimized bundle
+        working-directory: frontend
+        run: npm run build
+        env:
+          REACT_APP_ENVIRONMENT: ${{ matrix.environment }}
+          REACT_APP_API_URL: ${{ matrix.api_url }}
+          REACT_APP_CHAIN_ID: 1
+          REACT_APP_CONTRACT_ADDRESSES: ${{ secrets[format('CONTRACT_ADDRESSES_{0}', matrix.environment)] }}
+          REACT_APP_IPFS_GATEWAY: https://gateway.pinata.cloud
+          REACT_APP_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          REACT_APP_GA_ID: ${{ secrets.GA_ID }}
+
+      - name: Generate bundle report
+        working-directory: frontend
+        run: npm run build:report || true
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.environment }}
+          path: frontend/dist
+          retention-days: 5
+
+  deploy-vercel:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      id-token: write
+      contents: read
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production
+          path: dist
+
+      - name: Deploy to Vercel
+        uses: vercel/action@master
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+      - name: Get deployed URL
+        id: deployment
+        run: echo "url=https://durchex.com" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Deployed to Production: ${{ steps.deployment.outputs.url }}'
+            })
+
+  deploy-netlify:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-staging
+          path: dist
+
+      - name: Deploy to Netlify
+        uses: netlify/actions/build@master
+        with:
+          auth: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          site-id: ${{ secrets.NETLIFY_SITE_ID }}
+          dir: dist
+          functions: functions
+
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production
+          path: dist
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          runs: 3
+          configPath: 'frontend/lighthouse.json'
+          uploadArtifacts: true
+
+      - name: Comment on PR with results
+        uses: actions/github-script@v6
+        if: always()
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '📊 Performance test completed. Check artifacts for Lighthouse report.'
+            })
+
+  slack-notification:
+    runs-on: ubuntu-latest
+    needs: [deploy-vercel, deploy-netlify]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Frontend Deployment Status",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Frontend Deployment*\n*Status:* ${{ job.status }}\n*Branch:* ${{ github.ref }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }

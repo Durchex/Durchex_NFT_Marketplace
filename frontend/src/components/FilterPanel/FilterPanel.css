@@ -1,0 +1,281 @@
+/**
+ * FilterPanel Styles
+ */
+
+.filter-panel {
+    width: 100%;
+    max-width: 280px;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.filter-header h3 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.reset-button {
+    padding: 6px 12px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    color: #666;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reset-button:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: #1a1a1a;
+}
+
+.reset-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Filter Section */
+.filter-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.filter-section:last-of-type {
+    border-bottom: none;
+}
+
+.filter-section h4 {
+    margin: 0 0 12px 0;
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Price Inputs */
+.price-info {
+    background: #f9fafb;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.price-info small {
+    color: #666;
+    font-size: 11px;
+    line-height: 1.4;
+    display: block;
+}
+
+.price-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.price-inputs input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.price-inputs input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.price-inputs input:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+}
+
+.separator {
+    color: #d1d5db;
+    font-weight: 600;
+}
+
+/* Select */
+.filter-section select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-section select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.filter-section select:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Rarity Options */
+.rarity-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rarity-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.rarity-label:hover {
+    background: #f9fafb;
+}
+
+.rarity-label input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.rarity-badge {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.rarity-badge.common {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.rarity-badge.uncommon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.rarity-badge.rare {
+    background: #fef08a;
+    color: #ca8a04;
+}
+
+.rarity-badge.epic {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.rarity-badge.legendary {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+/* Status Options */
+.status-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.status-label:hover {
+    background: #f9fafb;
+}
+
+.status-label input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.status-label span {
+    font-weight: 500;
+}
+
+/* Active Filters Count */
+.active-filters-count {
+    margin-top: 20px;
+    padding: 12px;
+    background: #eff6ff;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .filter-panel {
+        max-width: 100%;
+        position: static;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    .filter-panel {
+        padding: 16px;
+    }
+
+    .filter-header h3 {
+        font-size: 16px;
+    }
+
+    .filter-section h4 {
+        font-size: 13px;
+    }
+
+    .filter-section select,
+    .price-inputs input {
+        font-size: 12px;
+        padding: 6px;
+    }
+}

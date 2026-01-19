@@ -170,9 +170,14 @@ export default function CollectionDetails() {
     }
 
     // IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
+    // Prices are stored in wei, need to convert to ETH
     const rawPrices = nftsList.map(nft => {
-      const price = parseFloat(nft.price || '0');
-      console.log(`[CollectionDetails] NFT price: "${nft.price}" => ${price}`);
+      let price = parseFloat(nft.price || '0');
+      // If price is very large (> 1000), it's likely in wei, convert to ETH
+      if (price > 1000) {
+        price = price / 1e18;
+      }
+      console.log(`[CollectionDetails] NFT: ${nft.name}, price: "${nft.price}" => ${price} ETH`);
       return price;
     });
     const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
@@ -186,9 +191,9 @@ export default function CollectionDetails() {
       nftCount: nftsList.length,
       rawPrices: nftsList.map(n => n.price),
       parsedPrices: prices,
-      floorPrice,
-      avgPrice,
-      volume,
+      floorPrice: floorPrice.toFixed(4),
+      avgPrice: avgPrice.toFixed(4),
+      volume: volume.toFixed(4),
       uniqueOwners: uniqueOwners.size
     });
 
@@ -336,23 +341,23 @@ export default function CollectionDetails() {
         <div className="grid grid-cols-5 gap-4 mb-12">
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Floor Price</p>
-            <p className="text-2xl font-bold text-cyan-400">${stats.floorPrice.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-cyan-400">{stats.floorPrice ? stats.floorPrice.toFixed(4) : '0.0000'} ETH</p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Avg Price</p>
-            <p className="text-2xl font-bold text-cyan-400">${stats.avgPrice.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-cyan-400">{stats.avgPrice ? stats.avgPrice.toFixed(4) : '0.0000'} ETH</p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Total Volume</p>
-            <p className="text-2xl font-bold text-cyan-400">${stats.volume.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-cyan-400">{stats.volume ? stats.volume.toFixed(2) : '0.00'} ETH</p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Items</p>
-            <p className="text-2xl font-bold text-cyan-400">{stats.nftCount}</p>
+            <p className="text-2xl font-bold text-cyan-400">{stats.nftCount || 0}</p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Owners</p>
-            <p className="text-2xl font-bold text-cyan-400">{stats.ownerCount}</p>
+            <p className="text-2xl font-bold text-cyan-400">{stats.ownerCount || 0}</p>
           </div>
         </div>
 

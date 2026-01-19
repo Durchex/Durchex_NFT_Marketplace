@@ -18,6 +18,12 @@ const nftSchema = new Schema(
       required: true,
       unique: true,
     },
+    // Smart Contract Integration (NEW)
+    contractAddress: {
+      type: String,
+      required: false, // The ERC-721 contract address for this NFT's collection
+      description: "Deployed ERC-721 contract address"
+    },
     nftContract: {
       type: String,
       required: false, // Optional for unminted NFTs, set during minting
@@ -25,6 +31,36 @@ const nftSchema = new Schema(
     tokenId: {
       type: String,
       required: false, // Optional for unminted NFTs, set during minting
+    },
+    // Per-chain contract data (NEW)
+    chainSpecificData: {
+      type: Map,
+      of: {
+        contractAddress: String,
+        tokenId: String,
+        deploymentTx: String,
+        deploymentBlock: Number,
+        status: { type: String, enum: ['pending', 'deployed', 'failed'], default: 'pending' }
+      },
+      default: new Map(),
+      description: "Contract and token data for each blockchain network"
+    },
+    // Deployment tracking (NEW)
+    contractDeploymentTx: {
+      type: String,
+      default: null,
+      description: "Transaction hash of contract deployment"
+    },
+    contractDeploymentBlock: {
+      type: Number,
+      default: null,
+      description: "Block number where contract was deployed"
+    },
+    deploymentStatus: {
+      type: String,
+      enum: ['pending', 'deployed', 'failed'],
+      default: 'pending',
+      description: "Status of smart contract deployment"
     },
     owner: {
       type: String,
@@ -155,6 +191,36 @@ const nftSchema = new Schema(
       type: String,
       default: null,
       description: "Reason for admin delisting"
+    },
+    // Stock/Pieces feature for multiple copies of same NFT
+    pieces: {
+      type: Number,
+      default: 1,
+      min: 1,
+      description: "Total number of pieces/copies of this NFT available"
+    },
+    remainingPieces: {
+      type: Number,
+      default: 1,
+      min: 0,
+      description: "Number of pieces still available (decremented with each sale)"
+    },
+    // Listing request tracking
+    listingRequestStatus: {
+      type: String,
+      enum: ['none', 'pending', 'approved', 'rejected'],
+      default: 'none',
+      description: "Status of listing request with admin"
+    },
+    listingRequestId: {
+      type: String,
+      default: null,
+      description: "Reference to the listing request document"
+    },
+    lastListingRequestAt: {
+      type: Date,
+      default: null,
+      description: "When the user last submitted a listing request"
     }
   },
   { timestamps: true }

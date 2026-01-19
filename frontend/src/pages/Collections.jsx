@@ -102,9 +102,14 @@ const Collections = () => {
               });
               
               // Calculate stats - IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
+              // Prices are stored in wei, need to convert to ETH
               const rawPrices = collectionNFTs.map(n => {
-                const price = parseFloat(n.price || '0');
-                console.log(`[Collections] NFT price: "${n.price}" => ${price}`);
+                let price = parseFloat(n.price || '0');
+                // If price is very large (> 1000), it's likely in wei, convert to ETH
+                if (price > 1000) {
+                  price = price / 1e18;
+                }
+                console.log(`[Collections] NFT price: "${n.price}" => ${price} ETH`);
                 return price;
               });
               const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
@@ -118,11 +123,10 @@ const Collections = () => {
                 nftCount: collectionNFTs.length,
                 rawPrices: collectionNFTs.map(n => n.price),
                 parsedPrices: prices,
-                floorPrice,
-                avgPrice,
-                volume,
-                uniqueOwners: owners,
-                allOwners: collectionNFTs.map(n => n.owner)
+                floorPrice: floorPrice.toFixed(4),
+                avgPrice: avgPrice.toFixed(4),
+                volume: volume.toFixed(4),
+                uniqueOwners: owners
               });
               
               return {
@@ -133,8 +137,8 @@ const Collections = () => {
                 creatorAvatar: creatorInfo.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${col.creatorWallet || col._id}`,
                 description: col.description || '',
                 image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
-                floorPrice: floorPrice.toFixed(2),
-                volume24h: volume.toFixed(2),
+                floorPrice: floorPrice > 0 ? floorPrice.toFixed(4) : '0.0000',
+                volume24h: volume > 0 ? volume.toFixed(2) : '0.00',
                 volume7d: col.volume7d || 0,
                 percentChange24h: col.percentChange24h || 0,
                 items: collectionNFTs.length,

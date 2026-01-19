@@ -33,6 +33,18 @@ import offerRouter from "./routes/offerRouter.js";
 import nftListingRequestRouter from "./routes/nftListingRequestRouter.js";
 import engagementRouter from "./routes/engagementRouter.js";
 import coverPhotoRouter from "./routes/coverPhotoRouter.js";
+import chainAPIRouter from "./routes/chainAPI.js";
+import royaltyRouter from "./routes/royalty.js";
+import analyticsRouter from "./routes/analytics.js";
+import bridgeRouter from "./routes/bridge.js";
+import rentalRouter from "./routes/rental.js";
+import searchRouter from "./routes/search.js";
+import poolRouter from "./routes/pool.js";
+import financingRouter from "./routes/financing.js";
+import monetizationRouter from "./routes/monetization.js";
+import governanceRouter from "./routes/governance.js";
+import complianceRouter from "./routes/compliance.js";
+import performanceRouter from "./routes/performance.js";
 
 // connect db
 connectDB();
@@ -120,6 +132,18 @@ app.use('/api/v1/offers', offerRouter);
 app.use('/api/v1/nft-listing-requests', nftListingRequestRouter);
 app.use('/api/v1/engagement', engagementRouter);
 app.use('/api/v1/cover-photos', coverPhotoRouter);
+app.use('/api/v1/chain', chainAPIRouter);
+app.use('/api/v1/royalty', royaltyRouter);
+app.use('/api/v1/analytics', analyticsRouter);
+app.use('/api/v1/bridge', bridgeRouter);
+app.use('/api/v1/rental', rentalRouter);
+app.use('/api/v1/search', searchRouter);
+app.use('/api/v1/pool', poolRouter);
+app.use('/api/v1/financing', financingRouter);
+app.use('/api/v1/monetization', monetizationRouter);
+app.use('/api/v1/governance', governanceRouter);
+app.use('/api/v1/compliance', complianceRouter);
+app.use('/api/v1/performance', performanceRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

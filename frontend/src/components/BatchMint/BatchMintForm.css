@@ -1,0 +1,387 @@
+/**
+ * BatchMintForm Styles
+ */
+
+.batch-mint-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.form-container {
+    background: white;
+    border-radius: 12px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.form-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+/* Messages */
+.error-message {
+    padding: 1rem;
+    background: #fee;
+    border-left: 4px solid #c33;
+    color: #c33;
+    margin: 1rem 2rem 0 2rem;
+    border-radius: 4px;
+}
+
+.success-message {
+    padding: 1rem;
+    background: #efe;
+    border-left: 4px solid #3c3;
+    color: #3c3;
+    margin: 1rem 2rem 0 2rem;
+    border-radius: 4px;
+}
+
+/* Upload Method */
+.upload-method-selector {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.method-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.method-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.method-option label {
+    cursor: pointer;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* CSV Upload */
+.csv-upload-section {
+    padding: 2rem;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.csv-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.csv-info p {
+    margin: 0;
+    color: #666;
+    font-weight: 500;
+}
+
+.download-template-btn {
+    padding: 0.6rem 1.25rem;
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.download-template-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.file-input-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.file-upload-btn {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.file-upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Add NFT Button */
+.add-nft-btn {
+    display: block;
+    margin: 2rem auto;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.add-nft-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* NFTs List */
+.nfts-list {
+    padding: 2rem;
+    border-bottom: 2px solid #e8e8e8;
+}
+
+.nfts-list h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.nfts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* NFT Item */
+.nft-item {
+    position: relative;
+    padding: 1.5rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 2px solid #e8e8e8;
+    transition: all 0.3s ease;
+}
+
+.nft-item:hover {
+    background: white;
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.nft-index {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: #667eea;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.nft-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.nft-fields input,
+.nft-fields textarea {
+    padding: 0.75rem;
+    border: 2px solid #e8e8e8;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.nft-fields input:focus,
+.nft-fields textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.nft-fields textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.royalty-input {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.royalty-input label {
+    font-weight: 600;
+    color: #666;
+    white-space: nowrap;
+}
+
+.royalty-input input {
+    width: 80px;
+}
+
+.remove-nft-btn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.remove-nft-btn:hover {
+    transform: scale(1.3);
+}
+
+/* Options */
+.options-section {
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid #e8e8e8;
+    background: #f9f9f9;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.option-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.option-item label {
+    cursor: pointer;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    padding: 2rem;
+    background: #f9f9f9;
+}
+
+.cancel-btn,
+.submit-btn {
+    flex: 1;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    border: 2px solid;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.cancel-btn {
+    background: white;
+    color: #666;
+    border-color: #e8e8e8;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #999;
+}
+
+.submit-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.submit-btn:disabled,
+.cancel-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .batch-mint-form {
+        padding: 0;
+    }
+
+    .form-container {
+        max-width: 100%;
+        border-radius: 8px 8px 0 0;
+        max-height: 100vh;
+    }
+
+    .nfts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .upload-method-selector {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

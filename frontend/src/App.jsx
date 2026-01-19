@@ -36,6 +36,22 @@ const Welcome = lazy(() => import("./pages/Welcome"));
 const AdminLogin = lazy(() => import("./components/AdminLogin"));
 const PartnerAdmin = lazy(() => import("./pages/admin/PartnerAdmin"));
 
+// NEW Feature Pages
+const FeaturesHub = lazy(() => import("./pages/FeaturesHub"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AnalyticsDashboard = lazy(() => import("./pages/AnalyticsDashboard"));
+const RentalNFT = lazy(() => import("./pages/RentalNFT"));
+const AdvancedTrading = lazy(() => import("./pages/AdvancedTrading"));
+const Financing = lazy(() => import("./pages/Financing"));
+const GovernanceDAO = lazy(() => import("./pages/GovernanceDAO"));
+const MonetizationHub = lazy(() => import("./pages/MonetizationHub"));
+const AuctionNFT = lazy(() => import("./pages/AuctionNFT"));
+const LazyMintNFT = lazy(() => import("./pages/LazyMintNFT"));
+const BatchMintNFT = lazy(() => import("./pages/BatchMintNFT"));
+const BridgeNFT = lazy(() => import("./pages/BridgeNFT"));
+const Staking = lazy(() => import("./pages/Staking"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+
 export default function App() {
   const { address } = useContext(ICOContent) || {};
   
@@ -138,6 +154,23 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:walletAddress" element={<Profile />} />
           <Route path="/creator/:walletAddress" element={<CreatorProfile />} />
+          
+          {/* NEW FEATURE ROUTES */}
+          <Route path="/features" element={<FeaturesHub />} />
+          <Route path="/features/trading" element={<AdvancedTrading />} />
+          <Route path="/features/auction" element={<AuctionNFT />} />
+          <Route path="/features/lazy-mint" element={<LazyMintNFT />} />
+          <Route path="/features/batch-mint" element={<BatchMintNFT />} />
+          <Route path="/features/rental" element={<RentalNFT />} />
+          <Route path="/features/staking" element={<Staking />} />
+          <Route path="/features/financing" element={<Financing />} />
+          <Route path="/features/bridge" element={<BridgeNFT />} />
+          <Route path="/features/governance" element={<GovernanceDAO />} />
+          <Route path="/features/monetization" element={<MonetizationHub />} />
+          <Route path="/features/analytics" element={<AnalyticsDashboard />} />
+          <Route path="/features/notifications" element={<Notifications />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          
           {/* FOOTER ROUTES SECTION */}
           <Route path="/aboutus" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />

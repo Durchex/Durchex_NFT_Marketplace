@@ -76,6 +76,7 @@ export default function Create() {
     properties: "",
     category: "",
     network: selectedChain || "polygon",
+    pieces: "1",
   });
 
   // Collection form
@@ -191,7 +192,9 @@ export default function Create() {
           properties: singleNFTForm.properties || {},
           collection: selectedCollectionId || null,
           isMinted: false,
-          currentlyListed: true
+          currentlyListed: false,
+          pieces: parseInt(singleNFTForm.pieces) || 1,
+          remainingPieces: parseInt(singleNFTForm.pieces) || 1
         };
 
         await nftAPI.createNft(nftData);

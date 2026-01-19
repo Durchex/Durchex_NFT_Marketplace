@@ -1,0 +1,448 @@
+/**
+ * RecommendationCard.css
+ * Styles for recommendation card component
+ */
+
+.recommendation-card {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.recommendation-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px);
+}
+
+/* Image Container */
+.card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: #f5f5f5;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.card-image-wrapper:hover .card-image {
+    transform: scale(1.05);
+}
+
+/* Overlay */
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    animation: fadeIn 0.2s ease;
+    z-index: 2;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* CTA Button */
+.btn-cta {
+    padding: 10px 20px;
+    background: white;
+    color: #667eea;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-cta:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-cta.success {
+    background: #2ecc71;
+    color: white;
+}
+
+.btn-cta:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* View Button */
+.btn-view {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid white;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-view:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Badges */
+.recommendation-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #2ecc71;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    animation: slideIn 0.3s ease;
+    z-index: 3;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.rarity-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    z-index: 3;
+}
+
+.rarity-badge.common {
+    background: #95a5a6;
+    color: white;
+}
+
+.rarity-badge.uncommon {
+    background: #3498db;
+    color: white;
+}
+
+.rarity-badge.rare {
+    background: #9b59b6;
+    color: white;
+}
+
+.rarity-badge.epic {
+    background: #e74c3c;
+    color: white;
+}
+
+.rarity-badge.legendary {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+}
+
+.status-badge {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+}
+
+.status-badge.auction {
+    background: #e74c3c;
+}
+
+.status-badge.offer {
+    background: #f39c12;
+}
+
+/* Card Content */
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    flex: 1;
+}
+
+/* Creator Info */
+.creator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.creator-info img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e8e8e8;
+}
+
+.creator-link {
+    font-size: 12px;
+    color: #667eea;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.creator-link:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* NFT Name */
+.nft-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.nft-name:hover {
+    color: #667eea;
+}
+
+/* Collection Name */
+.collection-name {
+    font-size: 12px;
+    color: #999;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.collection-name:hover {
+    color: #667eea;
+}
+
+/* Card Stats */
+.card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.stat .label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.stat .value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Price Section */
+.price-section {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.current-price,
+.floor-price {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.current-price .label,
+.floor-price .label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.current-price .amount,
+.floor-price .amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+.floor-price .amount {
+    color: #667eea;
+}
+
+/* Reason */
+.reason {
+    padding: 8px;
+    background: #f0f4ff;
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+}
+
+.reason p {
+    margin: 0;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .recommendation-card {
+        border-radius: 8px;
+    }
+
+    .card-content {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .nft-name {
+        font-size: 13px;
+    }
+
+    .creator-link {
+        font-size: 11px;
+    }
+
+    .card-stats {
+        gap: 6px;
+    }
+
+    .stat .label {
+        font-size: 10px;
+    }
+
+    .stat .value {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .recommendation-card:hover {
+        transform: none;
+    }
+
+    .card-image-wrapper:hover .card-image {
+        transform: none;
+    }
+
+    .btn-cta,
+    .btn-view {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+
+    .card-content {
+        padding: 10px;
+        gap: 6px;
+    }
+
+    .recommendation-badge,
+    .rarity-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}
+
+/* Loading State */
+.recommendation-card.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .recommendation-card {
+        background: #1a1a1a;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .recommendation-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .nft-name,
+    .stat .value {
+        color: #fff;
+    }
+
+    .creator-link,
+    .collection-name,
+    .stat .label {
+        color: #aaa;
+    }
+
+    .reason {
+        background: rgba(102, 126, 234, 0.1);
+        border-left-color: #667eea;
+    }
+
+    .reason p {
+        color: #ddd;
+    }
+}

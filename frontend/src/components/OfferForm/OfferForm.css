@@ -1,0 +1,391 @@
+/**
+ * OfferForm Styles
+ */
+
+.offer-form-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 24px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.offer-form-container h2 {
+    margin: 0 0 24px 0;
+    color: #1a1a1a;
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.offer-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Messages */
+.error-message {
+    padding: 12px 16px;
+    background-color: #fee;
+    border-left: 4px solid #d32f2f;
+    border-radius: 4px;
+    color: #d32f2f;
+    font-size: 14px;
+    font-weight: 500;
+    animation: shake 0.4s ease-in-out;
+}
+
+.success-message {
+    padding: 12px 16px;
+    background-color: #e8f5e9;
+    border-left: 4px solid #2e7d32;
+    border-radius: 4px;
+    color: #2e7d32;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* NFT Info */
+.nft-info {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.info-item .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.info-item .value {
+    color: #1a1a1a;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+/* Form Group */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: #1a1a1a;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background: white;
+    color: #1a1a1a;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4169e1;
+    box-shadow: 0 0 0 3px rgba(65, 105, 225, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.form-group small {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Input with Unit */
+.input-with-unit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-with-unit input {
+    flex: 1;
+    padding: 12px 14px;
+}
+
+.unit {
+    color: #666;
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.balance-info {
+    color: #4169e1;
+    font-size: 12px;
+    margin-top: 4px !important;
+}
+
+/* Duration Input */
+.duration-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.duration-input input {
+    flex: 1;
+    padding: 12px 14px;
+}
+
+.days-label {
+    color: #666;
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 35px;
+}
+
+/* Cost Summary */
+.cost-summary {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 8px 0;
+    color: #666;
+}
+
+.summary-item .label {
+    font-weight: 500;
+}
+
+.summary-item .value {
+    color: #1a1a1a;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+.summary-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 12px 0;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 8px 0;
+    color: #1a1a1a;
+}
+
+.summary-total .value {
+    color: #4169e1;
+}
+
+/* Submit Button */
+.submit-button {
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #4169e1 0%, #1e40af 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+}
+
+.submit-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(65, 105, 225, 0.3);
+}
+
+.submit-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.submit-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #999 0%, #666 100%);
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Helper Text */
+.helper-text {
+    background: rgba(65, 105, 225, 0.05);
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #4169e1;
+}
+
+.helper-text p {
+    margin: 6px 0;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+}
+
+.helper-text p:first-child {
+    margin-top: 0;
+}
+
+.helper-text p:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .offer-form-container {
+        max-width: 100%;
+        margin: 10px;
+        padding: 16px;
+    }
+
+    .offer-form-container h2 {
+        font-size: 20px;
+        margin-bottom: 16px;
+    }
+
+    .nft-info {
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .cost-summary {
+        padding: 12px;
+    }
+
+    .summary-item {
+        font-size: 12px;
+        padding: 6px 0;
+    }
+
+    .submit-button {
+        padding: 12px 16px;
+        font-size: 15px;
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 400px) {
+    .offer-form-container {
+        margin: 5px;
+        padding: 12px;
+    }
+
+    .offer-form-container h2 {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+
+    .form-group {
+        gap: 6px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .helper-text {
+        padding: 8px;
+        font-size: 11px;
+    }
+
+    .helper-text p {
+        font-size: 11px;
+        margin: 4px 0;
+    }
+}

@@ -45,10 +45,50 @@ const collectionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    // Smart Contract Deployment (NEW)
+    contractDeploymentStatus: {
+      type: String,
+      enum: ['pending', 'deployed', 'failed'],
+      default: 'pending',
+      description: "Status of the contract deployment"
+    },
+    contractDeploymentTx: {
+      type: String,
+      default: null,
+      description: "Transaction hash of contract deployment"
+    },
+    contractDeploymentBlock: {
+      type: Number,
+      default: null,
+      description: "Block number where contract was deployed"
+    },
     contractAddress: {
       type: String,
       lowercase: true,
       index: true
+    },
+    // Per-chain contract tracking (NEW)
+    chainContracts: {
+      type: Map,
+      of: {
+        contractAddress: String,
+        deploymentTx: String,
+        deploymentBlock: Number,
+        status: { type: String, enum: ['pending', 'deployed', 'failed'], default: 'pending' },
+        deployedAt: Date
+      },
+      default: new Map(),
+      description: "Contract deployments for each blockchain"
+    },
+    contractABI: {
+      type: Object,
+      default: null,
+      description: "ABI of the deployed contract"
+    },
+    isContractVerified: {
+      type: Boolean,
+      default: false,
+      description: "Whether the contract is verified on block explorer"
     },
     totalItems: {
       type: Number,

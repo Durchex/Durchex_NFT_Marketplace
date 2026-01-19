@@ -1,11 +1,15 @@
 import Collection from "../models/collectionModel.js";
 import { nftModel } from "../models/nftModel.js";
+import nftContractService from "../services/nftContractService.js";
+import nftContractService from "../services/nftContractService.js";
 
 // Create a new NFT Collection
 export const createCollection = async (req, res) => {
   try {
     const data = req.body;
-    // Basic validation (customize as needed)
+    const { deployContract = false, network = 'sepolia', factoryAddress } = req.body;
+
+    // Basic validation
     if (!data.name || !data.creatorWallet || !data.network) {
       return res.status(400).json({ error: "name, creatorWallet, and network are required" });
     }
@@ -26,12 +30,71 @@ export const createCollection = async (req, res) => {
     const collectionData = {
       ...data,
       collectionId,
-      creatorWallet: data.creatorWallet.toLowerCase()
+      creatorWallet: data.creatorWallet.toLowerCase(),
+      contractDeploymentStatus: 'pending'
     };
+
+    // If smart contract deployment requested
+    if (deployContract && factoryAddress) {
+      console.log(`🔗 Smart contract deployment requested for collection: ${data.name}`);
+
+      try {
+        // Deploy collection contract via factory
+        const deploymentResult = await nftContractService.deployCollection({
+          network,
+          collectionName: data.name,
+          collectionSymbol: data.symbol || data.name.slice(0, 4).toUpperCase(),
+          creatorAddress: data.creatorWallet,
+          royaltyPercentage: data.royalty ? Math.floor(data.royalty * 100) : 250,
+          royaltyRecipient: data.creatorWallet,
+          factoryAddress
+        });
+
+        if (!deploymentResult.success) {
+          return res.status(500).json({
+            error: "Collection contract deployment failed",
+            details: deploymentResult.error
+          });
+        }
+
+        // Update collection data with contract info
+        collectionData.contractAddress = deploymentResult.collectionAddress;
+        collectionData.contractDeploymentStatus = 'deployed';
+        collectionData.contractDeploymentTx = deploymentResult.deploymentTx;
+        collectionData.contractDeploymentBlock = deploymentResult.deploymentBlock;
+        collectionData.chainContracts = {
+          [network]: {
+            contractAddress: deploymentResult.collectionAddress,
+            deploymentTx: deploymentResult.deploymentTx,
+            deploymentBlock: deploymentResult.deploymentBlock,
+            status: 'deployed',
+            deployedAt: new Date()
+          }
+        };
+        collectionData.isContractVerified = false;
+
+        console.log(`✅ Collection deployed to: ${deploymentResult.collectionAddress}`);
+      } catch (error) {
+        console.error(`❌ Smart contract deployment failed: ${error.message}`);
+        return res.status(500).json({
+          error: "Smart contract deployment failed",
+          details: error.message
+        });
+      }
+    }
     
     const collection = new Collection(collectionData);
     await collection.save();
-    res.status(201).json(collection);
+
+    res.status(201).json({
+      message: "Collection created successfully",
+      collection,
+      ...(deployContract && {
+        deployed: true,
+        contractAddress: collection.contractAddress,
+        txHash: collection.contractDeploymentTx
+      })
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -187,8 +250,7 @@ export const checkNftExists = async (req, res) => {
 
 export const createNft = async (req, res) => {
   const nftData = req.body;
-
-  // Optional: Validate required fields here before saving
+  const { deployContract = false, network = 'sepolia', metadataURI } = req.body;
 
   try {
     // Optional: double-check if already exists to avoid duplicates
@@ -200,10 +262,76 @@ export const createNft = async (req, res) => {
       return res.status(409).json({ error: "NFT already exists" });
     }
 
+    // If deployContract is requested, mint on blockchain
+    if (deployContract && metadataURI) {
+      console.log(`🔗 Smart contract deployment requested for NFT`);
+
+      // Get collection contract from database
+      const collection = await Collection.findOne({
+        collectionId: nftData.collection,
+        network: network
+      });
+
+      if (!collection || !collection.contractAddress) {
+        return res.status(400).json({
+          error: "Collection contract not found or not deployed"
+        });
+      }
+
+      try {
+        // Mint on blockchain
+        const mintResult = await nftContractService.mintNFT({
+          network,
+          collectionAddress: collection.contractAddress,
+          toAddress: nftData.owner,
+          metadataURI
+        });
+
+        if (!mintResult.success) {
+          return res.status(500).json({
+            error: "NFT minting failed",
+            details: mintResult.error
+          });
+        }
+
+        // Update NFT data with blockchain info
+        nftData.tokenId = mintResult.tokenId;
+        nftData.isMinted = true;
+        nftData.mintedAt = new Date();
+        nftData.mintTxHash = mintResult.mintTx;
+        nftData.deploymentStatus = 'deployed';
+        nftData.contractAddress = collection.contractAddress;
+        nftData.chainSpecificData = {
+          [network]: {
+            tokenId: mintResult.tokenId,
+            deploymentTx: mintResult.mintTx,
+            deploymentBlock: mintResult.mintBlock,
+            status: 'deployed'
+          }
+        };
+
+        console.log(`✅ NFT minted with token ID: ${mintResult.tokenId}`);
+      } catch (error) {
+        console.error(`❌ Smart contract minting failed: ${error.message}`);
+        return res.status(500).json({
+          error: "Smart contract minting failed",
+          details: error.message
+        });
+      }
+    }
+
     const nft = new nftModel(nftData);
     await nft.save();
 
-    res.status(201).json(nft);
+    res.status(201).json({
+      message: "NFT created successfully",
+      nft,
+      ...(deployContract && {
+        deployed: true,
+        tokenId: nft.tokenId,
+        txHash: nft.mintTxHash
+      })
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

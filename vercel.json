@@ -1,0 +1,122 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci",
+  "framework": "react",
+  "env": {
+    "REACT_APP_API_URL": {
+      "description": "Backend API URL",
+      "required": true
+    },
+    "REACT_APP_ENVIRONMENT": {
+      "description": "Environment name (development, staging, production)",
+      "required": true
+    },
+    "REACT_APP_ETHEREUM_RPC_URL": {
+      "description": "Ethereum RPC endpoint",
+      "required": true
+    },
+    "REACT_APP_CHAIN_ID": {
+      "description": "Blockchain chain ID",
+      "required": true,
+      "default": "1"
+    },
+    "REACT_APP_CONTRACT_ADDRESSES": {
+      "description": "Smart contract addresses JSON",
+      "required": true
+    },
+    "REACT_APP_IPFS_GATEWAY": {
+      "description": "IPFS gateway URL",
+      "required": true,
+      "default": "https://gateway.pinata.cloud"
+    },
+    "REACT_APP_SENTRY_DSN": {
+      "description": "Sentry error tracking DSN",
+      "required": false
+    },
+    "REACT_APP_GA_ID": {
+      "description": "Google Analytics ID",
+      "required": false
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data: https:; connect-src 'self' https: wss:; frame-ancestors 'none';"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "${REACT_APP_API_URL}/api/$1"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/old-path/:path*",
+      "destination": "/new-path/:path*",
+      "permanent": true
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "regions": ["iad1"],
+  "functions": {
+    "api/auth.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "api/upload.js": {
+      "memory": 3008,
+      "maxDuration": 300
+    }
+  }
+}
