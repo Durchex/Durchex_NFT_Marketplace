@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ICOContent } from '../Context/index';
 import {
   Star,
   Zap,
@@ -21,7 +22,8 @@ import {
  */
 const FeaturesHub = () => {
   const navigate = useNavigate();
-  const { account } = useWallet();
+  const contexts = useContext(ICOContent);
+  const { address, connectWallet } = contexts || {};
   const [activeCategory, setActiveCategory] = useState('all');
 
   const features = [
@@ -31,7 +33,7 @@ const FeaturesHub = () => {
       description: 'Make and accept offers, negotiate prices, and trade NFTs directly',
       icon: TrendingUp,
       color: 'blue',
-      route: '/trading/advanced',
+      route: '/features/trading',
       status: 'live',
       tags: ['Offers', 'Negotiations', 'Direct Sales']
     },
@@ -41,7 +43,7 @@ const FeaturesHub = () => {
       description: 'Create and participate in time-based auctions for your NFTs',
       icon: Zap,
       color: 'orange',
-      route: '/nft/auction',
+      route: '/features/auction',
       status: 'live',
       tags: ['Bidding', 'Time-locked', 'Premium']
     },
@@ -51,7 +53,7 @@ const FeaturesHub = () => {
       description: 'Mint NFTs only when purchased - save gas fees upfront',
       icon: Wind,
       color: 'purple',
-      route: '/nft/lazy-mint',
+      route: '/features/lazy-mint',
       status: 'live',
       tags: ['Gas Efficient', 'Signature Based', 'Creator Friendly']
     },
@@ -61,7 +63,7 @@ const FeaturesHub = () => {
       description: 'Mint multiple NFTs at once to save time and gas costs',
       icon: Layers,
       color: 'green',
-      route: '/nft/batch-mint',
+      route: '/features/batch-mint',
       status: 'live',
       tags: ['Bulk Upload', 'CSV Import', 'Optimized Gas']
     },
@@ -121,7 +123,7 @@ const FeaturesHub = () => {
       description: 'Track sales, volume, trends, and your portfolio performance',
       icon: TrendingUp,
       color: 'cyan',
-      route: '/analytics/dashboard',
+      route: '/features/analytics',
       status: 'live',
       tags: ['Charts', 'Trends', 'Portfolio']
     },
@@ -137,13 +139,13 @@ const FeaturesHub = () => {
     },
     {
       category: 'social',
-      title: 'Social & Recommendations',
-      description: 'Connect with creators, get personalized NFT recommendations',
+      title: 'Notifications & Alerts',
+      description: 'Get real-time notifications about your NFTs and portfolio',
       icon: Users,
       color: 'amber',
-      route: '/features/social',
+      route: '/features/notifications',
       status: 'active',
-      tags: ['Community', 'Discovery', 'Social']
+      tags: ['Real-time', 'Alerts', 'Updates']
     }
   ];
 
@@ -210,9 +212,9 @@ const FeaturesHub = () => {
             Explore the complete Durchex marketplace ecosystem. From advanced trading to creator tools,
             find everything you need to buy, sell, and manage your NFTs.
           </p>
-          {!account && (
+          {!address && (
             <button
-              onClick={() => navigate('/signin')}
+              onClick={connectWallet}
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg hover:shadow-lg hover:shadow-purple-500/50 transition"
             >
               Connect Wallet

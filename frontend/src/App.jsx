@@ -51,6 +51,8 @@ const BatchMintNFT = lazy(() => import("./pages/BatchMintNFT"));
 const BridgeNFT = lazy(() => import("./pages/BridgeNFT"));
 const Staking = lazy(() => import("./pages/Staking"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const MintingHub = lazy(() => import("./pages/MintingHub"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 
 export default function App() {
   const { address } = useContext(ICOContent) || {};
@@ -169,6 +171,8 @@ export default function App() {
           <Route path="/features/monetization" element={<MonetizationHub />} />
           <Route path="/features/analytics" element={<AnalyticsDashboard />} />
           <Route path="/features/notifications" element={<Notifications />} />
+          <Route path="/minting" element={<MintingHub />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           
           {/* FOOTER ROUTES SECTION */}

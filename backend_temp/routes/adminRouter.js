@@ -23,6 +23,20 @@ import {
   getUserGiveawayNFTs,
   claimGiveawayNFT
 } from '../controllers/adminController.js';
+import {
+  createCollectionAdmin,
+  getAllCollectionsAdmin,
+  getCollectionDetailsAdmin,
+  updateCollectionAdmin,
+  deleteCollectionAdmin
+} from '../controllers/adminCollectionController.js';
+import {
+  getListingRequestsAdmin,
+  getListingRequestDetailAdmin,
+  approveListingRequestAdmin,
+  rejectListingRequestAdmin,
+  getListingRequestStatsAdmin
+} from '../controllers/adminListingRequestController.js';
 
 const router = express.Router();
 
@@ -32,6 +46,13 @@ router.get('/stats', getDashboardStats);
 // Users
 router.get('/users', getAllUsersAdmin);
 router.patch('/users/:walletAddress', updateUserStatus);
+
+// Collections
+router.post('/collections/create', createCollectionAdmin);
+router.get('/collections', getAllCollectionsAdmin);
+router.get('/collections/:collectionId', getCollectionDetailsAdmin);
+router.patch('/collections/:collectionId', updateCollectionAdmin);
+router.delete('/collections/:collectionId', deleteCollectionAdmin);
 
 // NFTs
 router.get('/nfts', getAllNFTsAdmin);
@@ -47,6 +68,13 @@ router.post('/nfts/giveaways/claim', claimGiveawayNFT);
 router.post('/nfts/offer', offerNFTToUser);
 router.post('/nfts/offer/revoke', revokeNFTOffer);
 router.post('/nfts/minted/mark', markNFTAsMinted);
+
+// Listing Requests
+router.get('/listing-requests', getListingRequestsAdmin);
+router.get('/listing-requests/stats', getListingRequestStatsAdmin);
+router.get('/listing-requests/:requestId', getListingRequestDetailAdmin);
+router.patch('/listing-requests/:requestId/approve', approveListingRequestAdmin);
+router.patch('/listing-requests/:requestId/reject', rejectListingRequestAdmin);
 
 // Fee Subsidy Management
 router.post('/nfts/subsidy/set', setFeeSubsidy);

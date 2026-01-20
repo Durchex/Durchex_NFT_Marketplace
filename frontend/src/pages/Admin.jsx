@@ -20,6 +20,7 @@ import UnmintedNFTManager from "./admin/UnmintedNFTManager";
 import GiveawayCenter from "./admin/GiveawayCenter";
 import FeeSubsidyDashboard from "./admin/FeeSubsidyDashboard";
 import WithdrawalAdmin from "./admin/WithdrawalAdmin";
+import ListingRequests from "./admin/ListingRequests";
 import AdminLogin from "../components/AdminLogin";
 
 const Admin = () => {
@@ -77,6 +78,7 @@ const Admin = () => {
         <Route path="unminted-nfts" element={<UnmintedNFTManager />} />
         <Route path="giveaways" element={<GiveawayCenter />} />
         <Route path="fee-subsidies" element={<FeeSubsidyDashboard />} />
+        <Route path="listing-requests" element={<ListingRequests />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="orders" element={<Orders />} />
         <Route path="analytics" element={<Analytics />} />

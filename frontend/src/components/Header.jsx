@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiSearch, FiShoppingBag, FiUser } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
 import { HiMenu, HiX } from "react-icons/hi";
@@ -11,6 +11,7 @@ import WalletConnect from "./WalletConnect";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
 import CartDrawer from "./CartDrawer";
+import SearchBar from "./SearchBar/SearchBar";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { getCartItemCount } = useCart();
   const { address } = useContext(ICOContent) || {};
   const { selectedNetwork, networks, switchNetwork } = useNetwork();
@@ -134,14 +136,12 @@ export default function Navbar() {
         <div className="hidden md:flex justify-center flex-1">
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-4">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search for collections, NFTs or Artists"
-                className="w-full bg-transparent border border-[#4A4554] rounded-lg pl-10 pr-4 py-2 text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
-              />
-            </div>
+            <SearchBar 
+              onSearch={(query) => {
+                navigate(`/search?q=${encodeURIComponent(query)}`);
+              }}
+              placeholder="Search for collections, NFTs or Artists"
+            />
           </div>
 
           {/* Navigation Items */}

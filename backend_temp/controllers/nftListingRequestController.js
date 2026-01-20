@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import NFTListingRequest from '../models/nftListingRequestModel.js';
+import emailService from '../services/emailService.js';
+import logger from '../utils/logger.js';
 
 // Create a new listing request
 export const createListingRequest = async (req, res) => {
@@ -59,6 +61,17 @@ export const createListingRequest = async (req, res) => {
     });
 
     await newRequest.save();
+
+    // Send admin notification email
+    try {
+      await emailService.notifyAdminListingRequest(newRequest);
+    } catch (emailError) {
+      logger.error('Failed to send admin notification for listing request', { 
+        error: emailError.message,
+        requestId: newRequest._id 
+      });
+      // Don't fail the request creation if email fails
+    }
 
     res.status(201).json({
       success: true,

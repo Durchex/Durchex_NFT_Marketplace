@@ -45,6 +45,7 @@ import monetizationRouter from "./routes/monetization.js";
 import governanceRouter from "./routes/governance.js";
 import complianceRouter from "./routes/compliance.js";
 import performanceRouter from "./routes/performance.js";
+import mintingRoutes from "./routes/mintingRoutes.js";
 
 // connect db
 connectDB();
@@ -144,6 +145,7 @@ app.use('/api/v1/monetization', monetizationRouter);
 app.use('/api/v1/governance', governanceRouter);
 app.use('/api/v1/compliance', complianceRouter);
 app.use('/api/v1/performance', performanceRouter);
+app.use('/api/v1/minting', mintingRoutes);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>
