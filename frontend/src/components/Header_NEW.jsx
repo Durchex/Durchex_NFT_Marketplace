@@ -47,7 +47,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-black border-b border-gray-800/50 px-4 py-4 md:py-6 sticky top-0 z-30 w-full" style={{ isolation: 'isolate' }}>
-      <div className="w-full flex items-center justify-between">
+      <div className="w-full flex items-center justify-between ml-20 md:ml-0">
         {/* Logo */}
         <div className="flex items-center space-x-3 z-10">
           <div className="relative">

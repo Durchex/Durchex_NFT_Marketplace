@@ -8,6 +8,7 @@ import FAQ from "./FooterComponents/FAQ";
 import CollectionPage from "./pages/CollectionPage";
 import CollectionDetails from "./pages/CollectionDetails";
 import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
+import Sidebar from "./components/Sidebar/Sidebar";
 
 // Lazy-loaded components
 const Hero = lazy(() => import("./pages/Hero"));
@@ -53,6 +54,8 @@ const Staking = lazy(() => import("./pages/Staking"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MintingHub = lazy(() => import("./pages/MintingHub"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const Games = lazy(() => import("./pages/Games"));
+const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
 export default function App() {
   const { address } = useContext(ICOContent) || {};
@@ -85,8 +88,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <AntiScreenshotWarning />
-      <Suspense fallback={<Loading />}>
-        <Routes>
+      <div className="flex min-h-screen bg-black">
+        {/* Fixed Sidebar */}
+        <Sidebar />
+        
+        {/* Main Content Area - Adjusted for Sidebar */}
+        <div className="flex-1 ml-20">
+          <Suspense fallback={<Loading />}>
+            <Routes>
           <Route
             path="/"
             element={<Hero />}
@@ -173,13 +182,17 @@ export default function App() {
           <Route path="/features/notifications" element={<Notifications />} />
           <Route path="/minting" element={<MintingHub />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           
           {/* FOOTER ROUTES SECTION */}
           <Route path="/aboutus" element={<AboutUs />} />
           <Route path="/faq" element={<FAQ />} />
-        </Routes>
-      </Suspense>
+            </Routes>
+          </Suspense>
+        </div>
+      </div>
     </BrowserRouter>
   );
 }

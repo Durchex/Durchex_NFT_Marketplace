@@ -1,173 +1,204 @@
 import LOGO from "../assets/logo.png";
+import { Mail, Phone, MapPin, ExternalLink } from "lucide-react";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
+  const quickLinks = [
+    { label: "About us", href: "/aboutus" },
+    { label: "Documentation", href: "#" },
+    { label: "Privacy Policy", href: "#" },
+    { label: "Terms of Service", href: "#" },
+    { label: "FAQs", href: "/faq" },
+    { label: "Contact", href: "#" }
+  ];
+
+  const communities = [
+    { label: "Discord", href: "#", icon: "discord" },
+    { label: "Twitter", href: "#", icon: "twitter" },
+    { label: "Telegram", href: "#", icon: "telegram" },
+    { label: "Medium", href: "#", icon: "medium" }
+  ];
+
+  const blockchains = {
+    layer1: ["Ethereum", "BNB Chain", "Solana", "Avalanche", "Algorand", "Aptos", "SUI", "Fantom"],
+    layer2: ["Polygon", "Base", "zkSync", "Arbitrum", "Optimism"]
+  };
+
+  const payments = {
+    tokens: ["USDT", "USDC", "MATIC", "ETH"],
+    fiat: ["Moonpay", "Transak", "Ramp", "Stripe", "PayPal", "Mercuryo"]
+  };
+
   return (
-    <footer className="bg-[#121212] text-gray-400 py-16 px-8 relative overflow-hidden">
-      {/* Background Text */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          className="absolute bottom-[-10%] left-[1%] right-[-5%] text-[20vw] font-bold bg-gradient-to-t 
-         from-[#1a1a1a] to-[#00000000] bg-clip-text text-transparent stroke-text pointer-events-none select-none opacity-25"
-        >
-          DURCHEX
-        </div>
-      </div>
+    <footer className="bg-black border-t border-gray-800/50 text-gray-300 relative overflow-hidden">
+      {/* Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-600/5 to-transparent pointer-events-none"></div>
 
       {/* Main Content */}
-      <div className="max-w7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
-        {/* Brand Column */}
-        <div className="space-y-6">
-          <div className="flex items-center space-x-2">
-            <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8" />
-            <span className="text-white text-xl font-semibold">DURCHEX</span>
-          </div>
-          <p className="text-sm leading-relaxed">
-            The most secure and scalable multi-chain marketplace for crypto
-            collectibles and NFT
-          </p>
-          <p className="text-sm">© All rights reserved. 2025</p>
-        </div>
-
-        {/* Quick Links Column */}
-        <div>
-          <h3 className="text-white text-lg font-medium mb-6">Quick Links</h3>
-          <ul className="space-y-4">
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                About us
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                Docs
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                Privacy
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                Terms
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                FAQs
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-white transition-colors">
-                Feature Requests
-              </a>
-            </li>
-          </ul>
-
-          {/* Communities Section */}
-          <div>
-            <h3 className="text-white text-lg font-medium my-6">Communities</h3>
-            <div className=" space-y-6 list-none">
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  <i className="fab fa-discord"></i> Discord
-                </a>
-              </li>
-
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  <i className="fab fa-twitter"></i> X (formerly twitter)
-                </a>
-              </li>
-
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  <i className="fab fa-telegram"></i> Telegram
-                </a>
-              </li>
-
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  <i className="fab fa-medium"></i> Medium
-                </a>
-              </li>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+        {/* Top Section - Brand + Quick Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          {/* Brand Column */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-20 blur-sm"></div>
+              </div>
+              <span className="text-white font-bold text-lg">DURCHEX</span>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              The most secure and scalable multi-chain NFT marketplace for digital collectibles.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>© {currentYear} DURCHEX. All rights reserved.</span>
             </div>
           </div>
 
-          {/* Contact Support Section */}
+          {/* Quick Links */}
           <div>
-            <h3 className="text-white text-lg font-medium my-6">
-              Contact support
-            </h3>
-            <div className="space-y-4">
-              <a
-                href="mailto:discoveroffice@durchex.com"
-                className="hover:text-white transition-colors"
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">Quick Links</h3>
+            <ul className="space-y-3">
+              {quickLinks.map((link) => (
+                <li key={link.label}>
+                  <a 
+                    href={link.href}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm flex items-center gap-1 group"
+                  >
+                    {link.label}
+                    <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Communities */}
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">Join Community</h3>
+            <ul className="space-y-3">
+              {communities.map((community) => (
+                <li key={community.label}>
+                  <a 
+                    href={community.href}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm flex items-center gap-2 group"
+                  >
+                    <span className="w-4 h-4 rounded-full bg-gray-800 group-hover:bg-purple-600/30 transition-colors flex items-center justify-center">
+                      <span className="text-xs">◆</span>
+                    </span>
+                    {community.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">Support</h3>
+            <div className="space-y-3">
+              <a 
+                href="mailto:support@durchex.com"
+                className="text-gray-400 hover:text-purple-400 transition-colors text-sm flex items-center gap-2 group"
               >
-                discoveroffice@durchex.com
+                <Mail size={14} className="group-hover:text-purple-400" />
+                support@durchex.com
               </a>
-              <p>+234 801 342 5496</p>
+              <a 
+                href="tel:+234801"
+                className="text-gray-400 hover:text-purple-400 transition-colors text-sm flex items-center gap-2 group"
+              >
+                <Phone size={14} className="group-hover:text-purple-400" />
+                +234 801 342 5496
+              </a>
+              <div className="text-gray-400 text-sm flex items-center gap-2">
+                <MapPin size={14} />
+                Lagos, Nigeria
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Supported Blockchains Column */}
-        <div>
-          <h3 className="text-white text-lg font-medium mb-6">
-            Supported Blockchains
-          </h3>
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-white mb-4">Layer 1 Blockchains:</h4>
-              <ul className="space-y-4">
-                <li>Ethereum</li>
-                <li>BNB chain</li>
-                <li>Solana</li>
-                <li>Avalanche</li>
-                <li>Algorand</li>
-                <li>Aptos</li>
-                <li>SUI</li>
-                <li>Fantom</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Layer 2 Blockchains:</h4>
-              <ul className="space-y-4">
-                <li>Polygon</li>
-                <li>Base</li>
-                <li>zkSync</li>
-                <li>Arbitrum</li>
-                <li>Optimism</li>
-              </ul>
-            </div>
+        {/* Divider */}
+        <div className="border-t border-gray-800/50 my-8"></div>
+
+        {/* Bottom Section - Blockchains and Payments */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {/* Layer 1 Blockchains */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+              Layer 1 Chains
+            </h4>
+            <ul className="grid grid-cols-2 gap-2">
+              {blockchains.layer1.map((chain) => (
+                <li key={chain} className="text-gray-400 text-xs hover:text-purple-400 transition-colors cursor-pointer">
+                  • {chain}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Layer 2 Blockchains */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+              Layer 2 Chains
+            </h4>
+            <ul className="space-y-1">
+              {blockchains.layer2.map((chain) => (
+                <li key={chain} className="text-gray-400 text-xs hover:text-purple-400 transition-colors cursor-pointer">
+                  • {chain}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Supported Tokens */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              Tokens
+            </h4>
+            <ul className="space-y-1">
+              {payments.tokens.map((token) => (
+                <li key={token} className="text-gray-400 text-xs hover:text-green-400 transition-colors cursor-pointer">
+                  • {token}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Payment Methods */}
+          <div>
+            <h4 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+              Fiat & Ramps
+            </h4>
+            <ul className="grid grid-cols-2 gap-2">
+              {payments.fiat.map((method) => (
+                <li key={method} className="text-gray-400 text-xs hover:text-blue-400 transition-colors cursor-pointer">
+                  • {method}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* Accepted Payments Column */}
-        <div>
-          <h3 className="text-white text-lg font-medium mb-6">
-            Accepted Payments
-          </h3>
-          <div className="space-y-6">
-            <div>
-              <h4 className="text-white mb-4">Tokens</h4>
-              <ul className="space-y-4">
-                <li>USDT</li>
-                <li>USDC</li>
-                <li>MATIC</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white mb-4">Fiat Payments</h4>
-              <ul className="space-y-4">
-                <li>Moonpay</li>
-                <li>Transak</li>
-                <li>Ramp</li>
-                <li>Stripe</li>
-                <li>Paypal</li>
-                <li>Mercuryo</li>
-              </ul>
-            </div>
+        {/* Divider */}
+        <div className="border-t border-gray-800/50 my-8"></div>
+
+        {/* Bottom Bar */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-gray-500 text-center md:text-left">
+            DURCHEX © {currentYear} | Built with ❤️ for Web3
+          </p>
+          <div className="flex gap-6 text-xs text-gray-500">
+            <a href="/faq" className="hover:text-purple-400 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-purple-400 transition-colors">Terms</a>
+            <a href="#" className="hover:text-purple-400 transition-colors">Cookies</a>
+            <a href="#" className="hover:text-purple-400 transition-colors">Status</a>
           </div>
         </div>
       </div>
