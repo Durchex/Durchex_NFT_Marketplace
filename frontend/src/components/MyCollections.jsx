@@ -262,7 +262,7 @@ const MyCollections = ({ placeholder }) => {
                     )}
                     
                     {/* Overlay with buttons */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

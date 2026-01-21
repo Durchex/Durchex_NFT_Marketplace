@@ -73,8 +73,8 @@ const Sidebar = () => {
     <>
       {/* Desktop Sidebar - Always visible on md and above */}
       <div
-        className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300 flex flex-col hidden md:flex"
-        style={{ width: isExpanded || isHovering ? '280px' : '80px' }}
+        className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300 hidden md:flex flex-col"
+        style={{ width: isSidebarOpen || isHovering ? '280px' : '80px' }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >

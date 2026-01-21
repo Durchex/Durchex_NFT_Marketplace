@@ -126,7 +126,7 @@ const LiveAuctions = () => {
                 </div>
 
                 {/* Place Bid Overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm">
                     <Gavel size={14} className="sm:w-[18px]" />
                     <span className="hidden sm:inline">Place Bid</span>

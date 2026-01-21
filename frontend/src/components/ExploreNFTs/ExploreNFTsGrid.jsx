@@ -139,7 +139,7 @@ const ExploreNFTsGrid = () => {
                   )}
 
                   {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center gap-2 md:gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center gap-2 md:gap-3 opacity-0 group-hover:opacity-100">
                     <button
                       onClick={() => toggleLike(nft._id)}
                       className={`p-2 md:p-3 rounded-full transition ${

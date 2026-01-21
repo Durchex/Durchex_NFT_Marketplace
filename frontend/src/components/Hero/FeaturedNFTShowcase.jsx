@@ -191,7 +191,7 @@ const FeaturedNFTShowcase = () => {
                   alt={nft.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <ChevronRight className="text-white" size={18} />
                 </div>
                 {/* NFT Price Tooltip */}

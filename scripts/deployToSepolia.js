@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+// Deployment script for Sepolia testnet
 
 /**
  * SEPOLIA TESTNET DEPLOYMENT SCRIPT

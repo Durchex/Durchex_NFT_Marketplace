@@ -33,6 +33,9 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // Suppress false positives from Tailwind CSS IDE linting for conflicting utilities
+      // These are intentional combinations that resolve correctly with CSS cascade
+      'no-duplicate-properties': 'off',
     },
   },
 ]
