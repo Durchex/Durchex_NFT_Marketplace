@@ -9,6 +9,7 @@ import CollectionPage from "./pages/CollectionPage";
 import CollectionDetails from "./pages/CollectionDetails";
 import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 import Sidebar from "./components/Sidebar/Sidebar";
+import { SidebarProvider } from "./Context/SidebarContext";
 
 // Lazy-loaded components
 const Hero = lazy(() => import("./pages/Hero"));
@@ -87,13 +88,14 @@ export default function App() {
   
   return (
     <BrowserRouter>
-      <AntiScreenshotWarning />
-      <div className="flex min-h-screen bg-black">
-        {/* Fixed Sidebar */}
-        <Sidebar />
-        
-        {/* Main Content Area - Responsive margin for desktop only */}
-        <div className="flex-1 md:ml-20">
+      <SidebarProvider>
+        <AntiScreenshotWarning />
+        <div className="flex min-h-screen bg-black">
+          {/* Fixed Sidebar */}
+          <Sidebar />
+          
+          {/* Main Content Area - Responsive margin for desktop only */}
+          <div className="flex-1 md:ml-20">
           <Suspense fallback={<Loading />}>
             <Routes>
           <Route
@@ -193,6 +195,7 @@ export default function App() {
           </Suspense>
         </div>
       </div>
+      </SidebarProvider>
     </BrowserRouter>
   );
 }

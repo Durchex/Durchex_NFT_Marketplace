@@ -9,6 +9,9 @@ export default {
       fontFamily: {
         sans: ["Space Grotesk", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", "sans-serif"],
       },
+      screens: {
+        xs: '360px',
+      },
     },
   },
   plugins: [],

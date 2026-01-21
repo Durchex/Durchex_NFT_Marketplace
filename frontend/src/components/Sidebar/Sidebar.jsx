@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSidebar } from '../../Context/SidebarContext';
 import {
   LayoutGrid,
   Gamepad2,
@@ -26,8 +27,8 @@ import {
  * Shows icons when collapsed, expands to show labels on hover or manual expand
  */
 const Sidebar = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
+  const { isSidebarOpen, toggleSidebar, closeSidebar } = useSidebar();
+  const [isHovering, setIsHovering] = React.useState(false);
   const location = useLocation();
 
   // Navigation items grouped by category
@@ -66,7 +67,7 @@ const Sidebar = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
-  const showLabel = isExpanded || isHovering;
+  const showLabel = isSidebarOpen || isHovering;
 
   return (
     <>
@@ -83,11 +84,11 @@ const Sidebar = () => {
             <h2 className="text-lg font-bold text-white">Menu</h2>
           </div>
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => toggleSidebar()}
             className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white"
-            title={isExpanded ? 'Collapse' : 'Expand'}
+            title={isSidebarOpen ? 'Collapse' : 'Expand'}
           >
-            {isExpanded ? <X size={20} /> : <Menu size={20} />}
+            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
@@ -162,12 +163,12 @@ const Sidebar = () => {
       </div>
 
       {/* Mobile Sidebar - Drawer overlay on mobile, hidden by default */}
-      {isExpanded && (
+      {isSidebarOpen && (
         <>
           {/* Overlay backdrop */}
           <div
             className="fixed inset-0 bg-black/50 z-30 md:hidden"
-            onClick={() => setIsExpanded(false)}
+            onClick={() => closeSidebar()}
           />
 
           {/* Mobile Drawer */}
@@ -176,7 +177,7 @@ const Sidebar = () => {
             <div className="p-4 border-b border-gray-700 flex items-center justify-between h-16 flex-shrink-0">
               <h2 className="text-lg font-bold text-white">Menu</h2>
               <button
-                onClick={() => setIsExpanded(false)}
+                onClick={() => closeSidebar()}
                 className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white"
                 title="Close"
               >
@@ -203,7 +204,7 @@ const Sidebar = () => {
                         <Link
                           key={item.path}
                           to={item.path}
-                          onClick={() => setIsExpanded(false)}
+                          onClick={() => closeSidebar()}
                           className={`relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
                             active
                               ? 'bg-purple-600/20 text-purple-400 border border-purple-600/50'

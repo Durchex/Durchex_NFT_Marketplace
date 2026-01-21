@@ -1,10 +1,11 @@
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiSearch, FiShoppingBag, FiUser, FiBell } from "react-icons/fi";
+import { FiSearch, FiShoppingBag, FiUser, FiBell, FiMenu } from "react-icons/fi";
 import { HiChevronDown } from "react-icons/hi";
 import { useCart } from "../Context/CartContext";
 import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
+import { useSidebar } from "../Context/SidebarContext";
 import WalletConnect from "./WalletConnect";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
@@ -24,6 +25,7 @@ export default function Navbar() {
   const { address } = useContext(ICOContent) || {};
   const { selectedNetwork, networks, switchNetwork } = useNetwork();
   const { userProfile, initializeProfile } = useUser();
+  const { toggleSidebar } = useSidebar();
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -48,8 +50,18 @@ export default function Navbar() {
   return (
     <nav className="bg-black border-b border-gray-800/50 px-4 py-4 md:py-6 sticky top-0 z-30 w-full" style={{ isolation: 'isolate' }}>
       <div className="w-full flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo + Menu Toggle */}
         <div className="flex items-center space-x-3 z-10">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleSidebar}
+            className="md:hidden text-gray-300 hover:text-white p-2 transition"
+            aria-label="Toggle menu"
+          >
+            <FiMenu className="w-5 h-5" />
+          </button>
+          
+          {/* Logo */}
           <div className="relative">
             <img src={LOGO} alt="DURCHEX Logo" className="h-8 w-8 md:h-10 md:w-10" />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-20 blur-sm"></div>
