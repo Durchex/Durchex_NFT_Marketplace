@@ -70,13 +70,13 @@ const Sidebar = () => {
 
   return (
     <div
-      className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300"
+      className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300 flex flex-col"
       style={{ width: isExpanded || isHovering ? '280px' : '80px' }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between h-20">
+      <div className="p-4 border-b border-gray-700 flex items-center justify-between h-20 flex-shrink-0">
         <div className={`transition-opacity duration-300 ${showLabel ? 'opacity-100' : 'opacity-0'}`}>
           <h2 className="text-lg font-bold text-white">Menu</h2>
         </div>
@@ -89,7 +89,7 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - Scrollable */}
       <nav className="flex-1 overflow-y-auto py-6 px-2">
         {navItems.map((section) => (
           <div key={section.section} className="mb-6">
@@ -149,7 +149,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer Info */}
-      <div className="border-t border-gray-700 p-4">
+      <div className="border-t border-gray-700 p-4 flex-shrink-0">
         {showLabel && (
           <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400">
             <p className="font-semibold text-white mb-1">Durchex</p>
