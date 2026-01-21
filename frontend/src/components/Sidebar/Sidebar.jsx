@@ -69,95 +69,185 @@ const Sidebar = () => {
   const showLabel = isExpanded || isHovering;
 
   return (
-    <div
-      className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300 flex flex-col"
-      style={{ width: isExpanded || isHovering ? '280px' : '80px' }}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between h-20 flex-shrink-0">
-        <div className={`transition-opacity duration-300 ${showLabel ? 'opacity-100' : 'opacity-0'}`}>
-          <h2 className="text-lg font-bold text-white">Menu</h2>
+    <>
+      {/* Desktop Sidebar - Always visible on md and above */}
+      <div
+        className="fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 transition-all duration-300 flex flex-col hidden md:flex"
+        style={{ width: isExpanded || isHovering ? '280px' : '80px' }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between h-20 flex-shrink-0">
+          <div className={`transition-opacity duration-300 ${showLabel ? 'opacity-100' : 'opacity-0'}`}>
+            <h2 className="text-lg font-bold text-white">Menu</h2>
+          </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white"
+            title={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white md:flex hidden"
-          title={isExpanded ? 'Collapse' : 'Expand'}
-        >
-          {isExpanded ? <X size={20} /> : <Menu size={20} />}
-        </button>
+
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 overflow-y-auto py-6 px-2">
+          {navItems.map((section) => (
+            <div key={section.section} className="mb-6">
+              {/* Section Title */}
+              {showLabel && (
+                <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-2 transition-opacity duration-300">
+                  {section.section}
+                </p>
+              )}
+
+              {/* Section Items */}
+              <div className="space-y-2">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.path);
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group ${
+                        active
+                          ? 'bg-purple-600/20 text-purple-400 border border-purple-600/50'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                      }`}
+                      title={!showLabel ? item.label : ''}
+                    >
+                      {/* Icon */}
+                      <Icon size={20} className="flex-shrink-0" />
+
+                      {/* Label */}
+                      <div
+                        className={`flex items-center justify-between flex-1 transition-opacity duration-300 ${
+                          showLabel ? 'opacity-100 w-auto' : 'opacity-0 w-0'
+                        }`}
+                      >
+                        <span className="font-medium text-sm">{item.label}</span>
+
+                        {/* Badge */}
+                        {item.badge && (
+                          <span className="text-xs bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded whitespace-nowrap">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Arrow on hover */}
+                      {active && showLabel && (
+                        <ChevronRight size={16} className="absolute right-2" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer Info */}
+        <div className="border-t border-gray-700 p-4 flex-shrink-0">
+          {showLabel && (
+            <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400">
+              <p className="font-semibold text-white mb-1">Durchex</p>
+              <p>NFT Marketplace</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Navigation - Scrollable */}
-      <nav className="flex-1 overflow-y-auto py-6 px-2">
-        {navItems.map((section) => (
-          <div key={section.section} className="mb-6">
-            {/* Section Title */}
-            {showLabel && (
-              <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-2 transition-opacity duration-300">
-                {section.section}
-              </p>
-            )}
+      {/* Mobile Sidebar - Drawer overlay on mobile, hidden by default */}
+      {isExpanded && (
+        <>
+          {/* Overlay backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setIsExpanded(false)}
+          />
 
-            {/* Section Items */}
-            <div className="space-y-2">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
+          {/* Mobile Drawer */}
+          <div className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700 z-40 flex flex-col md:hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between h-16 flex-shrink-0">
+              <h2 className="text-lg font-bold text-white">Menu</h2>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-white"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group ${
-                      active
-                        ? 'bg-purple-600/20 text-purple-400 border border-purple-600/50'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
-                    }`}
-                    title={!showLabel ? item.label : ''}
-                  >
-                    {/* Icon */}
-                    <Icon size={20} className="flex-shrink-0" />
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto py-4 px-2">
+              {navItems.map((section) => (
+                <div key={section.section} className="mb-6">
+                  {/* Section Title */}
+                  <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-2">
+                    {section.section}
+                  </p>
 
-                    {/* Label */}
-                    <div
-                      className={`flex items-center justify-between flex-1 transition-opacity duration-300 ${
-                        showLabel ? 'opacity-100 w-auto' : 'opacity-0 w-0'
-                      }`}
-                    >
-                      <span className="font-medium text-sm">{item.label}</span>
+                  {/* Section Items */}
+                  <div className="space-y-2">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const active = isActive(item.path);
 
-                      {/* Badge */}
-                      {item.badge && (
-                        <span className="text-xs bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded whitespace-nowrap">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsExpanded(false)}
+                          className={`relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
+                            active
+                              ? 'bg-purple-600/20 text-purple-400 border border-purple-600/50'
+                              : 'text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent'
+                          }`}
+                        >
+                          {/* Icon */}
+                          <Icon size={20} className="flex-shrink-0" />
 
-                    {/* Arrow on hover */}
-                    {active && showLabel && (
-                      <ChevronRight size={16} className="absolute right-2" />
-                    )}
-                  </Link>
-                );
-              })}
+                          {/* Label */}
+                          <div className="flex items-center justify-between flex-1">
+                            <span className="font-medium text-sm">{item.label}</span>
+
+                            {/* Badge */}
+                            {item.badge && (
+                              <span className="text-xs bg-amber-900/50 text-amber-300 px-2 py-0.5 rounded whitespace-nowrap">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Arrow on active */}
+                          {active && (
+                            <ChevronRight size={16} className="absolute right-2" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* Footer Info */}
+            <div className="border-t border-gray-700 p-4 flex-shrink-0">
+              <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400">
+                <p className="font-semibold text-white mb-1">Durchex</p>
+                <p>NFT Marketplace</p>
+              </div>
             </div>
           </div>
-        ))}
-      </nav>
-
-      {/* Footer Info */}
-      <div className="border-t border-gray-700 p-4 flex-shrink-0">
-        {showLabel && (
-          <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400">
-            <p className="font-semibold text-white mb-1">Durchex</p>
-            <p>NFT Marketplace</p>
-          </div>
-        )}
-      </div>
-    </div>
+        </>
+      )}
+    </>
   );
 };
 

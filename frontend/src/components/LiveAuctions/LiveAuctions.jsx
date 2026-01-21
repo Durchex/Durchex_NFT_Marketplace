@@ -70,10 +70,10 @@ const LiveAuctions = () => {
 
   if (loading) {
     return (
-      <div className="mb-16 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="mb-8 md:mb-12 lg:mb-16 animate-pulse">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-96 bg-gray-800 rounded-lg"></div>
+            <div key={i} className="h-80 bg-gray-800 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -81,20 +81,20 @@ const LiveAuctions = () => {
   }
 
   return (
-    <div className="mb-16">
+    <div className="mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-1">Live Auction</h2>
-        <p className="text-gray-400 text-xs">You are welcome to participate and bid for NFT from Durchex</p>
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Live Auction</h2>
+        <p className="text-gray-400 text-xs md:text-sm">You are welcome to participate and bid for NFT from Durchex</p>
       </div>
 
-      {/* Auctions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Auctions Grid - Responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {auctions.map((auction) => (
           <div key={auction._id} className="group cursor-pointer">
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
               {/* Image Container */}
-              <div className="relative h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
+              <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                 {auction.image ? (
                   <img
                     src={auction.image}
@@ -106,35 +106,35 @@ const LiveAuctions = () => {
                 )}
 
                 {/* Timer Badge */}
-                <div className="absolute top-3 left-3 bg-black/80 backdrop-blur px-3 py-1 rounded-lg flex items-center gap-2">
-                  <Clock size={16} className="text-red-500 flex-shrink-0" />
+                <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg flex items-center gap-2">
+                  <Clock size={14} className="text-red-500 flex-shrink-0" />
                   <p className="text-white font-mono text-xs">{timers[auction._id] || '...'}</p>
                 </div>
 
                 {/* Bid Count Badge */}
-                <div className="absolute top-3 right-3 bg-black/80 backdrop-blur px-3 py-1 rounded-lg">
-                  <p className="text-white font-semibold text-sm">{auction.bidCount} Bids</p>
+                <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg">
+                  <p className="text-white font-semibold text-xs md:text-sm">{auction.bidCount} Bids</p>
                 </div>
 
                 {/* Place Bid Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition">
-                    <Gavel size={20} />
+                  <button className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm">
+                    <Gavel size={18} />
                     Place Bid
                   </button>
                 </div>
               </div>
 
               {/* Auction Info */}
-              <div className="p-4 flex-grow flex flex-col justify-between">
-                <h3 className="font-bold text-white text-sm group-hover:text-purple-400 transition line-clamp-2 mb-3">
+              <div className="p-3 md:p-4 flex-grow flex flex-col justify-between">
+                <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2 md:mb-3">
                   {auction.name}
                 </h3>
 
                 {/* Current Bid */}
-                <div className="mb-3 pb-3 border-b border-gray-700/50">
+                <div className="mb-2 md:mb-3 pb-2 md:pb-3 border-b border-gray-700/50">
                   <p className="text-gray-400 text-xs mb-1">Current Bid</p>
-                  <p className="text-xl font-bold text-purple-400">{auction.currentBid} ETH</p>
+                  <p className="text-lg md:text-xl font-bold text-purple-400">{auction.currentBid} ETH</p>
                 </div>
 
                 {/* Creator */}
@@ -142,9 +142,9 @@ const LiveAuctions = () => {
                   <img
                     src={auction.creatorAvatar}
                     alt={auction.creatorName}
-                    className="w-8 h-8 rounded-full"
+                    className="w-6 md:w-8 h-6 md:h-8 rounded-full"
                   />
-                  <span className="text-gray-400 text-xs">{auction.creatorName}</span>
+                  <span className="text-gray-400 text-xs line-clamp-1">{auction.creatorName}</span>
                 </div>
               </div>
             </div>

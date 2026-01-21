@@ -49,10 +49,10 @@ const TopCreators = () => {
 
   if (loading) {
     return (
-      <div className="mb-16 animate-pulse">
-        <div className="h-screen grid grid-cols-5 gap-4">
+      <div className="mb-8 md:mb-12 lg:mb-16 animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
           {Array(10).fill(0).map((_, i) => (
-            <div key={i} className="h-40 bg-gray-800 rounded-lg"></div>
+            <div key={i} className="h-32 md:h-40 bg-gray-800 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -60,24 +60,24 @@ const TopCreators = () => {
   }
 
   return (
-    <div className="mb-16">
+    <div className="mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Top Creators</h2>
-          <p className="text-gray-400 text-sm">Verified creators on Durchex</p>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Top Creators</h2>
+          <p className="text-gray-400 text-xs md:text-sm">Verified creators on Durchex</p>
         </div>
         <Link
           to="/rankings"
-          className="flex items-center gap-2 px-5 py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-sm"
+          className="flex items-center gap-2 px-4 md:px-5 py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-xs md:text-sm whitespace-nowrap"
         >
-          <TrendingUp size={16} />
+          <TrendingUp size={14} />
           View Rankings
         </Link>
       </div>
 
-      {/* Creators Grid - 5 columns exactly */}
-      <div className="grid grid-cols-5 gap-4">
+      {/* Creators Grid - Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
         {creators.map((creator) => (
           <Link
             key={creator._id}
@@ -90,24 +90,24 @@ const TopCreators = () => {
                 <img
                   src={creator.avatar}
                   alt={creator.username}
-                  className="w-20 h-20 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition"
+                  className="w-14 md:w-20 h-14 md:h-20 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition"
                 />
               </div>
 
               {/* Name */}
-              <h3 className="font-bold text-white text-sm group-hover:text-purple-400 transition mb-2">
+              <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition mb-2 text-center line-clamp-2">
                 {creator.username}
               </h3>
 
               {/* Stats - Simple format */}
-              <div className="space-y-1 text-xs">
+              <div className="space-y-1 text-xs text-center">
                 <div>
-                  <p className="text-gray-400">Followers</p>
-                  <p className="font-bold text-white">{(creator.followers / 1000).toFixed(0)}K</p>
+                  <p className="text-gray-400 text-xs">Followers</p>
+                  <p className="font-bold text-white text-xs">{(creator.followers / 1000).toFixed(0)}K</p>
                 </div>
                 <div>
-                  <p className="text-gray-400">Volume</p>
-                  <p className="font-bold text-white">{creator.totalVolume} <span className="text-gray-400">ETH</span></p>
+                  <p className="text-gray-400 text-xs">Volume</p>
+                  <p className="font-bold text-white text-xs">{creator.totalVolume} <span className="text-gray-400">ETH</span></p>
                 </div>
               </div>
             </div>

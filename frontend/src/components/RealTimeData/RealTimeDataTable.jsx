@@ -67,59 +67,59 @@ const RealTimeDataTable = () => {
 
   if (loading) {
     return (
-      <div className="mb-16 animate-pulse">
-        <div className="h-96 bg-gray-800 rounded-lg"></div>
+      <div className="mb-8 md:mb-12 lg:mb-16 animate-pulse">
+        <div className="h-80 bg-gray-800 rounded-lg"></div>
       </div>
     );
   }
 
   return (
-    <div className="mb-16">
+    <div className="mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <h2 className="text-2xl font-bold text-white mb-4">Real-Time Data</h2>
+      <h2 className="text-xl md:text-2xl font-bold text-white mb-4">Real-Time Data</h2>
 
-      {/* Table Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Table Container - Responsive Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
         {/* Table */}
         <div className="lg:col-span-2 bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">Creator</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">Floor Price</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">24H Price</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">Change</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">24H Vol</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">7D Vol</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-xs font-semibold">Trend</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold">Creator</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold hidden sm:table-cell">Floor</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold hidden md:table-cell">24H</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold">Change</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold hidden lg:table-cell">24H Vol</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold hidden lg:table-cell">7D Vol</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left text-gray-400 text-xs font-semibold">Trend</th>
                 </tr>
               </thead>
               <tbody>
                 {tableData.map((row, idx) => (
                   <tr key={idx} className="border-b border-gray-700/50 hover:bg-gray-800/50 transition">
                     {/* Creator */}
-                    <td className="px-4 py-4 flex items-center gap-3">
+                    <td className="px-2 md:px-4 py-2 md:py-4 flex items-center gap-2">
                       <img
                         src={row.avatar}
                         alt={row.username}
-                        className="w-8 h-8 rounded-full"
+                        className="w-6 h-6 md:w-8 md:h-8 rounded-full"
                       />
-                      <span className="text-white font-medium text-sm">{row.username}</span>
+                      <span className="text-white font-medium text-xs md:text-sm line-clamp-1">{row.username}</span>
                     </td>
 
                     {/* Floor Price */}
-                    <td className="px-4 py-4 text-white font-mono text-sm">
+                    <td className="px-2 md:px-4 py-2 md:py-4 text-white font-mono text-xs md:text-sm hidden sm:table-cell">
                       {row.floorPrice} <span className="text-gray-400 text-xs">ETH</span>
                     </td>
 
                     {/* 24H Price */}
-                    <td className="px-4 py-4 text-white font-mono text-sm">
+                    <td className="px-2 md:px-4 py-2 md:py-4 text-white font-mono text-xs md:text-sm hidden md:table-cell">
                       {row.price24h} <span className="text-gray-400 text-xs">ETH</span>
                     </td>
 
                     {/* Change % */}
-                    <td className="px-4 py-4">
+                    <td className="px-2 md:px-4 py-2 md:py-4">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
                         parseFloat(row.change) >= 0
                           ? 'bg-green-900/30 text-green-400'
@@ -130,24 +130,24 @@ const RealTimeDataTable = () => {
                     </td>
 
                     {/* 24H Volume */}
-                    <td className="px-4 py-4 text-white font-mono text-sm">
+                    <td className="px-2 md:px-4 py-2 md:py-4 text-white font-mono text-xs md:text-sm hidden lg:table-cell">
                       {row.volume24h}
                     </td>
 
                     {/* 7D Volume */}
-                    <td className="px-4 py-4 text-white font-mono text-sm">
+                    <td className="px-2 md:px-4 py-2 md:py-4 text-white font-mono text-xs md:text-sm hidden lg:table-cell">
                       {row.volume7d}
                     </td>
 
                     {/* Sparkline */}
-                    <td className="px-4 py-4">
-                      <ResponsiveContainer width={60} height={30}>
+                    <td className="px-2 md:px-4 py-2 md:py-4">
+                      <ResponsiveContainer width={50} height={25}>
                         <LineChart data={row.trending}>
                           <Line
                             type="monotone"
                             dataKey="value"
                             stroke="#a78bfa"
-                            strokeWidth={2}
+                            strokeWidth={1.5}
                             dot={false}
                             isAnimationActive={false}
                           />
@@ -162,19 +162,19 @@ const RealTimeDataTable = () => {
         </div>
 
         {/* Large Trend Chart - Right Side */}
-        <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-6">
-          <h3 className="text-white font-semibold mb-4">Market Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-3 md:p-6">
+          <h3 className="text-white font-semibold mb-3 md:mb-4 text-sm md:text-base">Market Trend</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trendData}>
               <XAxis
                 dataKey="hour"
                 stroke="#666"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '10px' }}
                 tick={{ fill: '#888' }}
               />
               <YAxis
                 stroke="#666"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '10px' }}
                 tick={{ fill: '#888' }}
               />
               <Tooltip
@@ -182,14 +182,15 @@ const RealTimeDataTable = () => {
                   backgroundColor: '#1f2937',
                   border: '1px solid #374151',
                   borderRadius: '8px',
-                  color: '#fff'
+                  color: '#fff',
+                  fontSize: '12px'
                 }}
               />
               <Line
                 type="monotone"
                 dataKey="price"
                 stroke="#a78bfa"
-                strokeWidth={3}
+                strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
               />

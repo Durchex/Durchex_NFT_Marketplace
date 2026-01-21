@@ -17,8 +17,8 @@ const Explore = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
       <Header />
 
-      {/* Main Content */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
+      {/* Main Content - Responsive padding */}
+      <main className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         <div className="max-w-7xl mx-auto">
           {/* Section 1: Featured NFT Showcase */}
           <FeaturedNFTShowcase />

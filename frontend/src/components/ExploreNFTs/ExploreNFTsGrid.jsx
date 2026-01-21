@@ -86,18 +86,18 @@ const ExploreNFTsGrid = () => {
   };
 
   return (
-    <div className="mb-16">
+    <div className="mb-8 md:mb-12 lg:mb-16">
       {/* Header with Tabs */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Explore NFTs</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold text-white">Explore NFTs</h2>
 
         {/* Tab Buttons */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-2 rounded-lg font-semibold transition ${
+              className={`px-4 md:px-6 py-1 md:py-2 rounded-lg font-semibold transition text-xs md:text-sm ${
                 activeTab === tab.id
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -109,11 +109,11 @@ const ExploreNFTsGrid = () => {
         </div>
       </div>
 
-      {/* NFTs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      {/* NFTs Grid - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
         {loading ? (
           Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-80 bg-gray-800 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-56 sm:h-64 md:h-80 bg-gray-800 rounded-lg animate-pulse"></div>
           ))
         ) : nfts.length === 0 ? (
           <div className="col-span-full text-center py-12">
@@ -124,7 +124,7 @@ const ExploreNFTsGrid = () => {
             <div key={nft._id} className="group cursor-pointer">
               <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
                 {/* Image Container */}
-                <div className="relative h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
+                <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                   {nft.image ? (
                     <img
                       src={nft.image}
@@ -136,48 +136,48 @@ const ExploreNFTsGrid = () => {
                   )}
 
                   {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center gap-2 md:gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => toggleLike(nft._id)}
-                      className={`p-3 rounded-full transition ${
+                      className={`p-2 md:p-3 rounded-full transition ${
                         liked.has(nft._id)
                           ? 'bg-red-600 text-white'
                           : 'bg-gray-700/80 hover:bg-red-600 text-gray-300'
                       }`}
                     >
                       <Heart
-                        size={24}
+                        size={20}
                         fill={liked.has(nft._id) ? 'currentColor' : 'none'}
                       />
                     </button>
                     <button
                       onClick={() => handleAddToCart(nft.name)}
-                      className="p-3 rounded-full bg-purple-600 hover:bg-purple-700 text-white transition"
+                      className="p-2 md:p-3 rounded-full bg-purple-600 hover:bg-purple-700 text-white transition"
                     >
-                      <ShoppingCart size={24} />
+                      <ShoppingCart size={20} />
                     </button>
                   </div>
 
                   {/* Price Badge */}
-                  <div className="absolute top-3 right-3 bg-black/80 backdrop-blur px-3 py-1 rounded-lg">
-                    <p className="text-white font-semibold text-sm">{nft.price} ETH</p>
+                  <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg">
+                    <p className="text-white font-semibold text-xs md:text-sm">{nft.price} ETH</p>
                   </div>
                 </div>
 
                 {/* NFT Info */}
-                <div className="p-4 flex-grow flex flex-col justify-between">
-                  <h3 className="font-bold text-white text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
+                <div className="p-3 md:p-4 flex-grow flex flex-col justify-between">
+                  <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
                     {nft.name}
                   </h3>
 
                   {/* Creator */}
-                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-700/50">
+                  <div className="flex items-center gap-2 mt-auto pt-2 md:pt-3 border-t border-gray-700/50">
                     <img
                       src={nft.creatorAvatar}
                       alt={nft.creatorName}
-                      className="w-8 h-8 rounded-full"
+                      className="w-6 md:w-8 h-6 md:h-8 rounded-full"
                     />
-                    <span className="text-gray-400 text-xs">{nft.creatorName}</span>
+                    <span className="text-gray-400 text-xs line-clamp-1">{nft.creatorName}</span>
                   </div>
                 </div>
               </div>
@@ -188,23 +188,23 @@ const ExploreNFTsGrid = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-2 md:gap-4">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
             className="p-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={18} />
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = page > 3 ? page - 2 + i : i + 1;
               return pageNum <= totalPages ? (
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`w-10 h-10 rounded-lg font-semibold transition ${
+                  className={`w-8 md:w-10 h-8 md:h-10 rounded-lg font-semibold transition text-xs md:text-sm ${
                     pageNum === page
                       ? 'bg-purple-600 text-white'
                       : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -221,7 +221,7 @@ const ExploreNFTsGrid = () => {
             disabled={page === totalPages}
             className="p-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={18} />
           </button>
         </div>
       )}

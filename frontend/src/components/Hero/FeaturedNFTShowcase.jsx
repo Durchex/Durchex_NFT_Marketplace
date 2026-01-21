@@ -91,33 +91,33 @@ const FeaturedNFTShowcase = () => {
   const displayThumbnails = thumbnails && thumbnails.length > 0 ? thumbnails : generateMockFeaturedNFT().thumbnails;
 
   return (
-    <div className="mb-16">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+    <div className="mb-8 md:mb-12 lg:mb-16">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-center">
         {/* Featured NFT Large Display */}
         <div className="lg:col-span-2">
-          <div className="relative rounded-2xl overflow-hidden group">
+          <div className="relative rounded-xl md:rounded-2xl overflow-hidden group">
             <img
               src={displayNFT.image || 'https://via.placeholder.com/600x400'}
               alt={displayNFT.name}
-              className="w-full h-96 object-cover"
+              className="w-full h-64 sm:h-80 md:h-96 object-cover"
             />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
 
             {/* NFT Info - Bottom Left */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-              <h2 className="text-4xl font-bold mb-1">{displayNFT.name}</h2>
-              <div className="flex items-center gap-2 mb-6">
+            <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 lg:p-8 text-white">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1">{displayNFT.name}</h2>
+              <div className="flex items-center gap-2 mb-4 md:mb-6">
                 {displayNFT.collectionName && (
-                  <span className="text-gray-300 text-sm">{displayNFT.collectionName}</span>
+                  <span className="text-gray-300 text-xs md:text-sm">{displayNFT.collectionName}</span>
                 )}
               </div>
 
               {/* Price & Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-4 items-start sm:items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-xs mb-1">Current Price</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-xl md:text-2xl font-bold text-white">
                     {displayNFT.price || '0.6'} ETH
                   </p>
                 </div>
@@ -132,13 +132,13 @@ const FeaturedNFTShowcase = () => {
                         : 'border-gray-600 text-gray-300 hover:border-red-500'
                     }`}
                   >
-                    <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
+                    <Heart size={18} />
                   </button>
                   <button
                     onClick={handleAddToCart}
-                    className="flex-1 sm:flex-none px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center gap-2 transition text-sm"
+                    className="flex-1 sm:flex-none px-4 md:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center gap-2 transition text-xs md:text-sm"
                   >
-                    <ShoppingCart size={18} />
+                    <ShoppingCart size={16} />
                     <span className="hidden sm:inline">Add to Cart</span>
                   </button>
                 </div>
@@ -148,13 +148,13 @@ const FeaturedNFTShowcase = () => {
         </div>
 
         {/* Thumbnail Previews */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-white font-semibold text-lg">Featured Items</h3>
-          <div className="grid grid-cols-3 lg:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-3 md:gap-4">
+          <h3 className="text-white font-semibold text-sm md:text-lg">Featured Items</h3>
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
             {displayThumbnails.map((nft, idx) => (
               <div
                 key={idx}
-                className="relative rounded-lg overflow-hidden cursor-pointer group h-24"
+                className="relative rounded-lg overflow-hidden cursor-pointer group h-20 md:h-24"
               >
                 <img
                   src={nft.image || 'https://via.placeholder.com/200'}
@@ -162,14 +162,14 @@ const FeaturedNFTShowcase = () => {
                   className="w-full h-full object-cover group-hover:scale-110 transition"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronRight className="text-white" size={20} />
+                  <ChevronRight className="text-white" size={18} />
                 </div>
               </div>
             ))}
           </div>
 
           {/* View Details Button */}
-          <button className="mt-2 w-full px-4 py-2 border border-purple-600 text-purple-400 rounded-lg hover:bg-purple-600/10 transition font-semibold text-sm">
+          <button className="mt-2 w-full px-4 py-2 border border-purple-600 text-purple-400 rounded-lg hover:bg-purple-600/10 transition font-semibold text-xs md:text-sm">
             View Details
           </button>
         </div>

@@ -92,8 +92,8 @@ export default function App() {
         {/* Fixed Sidebar */}
         <Sidebar />
         
-        {/* Main Content Area - Adjusted for Sidebar */}
-        <div className="flex-1 ml-20">
+        {/* Main Content Area - Responsive margin for desktop only */}
+        <div className="flex-1 md:ml-20">
           <Suspense fallback={<Loading />}>
             <Routes>
           <Route
