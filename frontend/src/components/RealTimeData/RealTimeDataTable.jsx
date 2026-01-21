@@ -105,12 +105,12 @@ const RealTimeDataTable = () => {
   }
 
   return (
-    <div className="mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-3 sm:mb-4 md:mb-6">Real-Time Data</h2>
+      <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-3 xs:mb-4 sm:mb-6">Real-Time Data</h2>
 
       {/* Table Container - Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
         {/* Table */}
         <div className="lg:col-span-2 bg-gray-800/50 rounded-lg border border-gray-700 overflow-x-auto">
           <table className="w-full text-xs md:text-sm min-w-max md:min-w-0">

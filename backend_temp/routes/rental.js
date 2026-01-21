@@ -1,9 +1,9 @@
 // Rental API Routes
-const express = require('express');
+import express from 'express';
+import RentalService from '../services/RentalService.js';
+import auth from '../middleware/auth.js';
+import tryCatch from '../middleware/tryCatch.js';
 const router = express.Router();
-const RentalService = require('../services/RentalService');
-const auth = require('../middleware/auth');
-const tryCatch = require('../middleware/tryCatch');
 
 // Create new rental listing
 router.post('/create-listing', auth, tryCatch(async (req, res) => {
@@ -311,4 +311,4 @@ router.get('/search', tryCatch(async (req, res) => {
   });
 }));
 
-module.exports = router;
+export default router;

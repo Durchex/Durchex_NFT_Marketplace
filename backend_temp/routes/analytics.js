@@ -3,10 +3,10 @@
  * API endpoints for marketplace analytics and statistics
  */
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const AnalyticsService = require('../services/analyticsService');
-const logger = require('../utils/logger');
+import AnalyticsService from '../services/analyticsService.js';
+import logger from '../utils/logger.js';
 
 // Initialize analytics service
 let analyticsService = null;
@@ -357,4 +357,4 @@ router.get('/transaction-metrics', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

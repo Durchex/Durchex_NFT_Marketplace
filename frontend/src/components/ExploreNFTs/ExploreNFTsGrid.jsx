@@ -1,60 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
-import { analyticsAPI } from '../../services/api';
+import { nftAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 
 /**
- * ExploreNFTsGrid - Tabbed grid view (Latest, Trending, Featured)
+ * ExploreNFTsGrid - Grid view of all NFTs from database
  */
 const ExploreNFTsGrid = () => {
-  const [activeTab, setActiveTab] = useState('trending');
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [liked, setLiked] = useState(new Set());
-
-  const tabs = [
-    { id: 'latest', label: 'Latest' },
-    { id: 'trending', label: 'Trending' },
-    { id: 'featured', label: 'Featured' }
-  ];
+  const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
 
   useEffect(() => {
-    setPage(1);
     fetchNFTs();
-  }, [activeTab]);
+  }, []);
 
   useEffect(() => {
-    if (page > 1) {
-      fetchNFTs();
+    if (allNfts.length > 0) {
+      paginateNFTs();
     }
-  }, [page]);
+  }, [page, allNfts]);
+
+  const paginateNFTs = () => {
+    const itemsPerPage = 6;
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    const paginatedNFTs = allNfts.slice(startIndex, endIndex);
+    setNfts(paginatedNFTs);
+    setTotalPages(Math.ceil(allNfts.length / itemsPerPage));
+  };
 
   const fetchNFTs = async () => {
     try {
       setLoading(true);
-      console.log('[ExploreNFTsGrid] Fetching NFTs for tab:', activeTab);
+      console.log('[ExploreNFTsGrid] Fetching NFTs from all networks...');
       
-      // For now, fetch trending NFTs for all tabs (featured/trending/latest filtering to be added later)
-      const data = await analyticsAPI.getTrendingNFTs(6, '7d');
-      console.log('[ExploreNFTsGrid] Response:', data);
-
-      let nftList = [];
-      if (data && Array.isArray(data) && data.length > 0) {
-        nftList = data;
-      } else if (data && data.nfts) {
-        nftList = data.nfts;
-      } else {
-        nftList = generateMockNFTs();
+      // ✅ Fetch real NFTs from all networks
+      let nftsData = [];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+      
+      for (const network of networks) {
+        try {
+          console.log(`[ExploreNFTsGrid] Fetching NFTs from ${network}...`);
+          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+          if (Array.isArray(networkNfts)) {
+            console.log(`[ExploreNFTsGrid] Found ${networkNfts.length} NFTs on ${network}`);
+            nftsData = [...nftsData, ...networkNfts];
+          }
+        } catch (err) {
+          console.warn(`[ExploreNFTsGrid] Error fetching from ${network}:`, err.message);
+        }
       }
-      
-      setNfts(nftList);
-      setTotalPages(Math.ceil(nftList.length / 6));
+
+      if (nftsData && nftsData.length > 0) {
+        console.log(`[ExploreNFTsGrid] Total NFTs fetched: ${nftsData.length}`);
+        setAllNfts(nftsData);
+        paginateNFTs();
+      } else {
+        throw new Error('No NFTs fetched from any network');
+      }
     } catch (error) {
       console.error('[ExploreNFTsGrid] Error fetching NFTs:', error);
       setNfts(generateMockNFTs());
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -90,30 +103,14 @@ const ExploreNFTsGrid = () => {
 
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
-      {/* Header with Tabs */}
-      <div className="mb-3 sm:mb-4 md:mb-6">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-3 sm:mb-4">Explore NFTs</h2>
-
-        {/* Tab Buttons */}
-        <div className="flex gap-1 sm:gap-2 flex-wrap">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 sm:px-4 md:px-6 py-1.5 md:py-2 rounded-lg font-semibold transition text-xs md:text-sm ${
-                activeTab === tab.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Header */}
+      <div className="mb-3 xs:mb-4 sm:mb-6">
+        <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-2 xs:mb-3 sm:mb-4">Explore NFTs</h2>
+        <p className="text-gray-400 text-xs sm:text-sm">All NFTs available on Durchex</p>
       </div>
 
       {/* NFTs Grid - Responsive Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 xs:gap-3 sm:gap-4 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
         {loading ? (
           Array(6).fill(0).map((_, i) => (
             <div key={i} className="h-40 xs:h-48 sm:h-56 md:h-64 lg:h-80 bg-gray-800 rounded-lg animate-pulse"></div>

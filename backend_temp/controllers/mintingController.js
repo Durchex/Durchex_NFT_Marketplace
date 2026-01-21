@@ -1,7 +1,7 @@
 import { nftModel } from '../models/nftModel.js';
 import nftContractService from '../services/nftContractService.js';
 import Collection from '../models/collectionModel.js';
-import { ipfsService } from '../services/ipfsService.js';
+import ipfsService from '../services/ipfsService.js';
 import logger from '../utils/logger.js';
 
 /**

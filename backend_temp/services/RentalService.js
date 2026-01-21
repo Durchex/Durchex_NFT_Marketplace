@@ -1,9 +1,9 @@
-const logger = require('../../utils/logger');
-const ethers = require('ethers');
+import logger from '../utils/logger.js';
+import { ethers } from 'ethers';
 
 class RentalService {
   constructor() {
-    this.rentalABI = require('../../contracts/abi/NFTRental.json');
+    this.rentalABI = [];
   }
 
   /**
@@ -389,4 +389,5 @@ class RentalService {
   }
 }
 
-module.exports = new RentalService();
+const rentalServiceInstance = new RentalService();
+export default rentalServiceInstance;

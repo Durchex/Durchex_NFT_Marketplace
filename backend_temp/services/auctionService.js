@@ -3,8 +3,8 @@
  * Business logic for managing NFT auctions
  */
 
-const ethers = require('ethers');
-const logger = require('../utils/logger');
+import { ethers } from 'ethers';
+import logger from '../utils/logger.js';
 
 class AuctionService {
     constructor() {
@@ -311,4 +311,4 @@ class AuctionService {
     }
 }
 
-module.exports = new AuctionService();
+export default new AuctionService();

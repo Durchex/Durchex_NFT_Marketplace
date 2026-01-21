@@ -3,11 +3,11 @@
  * Handles bulk NFT minting with bulk operations and status tracking
  */
 
-const LazyMintNFT = require('../contracts/LazyMintNFT');
-const Provider = require('../config/provider');
-const BatchMint = require('../models/BatchMint');
-const NFT = require('../models/NFT');
-const redis = require('redis');
+import LazyMintNFT from '../contracts/LazyMintNFT.js';
+import Provider from '../config/provider.js';
+import BatchMint from '../models/BatchMint.js';
+import NFT from '../models/NFT.js';
+import redis from 'redis';
 const redisClient = redis.createClient();
 
 class BatchMintService {
@@ -337,4 +337,4 @@ class BatchMintService {
     }
 }
 
-module.exports = new BatchMintService();
+export default new BatchMintService();

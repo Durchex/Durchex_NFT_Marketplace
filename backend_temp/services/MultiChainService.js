@@ -1,6 +1,6 @@
 // Multi-Chain Provider Service - Unified Blockchain API
-const { ethers } = require('ethers');
-const NodeCache = require('node-cache');
+import { ethers } from 'ethers';
+import NodeCache from 'node-cache';
 
 /**
  * MultiChainService - Manages providers for multiple chains and queries
@@ -507,4 +507,4 @@ class MultiChainService {
   }
 }
 
-module.exports = MultiChainService;
+export default MultiChainService;

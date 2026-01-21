@@ -4,11 +4,11 @@
  * Supports both NFT.storage and Pinata providers
  */
 
-const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-const logger = require('../utils/logger');
+import axios from 'axios';
+import FormData from 'form-data';
+import fs from 'fs';
+import path from 'path';
+import logger from '../utils/logger.js';
 
 class IPFSService {
     constructor() {
@@ -400,5 +400,4 @@ class IPFSService {
     }
 }
 
-// Export singleton
-module.exports = new IPFSService();
+export default new IPFSService();

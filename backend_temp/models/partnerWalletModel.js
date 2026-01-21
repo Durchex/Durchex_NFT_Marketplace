@@ -167,8 +167,16 @@ const partnerWalletModel = mongoose.model('PartnerWallet', partnerWalletSchema);
 // Export default
 export default partnerWalletModel;
 
-// Export named exports
+
+// Export static method references for ESM compatibility
+const getPartnerWalletsByPartner = partnerWalletModel.getPartnerWalletsByPartner;
+const getPartnerWalletsByOwner = partnerWalletModel.getPartnerWalletsByOwner;
+const updatePartnerWallet = partnerWalletModel.updatePartnerWallet;
+
 export {
   partnerWalletModel,
   partnerWalletSchema,
+  getPartnerWalletsByPartner,
+  getPartnerWalletsByOwner,
+  updatePartnerWallet,
 };

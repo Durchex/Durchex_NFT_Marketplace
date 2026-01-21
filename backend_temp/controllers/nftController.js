@@ -1,7 +1,6 @@
 import Collection from "../models/collectionModel.js";
 import { nftModel } from "../models/nftModel.js";
 import nftContractService from "../services/nftContractService.js";
-import nftContractService from "../services/nftContractService.js";
 
 // Create a new NFT Collection
 export const createCollection = async (req, res) => {

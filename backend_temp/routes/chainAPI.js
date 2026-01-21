@@ -1,14 +1,14 @@
 // Chain API Routes - Multi-Chain Data Aggregation
-const express = require('express');
-const router = express.Router();
-const MultiChainService = require('../services/MultiChainService');
-const MultiChainAggregator = require('../services/MultiChainAggregator');
-const {
+import express from 'express';
+import MultiChainService from '../services/MultiChainService.js';
+import MultiChainAggregator from '../services/MultiChainAggregator.js';
+import {
   createAPIRateLimiter,
   createPerChainRateLimiter,
   chainRateLimitMiddleware,
   CostBasedRateLimiter,
-} = require('../middleware/rateLimiter');
+} from '../middleware/rateLimiter.js';
+const router = express.Router();
 
 // Initialize rate limiters
 const apiLimiter = createAPIRateLimiter({
@@ -437,4 +437,4 @@ router.get('/health', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

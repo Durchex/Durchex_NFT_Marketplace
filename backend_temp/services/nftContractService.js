@@ -1,6 +1,6 @@
-import ethers from 'ethers';
+import * as ethers from 'ethers';
 import dotenv from 'dotenv';
-import { collectionModel } from '../models/collectionModel.js';
+import Collection from '../models/collectionModel.js';
 import { nftModel } from '../models/nftModel.js';
 
 dotenv.config();

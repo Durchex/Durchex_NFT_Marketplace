@@ -1,5 +1,5 @@
-const esClient = require('./ElasticsearchClient');
-const logger = require('../../utils/logger');
+import esClient from './ElasticsearchClient.js';
+import logger from '../../utils/logger.js';
 
 class SearchService {
   /**
@@ -421,4 +421,5 @@ class SearchService {
   }
 }
 
-module.exports = new SearchService();
+const searchServiceInstance = new SearchService();
+export default searchServiceInstance;

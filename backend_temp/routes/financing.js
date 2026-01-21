@@ -7,11 +7,11 @@
  * - Liquidation operations
  */
 
-const express = require('express');
+import express from 'express';
+import auth from '../middleware/auth.js';
+import tryCatch from '../middleware/tryCatch.js';
+import logger from '../utils/logger.js';
 const router = express.Router();
-const auth = require('../middleware/auth');
-const tryCatch = require('../middleware/tryCatch');
-const logger = require('../utils/logger');
 
 // Financing service will be injected from server
 let financingService = null;
@@ -387,4 +387,4 @@ router.use((req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

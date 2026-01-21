@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
-import { auctionAPI } from '../../services/api';
+import { nftAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 /**
  * LiveAuctions - Grid of active auctions with countdown timers
+ * Using mock auction data with real collection information
  */
 const LiveAuctions = () => {
   const [auctions, setAuctions] = useState([]);
@@ -18,20 +19,34 @@ const LiveAuctions = () => {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      console.log('[LiveAuctions] Fetching active auctions...');
-      // Fetch active auctions
-      const data = await auctionAPI.getActiveAuctions(6);
-      console.log('[LiveAuctions] Response:', data);
+      console.log('[LiveAuctions] Fetching collections for auction data...');
       
-      if (data && Array.isArray(data) && data.length > 0) {
-        setAuctions(data);
-      } else if (data && data.auctions) {
-        setAuctions(data.auctions);
+      // ✅ Fetch real collections to display
+      const collectionsData = await nftAPI.getCollections();
+      console.log('[LiveAuctions] Collections:', collectionsData);
+      
+      if (Array.isArray(collectionsData) && collectionsData.length > 0) {
+        // Create mock auctions using real collection data
+        const mockAuctions = collectionsData.slice(0, 6).map((collection, idx) => ({
+          _id: `auction-${idx}`,
+          name: collection.name || `Collection Auction ${idx + 1}`,
+          image: collection.image || `https://via.placeholder.com/300x350?text=Auction%20${idx + 1}`,
+          currentBid: (Math.random() * 3 + 0.5).toFixed(2),
+          bidCount: Math.floor(Math.random() * 50) + 5,
+          creatorName: collection.creatorName || `Creator ${idx + 1}`,
+          creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${collection.creatorWallet || `creator${idx}`}`,
+          endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+          backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx]
+        }));
+        
+        setAuctions(mockAuctions);
       } else {
+        // Fallback to completely mock data if no collections
         setAuctions(generateMockAuctions());
       }
     } catch (error) {
-      console.error('[LiveAuctions] Error fetching auctions:', error);
+      console.error('[LiveAuctions] Error fetching data:', error);
+      // Fallback to mock data
       setAuctions(generateMockAuctions());
     } finally {
       setLoading(false);

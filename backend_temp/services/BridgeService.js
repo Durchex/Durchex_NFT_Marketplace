@@ -1,5 +1,7 @@
 // Bridge Service for Cross-Chain Operations
-const { ethers } = require('ethers');
+import * as ethers from 'ethers';
+
+// Use ethers.JsonRpcProvider for v6+
 
 class BridgeService {
   constructor() {
@@ -14,7 +16,7 @@ class BridgeService {
    */
   initializeChains() {
     // Ethereum
-    this.chainProviders.set('ethereum', new ethers.providers.JsonRpcProvider(
+    this.chainProviders.set('ethereum', new ethers.JsonRpcProvider(
       process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo'
     ));
     this.chainGateways.set('ethereum', {
@@ -24,7 +26,7 @@ class BridgeService {
     });
 
     // Polygon
-    this.chainProviders.set('polygon', new ethers.providers.JsonRpcProvider(
+    this.chainProviders.set('polygon', new ethers.JsonRpcProvider(
       process.env.POLYGON_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/demo'
     ));
     this.chainGateways.set('polygon', {
@@ -34,7 +36,7 @@ class BridgeService {
     });
 
     // Arbitrum
-    this.chainProviders.set('arbitrum', new ethers.providers.JsonRpcProvider(
+    this.chainProviders.set('arbitrum', new ethers.JsonRpcProvider(
       process.env.ARBITRUM_RPC_URL || 'https://arb-mainnet.g.alchemy.com/v2/demo'
     ));
     this.chainGateways.set('arbitrum', {
@@ -385,4 +387,4 @@ class BridgeService {
   }
 }
 
-module.exports = BridgeService;
+export default BridgeService;

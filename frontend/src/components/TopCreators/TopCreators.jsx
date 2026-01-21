@@ -70,16 +70,16 @@ const TopCreators = () => {
   }
 
   return (
-    <div className="mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
+      <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-2 mb-3 xs:mb-4 sm:mb-6">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Top Creators</h2>
+          <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-1">Top Creators</h2>
           <p className="text-gray-400 text-xs md:text-sm">Verified creators on Durchex</p>
         </div>
         <Link
           to="/rankings"
-          className="flex items-center gap-2 px-4 md:px-5 py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-xs md:text-sm whitespace-nowrap"
+          className="flex items-center gap-2 px-3 xs:px-4 md:px-5 py-1.5 xs:py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-xs md:text-sm whitespace-nowrap"
         >
           <TrendingUp size={14} />
           View Rankings
@@ -87,7 +87,7 @@ const TopCreators = () => {
       </div>
 
       {/* Creators Grid - Responsive */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 xs:gap-3 sm:gap-4">
         {creators.map((creator) => (
           <Link
             key={creator._id}

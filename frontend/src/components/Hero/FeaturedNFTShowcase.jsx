@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { analyticsAPI } from '../../services/api';
+import { nftAPI } from '../../services/api';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 import { ErrorToast } from '../../app/Toast/Error.jsx';
 
@@ -21,62 +21,55 @@ const FeaturedNFTShowcase = () => {
   const fetchFeaturedCollection = async () => {
     try {
       setLoading(true);
-      console.log('[FeaturedNFTShowcase] Fetching trending collections...');
+      console.log('[FeaturedNFTShowcase] Fetching collections and NFTs from all networks...');
       
-      // Fetch trending collections - use first one as featured
-      const collectionsData = await analyticsAPI.getTrendingCollections(1, '7d');
-      console.log('[FeaturedNFTShowcase] Collections Response:', collectionsData);
+      // ✅ Fetch all collections
+      const allCollectionsData = await nftAPI.getCollections();
+      console.log('[FeaturedNFTShowcase] Collections:', allCollectionsData);
       
+      // Use first collection as featured
       let collection = null;
-      if (collectionsData && Array.isArray(collectionsData) && collectionsData.length > 0) {
-        collection = collectionsData[0];
-      } else if (collectionsData && collectionsData.collections && collectionsData.collections.length > 0) {
-        collection = collectionsData.collections[0];
+      if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
+        collection = allCollectionsData[0];
       }
       
       if (!collection) {
-        throw new Error('No collection data');
+        throw new Error('No collections found');
       }
       
       setFeaturedCollection(collection);
       
-      // Now fetch NFTs from this collection (use trending NFTs as proxy until we have collection-specific endpoint)
-      const nftsData = await analyticsAPI.getTrendingNFTs(3, '7d');
-      console.log('[FeaturedNFTShowcase] NFTs Response:', nftsData);
+      // ✅ Fetch NFTs from all networks
+      let nftsData = [];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
-      let nfts = [];
-      if (nftsData && Array.isArray(nftsData) && nftsData.length > 0) {
-        nfts = nftsData.slice(0, 3);
-      } else if (nftsData && nftsData.nfts) {
-        nfts = nftsData.nfts.slice(0, 3);
-      }
-      
-      setFeaturedNFTs(nfts);
-    } catch (error) {
-      console.error('[FeaturedNFTShowcase] Error fetching featured collection:', error);
-      // Fallback to trending NFTs
-      try {
-        const nftsData = await analyticsAPI.getTrendingNFTs(4, '7d');
-        if (nftsData && Array.isArray(nftsData) && nftsData.length > 0) {
-          const mockCollection = {
-            _id: 'collection-1',
-            name: nftsData[0]?.collectionName || 'Trending Collection',
-            image: nftsData[0]?.image || 'https://via.placeholder.com/600x400?text=Collection',
-            description: 'Featured collection from trending NFTs',
-            itemCount: nftsData.length
-          };
-          setFeaturedCollection(mockCollection);
-          setFeaturedNFTs(nftsData.slice(1, 4));
-        } else {
-          throw new Error('No data');
+      for (const network of networks) {
+        try {
+          console.log(`[FeaturedNFTShowcase] Fetching NFTs from ${network}...`);
+          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+          if (Array.isArray(networkNfts)) {
+            nftsData = [...nftsData, ...networkNfts];
+          }
+        } catch (err) {
+          console.warn(`[FeaturedNFTShowcase] Error fetching from ${network}:`, err.message);
         }
-      } catch (err) {
-        console.error('[FeaturedNFTShowcase] Fallback error:', err);
-        // Generate mock data as final fallback
-        const mockData = generateMockFeaturedCollection();
-        setFeaturedCollection(mockData.collection);
-        setFeaturedNFTs(mockData.nfts);
       }
+      
+      // Get first 3 NFTs as featured showcase
+      const showcaseNFTs = nftsData.slice(0, 3);
+      setFeaturedNFTs(showcaseNFTs);
+      
+      if (showcaseNFTs.length === 0) {
+        throw new Error('No NFTs found');
+      }
+      
+      console.log(`[FeaturedNFTShowcase] Fetched ${showcaseNFTs.length} NFTs`);
+    } catch (error) {
+      console.error('[FeaturedNFTShowcase] Error fetching data:', error);
+      // Generate mock data as final fallback
+      const mockData = generateMockFeaturedCollection();
+      setFeaturedCollection(mockData.collection);
+      setFeaturedNFTs(mockData.nfts);
     } finally {
       setLoading(false);
     }
@@ -121,8 +114,8 @@ const FeaturedNFTShowcase = () => {
   const displayNFTs = featuredNFTs && featuredNFTs.length > 0 ? featuredNFTs : generateMockFeaturedCollection().nfts;
 
   return (
-    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 items-start md:items-center">
+    <div className="mb-4 xs:mb-5 sm:mb-8 md:mb-12 lg:mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 xs:gap-3 sm:gap-4 md:gap-4 lg:gap-6 items-start md:items-center">
         {/* Featured Collection Large Display */}
         <div className="md:col-span-1 lg:col-span-2">
           <div className="relative rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden group">

@@ -3,11 +3,11 @@
  * Endpoints for performance monitoring and optimization
  */
 
-const express = require('express');
+import express from 'express';
+import adminAuth from '../middleware/adminAuth.js';
+import tryCatch from '../middleware/tryCatch.js';
+import logger from '../utils/logger.js';
 const router = express.Router();
-const adminAuth = require('../middleware/adminAuth');
-const tryCatch = require('../middleware/tryCatch');
-const logger = require('../utils/logger');
 
 let performanceService = null;
 
@@ -339,4 +339,4 @@ router.use((req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

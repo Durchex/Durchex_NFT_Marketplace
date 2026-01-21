@@ -1,5 +1,5 @@
 import Collection from '../models/collectionModel.js';
-import { uploadImageToIPFS } from '../services/ipfsService.js';
+import IPFSService from '../services/ipfsService.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -42,7 +42,7 @@ export const createCollectionAdmin = async (req, res) => {
           const buffer = Buffer.from(base64Data, 'base64');
           
           // Upload to IPFS
-          const ipfsHash = await uploadImageToIPFS(buffer, `${name}-collection-${Date.now()}`);
+          const ipfsHash = await IPFSService.uploadImage(buffer, `${name}-collection-${Date.now()}`);
           imageURL = `ipfs://${ipfsHash}`;
           
           logger.info('Collection image uploaded to IPFS', { 
@@ -51,7 +51,7 @@ export const createCollectionAdmin = async (req, res) => {
           });
         } else if (typeof image === 'object') {
           // Handle file object if sent via multipart
-          const ipfsHash = await uploadImageToIPFS(image, `${name}-collection-${Date.now()}`);
+          const ipfsHash = await IPFSService.uploadImage(image, `${name}-collection-${Date.now()}`);
           imageURL = `ipfs://${ipfsHash}`;
         } else {
           imageURL = image; // Already a URL

@@ -1,9 +1,9 @@
-// Bridge API Routes
-const express = require('express');
+
+import express from 'express';
+import BridgeService from '../services/BridgeService.js';
+import auth from '../middleware/auth.js';
+import tryCatch from '../middleware/tryCatch.js';
 const router = express.Router();
-const BridgeService = require('../services/BridgeService');
-const auth = require('../middleware/auth');
-const tryCatch = require('../middleware/tryCatch');
 
 const bridgeService = new BridgeService();
 
@@ -286,4 +286,4 @@ router.get('/analytics', tryCatch(async (req, res) => {
   });
 }));
 
-module.exports = router;
+export default router;

@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
+import SearchService from '../services/elasticsearch/SearchService.js';
+import logger from '../utils/logger.js';
 const router = express.Router();
-const SearchService = require('../services/elasticsearch/SearchService');
-const logger = require('../utils/logger');
 
 /**
  * POST /api/search
@@ -291,4 +291,4 @@ router.post('/log', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

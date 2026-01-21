@@ -1,6 +1,6 @@
 // Multi-Chain Aggregator - Data aggregation and query service
-const MultiChainService = require('./MultiChainService');
-const NodeCache = require('node-cache');
+import MultiChainService from './MultiChainService.js';
+import NodeCache from 'node-cache';
 
 /**
  * MultiChainAggregator - Aggregates data from multiple chains
@@ -303,4 +303,4 @@ class MultiChainAggregator {
   }
 }
 
-module.exports = MultiChainAggregator;
+export default MultiChainAggregator;

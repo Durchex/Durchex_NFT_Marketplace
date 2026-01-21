@@ -1,15 +1,15 @@
 // Royalty Routes - ERC-2981 compliant royalty management
-const express = require('express');
+import express from 'express';
+import RoyaltyService from '../services/RoyaltyService.js';
+import { ethers } from 'ethers';
 const router = express.Router();
-const RoyaltyService = require('../services/RoyaltyService');
-const { ethers } = require('ethers');
 
 /**
  * Initialize RoyaltyService
  * Note: Replace with actual contract address and provider
  */
-const ROYALTY_CONTRACT_ADDRESS = process.env.ROYALTY_CONTRACT_ADDRESS || '';
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'http://localhost:8545');
+const ROYALTY_CONTRACT_ADDRESS = process.env.ROYALTY_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'https://ethereum-sepolia.core.chainstack.com/390cec07d0dbe1818b3bb25db398c3ca');
 const royaltyService = new RoyaltyService(ROYALTY_CONTRACT_ADDRESS, provider);
 
 /**
@@ -502,4 +502,4 @@ router.post('/cache/clear', (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

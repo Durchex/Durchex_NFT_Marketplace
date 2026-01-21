@@ -1,5 +1,5 @@
-const { Client } = require('@elastic/elasticsearch');
-const logger = require('../../utils/logger');
+import { Client } from '@elastic/elasticsearch';
+import logger from '../../utils/logger.js';
 
 class ElasticsearchClient {
   constructor() {
@@ -321,4 +321,5 @@ class ElasticsearchClient {
   }
 }
 
-module.exports = new ElasticsearchClient();
+const elasticsearchClientInstance = new ElasticsearchClient();
+export default elasticsearchClientInstance;

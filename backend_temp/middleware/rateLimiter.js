@@ -1,5 +1,5 @@
 // Advanced Rate Limiting Middleware
-const NodeCache = require('node-cache');
+import NodeCache from 'node-cache';
 
 /**
  * Rate limiter using sliding window algorithm
@@ -255,7 +255,7 @@ class CostBasedRateLimiter {
   }
 }
 
-module.exports = {
+export {
   SlidingWindowRateLimiter,
   CostBasedRateLimiter,
   createAPIRateLimiter,

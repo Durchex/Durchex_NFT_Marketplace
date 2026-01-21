@@ -3,7 +3,7 @@
  * Handles marketplace analytics and data aggregation
  */
 
-const logger = require('../utils/logger');
+import logger from '../utils/logger.js';
 
 class AnalyticsService {
     constructor(provider, database) {
@@ -602,4 +602,4 @@ class AnalyticsService {
     }
 }
 
-module.exports = AnalyticsService;
+export default AnalyticsService;
