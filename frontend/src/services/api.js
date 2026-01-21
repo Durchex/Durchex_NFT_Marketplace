@@ -582,6 +582,42 @@ export const cartAPI = {
 
 // Analytics API functions
 export const analyticsAPI = {
+  // Get top creators
+  getTopCreators: async (limit = 10, timeframe = '7d') => {
+    try {
+      const response = await api.get(`/analytics/top-creators?limit=${limit}&timeframe=${timeframe}`);
+      console.log('Top creators data received:', response.data);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch top creators:', error);
+      throw error;
+    }
+  },
+
+  // Get trending NFTs
+  getTrendingNFTs: async (limit = 12, timeframe = '7d') => {
+    try {
+      const response = await api.get(`/analytics/trending-nfts?limit=${limit}&timeframe=${timeframe}`);
+      console.log('Trending NFTs data received:', response.data);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch trending NFTs:', error);
+      throw error;
+    }
+  },
+
+  // Get trending collections
+  getTrendingCollections: async (limit = 10, timeframe = '7d') => {
+    try {
+      const response = await api.get(`/analytics/trending-collections?limit=${limit}&timeframe=${timeframe}`);
+      console.log('Trending collections data received:', response.data);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch trending collections:', error);
+      throw error;
+    }
+  },
+
   // Get platform analytics
   getPlatformAnalytics: async (period = '7d') => {
     try {
@@ -683,6 +719,57 @@ export const analyticsAPI = {
       console.error('Failed to fetch top performing NFTs:', error);
       // Return empty array on error instead of mock data with generated images
       return [];
+    }
+  }
+};
+
+// Auction API functions
+export const auctionAPI = {
+  // Get active auctions
+  getActiveAuctions: async (limit = 6) => {
+    try {
+      const response = await api.get(`/auction/active?limit=${limit}`);
+      console.log('Active auctions data received:', response.data);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch active auctions:', error);
+      throw error;
+    }
+  },
+
+  // Get auction by ID
+  getAuctionById: async (auctionId) => {
+    try {
+      const response = await api.get(`/auction/${auctionId}`);
+      console.log('Auction details received:', response.data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      console.error('Failed to fetch auction:', error);
+      throw error;
+    }
+  },
+
+  // Get auction bid history
+  getBidHistory: async (auctionId) => {
+    try {
+      const response = await api.get(`/auction/${auctionId}/bids`);
+      console.log('Auction bid history received:', response.data);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch bid history:', error);
+      throw error;
+    }
+  },
+
+  // Place a bid on auction
+  placeBid: async (auctionId, bidData) => {
+    try {
+      const response = await api.post(`/auction/${auctionId}/bid`, bidData);
+      console.log('Bid placed successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to place bid:', error);
+      throw error;
     }
   }
 };

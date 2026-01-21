@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
-import { nftAPI } from '../../services/api';
+import { auctionAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 /**
@@ -18,11 +18,20 @@ const LiveAuctions = () => {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
+      console.log('[LiveAuctions] Fetching active auctions...');
       // Fetch active auctions
-      const response = await nftAPI.get('/auctions?status=active&limit=6');
-      setAuctions(response.data || generateMockAuctions());
+      const data = await auctionAPI.getActiveAuctions(6);
+      console.log('[LiveAuctions] Response:', data);
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        setAuctions(data);
+      } else if (data && data.auctions) {
+        setAuctions(data.auctions);
+      } else {
+        setAuctions(generateMockAuctions());
+      }
     } catch (error) {
-      console.error('Error fetching auctions:', error);
+      console.error('[LiveAuctions] Error fetching auctions:', error);
       setAuctions(generateMockAuctions());
     } finally {
       setLoading(false);
@@ -70,10 +79,10 @@ const LiveAuctions = () => {
 
   if (loading) {
     return (
-      <div className="mb-8 md:mb-12 lg:mb-16 animate-pulse">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+      <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 animate-pulse">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-80 bg-gray-800 rounded-lg"></div>
+            <div key={i} className="h-48 xs:h-56 sm:h-64 md:h-72 lg:h-80 bg-gray-800 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -81,20 +90,20 @@ const LiveAuctions = () => {
   }
 
   return (
-    <div className="mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
       {/* Header */}
-      <div className="mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Live Auction</h2>
+      <div className="mb-3 sm:mb-4 md:mb-6">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Live Auction</h2>
         <p className="text-gray-400 text-xs md:text-sm">You are welcome to participate and bid for NFT from Durchex</p>
       </div>
 
       {/* Auctions Grid - Responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         {auctions.map((auction) => (
           <div key={auction._id} className="group cursor-pointer">
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
               {/* Image Container */}
-              <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
+              <div className="relative h-40 xs:h-48 sm:h-56 md:h-64 lg:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                 {auction.image ? (
                   <img
                     src={auction.image}
@@ -106,8 +115,8 @@ const LiveAuctions = () => {
                 )}
 
                 {/* Timer Badge */}
-                <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg flex items-center gap-2">
-                  <Clock size={14} className="text-red-500 flex-shrink-0" />
+                <div className="absolute top-1.5 md:top-2 lg:top-3 left-1.5 md:left-2 lg:left-3 bg-black/80 backdrop-blur px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2">
+                  <Clock size={12} className="text-red-500 flex-shrink-0" />
                   <p className="text-white font-mono text-xs">{timers[auction._id] || '...'}</p>
                 </div>
 
@@ -118,31 +127,32 @@ const LiveAuctions = () => {
 
                 {/* Place Bid Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm">
-                    <Gavel size={18} />
-                    Place Bid
+                  <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm">
+                    <Gavel size={14} className="sm:w-[18px]" />
+                    <span className="hidden sm:inline">Place Bid</span>
+                    <span className="sm:hidden">Bid</span>
                   </button>
                 </div>
               </div>
 
               {/* Auction Info */}
-              <div className="p-3 md:p-4 flex-grow flex flex-col justify-between">
-                <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2 md:mb-3">
+              <div className="p-2 sm:p-3 md:p-4 flex-grow flex flex-col justify-between">
+                <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
                   {auction.name}
                 </h3>
 
                 {/* Current Bid */}
-                <div className="mb-2 md:mb-3 pb-2 md:pb-3 border-b border-gray-700/50">
+                <div className="mb-2 pb-2 border-b border-gray-700/50">
                   <p className="text-gray-400 text-xs mb-1">Current Bid</p>
-                  <p className="text-lg md:text-xl font-bold text-purple-400">{auction.currentBid} ETH</p>
+                  <p className="text-base sm:text-lg md:text-xl font-bold text-purple-400">{auction.currentBid} ETH</p>
                 </div>
 
                 {/* Creator */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <img
                     src={auction.creatorAvatar}
                     alt={auction.creatorName}
-                    className="w-6 md:w-8 h-6 md:h-8 rounded-full"
+                    className="w-5 sm:w-6 md:w-8 h-5 sm:h-6 md:h-8 rounded-full flex-shrink-0"
                   />
                   <span className="text-gray-400 text-xs line-clamp-1">{auction.creatorName}</span>
                 </div>

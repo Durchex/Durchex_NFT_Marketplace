@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
-import { nftAPI } from '../../services/api';
+import { analyticsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 
@@ -35,22 +35,25 @@ const ExploreNFTsGrid = () => {
   const fetchNFTs = async () => {
     try {
       setLoading(true);
-      let endpoint = '/trending';
+      console.log('[ExploreNFTsGrid] Fetching NFTs for tab:', activeTab);
+      
+      // For now, fetch trending NFTs for all tabs (featured/trending/latest filtering to be added later)
+      const data = await analyticsAPI.getTrendingNFTs(6, '7d');
+      console.log('[ExploreNFTsGrid] Response:', data);
 
-      if (activeTab === 'latest') {
-        endpoint = '/recent?sort=-createdAt';
-      } else if (activeTab === 'featured') {
-        endpoint = '/featured-nfts';
+      let nftList = [];
+      if (data && Array.isArray(data) && data.length > 0) {
+        nftList = data;
+      } else if (data && data.nfts) {
+        nftList = data.nfts;
+      } else {
+        nftList = generateMockNFTs();
       }
-
-      const response = await nftAPI.get(endpoint, {
-        params: { page, limit: 6 }
-      });
-
-      setNfts(response.data.nfts || response.data || generateMockNFTs());
-      setTotalPages(response.data.totalPages || 1);
+      
+      setNfts(nftList);
+      setTotalPages(Math.ceil(nftList.length / 6));
     } catch (error) {
-      console.error('Error fetching NFTs:', error);
+      console.error('[ExploreNFTsGrid] Error fetching NFTs:', error);
       setNfts(generateMockNFTs());
     } finally {
       setLoading(false);
@@ -86,18 +89,18 @@ const ExploreNFTsGrid = () => {
   };
 
   return (
-    <div className="mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
       {/* Header with Tabs */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-white">Explore NFTs</h2>
+      <div className="mb-3 sm:mb-4 md:mb-6">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-3 sm:mb-4">Explore NFTs</h2>
 
         {/* Tab Buttons */}
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1 sm:gap-2 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 md:px-6 py-1 md:py-2 rounded-lg font-semibold transition text-xs md:text-sm ${
+              className={`px-3 sm:px-4 md:px-6 py-1.5 md:py-2 rounded-lg font-semibold transition text-xs md:text-sm ${
                 activeTab === tab.id
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -110,10 +113,10 @@ const ExploreNFTsGrid = () => {
       </div>
 
       {/* NFTs Grid - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
         {loading ? (
           Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-56 sm:h-64 md:h-80 bg-gray-800 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-40 xs:h-48 sm:h-56 md:h-64 lg:h-80 bg-gray-800 rounded-lg animate-pulse"></div>
           ))
         ) : nfts.length === 0 ? (
           <div className="col-span-full text-center py-12">

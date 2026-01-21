@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, ArrowRight } from 'lucide-react';
-import { userAPI } from '../../services/api';
+import { analyticsAPI } from '../../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -18,11 +18,21 @@ const TopCreators = () => {
   const fetchTopCreators = async () => {
     try {
       setLoading(true);
-      // Try to get top creators - adjust endpoint based on your API
-      const response = await userAPI.get('/top-creators?limit=10');
-      setCreators(response.data || []);
+      console.log('[TopCreators] Fetching top creators...');
+      // Fetch from analytics API
+      const data = await analyticsAPI.getTopCreators(10, '7d');
+      console.log('[TopCreators] Response:', data);
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        setCreators(data);
+      } else if (data && data.creators && Array.isArray(data.creators)) {
+        setCreators(data.creators);
+      } else {
+        console.warn('[TopCreators] No data returned, using mock');
+        setCreators(generateMockCreators());
+      }
     } catch (error) {
-      console.error('Error fetching top creators:', error);
+      console.error('[TopCreators] Error fetching top creators:', error);
       // Generate mock data if API fails
       setCreators(generateMockCreators());
     } finally {
