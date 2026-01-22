@@ -169,16 +169,9 @@ export const userAPI = {
   // Get user profile by wallet address
   getUserProfile: async (walletAddress) => {
     try {
-      const response = await api.get(`/user/users/${walletAddress}`, {
-        timeout: 10000, // 10 second timeout for profile requests
-      });
+      const response = await api.get(`/user/users/${walletAddress}`);
       return response.data;
     } catch (error) {
-      // Handle timeout errors
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.warn(`Timeout fetching user profile for ${walletAddress}, returning null`);
-        return null; // Don't throw error for profile loading timeouts
-      }
       // Handle rate limiting
       if (error.response?.status === 429) {
         console.warn('Rate limit hit for user profile, returning null');
@@ -187,9 +180,7 @@ export const userAPI = {
       if (error.response?.status === 404) {
         return null; // User not found
       }
-      // For other errors, log but don't throw - return null to allow UI to continue
-      console.warn(`Failed to get user profile for ${walletAddress}:`, error.message);
-      return null;
+      throw new Error(`Failed to get user profile: ${error.message}`);
     }
   },
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { nftAPI, userAPI } from '../../services/api';
+import { nftAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
@@ -15,8 +15,6 @@ const ExploreNFTsGrid = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [liked, setLiked] = useState(new Set());
   const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
-  const [filter, setFilter] = useState('Latest');
-  const [creatorProfiles, setCreatorProfiles] = useState(new Map());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,37 +70,6 @@ const ExploreNFTsGrid = () => {
         console.log(`[ExploreNFTsGrid] Total NFTs fetched: ${nftsData.length}`);
         setAllNfts(nftsData);
         paginateNFTs();
-        
-        // Fetch creator profiles for all NFTs
-        const profilesMap = new Map();
-        await Promise.all(
-          nftsData.slice(0, 50).map(async (nft) => { // Limit to first 50 to avoid too many API calls
-            const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
-            if (walletAddress && !profilesMap.has(walletAddress)) {
-              try {
-                const profile = await userAPI.getUserProfile(walletAddress);
-                if (profile) {
-                  profilesMap.set(walletAddress, {
-                    username: profile.username || nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                    avatar: profile.image || profile.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                  });
-                } else {
-                  profilesMap.set(walletAddress, {
-                    username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                    avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                  });
-                }
-              } catch (error) {
-                console.warn(`[ExploreNFTsGrid] Error fetching profile for ${walletAddress}:`, error);
-                profilesMap.set(walletAddress, {
-                  username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              }
-            }
-          })
-        );
-        setCreatorProfiles(profilesMap);
       } else {
         throw new Error('No NFTs fetched from any network');
       }
@@ -148,24 +115,7 @@ const ExploreNFTsGrid = () => {
       {/* Header */}
       <div className="mb-3 xs:mb-4 sm:mb-6 w-full">
         <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-2 xs:mb-3 sm:mb-4">Explore NFTs</h2>
-        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Browse through all the NFTs on Durchex</p>
-        
-        {/* Filter Tabs */}
-        <div className="flex gap-2 sm:gap-3 border-b border-gray-700">
-          {['Latest', 'Trending', 'Featured'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold transition border-b-2 ${
-                filter === tab
-                  ? 'border-purple-600 text-purple-400'
-                  : 'border-transparent text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <p className="text-gray-400 text-xs sm:text-sm">All NFTs available on Durchex</p>
       </div>
 
       {/* NFTs Grid - Mobile: 1 col, Tablet: 2 cols, Desktop: 3-4 cols */}
@@ -239,46 +189,27 @@ const ExploreNFTsGrid = () => {
                       <Eye size={20} />
                     </button>
                   </div>
+
+                  {/* Price Badge */}
+                  <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg">
+                    <p className="text-white font-semibold text-xs md:text-sm">{nft.price} ETH</p>
+                  </div>
                 </div>
 
                 {/* NFT Info */}
                 <div className="p-3 md:p-4 flex-grow flex flex-col justify-between">
-                  {/* Tag */}
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-0.5 bg-purple-600/20 text-purple-400 text-xs font-semibold rounded">
-                      ART
-                    </span>
-                  </div>
-                  
                   <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
-                    {nft.name || 'Futuristic Artist Portrait'}
+                    {nft.name}
                   </h3>
 
-                  {/* Owner and Floor Price */}
-                  <div className="mt-auto pt-2 md:pt-3 border-t border-gray-700/50">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-gray-400 text-xs">Owned By</span>
-                      {(() => {
-                        const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
-                        const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
-                        const username = profile?.username || nft.creatorName || 'Creator';
-                        const avatar = profile?.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <img
-                              src={avatar}
-                              alt={username}
-                              className="w-4 h-4 rounded-full border border-gray-700"
-                            />
-                            <span className="text-white text-xs font-medium line-clamp-1">{username}</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-400 text-xs">Floor:</span>
-                      <span className="text-white text-xs font-semibold">{nft.price || nft.floorPrice || '2.55'} ETH</span>
-                    </div>
+                  {/* Creator */}
+                  <div className="flex items-center gap-2 mt-auto pt-2 md:pt-3 border-t border-gray-700/50">
+                    <img
+                      src={nft.creatorAvatar}
+                      alt={nft.creatorName}
+                      className="w-6 md:w-8 h-6 md:h-8 rounded-full"
+                    />
+                    <span className="text-gray-400 text-xs line-clamp-1">{nft.creatorName}</span>
                   </div>
                 </div>
               </div>

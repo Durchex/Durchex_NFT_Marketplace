@@ -11,7 +11,6 @@ import toast from 'react-hot-toast';
 const TopCreators = () => {
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState('1D');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -150,51 +149,28 @@ const TopCreators = () => {
           <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Top Creators</h2>
           <p className="text-gray-400 text-xs sm:text-sm">Verified creators on Durchex</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Time Filter Buttons */}
-          <div className="flex gap-1 sm:gap-2 bg-gray-800/50 rounded-lg p-1">
-            {['1H', '1D', '7D', '30D', 'All'].map((period) => (
-              <button
-                key={period}
-                onClick={() => setTimeFilter(period)}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition ${
-                  timeFilter === period
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                {period}
-              </button>
-            ))}
-          </div>
-          <Link
-            to="/rankings"
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-xs sm:text-sm whitespace-nowrap"
-          >
-            <TrendingUp size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">View Rankings</span>
-            <span className="sm:hidden">Rankings</span>
-          </Link>
-        </div>
+        <Link
+          to="/rankings"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border border-purple-600 text-purple-400 rounded-full hover:bg-purple-600/10 transition font-semibold text-xs sm:text-sm whitespace-nowrap"
+        >
+          <TrendingUp size={14} className="sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">View Rankings</span>
+          <span className="sm:hidden">Rankings</span>
+        </Link>
       </div>
 
       {/* Creators Grid - Mobile: 2 cols, Tablet: 3-4 cols, Desktop: 5 cols */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
-        {creators.map((creator, idx) => (
+        {creators.map((creator) => (
           <div
             key={creator.address}
-            className="group bg-gray-800/30 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-purple-600/50 transition cursor-pointer"
+            className="group text-center w-full min-w-0 cursor-pointer"
             onClick={() => navigate(`/profile/${creator.address}`)}
           >
-            <div className="flex flex-col items-center text-center">
-              {/* Rank Number */}
-              <div className="absolute top-2 left-2 sm:top-3 sm:left-3 w-6 h-6 sm:w-7 sm:h-7 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-                {idx + 1}
-              </div>
-              
+            <div className="flex flex-col items-center">
               {/* Avatar - Clickable */}
               <div 
-                className="mb-2 sm:mb-3 cursor-pointer relative"
+                className="mb-2 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   navigate(`/profile/${creator.address}`);
@@ -203,24 +179,17 @@ const TopCreators = () => {
                 <img
                   src={creator.avatar}
                   alt={creator.username}
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition border-2 border-gray-700 group-hover:border-purple-500"
+                  className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition"
                 />
               </div>
 
               {/* Username */}
               <h3 
-                className="font-bold text-white text-sm sm:text-base mb-2 group-hover:text-purple-400 transition text-center line-clamp-1"
+                className="font-bold text-white text-xs sm:text-sm group-hover:text-purple-400 transition text-center line-clamp-2"
+                onClick={() => navigate(`/profile/${creator.address}`)}
               >
                 {creator.username || `User ${creator.address.substring(0, 6)}`}
               </h3>
-
-              {/* Stats */}
-              <div className="w-full space-y-1">
-                <div>
-                  <p className="text-gray-400 text-xs">Total Sales</p>
-                  <p className="text-white font-semibold text-sm">{creator.totalVolume?.toFixed(2) || '0.00'} ETH</p>
-                </div>
-              </div>
             </div>
           </div>
         ))}

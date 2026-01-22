@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { nftAPI, userAPI } from '../../services/api';
+import { nftAPI } from '../../services/api';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 import { ErrorToast } from '../../app/Toast/Error.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,6 @@ const FeaturedNFTShowcase = () => {
   const [featuredNFTs, setFeaturedNFTs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(new Set());
-  const [creatorProfiles, setCreatorProfiles] = useState(new Map()); // Store creator profiles
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,37 +52,6 @@ const FeaturedNFTShowcase = () => {
       
       setCollections(collectionsList);
       console.log(`[FeaturedNFTShowcase] Loaded ${collectionsList.length} collections`);
-      
-      // Fetch creator profiles for all collections
-      const profilesMap = new Map();
-      await Promise.all(
-        collectionsList.map(async (collection) => {
-          const walletAddress = collection.creatorWallet || collection.owner || collection.walletAddress;
-          if (walletAddress && !profilesMap.has(walletAddress)) {
-            try {
-              const profile = await userAPI.getUserProfile(walletAddress);
-              if (profile) {
-                profilesMap.set(walletAddress, {
-                  username: profile.username || collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: profile.image || profile.avatar || collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              } else {
-                profilesMap.set(walletAddress, {
-                  username: collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              }
-            } catch (error) {
-              console.warn(`[FeaturedNFTShowcase] Error fetching profile for ${walletAddress}:`, error);
-              profilesMap.set(walletAddress, {
-                username: collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                avatar: collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-              });
-            }
-          }
-        })
-      );
-      setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching collections:', error);
       // Generate mock data as fallback
@@ -149,37 +117,6 @@ const FeaturedNFTShowcase = () => {
       
       setFeaturedNFTs(showcaseNFTs);
       console.log(`[FeaturedNFTShowcase] Loaded ${showcaseNFTs.length} NFTs for collection`);
-      
-      // Fetch creator profiles for featured NFTs
-      const profilesMap = new Map(creatorProfiles);
-      await Promise.all(
-        showcaseNFTs.map(async (nft) => {
-          const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
-          if (walletAddress && !profilesMap.has(walletAddress)) {
-            try {
-              const profile = await userAPI.getUserProfile(walletAddress);
-              if (profile) {
-                profilesMap.set(walletAddress, {
-                  username: profile.username || nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: profile.image || profile.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              } else {
-                profilesMap.set(walletAddress, {
-                  username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              }
-            } catch (error) {
-              console.warn(`[FeaturedNFTShowcase] Error fetching profile for ${walletAddress}:`, error);
-              profilesMap.set(walletAddress, {
-                username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-              });
-            }
-          }
-        })
-      );
-      setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching NFTs:', error);
       // Generate mock NFTs as fallback
@@ -282,144 +219,130 @@ const FeaturedNFTShowcase = () => {
 
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
-      {/* Slider Container - Desktop: Entire hero is one slider with featured items inside on right */}
-      <div className="relative w-full rounded-lg overflow-hidden group">
-        {/* Desktop: Single container with banner and featured items side by side */}
-        <div className="relative w-full h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px] flex flex-col lg:flex-row">
-          {/* Main Collection Banner - Left Side (Desktop) / Full Width (Mobile) */}
-          <div className="relative w-full lg:flex-1 h-full">
+      {/* Mobile: Stack vertically, Desktop: Side by side */}
+      <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+        {/* Featured Collection Large Display with Slider Controls */}
+        <div className="w-full min-w-0 md:col-span-1 lg:col-span-2 relative">
+          <div className="relative rounded-lg overflow-hidden group w-full">
             <img
               src={currentCollection.image || 'https://via.placeholder.com/600x400'}
               alt={currentCollection.name}
-              className="w-full h-full object-cover"
+              className="w-full h-auto min-h-[200px] sm:min-h-[250px] md:min-h-[320px] lg:min-h-[400px] object-cover"
             />
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
 
-            {/* Collection Info - Bottom Left */}
-            <div className="absolute bottom-0 left-0 right-0 lg:right-auto lg:w-auto p-4 sm:p-5 md:p-6 lg:p-8 text-white z-10">
-              <div className="mb-2 sm:mb-3">
-                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2">{currentCollection.name}</h2>
-                <div className="flex items-center gap-2 mb-1">
-                  {(() => {
-                    const walletAddress = currentCollection.creatorWallet || currentCollection.owner || currentCollection.walletAddress;
-                    const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
-                    const username = profile?.username || currentCollection.creatorName || 'Creator';
-                    const avatar = profile?.avatar || currentCollection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
-                    return (
-                      <>
-                        <img
-                          src={avatar}
-                          alt={username}
-                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-gray-600"
-                        />
-                        <p className="text-gray-300 text-sm sm:text-base">By {username}</p>
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div>
-                    <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Floor Price</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                      {currentCollection.floorPrice || '0.5'} ETH
-                    </p>
-                  </div>
-                  {currentCollection.itemCount && (
-                    <div className="hidden sm:block">
-                      <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Items</p>
-                      <p className="text-lg sm:text-xl font-bold text-white">{currentCollection.itemCount}</p>
-                    </div>
-                  )}
-                </div>
+            {/* Slider Navigation Arrows */}
+            {collections.length > 1 && (
+              <>
+                <button
+                  onClick={prevCollection}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition opacity-0 group-hover:opacity-100"
+                  aria-label="Previous collection"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button
+                  onClick={nextCollection}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition opacity-0 group-hover:opacity-100"
+                  aria-label="Next collection"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
+
+            {/* Collection Info - Bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 lg:p-8 text-white">
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">{currentCollection.name}</h2>
+              <div className="flex items-center gap-2 mb-2 sm:mb-3 md:mb-4">
+                {currentCollection.itemCount && (
+                  <span className="text-gray-300 text-xs sm:text-sm">{currentCollection.itemCount} items</span>
+                )}
+                {collections.length > 1 && (
+                  <span className="text-gray-400 text-xs sm:text-sm">
+                    {currentIndex + 1} / {collections.length}
+                  </span>
+                )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 sm:gap-3">
-                <button
-                  onClick={() => handleLike(currentCollection._id)}
-                  className={`p-2 sm:p-2.5 rounded-lg border-2 transition flex-shrink-0 ${
-                    liked.has(currentCollection._id)
-                      ? 'bg-red-600 border-red-600 text-white'
-                      : 'border-gray-600 text-gray-300 hover:border-red-500 hover:bg-red-600/20'
-                  }`}
-                >
-                  <Heart size={18} className="sm:w-5 sm:h-5" fill={liked.has(currentCollection._id) ? 'currentColor' : 'none'} />
-                </button>
-                <button
-                  onClick={() => handleViewCollection(currentCollection)}
-                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm sm:text-base"
-                >
-                  <ShoppingCart size={18} className="sm:w-5 sm:h-5" />
-                  <span>View Collection</span>
-                </button>
+              {/* Price & Actions */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 items-start sm:items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-xs mb-0.5 sm:mb-1">Floor Price</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                    {currentCollection.floorPrice || '0.6'} ETH
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => handleLike(currentCollection._id)}
+                    className={`p-2 rounded-lg border-2 transition flex-shrink-0 ${
+                      liked.has(currentCollection._id)
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'border-gray-600 text-gray-300 hover:border-red-500'
+                    }`}
+                  >
+                    <Heart size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleViewCollection(currentCollection)}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 md:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition text-xs sm:text-sm"
+                  >
+                    <ShoppingCart size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    <span className="hidden sm:inline">View Collection</span>
+                    <span className="sm:hidden">View</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Featured NFTs - Inside slider at bottom right (Desktop) / Below banner (Mobile) */}
-          {/* Mobile: 3 column grid below, Desktop: Horizontal row at bottom right inside slider */}
-          <div className="lg:absolute lg:bottom-0 lg:right-0 lg:flex lg:justify-end lg:pb-4 xl:pb-6 lg:pr-4 xl:pr-6">
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:flex lg:flex-row lg:gap-3 lg:h-auto">
-              {displayNFTs.map((nft, idx) => (
-                <div
-                  key={nft._id || idx}
-                  className="relative rounded-lg overflow-hidden cursor-pointer group aspect-square w-full lg:w-[140px] xl:w-[160px] lg:h-[140px] xl:h-[160px]"
-                  onClick={() => navigate(`/nft/${nft._id}`)}
-                >
-                  <img
-                    src={nft.image || `https://via.placeholder.com/200x200?text=NFT%20${idx + 1}`}
-                    alt={nft.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+            {/* Slider Dots Indicator */}
+            {collections.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {collections.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`h-2 rounded-full transition ${
+                      idx === currentIndex ? 'w-8 bg-purple-600' : 'w-2 bg-white/30 hover:bg-white/50'
+                    }`}
+                    aria-label={`Go to collection ${idx + 1}`}
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <ChevronRight className="text-white" size={18} />
-                  </div>
-                  {/* NFT Info Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-2 sm:p-3">
-                    <p className="text-white text-xs sm:text-sm font-semibold line-clamp-1 mb-0.5">{nft.name || `Item ${idx + 1}`}</p>
-                    <p className="text-purple-300 text-xs sm:text-sm font-medium">{nft.price || nft.floorPrice || '0.55'} ETH</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Slider Navigation Arrows - Positioned on main banner */}
-          {collections.length > 1 && (
-            <>
-              <button
-                onClick={prevCollection}
-                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
-                aria-label="Previous collection"
+        {/* Featured NFTs from Current Collection - Mobile: Show below, Desktop: Show on side */}
+        <div className="flex flex-col gap-3 sm:gap-4 w-full min-w-0">
+          <h3 className="text-white font-semibold text-sm sm:text-base md:text-lg">Featured Items</h3>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full">
+            {displayNFTs.map((nft, idx) => (
+              <div
+                key={nft._id || idx}
+                className="relative rounded-lg overflow-hidden cursor-pointer group w-full aspect-square min-w-0"
+                onClick={() => navigate(`/nft/${nft._id}`)}
               >
-                <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
-              </button>
-              <button
-                onClick={nextCollection}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
-                aria-label="Next collection"
-              >
-                <ChevronRight size={20} className="sm:w-6 sm:h-6" />
-              </button>
-            </>
-          )}
-
-          {/* Slider Dots Indicator */}
-          {collections.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-20 xl:bottom-24 flex gap-2 z-20">
-              {collections.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`h-2 rounded-full transition ${
-                    idx === currentIndex ? 'w-8 bg-purple-600' : 'w-2 bg-white/30 hover:bg-white/50'
-                  }`}
-                  aria-label={`Go to collection ${idx + 1}`}
+                <img
+                  src={nft.image || `https://via.placeholder.com/200x200?text=NFT%20${idx + 1}`}
+                  alt={nft.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition"
                 />
-              ))}
-            </div>
-          )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <ChevronRight className="text-white" size={16} />
+                </div>
+                {/* NFT Price Tooltip */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 sm:px-2 py-1 sm:py-1.5">
+                  <p className="text-white text-[10px] sm:text-xs font-semibold line-clamp-1">{nft.name || `Item ${idx + 1}`}</p>
+                  <p className="text-purple-300 text-[10px] sm:text-xs font-medium">{nft.price || nft.floorPrice || '0.5'} ETH</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
