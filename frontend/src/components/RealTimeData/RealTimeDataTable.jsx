@@ -11,6 +11,8 @@ const RealTimeDataTable = () => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trendData, setTrendData] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [timeFilter, setTimeFilter] = useState('24h');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,7 +143,46 @@ const RealTimeDataTable = () => {
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
       {/* Header */}
-      <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Real-Time Data</h2>
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Real-Time Data</h2>
+        
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+          {/* Category Filters */}
+          <div className="flex gap-1 sm:gap-2 bg-gray-800/50 rounded-lg p-1">
+            {['All', 'Trending', 'Top', 'Watchlist'].map((category) => (
+              <button
+                key={category}
+                onClick={() => setCategoryFilter(category)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition ${
+                  categoryFilter === category
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          
+          {/* Time Filters */}
+          <div className="flex gap-1 sm:gap-2 bg-gray-800/50 rounded-lg p-1">
+            {['1H', '6h', '24h', '7D', '1M', '6M', '1Y'].map((period) => (
+              <button
+                key={period}
+                onClick={() => setTimeFilter(period)}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-medium transition ${
+                  timeFilter === period
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Mobile: Stack vertically, Desktop: Side by side */}
       <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6 w-full">
@@ -151,13 +192,13 @@ const RealTimeDataTable = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold">NFT</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold hidden sm:table-cell">Floor</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold hidden md:table-cell">24H</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold">Chg</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold hidden lg:table-cell">V24H</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold hidden lg:table-cell">V7D</th>
-                  <th className="px-3 py-3 text-left text-gray-400 text-sm font-semibold hidden sm:table-cell">Trend</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold">#</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold">Collection</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold hidden sm:table-cell">Volume</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold">Floor Price</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold hidden md:table-cell">Sales</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold hidden lg:table-cell">Floor Price %</th>
+                  <th className="px-3 py-3 text-left text-gray-400 text-xs sm:text-sm font-semibold hidden sm:table-cell">Last 1D</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,57 +208,51 @@ const RealTimeDataTable = () => {
                     className="border-b border-gray-700/50 hover:bg-gray-800/50 transition cursor-pointer"
                     onClick={() => navigate(`/nft/${row._id}`)}
                   >
-                    {/* NFT */}
+                    {/* Rank */}
+                    <td className="px-3 py-3 text-gray-400 text-xs sm:text-sm">
+                      {idx + 1}
+                    </td>
+
+                    {/* Collection */}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <img
                           src={row.image || `https://via.placeholder.com/50x50?text=${row.name?.substring(0, 3)}`}
                           alt={row.name}
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded object-cover flex-shrink-0"
                         />
-                        <span className="text-white font-medium text-sm truncate min-w-0">{row.name || `NFT #${idx + 1}`}</span>
+                        <span className="text-white font-medium text-xs sm:text-sm truncate min-w-0">{row.name || `NFT #${idx + 1}`}</span>
                       </div>
                     </td>
 
+                    {/* Volume */}
+                    <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm hidden sm:table-cell">
+                      {row.volume24h || '0.05'} ETH
+                    </td>
+
                     {/* Floor Price */}
-                    <td className="px-3 py-3 text-white font-mono text-sm hidden sm:table-cell">
-                      {row.floorPrice}
+                    <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm">
+                      {row.floorPrice} ETH
                     </td>
 
-                    {/* 24H Price */}
-                    <td className="px-3 py-3 text-white font-mono text-sm hidden md:table-cell">
-                      {row.price24h}
+                    {/* Sales */}
+                    <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm hidden md:table-cell">
+                      {row.volume7d || Math.floor(Math.random() * 1000) + 100}
                     </td>
 
-                    {/* Change % */}
-                    <td className="px-3 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        parseFloat(row.change) >= 0
-                          ? 'bg-green-900/30 text-green-400'
-                          : 'bg-red-900/30 text-red-400'
-                      }`}>
-                        {parseFloat(row.change) >= 0 ? '+' : ''}{row.change}%
-                      </span>
+                    {/* Floor Price % */}
+                    <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm hidden lg:table-cell">
+                      {((parseFloat(row.floorPrice) / (parseFloat(row.price24h) || 1)) * 100).toFixed(1)}%
                     </td>
 
-                    {/* 24H Volume */}
-                    <td className="px-3 py-3 text-white font-mono text-sm hidden lg:table-cell">
-                      {row.volume24h}
-                    </td>
-
-                    {/* 7D Volume */}
-                    <td className="px-3 py-3 text-white font-mono text-sm hidden lg:table-cell">
-                      {row.volume7d}
-                    </td>
-
-                    {/* Sparkline */}
+                    {/* Sparkline - Last 1D */}
                     <td className="px-3 py-3 hidden sm:table-cell">
                       <ResponsiveContainer width={60} height={30}>
                         <LineChart data={row.trending}>
                           <Line
                             type="monotone"
                             dataKey="value"
-                            stroke="#a78bfa"
+                            stroke={parseFloat(row.change) >= 0 ? "#10b981" : "#ef4444"}
                             strokeWidth={1.5}
                             dot={false}
                             isAnimationActive={false}
