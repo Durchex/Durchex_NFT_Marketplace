@@ -282,11 +282,12 @@ const FeaturedNFTShowcase = () => {
 
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
-      {/* Slider Container - Mobile: Stack, Desktop: Side by side with featured items inside */}
+      {/* Slider Container - Desktop: Entire hero is one slider with featured items inside on right */}
       <div className="relative w-full rounded-lg overflow-hidden group">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 w-full">
-          {/* Main Collection Banner - Left Side */}
-          <div className="relative w-full lg:flex-1 h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
+        {/* Desktop: Single container with banner and featured items side by side */}
+        <div className="relative w-full h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px] flex flex-col lg:flex-row">
+          {/* Main Collection Banner - Left Side (Desktop) / Full Width (Mobile) */}
+          <div className="relative w-full lg:flex-1 h-full">
             <img
               src={currentCollection.image || 'https://via.placeholder.com/600x400'}
               alt={currentCollection.name}
@@ -294,26 +295,6 @@ const FeaturedNFTShowcase = () => {
             />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent"></div>
-
-            {/* Slider Navigation Arrows - Always visible on desktop, hover on mobile */}
-            {collections.length > 1 && (
-              <>
-                <button
-                  onClick={prevCollection}
-                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
-                  aria-label="Previous collection"
-                >
-                  <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
-                </button>
-                <button
-                  onClick={nextCollection}
-                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
-                  aria-label="Next collection"
-                >
-                  <ChevronRight size={20} className="sm:w-6 sm:h-6" />
-                </button>
-              </>
-            )}
 
             {/* Collection Info - Bottom Left */}
             <div className="absolute bottom-0 left-0 right-0 lg:right-auto lg:w-auto p-4 sm:p-5 md:p-6 lg:p-8 text-white z-10">
@@ -374,32 +355,16 @@ const FeaturedNFTShowcase = () => {
                 </button>
               </div>
             </div>
-
-            {/* Slider Dots Indicator */}
-            {collections.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-                {collections.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-2 rounded-full transition ${
-                      idx === currentIndex ? 'w-8 bg-purple-600' : 'w-2 bg-white/30 hover:bg-white/50'
-                    }`}
-                    aria-label={`Go to collection ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* Featured NFTs - Right Side (Desktop) / Below Banner (Mobile) */}
-          {/* Mobile: 3 column grid, Desktop: Vertical stack on right */}
-          <div className="lg:w-[280px] xl:w-[320px] flex-shrink-0 lg:h-[450px]">
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-1 lg:gap-4 lg:flex lg:flex-col lg:h-full">
+          {/* Featured NFTs - Inside slider on right (Desktop) / Below banner (Mobile) */}
+          {/* Mobile: 3 column grid below, Desktop: Vertical stack on right inside slider */}
+          <div className="lg:absolute lg:right-0 lg:top-0 lg:w-[280px] xl:w-[320px] lg:h-full lg:flex lg:flex-col lg:justify-center lg:pr-4 xl:pr-6 lg:py-4 xl:py-6">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-1 lg:gap-3 lg:h-full lg:justify-center lg:content-center">
               {displayNFTs.map((nft, idx) => (
                 <div
                   key={nft._id || idx}
-                  className="relative rounded-lg overflow-hidden cursor-pointer group aspect-square lg:flex-1 lg:h-auto lg:aspect-auto"
+                  className="relative rounded-lg overflow-hidden cursor-pointer group aspect-square lg:flex-1 lg:max-h-[calc(33.333%-0.5rem)]"
                   onClick={() => navigate(`/nft/${nft._id}`)}
                 >
                   <img
@@ -413,12 +378,48 @@ const FeaturedNFTShowcase = () => {
                   {/* NFT Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-2 sm:p-3">
                     <p className="text-white text-xs sm:text-sm font-semibold line-clamp-1 mb-0.5">{nft.name || `Item ${idx + 1}`}</p>
-                    <p className="text-purple-300 text-xs sm:text-sm font-medium">{nft.price || nft.floorPrice || '0.5'} ETH</p>
+                    <p className="text-purple-300 text-xs sm:text-sm font-medium">{nft.price || nft.floorPrice || '0.55'} ETH</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Slider Navigation Arrows - Positioned on main banner */}
+          {collections.length > 1 && (
+            <>
+              <button
+                onClick={prevCollection}
+                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
+                aria-label="Previous collection"
+              >
+                <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
+              </button>
+              <button
+                onClick={nextCollection}
+                className="absolute right-3 sm:right-4 lg:right-[300px] xl:right-[340px] top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
+                aria-label="Next collection"
+              >
+                <ChevronRight size={20} className="sm:w-6 sm:h-6" />
+              </button>
+            </>
+          )}
+
+          {/* Slider Dots Indicator */}
+          {collections.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:right-[300px] xl:right-[340px] lg:bottom-4 flex gap-2 z-20">
+              {collections.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`h-2 rounded-full transition ${
+                    idx === currentIndex ? 'w-8 bg-purple-600' : 'w-2 bg-white/30 hover:bg-white/50'
+                  }`}
+                  aria-label={`Go to collection ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
