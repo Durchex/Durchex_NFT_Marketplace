@@ -46,13 +46,29 @@ const WalletConnect = () => {
       description: 'Connect using MetaMask',
       isInstalled: () => {
         if (typeof window === 'undefined') return false;
-        if (window.ethereum && window.ethereum.isMetaMask) return true;
-        // Some browsers expose multiple providers
-        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-          return window.ethereum.providers.some(p => p.isMetaMask);
+        // Check if MetaMask is specifically installed
+        if (window.ethereum) {
+          // Check if it's MetaMask directly
+          if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
+            return true;
+          }
+          // Check if MetaMask is in the providers array
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.some(p => p.isMetaMask && !p.isCoinbaseWallet);
+          }
         }
-        // Fallback: any injected ethereum provider likely supports MetaMask-like behavior
-        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+        return false;
+      },
+      getProvider: () => {
+        if (window.ethereum) {
+          if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
+            return window.ethereum;
+          }
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.find(p => p.isMetaMask && !p.isCoinbaseWallet);
+          }
+        }
+        return null;
       },
       downloadUrl: 'https://metamask.io/download/'
     },
@@ -63,11 +79,26 @@ const WalletConnect = () => {
       description: 'Connect using Coinbase Wallet',
       isInstalled: () => {
         if (typeof window === 'undefined') return false;
-        if (window.ethereum && window.ethereum.isCoinbaseWallet) return true;
-        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-          return window.ethereum.providers.some(p => p.isCoinbaseWallet);
+        if (window.ethereum) {
+          if (window.ethereum.isCoinbaseWallet) {
+            return true;
+          }
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.some(p => p.isCoinbaseWallet);
+          }
         }
-        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+        return false;
+      },
+      getProvider: () => {
+        if (window.ethereum) {
+          if (window.ethereum.isCoinbaseWallet) {
+            return window.ethereum;
+          }
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.find(p => p.isCoinbaseWallet);
+          }
+        }
+        return null;
       },
       downloadUrl: 'https://www.coinbase.com/wallet'
     },
@@ -77,6 +108,7 @@ const WalletConnect = () => {
       icon: '🔗',
       description: 'Connect using WalletConnect',
       isInstalled: () => true, // WalletConnect is available as a protocol (QR/mobile)
+      getProvider: () => null, // Will be initialized in connectWallet
       downloadUrl: 'https://walletconnect.com/'
     },
     {
@@ -86,11 +118,26 @@ const WalletConnect = () => {
       description: 'Connect using Trust Wallet',
       isInstalled: () => {
         if (typeof window === 'undefined') return false;
-        if (window.ethereum && (window.ethereum.isTrust || window.ethereum.isTrustWallet)) return true;
-        if (window.ethereum && Array.isArray(window.ethereum.providers)) {
-          return window.ethereum.providers.some(p => p.isTrust || p.isTrustWallet);
+        if (window.ethereum) {
+          if (window.ethereum.isTrust || window.ethereum.isTrustWallet) {
+            return true;
+          }
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.some(p => p.isTrust || p.isTrustWallet);
+          }
         }
-        return !!(window.ethereum || window.BinanceChain || window.okxwallet || window.tokenpocket || window.safepal);
+        return false;
+      },
+      getProvider: () => {
+        if (window.ethereum) {
+          if (window.ethereum.isTrust || window.ethereum.isTrustWallet) {
+            return window.ethereum;
+          }
+          if (Array.isArray(window.ethereum.providers)) {
+            return window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
+          }
+        }
+        return null;
       },
       downloadUrl: 'https://trustwallet.com/'
     }
@@ -113,8 +160,8 @@ const WalletConnect = () => {
     setIsDropdownOpen(false);
 
     try {
-      // Check if wallet is installed
-      if (!wallet.isInstalled()) {
+      // Check if wallet is installed (except WalletConnect which is always available)
+      if (wallet.id !== 'walletconnect' && !wallet.isInstalled()) {
         toast.error(`${wallet.name} is not installed. Please install it first.`, {
           duration: 5000,
           action: {
@@ -122,18 +169,22 @@ const WalletConnect = () => {
             onClick: () => window.open(wallet.downloadUrl, '_blank')
           }
         });
+        setIsConnecting(false);
         return;
       }
 
-      // Connect to the selected wallet
-      await connectWallet(wallet.id);
-      toast.success(`Connected to ${wallet.name}!`);
+      // Connect to the selected wallet - the connectWallet function will handle provider selection
+      const result = await connectWallet(wallet.id);
+      
+      if (result) {
+        toast.success(`Connected to ${wallet.name}!`);
+      }
     } catch (error) {
       console.error('Connection error:', error);
       if (error.code === 4001) {
         toast.error('User rejected the connection request');
       } else {
-        toast.error(`Failed to connect to ${wallet.name}`);
+        toast.error(`Failed to connect to ${wallet.name}. Please try again.`);
       }
     } finally {
       setIsConnecting(false);
@@ -212,35 +263,52 @@ const WalletConnect = () => {
               </div>
             </div>
 
-            {/* Wallet Options */}
+            {/* Wallet Options - Show installed wallets first */}
             <div className="p-2">
-              {walletOptions.map((wallet) => (
-                <button
-                  key={wallet.id}
-                  onClick={() => handleWalletSelect(wallet)}
-                  className="w-full flex items-center space-x-3 px-3 py-3 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors duration-200 group"
-                >
-                  <div className="text-2xl">{wallet.icon}</div>
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-display font-medium">{wallet.name}</span>
-                      {wallet.isInstalled() ? (
-                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                          Installed
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                          Not Installed
-                        </span>
+              {walletOptions
+                .sort((a, b) => {
+                  // Sort: installed wallets first, then by name
+                  const aInstalled = a.isInstalled();
+                  const bInstalled = b.isInstalled();
+                  if (aInstalled && !bInstalled) return -1;
+                  if (!aInstalled && bInstalled) return 1;
+                  return a.name.localeCompare(b.name);
+                })
+                .map((wallet) => {
+                  const isInstalled = wallet.isInstalled();
+                  return (
+                    <button
+                      key={wallet.id}
+                      onClick={() => handleWalletSelect(wallet)}
+                      disabled={isConnecting}
+                      className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors duration-200 group ${
+                        isInstalled
+                          ? 'text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer'
+                          : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50 cursor-not-allowed opacity-60'
+                      } ${isConnecting ? 'opacity-50 cursor-wait' : ''}`}
+                    >
+                      <div className="text-2xl">{wallet.icon}</div>
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-display font-medium">{wallet.name}</span>
+                          {isInstalled ? (
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                              Installed
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                              Not Installed
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400">{wallet.description}</div>
+                      </div>
+                      {!isInstalled && (
+                        <FiDownload className="w-4 h-4 text-gray-400 group-hover:text-white" />
                       )}
-                    </div>
-                    <div className="text-xs text-gray-400">{wallet.description}</div>
-                  </div>
-                  {!wallet.isInstalled() && (
-                    <FiDownload className="w-4 h-4 text-gray-400 group-hover:text-white" />
-                  )}
-                </button>
-              ))}
+                    </button>
+                  );
+                })}
             </div>
 
             {/* Footer */}

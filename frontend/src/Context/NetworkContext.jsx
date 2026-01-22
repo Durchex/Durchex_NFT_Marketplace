@@ -182,7 +182,7 @@ export const NetworkProvider = ({ children }) => {
           }
         } else {
           // Allow network selection even without wallet - user can connect later
-          toast.info("Tezos network selected. Install Temple Wallet to connect your wallet.");
+          toast("Tezos network selected. Install Temple Wallet to connect your wallet.", { icon: 'ℹ️' });
           return true;
         }
       }
@@ -190,20 +190,20 @@ export const NetworkProvider = ({ children }) => {
       // Handle Solana (non-EVM)
       if (networkObj.name === "Solana" && !networkObj.isEVM) {
         // Allow network selection even without wallet - user can connect later
-        toast.info("Solana network selected. Connect your Solana wallet to interact.");
+        toast("Solana network selected. Connect your Solana wallet to interact.", { icon: 'ℹ️' });
         return true;
       }
 
       // Handle EVM networks - only try to switch wallet if connected
       if (!window.ethereum) {
         // No wallet installed - just update site network
-        toast.info(`${networkObj.name} network selected. Install a wallet to connect.`);
+        toast(`${networkObj.name} network selected. Install a wallet to connect.`, { icon: 'ℹ️' });
         return true;
       }
 
       // If wallet is not connected, just update the site network
       if (!isWalletConnected) {
-        toast.info(`${networkObj.name} network selected. Connect your wallet to interact.`);
+        toast(`${networkObj.name} network selected. Connect your wallet to interact.`, { icon: 'ℹ️' });
         return true;
       }
 

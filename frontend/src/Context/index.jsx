@@ -197,10 +197,37 @@ export const Index = ({ children }) => {
     let provider = null;
     console.log('[Context] connectWallet called with walletId:', walletId);
     if (typeof window !== "undefined") {
-      // Check for ethereum provider
-      if (window.ethereum) {
+      // If a specific wallet is requested, try to find that specific provider
+      if (walletId === 'metamask' && window.ethereum) {
+        if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
+          provider = window.ethereum;
+        } else if (Array.isArray(window.ethereum.providers)) {
+          provider = window.ethereum.providers.find(p => p.isMetaMask && !p.isCoinbaseWallet);
+        }
+        console.log('[Context] MetaMask provider selected:', provider);
+      } else if (walletId === 'coinbase' && window.ethereum) {
+        if (window.ethereum.isCoinbaseWallet) {
+          provider = window.ethereum;
+        } else if (Array.isArray(window.ethereum.providers)) {
+          provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
+        }
+        console.log('[Context] Coinbase Wallet provider selected:', provider);
+      } else if (walletId === 'trust' && window.ethereum) {
+        if (window.ethereum.isTrust || window.ethereum.isTrustWallet) {
+          provider = window.ethereum;
+        } else if (Array.isArray(window.ethereum.providers)) {
+          provider = window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
+        }
+        console.log('[Context] Trust Wallet provider selected:', provider);
+      } else if (window.ethereum) {
+        // Fallback to default ethereum provider
         console.log('[Context] window.ethereum detected:', window.ethereum);
-        provider = window.ethereum;
+        // If providers array exists, use the first one (usually the most recently used)
+        if (Array.isArray(window.ethereum.providers)) {
+          provider = window.ethereum.providers[0];
+        } else {
+          provider = window.ethereum;
+        }
       } else if (window.BinanceChain) {
         console.log('[Context] window.BinanceChain detected:', window.BinanceChain);
         provider = window.BinanceChain;
