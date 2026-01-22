@@ -105,20 +105,20 @@ const LiveAuctions = () => {
   }
 
   return (
-    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full max-w-full">
       {/* Header */}
-      <div className="mb-3 sm:mb-4 md:mb-6">
+      <div className="mb-3 sm:mb-4 md:mb-6 w-full">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Live Auction</h2>
         <p className="text-gray-400 text-xs md:text-sm">You are welcome to participate and bid for NFT from Durchex</p>
       </div>
 
-      {/* Auctions Grid - Responsive */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+      {/* Auctions Grid - Mobile: 2 cols, Tablet: 2 cols, Desktop: 3-4 cols */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 w-full">
         {auctions.map((auction) => (
-          <div key={auction._id} className="group cursor-pointer">
-            <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
+          <div key={auction._id} className="group cursor-pointer w-full min-w-0">
+            <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col w-full">
               {/* Image Container */}
-              <div className="relative h-40 xs:h-48 sm:h-56 md:h-64 lg:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
+              <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                 {auction.image ? (
                   <img
                     src={auction.image}

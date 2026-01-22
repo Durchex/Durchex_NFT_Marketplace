@@ -148,49 +148,49 @@ const NftDetailsPage = () => {
     <div className="min-h-screen bg-black text-white">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition-colors"
+          className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-4 xs:mb-5 sm:mb-6 transition-colors text-sm xs:text-base"
         >
           <FiArrowLeft /> Go Back
         </button>
 
         {/* NFT Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xs:gap-5 sm:gap-6 md:gap-8">
           {/* Left: NFT Image */}
           <div className="flex flex-col">
-            <div className="bg-gray-900 rounded-xl overflow-hidden mb-4 border border-gray-800">
+            <div className="bg-gray-900 rounded-xl overflow-hidden mb-3 xs:mb-4 border border-gray-800">
               <img
                 src={nft.image || nft.imageURL}
                 alt={nft.name}
-                className="w-full h-96 object-cover"
+                className="w-full h-48 xs:h-64 sm:h-80 md:h-96 object-cover"
               />
             </div>
 
             {/* NFT Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                  <FiEye className="w-4 h-4" />
-                  Views
+            <div className="grid grid-cols-3 gap-2 xs:gap-3">
+              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
+                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
+                  <FiEye className="w-3 h-3 xs:w-4 xs:h-4" />
+                  <span className="hidden xs:inline">Views</span>
                 </div>
-                <div className="text-xl font-bold">{(nft.views || 0).toLocaleString()}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">{(nft.views || 0).toLocaleString()}</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                  <FiHeart className="w-4 h-4" />
-                  Likes
+              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
+                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
+                  <FiHeart className="w-3 h-3 xs:w-4 xs:h-4" />
+                  <span className="hidden xs:inline">Likes</span>
                 </div>
-                <div className="text-xl font-bold">{(nft.likes || 0).toLocaleString()}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">{(nft.likes || 0).toLocaleString()}</div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                  <FiDollarSign className="w-4 h-4" />
-                  Price
+              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
+                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
+                  <FiDollarSign className="w-3 h-3 xs:w-4 xs:h-4" />
+                  <span className="hidden xs:inline">Price</span>
                 </div>
-                <div className="text-xl font-bold">{nft.price || '—'}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">{nft.price || '—'}</div>
               </div>
             </div>
           </div>
@@ -198,29 +198,29 @@ const NftDetailsPage = () => {
           {/* Right: NFT Info */}
           <div>
             {/* Header */}
-            <div className="mb-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold mb-2">{nft.name}</h1>
+            <div className="mb-4 xs:mb-5 sm:mb-6">
+              <div className="flex items-start justify-between mb-3 xs:mb-4 gap-2 xs:gap-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold mb-1 xs:mb-2 break-words">{nft.name}</h1>
                   {nft.collection && (
                     <Link
                       to={`/collection/${nft.collection}`}
-                      className="text-purple-400 hover:text-purple-300 transition-colors"
+                      className="text-purple-400 hover:text-purple-300 transition-colors text-sm xs:text-base"
                     >
                       {nft.collection} →
                     </Link>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <button className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors" title="Share">
-                    <FiShare2 className="w-5 h-5" />
+                <div className="flex gap-1.5 xs:gap-2 flex-shrink-0">
+                  <button className="p-2 xs:p-2.5 sm:p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors" title="Share">
+                    <FiShare2 className="w-4 h-4 xs:w-5 xs:h-5" />
                   </button>
                   <button
                     onClick={() => setLiked(!liked)}
-                    className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 xs:p-2.5 sm:p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
                     title="Like"
                   >
-                    <FiHeart className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
+                    <FiHeart className={`w-4 h-4 xs:w-5 xs:h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
                   </button>
                 </div>
               </div>
@@ -296,48 +296,48 @@ const NftDetailsPage = () => {
         </div>
 
         {/* Market Analytics & Price Chart Section */}
-        <div className="mt-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="mt-6 xs:mt-8 sm:mt-10 md:mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-5 sm:gap-6 md:gap-8">
             {/* Left: Market Analytics */}
             <div className="lg:col-span-1">
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
-                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <FiBarChart2 className="text-purple-400" />
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6">
+                <h2 className="text-lg xs:text-xl font-bold mb-4 xs:mb-5 sm:mb-6 flex items-center gap-2">
+                  <FiBarChart2 className="text-purple-400 w-4 h-4 xs:w-5 xs:h-5" />
                   Market Analytics
                 </h2>
 
                 {/* Floor Price */}
-                <div className="mb-6 pb-6 border-b border-gray-700">
-                  <div className="text-sm text-gray-400 mb-2">Floor Price</div>
+                <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
+                  <div className="text-xs xs:text-sm text-gray-400 mb-1 xs:mb-2">Floor Price</div>
                   <div className="flex items-end gap-2">
-                    <div className="text-2xl font-bold text-green-400">
+                    <div className="text-xl xs:text-2xl font-bold text-green-400">
                       {parseFloat(nft.price || 1.5).toFixed(4)} ETH
                     </div>
-                    <div className="flex items-center gap-1 text-green-400 text-sm mb-1">
-                      <FiTrendingUp className="w-4 h-4" />
+                    <div className="flex items-center gap-1 text-green-400 text-xs xs:text-sm mb-1">
+                      <FiTrendingUp className="w-3 h-3 xs:w-4 xs:h-4" />
                       +2.5%
                     </div>
                   </div>
                 </div>
 
                 {/* Collection Stats */}
-                <div className="mb-6 pb-6 border-b border-gray-700">
-                  <div className="text-sm text-gray-400 mb-3">Collection Stats</div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">24h Volume</span>
+                <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
+                  <div className="text-xs xs:text-sm text-gray-400 mb-2 xs:mb-3">Collection Stats</div>
+                  <div className="space-y-2 xs:space-y-3">
+                    <div className="flex justify-between items-center text-xs xs:text-sm">
+                      <span className="text-gray-400">24h Volume</span>
                       <span className="font-semibold">{(Math.random() * 50 + 20).toFixed(2)} ETH</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">24h Sales</span>
+                    <div className="flex justify-between items-center text-xs xs:text-sm">
+                      <span className="text-gray-400">24h Sales</span>
                       <span className="font-semibold">{Math.floor(Math.random() * 15 + 5)}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">Collection Size</span>
+                    <div className="flex justify-between items-center text-xs xs:text-sm">
+                      <span className="text-gray-400">Collection Size</span>
                       <span className="font-semibold">{Math.floor(Math.random() * 5000 + 1000)}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">Owners</span>
+                    <div className="flex justify-between items-center text-xs xs:text-sm">
+                      <span className="text-gray-400">Owners</span>
                       <span className="font-semibold">{Math.floor(Math.random() * 800 + 200)}</span>
                     </div>
                   </div>
@@ -361,18 +361,18 @@ const NftDetailsPage = () => {
             {/* Right: Price Chart & Trading Activity */}
             <div className="lg:col-span-2">
               {/* Price Movement Chart */}
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6 mb-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <FiTrendingUp className="text-blue-400" />
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6 mb-4 xs:mb-5 sm:mb-6">
+                <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
+                  <FiTrendingUp className="text-blue-400 w-4 h-4 xs:w-5 xs:h-5" />
                   Price Movement (24h)
                 </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={priceData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={200} className="!h-48 xs:!h-56 sm:!h-64 md:!h-72 lg:!h-80">
+                  <LineChart data={priceData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="time" stroke="#666" />
-                    <YAxis stroke="#666" />
+                    <XAxis dataKey="time" stroke="#666" style={{ fontSize: '10px' }} />
+                    <YAxis stroke="#666" style={{ fontSize: '10px' }} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #666' }}
+                      contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #666', fontSize: '12px' }}
                       formatter={(value) => `${value.toFixed(4)} ETH`}
                     />
                     <Line 
@@ -388,30 +388,30 @@ const NftDetailsPage = () => {
               </div>
 
               {/* Trading Activity */}
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <FiUser className="text-green-400" />
+              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6">
+                <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
+                  <FiUser className="text-green-400 w-4 h-4 xs:w-5 xs:h-5" />
                   Recent Trading Activity
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-2 xs:space-y-3">
                   {tradeData.map((trade) => (
-                    <div key={trade.id} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                    <div key={trade.id} className="flex items-center justify-between p-2 xs:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors gap-2">
+                      <div className="flex items-center gap-2 xs:gap-3 flex-1 min-w-0">
+                        <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 ${
                           trade.type === 'Buy' 
                             ? 'bg-green-500/20 text-green-400' 
                             : 'bg-red-500/20 text-red-400'
                         }`}>
                           {trade.type}
                         </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-300">{trade.trader}</div>
-                          <div className="text-xs text-gray-500">{trade.time}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs xs:text-sm font-medium text-gray-300 truncate">{trade.trader}</div>
+                          <div className="text-[10px] xs:text-xs text-gray-500">{trade.time}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-white">{trade.price} ETH</div>
-                        <div className="text-xs text-gray-400">x{trade.quantity}</div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-xs xs:text-sm font-semibold text-white">{trade.price} ETH</div>
+                        <div className="text-[10px] xs:text-xs text-gray-400">x{trade.quantity}</div>
                       </div>
                     </div>
                   ))}

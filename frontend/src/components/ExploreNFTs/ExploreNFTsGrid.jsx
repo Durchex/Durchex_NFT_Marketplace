@@ -58,6 +58,13 @@ const ExploreNFTsGrid = () => {
       }
 
       if (nftsData && nftsData.length > 0) {
+        // Sort by creation date (newest to oldest)
+        nftsData.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
+          const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
+          return dateB - dateA;
+        });
+        
         console.log(`[ExploreNFTsGrid] Total NFTs fetched: ${nftsData.length}`);
         setAllNfts(nftsData);
         paginateNFTs();
@@ -102,18 +109,18 @@ const ExploreNFTsGrid = () => {
   };
 
   return (
-    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16">
+    <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full max-w-full">
       {/* Header */}
-      <div className="mb-3 xs:mb-4 sm:mb-6">
+      <div className="mb-3 xs:mb-4 sm:mb-6 w-full">
         <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-2 xs:mb-3 sm:mb-4">Explore NFTs</h2>
         <p className="text-gray-400 text-xs sm:text-sm">All NFTs available on Durchex</p>
       </div>
 
-      {/* NFTs Grid - Responsive Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 xs:gap-3 sm:gap-4 md:gap-4 lg:gap-6 mb-4 sm:mb-6 md:mb-8">
+      {/* NFTs Grid - Mobile: 1 col, Tablet: 2 cols, Desktop: 3-4 cols */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 mb-6 sm:mb-8 md:mb-10 w-full">
         {loading ? (
           Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-40 xs:h-48 sm:h-56 md:h-64 lg:h-80 bg-gray-800 rounded-lg animate-pulse"></div>
+            <div key={i} className="w-full aspect-square bg-gray-800 rounded-lg animate-pulse"></div>
           ))
         ) : nfts.length === 0 ? (
           <div className="col-span-full text-center py-12">
@@ -121,10 +128,10 @@ const ExploreNFTsGrid = () => {
           </div>
         ) : (
           nfts.map((nft) => (
-            <div key={nft._id} className="group cursor-pointer">
-              <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
+            <div key={nft._id} className="group cursor-pointer w-full min-w-0">
+              <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col w-full">
                 {/* Image Container */}
-                <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
+                <div className="relative w-full aspect-square overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                   {nft.image ? (
                     <img
                       src={nft.image}

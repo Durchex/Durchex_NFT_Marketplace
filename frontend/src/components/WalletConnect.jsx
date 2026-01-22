@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ICOContent } from '../Context';
 import { useContext } from 'react';
 import { 
@@ -23,6 +24,18 @@ const WalletConnect = () => {
   const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress } = useContext(ICOContent);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const buttonRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    if (isDropdownOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+  }, [isDropdownOpen]);
 
   // Wallet options with their detection methods
   const walletOptions = [
@@ -156,24 +169,36 @@ const WalletConnect = () => {
   // If wallet is not connected, show wallet selection dropdown
   if (!address) {
     return (
-      <div className="relative wallet-dropdown">
+      <>
+      <div className="relative wallet-dropdown z-[100]">
         <button
+          ref={buttonRef}
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           disabled={isConnecting}
-          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="flex items-center space-x-1.5 xs:space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 rounded-lg xs:rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 relative z-[100]"
         >
-          <FiShield className="w-4 h-4" />
-          <span className="font-display">{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+          <FiShield className="w-3.5 h-3.5 xs:w-4 xs:h-4 flex-shrink-0" />
+          <span className="font-display text-xs xs:text-sm sm:text-base hidden xs:inline">{isConnecting ? 'Connecting...' : 'Connect'}</span>
+          <span className="font-display text-xs xs:text-sm sm:text-base hidden sm:inline">{isConnecting ? 'Connecting...' : 'Wallet'}</span>
           <FiChevronDown 
-            className={`w-4 h-4 transition-transform duration-200 ${
+            className={`w-3.5 h-3.5 xs:w-4 xs:h-4 transition-transform duration-200 flex-shrink-0 hidden xs:block ${
               isDropdownOpen ? 'rotate-180' : ''
             }`} 
           />
         </button>
+      </div>
 
-        {/* Wallet Selection Dropdown */}
-        {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-50 overflow-hidden">
+        {/* Wallet Selection Dropdown - Rendered via Portal outside header to prevent expansion */}
+        {isDropdownOpen && typeof document !== 'undefined' && createPortal(
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setIsDropdownOpen(false)}></div>
+            <div 
+              className="fixed w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-[9999] overflow-hidden"
+              style={{ 
+                top: `${dropdownPosition.top}px`,
+                right: `${dropdownPosition.right}px`
+              }}
+            >
             {/* Header */}
             <div className="p-4 border-b border-gray-700">
               <div className="flex items-center space-x-3">
@@ -225,47 +250,60 @@ const WalletConnect = () => {
               </div>
             </div>
           </div>
+          </>,
+          document.body
         )}
-      </div>
+      </>
     );
   }
 
   // If wallet is connected, show connected wallet dropdown
   return (
-    <div className="relative wallet-dropdown">
+    <>
+    <div className="relative wallet-dropdown z-[100]">
       <button
+        ref={buttonRef}
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+        className="flex items-center space-x-1.5 xs:space-x-2 sm:space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 rounded-lg xs:rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl relative z-[100]"
       >
         {/* Wallet Icon with Status */}
-        <div className="relative">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-            <FiShield className="w-4 h-4 text-white" />
+        <div className="relative flex-shrink-0">
+          <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+            <FiShield className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white" />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+          <div className="absolute -bottom-0.5 -right-0.5 xs:-bottom-1 xs:-right-1 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
         </div>
 
-        {/* Address and Balance */}
-        <div className="text-left">
-          <div className="text-sm font-display font-medium text-white">
+        {/* Address and Balance - Hide on very small screens */}
+        <div className="text-left hidden xs:block">
+          <div className="text-xs xs:text-sm font-display font-medium text-white">
             {shortenAddress(address)}
           </div>
-          <div className="text-xs font-display text-gray-400">
+          <div className="text-[10px] xs:text-xs font-display text-gray-400 hidden sm:block">
             {formatBalance(accountBalance)} ETH
           </div>
         </div>
 
         {/* Dropdown Arrow */}
         <FiChevronDown 
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+          className={`w-3.5 h-3.5 xs:w-4 xs:h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 hidden xs:block ${
             isDropdownOpen ? 'rotate-180' : ''
           }`} 
         />
       </button>
+    </div>
 
-      {/* Connected Wallet Dropdown */}
-      {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-50 overflow-hidden">
+      {/* Connected Wallet Dropdown - Rendered via Portal outside header to prevent expansion */}
+      {isDropdownOpen && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setIsDropdownOpen(false)}></div>
+          <div 
+            className="fixed w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-[9999] overflow-hidden"
+            style={{ 
+              top: `${dropdownPosition.top}px`,
+              right: `${dropdownPosition.right}px`
+            }}
+          >
           {/* Header */}
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center space-x-3">
@@ -336,8 +374,10 @@ const WalletConnect = () => {
             </button>
           </div>
         </div>
+        </>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 

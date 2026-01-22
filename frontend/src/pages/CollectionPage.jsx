@@ -133,30 +133,32 @@ const CollectionPage = () => {
   }, [collection]);
 
   return (
-    <div className="min-h-screen w-full bg-black md:px-10 text-white">
+    <div className="min-h-screen w-full bg-black px-2 xs:px-3 sm:px-4 md:px-6 lg:px-10 text-white">
       <Header />
 
       {/* Banner Section */}
       {bannerImage && (
         <div
-          className="w-full h-[300px] bg-cover my-4 bg-center mb-8"
+          className="w-full h-32 xs:h-40 sm:h-48 md:h-64 lg:h-80 bg-cover my-2 xs:my-3 sm:my-4 bg-center mb-4 xs:mb-6 sm:mb-8"
           style={{ backgroundImage: `url(${bannerImage})` }}
         >
           <div className="flex justify-center items-center h-full bg-black bg-opacity-50">
-            <h1 className="text-4xl font-bold p-6 bg-gradient-to-tr from-purple-200 to-pink-100 bg-clip-text text-transparent">
+            <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold px-3 xs:px-4 sm:px-6 bg-gradient-to-tr from-purple-200 to-pink-100 bg-clip-text text-transparent text-center">
               {collection} NFTs
             </h1>
           </div>
         </div>
       )}
 
-      <div className="md:4xl">
+      <div className="w-full max-w-7xl mx-auto">
         {isLoading ? (
           <LoadingNFTRow />
         ) : (
-          <div className="flex flex-wrap gap-2 w-5xl mx-auto justify-center">
+          <div className="flex flex-wrap gap-2 xs:gap-3 sm:gap-4 justify-center">
             {nfts.length === 0 ? (
-              <p>No NFTs found in this collection.</p>
+              <div className="w-full text-center py-8 xs:py-12 sm:py-16">
+                <p className="text-gray-400 text-sm xs:text-base">No NFTs found in this collection.</p>
+              </div>
             ) : (
               nfts.map((nft) => (
                 <NFTCard key={nft.tokenId} {...nft} collection={collection} />

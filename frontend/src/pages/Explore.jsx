@@ -14,12 +14,12 @@ import LiveAuctions from '../components/LiveAuctions/LiveAuctions';
  */
 const Explore = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 overflow-x-hidden w-full max-w-full">
       <Header />
 
-      {/* Main Content - Responsive padding */}
-      <main className="flex-1 w-full overflow-x-hidden px-3 xs:px-4 sm:px-5 md:px-6 lg:px-8 py-4 xs:py-5 sm:py-6 md:py-8 lg:py-12">
-        <div className="max-w-7xl mx-auto space-y-3 xs:space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-12">
+      {/* Main Content - Mobile optimized padding */}
+      <main className="flex-1 w-full overflow-x-hidden px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-6 md:py-8 lg:py-12">
+        <div className="max-w-7xl mx-auto w-full min-w-0 space-y-5 sm:space-y-6 md:space-y-8 lg:space-y-12">
           {/* Section 1: Featured NFT Showcase */}
           <FeaturedNFTShowcase />
 
