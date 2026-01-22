@@ -225,8 +225,8 @@ export default function Navbar() {
             {networks.map((network) => (
               <button
                 key={network.name}
-                onClick={() => {
-                  switchNetwork(network.name);
+                onClick={async () => {
+                  await switchNetwork(network);
                   setIsOpen(false);
                 }}
                 className={`w-full text-left px-2 xs:px-3 py-1.5 xs:py-2 text-xs xs:text-sm font-medium transition ${

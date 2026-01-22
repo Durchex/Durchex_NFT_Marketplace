@@ -142,103 +142,130 @@ export const NetworkProvider = ({ children }) => {
 
   const switchNetwork = async (network) => {
     try {
+      // Handle case where network is passed as string (name) instead of object
+      let networkObj = network;
+      if (typeof network === 'string') {
+        networkObj = networks.find(n => n.name === network);
+        if (!networkObj) {
+          toast.error(`Network "${network}" not found`);
+          return false;
+        }
+      }
+
       // Check if the network is already selected
-      if (_selectedNetwork.chainId === network.chainId) {
-        toast.success(`Already connected to ${network.name}`);
+      if (_selectedNetwork.chainId === networkObj.chainId) {
+        toast.success(`Already connected to ${networkObj.name}`);
         return true;
       }
 
+      // First, update the site's selected network
+      setSelectedNetwork(networkObj);
+
+      // Check if wallet is connected
+      const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
+
       // Handle Tezos (non-EVM)
-      if (network.name === "Tezos" && !network.isEVM) {
+      if (networkObj.name === "Tezos" && !networkObj.isEVM) {
         // Check for Temple Wallet (thanosWallet is the newer API)
         const templeWallet = window.templeWallet || window.thanosWallet || window.temple;
-        if (templeWallet) {
+        if (templeWallet && isWalletConnected) {
           try {
             // Try connecting with Temple Wallet
             const wallet = await templeWallet.connect();
             const account = await wallet.getPKH();
-            setSelectedNetwork(network);
             toast.success(`Connected to Tezos`);
             return true;
           } catch (error) {
             console.error('Tezos connection error:', error);
-            // Still update the network selection even if wallet connection fails
-            setSelectedNetwork(network);
             toast.error("Tezos network selected, but wallet connection failed. Please ensure Temple Wallet is unlocked.");
             return false;
           }
         } else {
           // Allow network selection even without wallet - user can connect later
-          setSelectedNetwork(network);
           toast.info("Tezos network selected. Install Temple Wallet to connect your wallet.");
           return true;
         }
       }
 
-      // Handle Hyperliquid and other EVM networks
-      if (!window.ethereum) {
-        toast.error("Please install MetaMask or an EVM-compatible wallet to switch networks");
-        return false;
+      // Handle Solana (non-EVM)
+      if (networkObj.name === "Solana" && !networkObj.isEVM) {
+        // Allow network selection even without wallet - user can connect later
+        toast.info("Solana network selected. Connect your Solana wallet to interact.");
+        return true;
       }
 
-      // Try to switch to the network
+      // Handle EVM networks - only try to switch wallet if connected
+      if (!window.ethereum) {
+        // No wallet installed - just update site network
+        toast.info(`${networkObj.name} network selected. Install a wallet to connect.`);
+        return true;
+      }
+
+      // If wallet is not connected, just update the site network
+      if (!isWalletConnected) {
+        toast.info(`${networkObj.name} network selected. Connect your wallet to interact.`);
+        return true;
+      }
+
+      // Wallet is connected - try to switch network in wallet
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${network.chainId.toString(16)}` }],
+          params: [{ chainId: `0x${networkObj.chainId.toString(16)}` }],
         });
         
-        setSelectedNetwork(network);
-        toast.success(`Switched to ${network.name}`);
+        toast.success(`Switched to ${networkObj.name}`);
         return true;
       } catch (switchError) {
         // If the network doesn't exist, try to add it
         if (switchError.code === 4902 || switchError.code === -32603 || switchError.code === -32002) {
           try {
             // Validate RPC URL before adding
-            if (!network.rpcUrl || network.rpcUrl.includes('/info')) {
-              console.error('Invalid RPC URL for network:', network.name);
-              toast.error(`${network.name} has an invalid RPC configuration. Please contact support.`);
+            if (!networkObj.rpcUrl || networkObj.rpcUrl.includes('/info')) {
+              console.error('Invalid RPC URL for network:', networkObj.name);
+              toast.error(`${networkObj.name} has an invalid RPC configuration. Please contact support.`);
               return false;
             }
 
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [{
-                chainId: `0x${network.chainId.toString(16)}`,
-                chainName: network.name,
+                chainId: `0x${networkObj.chainId.toString(16)}`,
+                chainName: networkObj.name,
                 nativeCurrency: {
-                  name: network.symbol,
-                  symbol: network.symbol,
+                  name: networkObj.symbol,
+                  symbol: networkObj.symbol,
                   decimals: 18,
                 },
-                rpcUrls: [network.rpcUrl],
-                blockExplorerUrls: network.blockExplorerUrl ? [network.blockExplorerUrl] : [],
+                rpcUrls: [networkObj.rpcUrl],
+                blockExplorerUrls: networkObj.blockExplorerUrl ? [networkObj.blockExplorerUrl] : [],
               }],
             });
             
-            setSelectedNetwork(network);
-            toast.success(`Added and switched to ${network.name}`);
+            toast.success(`Added and switched to ${networkObj.name}`);
             return true;
           } catch (addError) {
             console.error('Error adding network:', addError);
             console.error('Network details:', {
-              name: network.name,
-              chainId: network.chainId,
-              chainIdHex: `0x${network.chainId.toString(16)}`,
-              rpcUrl: network.rpcUrl,
-              blockExplorerUrl: network.blockExplorerUrl
+              name: networkObj.name,
+              chainId: networkObj.chainId,
+              chainIdHex: `0x${networkObj.chainId.toString(16)}`,
+              rpcUrl: networkObj.rpcUrl,
+              blockExplorerUrl: networkObj.blockExplorerUrl
             });
-            toast.error(`Failed to add ${network.name} network automatically. Please add it manually in your wallet settings.`);
+            toast.error(`Failed to add ${networkObj.name} network automatically. Please add it manually in your wallet settings.`);
             return false;
           }
         } else if (switchError.code === 4001) {
-          // User rejected the request
+          // User rejected the request - revert network selection
+          setSelectedNetwork(_selectedNetwork);
           toast.error(`Network switch cancelled`);
           return false;
         } else {
           console.error('Error switching network:', switchError);
-          toast.error(`Failed to switch to ${network.name}. Please try again or add the network manually.`);
+          // Revert network selection on error
+          setSelectedNetwork(_selectedNetwork);
+          toast.error(`Failed to switch to ${networkObj.name}. Please try again or add the network manually.`);
           return false;
         }
       }
