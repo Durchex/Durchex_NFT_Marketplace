@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { nftAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -184,8 +184,9 @@ const ExploreNFTsGrid = () => {
                         navigate(`/nft/${nft._id}`);
                       }}
                       className="p-2 md:p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition"
+                      title="View Details"
                     >
-                      View Details
+                      <Eye size={20} />
                     </button>
                   </div>
 
