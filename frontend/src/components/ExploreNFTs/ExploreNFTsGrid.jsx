@@ -239,11 +239,6 @@ const ExploreNFTsGrid = () => {
                       <Eye size={20} />
                     </button>
                   </div>
-
-                  {/* Price Badge */}
-                  <div className="absolute top-2 md:top-3 right-2 md:right-3 bg-black/80 backdrop-blur px-2 md:px-3 py-1 rounded-lg">
-                    <p className="text-white font-semibold text-xs md:text-sm">{nft.price} ETH</p>
-                  </div>
                 </div>
 
                 {/* NFT Info */}
