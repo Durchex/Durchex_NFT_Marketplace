@@ -260,8 +260,8 @@ const ExploreNFTsGrid = () => {
                   </h3>
 
                   {/* Owner and Floor Price */}
-                  <div className="mt-auto pt-2 md:pt-3 border-t border-gray-700/50 space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="mt-auto pt-2 md:pt-3 border-t border-gray-700/50">
+                    <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-gray-400 text-xs">Owned By</span>
                       {(() => {
                         const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
@@ -280,8 +280,8 @@ const ExploreNFTsGrid = () => {
                         );
                       })()}
                     </div>
-                    <div>
-                      <span className="text-gray-400 text-xs">Floor: </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400 text-xs">Floor:</span>
                       <span className="text-white text-xs font-semibold">{nft.price || nft.floorPrice || '2.55'} ETH</span>
                     </div>
                   </div>

@@ -174,17 +174,17 @@ const TopNFTsCarousel = () => {
                   alt={nft.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                 />
-                {/* Price Badge */}
-                <div className="absolute top-3 right-3 bg-black/80 backdrop-blur px-3 py-1.5 rounded-lg">
-                  <p className="text-white font-semibold text-sm">{nft.price || nft.floorPrice || '0.55'} ETH</p>
-                </div>
               </div>
 
               {/* Info */}
               <div className="p-4 flex-grow flex flex-col">
-                <h3 className="font-bold text-white text-sm sm:text-base mb-3 group-hover:text-purple-400 transition line-clamp-2">
+                <h3 className="font-bold text-white text-sm sm:text-base mb-2 group-hover:text-purple-400 transition line-clamp-2">
                   {nft.name || "Alexander's Collectibles"}
                 </h3>
+                {/* Price - positioned below title */}
+                <p className="text-purple-400 font-semibold text-sm sm:text-base mb-3">
+                  {nft.price || nft.floorPrice || '0.55'} ETH
+                </p>
 
                 {/* Creator */}
                 {(() => {
