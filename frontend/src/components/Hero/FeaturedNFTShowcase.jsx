@@ -219,89 +219,85 @@ const FeaturedNFTShowcase = () => {
 
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
-      {/* Mobile: Stack vertically, Desktop: Side by side */}
-      <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
-        {/* Featured Collection Large Display with Slider Controls */}
-        <div className="w-full min-w-0 md:col-span-1 lg:col-span-2 relative">
-          <div className="relative rounded-lg overflow-hidden group w-full">
+      {/* Slider Container - Mobile: Stack, Desktop: Side by side with featured items inside */}
+      <div className="relative w-full rounded-lg overflow-hidden group">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 w-full">
+          {/* Main Collection Banner - Left Side */}
+          <div className="relative w-full lg:flex-1 h-[300px] sm:h-[350px] md:h-[400px] lg:h-[450px]">
             <img
               src={currentCollection.image || 'https://via.placeholder.com/600x400'}
               alt={currentCollection.name}
-              className="w-full h-auto min-h-[200px] sm:min-h-[250px] md:min-h-[320px] lg:min-h-[400px] object-cover"
+              className="w-full h-full object-cover"
             />
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent"></div>
 
-            {/* Slider Navigation Arrows */}
+            {/* Slider Navigation Arrows - Always visible on desktop, hover on mobile */}
             {collections.length > 1 && (
               <>
                 <button
                   onClick={prevCollection}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition opacity-0 group-hover:opacity-100"
+                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
                   aria-label="Previous collection"
                 >
-                  <ChevronLeft size={24} />
+                  <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
                 </button>
                 <button
                   onClick={nextCollection}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition opacity-0 group-hover:opacity-100"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
                   aria-label="Next collection"
                 >
-                  <ChevronRight size={24} />
+                  <ChevronRight size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </>
             )}
 
-            {/* Collection Info - Bottom */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 lg:p-8 text-white">
-              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">{currentCollection.name}</h2>
-              <div className="flex items-center gap-2 mb-2 sm:mb-3 md:mb-4">
-                {currentCollection.itemCount && (
-                  <span className="text-gray-300 text-xs sm:text-sm">{currentCollection.itemCount} items</span>
-                )}
-                {collections.length > 1 && (
-                  <span className="text-gray-400 text-xs sm:text-sm">
-                    {currentIndex + 1} / {collections.length}
-                  </span>
-                )}
+            {/* Collection Info - Bottom Left */}
+            <div className="absolute bottom-0 left-0 right-0 lg:right-auto lg:w-auto p-4 sm:p-5 md:p-6 lg:p-8 text-white z-10">
+              <div className="mb-2 sm:mb-3">
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2">{currentCollection.name}</h2>
+                <p className="text-gray-300 text-sm sm:text-base mb-1">By {currentCollection.creatorName || 'Creator'}</p>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div>
+                    <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Floor Price</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+                      {currentCollection.floorPrice || '0.5'} ETH
+                    </p>
+                  </div>
+                  {currentCollection.itemCount && (
+                    <div className="hidden sm:block">
+                      <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Items</p>
+                      <p className="text-lg sm:text-xl font-bold text-white">{currentCollection.itemCount}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Price & Actions */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 items-start sm:items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs mb-0.5 sm:mb-1">Floor Price</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                    {currentCollection.floorPrice || '0.6'} ETH
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <button
-                    onClick={() => handleLike(currentCollection._id)}
-                    className={`p-2 rounded-lg border-2 transition flex-shrink-0 ${
-                      liked.has(currentCollection._id)
-                        ? 'bg-red-600 border-red-600 text-white'
-                        : 'border-gray-600 text-gray-300 hover:border-red-500'
-                    }`}
-                  >
-                    <Heart size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleViewCollection(currentCollection)}
-                    className="flex-1 sm:flex-none px-3 sm:px-4 md:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-1.5 sm:gap-2 transition text-xs sm:text-sm"
-                  >
-                    <ShoppingCart size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    <span className="hidden sm:inline">View Collection</span>
-                    <span className="sm:hidden">View</span>
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  onClick={() => handleLike(currentCollection._id)}
+                  className={`p-2 sm:p-2.5 rounded-lg border-2 transition flex-shrink-0 ${
+                    liked.has(currentCollection._id)
+                      ? 'bg-red-600 border-red-600 text-white'
+                      : 'border-gray-600 text-gray-300 hover:border-red-500 hover:bg-red-600/20'
+                  }`}
+                >
+                  <Heart size={18} className="sm:w-5 sm:h-5" fill={liked.has(currentCollection._id) ? 'currentColor' : 'none'} />
+                </button>
+                <button
+                  onClick={() => handleViewCollection(currentCollection)}
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm sm:text-base"
+                >
+                  <ShoppingCart size={18} className="sm:w-5 sm:h-5" />
+                  <span>View Collection</span>
+                </button>
               </div>
             </div>
 
             {/* Slider Dots Indicator */}
             {collections.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                 {collections.map((_, idx) => (
                   <button
                     key={idx}
@@ -315,33 +311,33 @@ const FeaturedNFTShowcase = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Featured NFTs from Current Collection - Mobile: Show below, Desktop: Show on side */}
-        <div className="flex flex-col gap-3 sm:gap-4 w-full min-w-0">
-          <h3 className="text-white font-semibold text-sm sm:text-base md:text-lg">Featured Items</h3>
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full">
-            {displayNFTs.map((nft, idx) => (
-              <div
-                key={nft._id || idx}
-                className="relative rounded-lg overflow-hidden cursor-pointer group w-full aspect-square min-w-0"
-                onClick={() => navigate(`/nft/${nft._id}`)}
-              >
-                <img
-                  src={nft.image || `https://via.placeholder.com/200x200?text=NFT%20${idx + 1}`}
-                  alt={nft.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <ChevronRight className="text-white" size={16} />
+          {/* Featured NFTs - Right Side (Desktop) / Below Banner (Mobile) */}
+          {/* Mobile: 3 column grid, Desktop: Vertical stack on right */}
+          <div className="lg:w-[280px] xl:w-[320px] flex-shrink-0 lg:h-[450px]">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-1 lg:gap-4 lg:flex lg:flex-col lg:h-full">
+              {displayNFTs.map((nft, idx) => (
+                <div
+                  key={nft._id || idx}
+                  className="relative rounded-lg overflow-hidden cursor-pointer group aspect-square lg:flex-1 lg:h-auto lg:aspect-auto"
+                  onClick={() => navigate(`/nft/${nft._id}`)}
+                >
+                  <img
+                    src={nft.image || `https://via.placeholder.com/200x200?text=NFT%20${idx + 1}`}
+                    alt={nft.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <ChevronRight className="text-white" size={18} />
+                  </div>
+                  {/* NFT Info Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-2 sm:p-3">
+                    <p className="text-white text-xs sm:text-sm font-semibold line-clamp-1 mb-0.5">{nft.name || `Item ${idx + 1}`}</p>
+                    <p className="text-purple-300 text-xs sm:text-sm font-medium">{nft.price || nft.floorPrice || '0.5'} ETH</p>
+                  </div>
                 </div>
-                {/* NFT Price Tooltip */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 sm:px-2 py-1 sm:py-1.5">
-                  <p className="text-white text-[10px] sm:text-xs font-semibold line-clamp-1">{nft.name || `Item ${idx + 1}`}</p>
-                  <p className="text-purple-300 text-[10px] sm:text-xs font-medium">{nft.price || nft.floorPrice || '0.5'} ETH</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

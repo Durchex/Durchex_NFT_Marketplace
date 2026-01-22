@@ -4,62 +4,72 @@ import { nftAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * TopCollectionsCarousel - Horizontal scrollable carousel of top collections (newest to oldest)
+ * TopNFTsCarousel - Horizontal scrollable carousel of top NFTs (newest to oldest)
  */
 const TopNFTsCarousel = () => {
-  const [collections, setCollections] = useState([]);
+  const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
   const containerRef = React.useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchTopCollections();
+    fetchTopNFTs();
   }, []);
 
-  const fetchTopCollections = async () => {
+  const fetchTopNFTs = async () => {
     try {
       setLoading(true);
-      console.log('[TopCollections] Fetching collections...');
+      console.log('[TopNFTs] Fetching NFTs...');
       
-      // ✅ Fetch all collections from database
-      const allCollectionsData = await nftAPI.getCollections();
-      console.log('[TopCollections] Collections:', allCollectionsData);
+      // ✅ Fetch all NFTs from all networks
+      let allNFTs = [];
+      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
       
-      let collectionsList = [];
-      if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Sort by creation date (newest to oldest)
-        collectionsList = allCollectionsData.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(a._id ? a._id.toString().substring(0, 8) : 0);
-          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(b._id ? b._id.toString().substring(0, 8) : 0);
-          return dateB - dateA;
-        });
+      for (const network of networks) {
+        try {
+          console.log(`[TopNFTs] Fetching NFTs from ${network}...`);
+          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+          if (Array.isArray(networkNfts)) {
+            allNFTs = [...allNFTs, ...networkNfts];
+          }
+        } catch (err) {
+          console.warn(`[TopNFTs] Error fetching from ${network}:`, err.message);
+        }
       }
       
-      if (collectionsList.length === 0) {
-        throw new Error('No collections found');
+      // Sort by creation date (newest to oldest)
+      allNFTs.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
+        const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
+        return dateB - dateA;
+      });
+      
+      // Take first 12 NFTs
+      const nftsList = allNFTs.slice(0, 12);
+      
+      if (nftsList.length === 0) {
+        throw new Error('No NFTs found');
       }
       
-      setCollections(collectionsList);
-      console.log(`[TopCollections] Loaded ${collectionsList.length} collections`);
+      setNfts(nftsList);
+      console.log(`[TopNFTs] Loaded ${nftsList.length} NFTs`);
     } catch (error) {
-      console.error('[TopCollections] Error fetching collections:', error);
-      setCollections(generateMockCollections());
+      console.error('[TopNFTs] Error fetching NFTs:', error);
+      setNfts(generateMockNFTs());
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMockCollections = () => {
+  const generateMockNFTs = () => {
     return Array(12).fill(0).map((_, i) => ({
-      _id: `collection-${i}`,
-      name: `Collection ${i + 1}`,
-      floorPrice: (0.55 + Math.random() * 0.5).toFixed(2),
-      image: `https://via.placeholder.com/280x320?text=Collection%20${i + 1}`,
-      itemCount: Math.floor(Math.random() * 500) + 50,
-      creatorName: `Creator ${i + 1}`,
-      creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=creator${i}`,
-      network: 'polygon'
+      _id: `nft-${i}`,
+      name: "Alexander's Collectibles",
+      price: '0.55',
+      image: `https://via.placeholder.com/280x320?text=NFT%20${i + 1}`,
+      creatorName: 'Alexander Bias',
+      creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=creator${i}`
     }));
   };
 
@@ -89,8 +99,8 @@ const TopNFTsCarousel = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Top Collections</h2>
-          <p className="text-gray-400 text-sm">Latest collections on Durchex</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Top NFTs</h2>
+          <p className="text-gray-400 text-sm">Trending NFTs on Durchex</p>
         </div>
 
         {/* Navigation Arrows - Hidden on mobile, show on tablet+ */}
@@ -118,59 +128,51 @@ const TopNFTsCarousel = () => {
         className="flex gap-4 overflow-x-auto scroll-smooth pb-4 w-full max-w-full snap-x snap-mandatory"
         style={{ scrollBehavior: 'smooth', scrollbarWidth: 'thin' }}
       >
-        {collections.map((collection) => (
+        {nfts.map((nft) => (
           <div
-            key={collection._id}
+            key={nft._id}
             className="flex-shrink-0 w-[75%] sm:w-56 md:w-64 lg:w-72 snap-start group cursor-pointer"
-            onClick={() => {
-              // Use collectionId if available, otherwise use network/name format
-              if (collection._id || collection.collectionId) {
-                navigate(`/collection/${collection._id || collection.collectionId}`);
-              } else {
-                const network = collection.network || 'polygon';
-                const collectionName = collection.name || collection.collectionName;
-                navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
-              }
-            }}
+            onClick={() => navigate(`/nft/${nft._id}`)}
           >
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
               {/* Image */}
               <div className="relative h-64 sm:h-72 md:h-80 lg:h-96 overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
                 <img
-                  src={collection.image || 'https://via.placeholder.com/280x320'}
-                  alt={collection.name}
+                  src={nft.image || 'https://via.placeholder.com/280x320'}
+                  alt={nft.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                 />
-                {/* Floor Price Badge */}
+                {/* Price Badge */}
                 <div className="absolute top-3 right-3 bg-black/80 backdrop-blur px-3 py-1.5 rounded-lg">
-                  <p className="text-white font-semibold text-sm">{collection.floorPrice || '0.5'} ETH</p>
+                  <p className="text-white font-semibold text-sm">{nft.price || nft.floorPrice || '0.55'} ETH</p>
                 </div>
               </div>
 
               {/* Info */}
               <div className="p-4 flex-grow flex flex-col">
                 <h3 className="font-bold text-white text-sm sm:text-base mb-3 group-hover:text-purple-400 transition line-clamp-2">
-                  {collection.name}
+                  {nft.name || "Alexander's Collectibles"}
                 </h3>
 
                 {/* Creator */}
                 <div className="flex items-center gap-2 mb-4">
                   <img
-                    src={collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${collection.creatorWallet || collection.name}`}
-                    alt={collection.creatorName || 'Creator'}
+                    src={nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creatorName || nft.creator || 'creator'}`}
+                    alt={nft.creatorName || 'Creator'}
                     className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
                   />
-                  <span className="text-gray-400 text-sm line-clamp-1">{collection.creatorName || 'Creator'}</span>
+                  <span className="text-gray-400 text-sm line-clamp-1">{nft.creatorName || 'Alexander Bias'}</span>
                 </div>
 
-                {/* Item Count */}
-                {collection.itemCount && (
-                  <p className="text-gray-500 text-xs mb-3">{collection.itemCount} items</p>
-                )}
-
                 {/* Action Button */}
-                <button className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-sm mt-auto">
-                  View Collection
+                <button 
+                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-sm mt-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/nft/${nft._id}`);
+                  }}
+                >
+                  View Details
                 </button>
               </div>
             </div>

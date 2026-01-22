@@ -171,36 +171,54 @@ const LiveAuctions = () => {
                         navigate(`/nft/${auction.nftId || auction._id}`);
                       }
                     }}
-                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs sm:text-sm"
                   >
-                    <Gavel size={14} className="sm:w-[18px]" />
-                    <span className="hidden sm:inline">View Details</span>
-                    <span className="sm:hidden">View</span>
+                    <Gavel size={14} className="sm:w-[16px] sm:h-[16px]" />
+                    <span className="hidden sm:inline">Place Bid</span>
+                    <span className="sm:hidden">Bid</span>
                   </button>
                 </div>
               </div>
 
               {/* Auction Info */}
-              <div className="p-2 sm:p-3 md:p-4 flex-grow flex flex-col justify-between">
-                <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
+              <div className="p-3 sm:p-4 flex-grow flex flex-col justify-between">
+                <h3 className="font-bold text-white text-sm sm:text-base group-hover:text-purple-400 transition line-clamp-2 mb-3">
                   {auction.name}
                 </h3>
 
                 {/* Current Bid */}
-                <div className="mb-2 pb-2 border-b border-gray-700/50">
-                  <p className="text-gray-400 text-xs mb-1">Current Bid</p>
-                  <p className="text-base sm:text-lg md:text-xl font-bold text-purple-400">{auction.currentBid} ETH</p>
+                <div className="mb-3 pb-3 border-b border-gray-700/50">
+                  <p className="text-gray-400 text-xs sm:text-sm mb-1">Current Bid</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-400">{auction.currentBid} ETH</p>
                 </div>
 
                 {/* Creator */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2 mb-3">
                   <img
                     src={auction.creatorAvatar}
                     alt={auction.creatorName}
-                    className="w-5 sm:w-6 md:w-8 h-5 sm:h-6 md:h-8 rounded-full flex-shrink-0"
+                    className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full flex-shrink-0"
                   />
-                  <span className="text-gray-400 text-xs line-clamp-1">{auction.creatorName}</span>
+                  <span className="text-gray-400 text-xs sm:text-sm line-clamp-1">{auction.creatorName}</span>
                 </div>
+
+                {/* Place Bid Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (auction.collectionId || auction.collection) {
+                      const network = auction.network || 'polygon';
+                      const collectionName = auction.collection || auction.name;
+                      navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+                    } else if (auction.nftId || auction._id) {
+                      navigate(`/nft/${auction.nftId || auction._id}`);
+                    }
+                  }}
+                  className="w-full py-2 sm:py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs sm:text-sm flex items-center justify-center gap-2"
+                >
+                  <Gavel size={14} className="sm:w-4 sm:h-4" />
+                  <span>Place Bid</span>
+                </button>
               </div>
             </div>
           </div>

@@ -15,6 +15,7 @@ const ExploreNFTsGrid = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [liked, setLiked] = useState(new Set());
   const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
+  const [filter, setFilter] = useState('Latest');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -115,7 +116,24 @@ const ExploreNFTsGrid = () => {
       {/* Header */}
       <div className="mb-3 xs:mb-4 sm:mb-6 w-full">
         <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-2 xs:mb-3 sm:mb-4">Explore NFTs</h2>
-        <p className="text-gray-400 text-xs sm:text-sm">All NFTs available on Durchex</p>
+        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Browse through all the NFTs on Durchex</p>
+        
+        {/* Filter Tabs */}
+        <div className="flex gap-2 sm:gap-3 border-b border-gray-700">
+          {['Latest', 'Trending', 'Featured'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold transition border-b-2 ${
+                filter === tab
+                  ? 'border-purple-600 text-purple-400'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* NFTs Grid - Mobile: 1 col, Tablet: 2 cols, Desktop: 3-4 cols */}
@@ -198,18 +216,34 @@ const ExploreNFTsGrid = () => {
 
                 {/* NFT Info */}
                 <div className="p-3 md:p-4 flex-grow flex flex-col justify-between">
+                  {/* Tag */}
+                  <div className="mb-2">
+                    <span className="inline-block px-2 py-0.5 bg-purple-600/20 text-purple-400 text-xs font-semibold rounded">
+                      ART
+                    </span>
+                  </div>
+                  
                   <h3 className="font-bold text-white text-xs md:text-sm group-hover:text-purple-400 transition line-clamp-2 mb-2">
-                    {nft.name}
+                    {nft.name || 'Futuristic Artist Portrait'}
                   </h3>
 
-                  {/* Creator */}
-                  <div className="flex items-center gap-2 mt-auto pt-2 md:pt-3 border-t border-gray-700/50">
-                    <img
-                      src={nft.creatorAvatar}
-                      alt={nft.creatorName}
-                      className="w-6 md:w-8 h-6 md:h-8 rounded-full"
-                    />
-                    <span className="text-gray-400 text-xs line-clamp-1">{nft.creatorName}</span>
+                  {/* Owner and Floor Price */}
+                  <div className="mt-auto pt-2 md:pt-3 border-t border-gray-700/50 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-xs">Owned By</span>
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creatorName || 'creator'}`}
+                          alt={nft.creatorName || 'Creator'}
+                          className="w-4 h-4 rounded-full"
+                        />
+                        <span className="text-white text-xs font-medium line-clamp-1">{nft.creatorName || 'Alexander Blaq'}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 text-xs">Floor: </span>
+                      <span className="text-white text-xs font-semibold">{nft.price || nft.floorPrice || '2.55'} ETH</span>
+                    </div>
                   </div>
                 </div>
               </div>
