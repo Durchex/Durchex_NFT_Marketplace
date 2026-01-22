@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { nftAPI } from '../../services/api';
+import { nftAPI, userAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -10,6 +10,7 @@ const TopNFTsCarousel = () => {
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [creatorProfiles, setCreatorProfiles] = useState(new Map());
   const containerRef = React.useRef(null);
   const navigate = useNavigate();
 
@@ -54,6 +55,37 @@ const TopNFTsCarousel = () => {
       
       setNfts(nftsList);
       console.log(`[TopNFTs] Loaded ${nftsList.length} NFTs`);
+      
+      // Fetch creator profiles for all NFTs
+      const profilesMap = new Map();
+      await Promise.all(
+        nftsList.map(async (nft) => {
+          const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
+          if (walletAddress && !profilesMap.has(walletAddress)) {
+            try {
+              const profile = await userAPI.getUserProfile(walletAddress);
+              if (profile) {
+                profilesMap.set(walletAddress, {
+                  username: profile.username || nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: profile.image || profile.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              } else {
+                profilesMap.set(walletAddress, {
+                  username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              }
+            } catch (error) {
+              console.warn(`[TopNFTs] Error fetching profile for ${walletAddress}:`, error);
+              profilesMap.set(walletAddress, {
+                username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+              });
+            }
+          }
+        })
+      );
+      setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[TopNFTs] Error fetching NFTs:', error);
       setNfts(generateMockNFTs());
@@ -155,14 +187,22 @@ const TopNFTsCarousel = () => {
                 </h3>
 
                 {/* Creator */}
-                <div className="flex items-center gap-2 mb-4">
-                  <img
-                    src={nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creatorName || nft.creator || 'creator'}`}
-                    alt={nft.creatorName || 'Creator'}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
-                  />
-                  <span className="text-gray-400 text-sm line-clamp-1">{nft.creatorName || 'Alexander Bias'}</span>
-                </div>
+                {(() => {
+                  const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
+                  const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
+                  const username = profile?.username || nft.creatorName || 'Creator';
+                  const avatar = profile?.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
+                  return (
+                    <div className="flex items-center gap-2 mb-4">
+                      <img
+                        src={avatar}
+                        alt={username}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 border border-gray-700"
+                      />
+                      <span className="text-gray-400 text-sm line-clamp-1">{username}</span>
+                    </div>
+                  );
+                })()}
 
                 {/* Action Button */}
                 <button 

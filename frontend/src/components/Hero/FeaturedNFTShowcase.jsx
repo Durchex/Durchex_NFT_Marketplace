@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { nftAPI } from '../../services/api';
+import { nftAPI, userAPI } from '../../services/api';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 import { ErrorToast } from '../../app/Toast/Error.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ const FeaturedNFTShowcase = () => {
   const [featuredNFTs, setFeaturedNFTs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(new Set());
+  const [creatorProfiles, setCreatorProfiles] = useState(new Map()); // Store creator profiles
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +53,37 @@ const FeaturedNFTShowcase = () => {
       
       setCollections(collectionsList);
       console.log(`[FeaturedNFTShowcase] Loaded ${collectionsList.length} collections`);
+      
+      // Fetch creator profiles for all collections
+      const profilesMap = new Map();
+      await Promise.all(
+        collectionsList.map(async (collection) => {
+          const walletAddress = collection.creatorWallet || collection.owner || collection.walletAddress;
+          if (walletAddress && !profilesMap.has(walletAddress)) {
+            try {
+              const profile = await userAPI.getUserProfile(walletAddress);
+              if (profile) {
+                profilesMap.set(walletAddress, {
+                  username: profile.username || collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: profile.image || profile.avatar || collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              } else {
+                profilesMap.set(walletAddress, {
+                  username: collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              }
+            } catch (error) {
+              console.warn(`[FeaturedNFTShowcase] Error fetching profile for ${walletAddress}:`, error);
+              profilesMap.set(walletAddress, {
+                username: collection.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                avatar: collection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+              });
+            }
+          }
+        })
+      );
+      setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching collections:', error);
       // Generate mock data as fallback
@@ -117,6 +149,37 @@ const FeaturedNFTShowcase = () => {
       
       setFeaturedNFTs(showcaseNFTs);
       console.log(`[FeaturedNFTShowcase] Loaded ${showcaseNFTs.length} NFTs for collection`);
+      
+      // Fetch creator profiles for featured NFTs
+      const profilesMap = new Map(creatorProfiles);
+      await Promise.all(
+        showcaseNFTs.map(async (nft) => {
+          const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
+          if (walletAddress && !profilesMap.has(walletAddress)) {
+            try {
+              const profile = await userAPI.getUserProfile(walletAddress);
+              if (profile) {
+                profilesMap.set(walletAddress, {
+                  username: profile.username || nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: profile.image || profile.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              } else {
+                profilesMap.set(walletAddress, {
+                  username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              }
+            } catch (error) {
+              console.warn(`[FeaturedNFTShowcase] Error fetching profile for ${walletAddress}:`, error);
+              profilesMap.set(walletAddress, {
+                username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+              });
+            }
+          }
+        })
+      );
+      setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching NFTs:', error);
       // Generate mock NFTs as fallback
@@ -256,7 +319,24 @@ const FeaturedNFTShowcase = () => {
             <div className="absolute bottom-0 left-0 right-0 lg:right-auto lg:w-auto p-4 sm:p-5 md:p-6 lg:p-8 text-white z-10">
               <div className="mb-2 sm:mb-3">
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2">{currentCollection.name}</h2>
-                <p className="text-gray-300 text-sm sm:text-base mb-1">By {currentCollection.creatorName || 'Creator'}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  {(() => {
+                    const walletAddress = currentCollection.creatorWallet || currentCollection.owner || currentCollection.walletAddress;
+                    const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
+                    const username = profile?.username || currentCollection.creatorName || 'Creator';
+                    const avatar = profile?.avatar || currentCollection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
+                    return (
+                      <>
+                        <img
+                          src={avatar}
+                          alt={username}
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-gray-600"
+                        />
+                        <p className="text-gray-300 text-sm sm:text-base">By {username}</p>
+                      </>
+                    );
+                  })()}
+                </div>
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div>
                     <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Floor Price</p>

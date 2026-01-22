@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { nftAPI } from '../../services/api';
+import { nftAPI, userAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
@@ -16,6 +16,7 @@ const ExploreNFTsGrid = () => {
   const [liked, setLiked] = useState(new Set());
   const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
   const [filter, setFilter] = useState('Latest');
+  const [creatorProfiles, setCreatorProfiles] = useState(new Map());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,6 +72,37 @@ const ExploreNFTsGrid = () => {
         console.log(`[ExploreNFTsGrid] Total NFTs fetched: ${nftsData.length}`);
         setAllNfts(nftsData);
         paginateNFTs();
+        
+        // Fetch creator profiles for all NFTs
+        const profilesMap = new Map();
+        await Promise.all(
+          nftsData.slice(0, 50).map(async (nft) => { // Limit to first 50 to avoid too many API calls
+            const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
+            if (walletAddress && !profilesMap.has(walletAddress)) {
+              try {
+                const profile = await userAPI.getUserProfile(walletAddress);
+                if (profile) {
+                  profilesMap.set(walletAddress, {
+                    username: profile.username || nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                    avatar: profile.image || profile.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                  });
+                } else {
+                  profilesMap.set(walletAddress, {
+                    username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                    avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                  });
+                }
+              } catch (error) {
+                console.warn(`[ExploreNFTsGrid] Error fetching profile for ${walletAddress}:`, error);
+                profilesMap.set(walletAddress, {
+                  username: nft.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              }
+            }
+          })
+        );
+        setCreatorProfiles(profilesMap);
       } else {
         throw new Error('No NFTs fetched from any network');
       }
@@ -231,14 +263,22 @@ const ExploreNFTsGrid = () => {
                   <div className="mt-auto pt-2 md:pt-3 border-t border-gray-700/50 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 text-xs">Owned By</span>
-                      <div className="flex items-center gap-1.5">
-                        <img
-                          src={nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creatorName || 'creator'}`}
-                          alt={nft.creatorName || 'Creator'}
-                          className="w-4 h-4 rounded-full"
-                        />
-                        <span className="text-white text-xs font-medium line-clamp-1">{nft.creatorName || 'Alexander Blaq'}</span>
-                      </div>
+                      {(() => {
+                        const walletAddress = nft.creatorWallet || nft.owner || nft.walletAddress;
+                        const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
+                        const username = profile?.username || nft.creatorName || 'Creator';
+                        const avatar = profile?.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <img
+                              src={avatar}
+                              alt={username}
+                              className="w-4 h-4 rounded-full border border-gray-700"
+                            />
+                            <span className="text-white text-xs font-medium line-clamp-1">{username}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div>
                       <span className="text-gray-400 text-xs">Floor: </span>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { nftAPI } from '../../services/api';
+import { nftAPI, userAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 /**
@@ -12,6 +12,7 @@ const LiveAuctions = () => {
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timers, setTimers] = useState({});
+  const [creatorProfiles, setCreatorProfiles] = useState(new Map());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +43,37 @@ const LiveAuctions = () => {
         }));
         
         setAuctions(mockAuctions);
+        
+        // Fetch creator profiles for all auctions
+        const profilesMap = new Map();
+        await Promise.all(
+          mockAuctions.map(async (auction) => {
+            const walletAddress = auction.creatorWallet || auction.owner || auction.walletAddress;
+            if (walletAddress && !profilesMap.has(walletAddress)) {
+              try {
+                const profile = await userAPI.getUserProfile(walletAddress);
+                if (profile) {
+                  profilesMap.set(walletAddress, {
+                    username: profile.username || auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                    avatar: profile.image || profile.avatar || auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                  });
+                } else {
+                  profilesMap.set(walletAddress, {
+                    username: auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                    avatar: auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                  });
+                }
+              } catch (error) {
+                console.warn(`[LiveAuctions] Error fetching profile for ${walletAddress}:`, error);
+                profilesMap.set(walletAddress, {
+                  username: auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              }
+            }
+          })
+        );
+        setCreatorProfiles(profilesMap);
       } else {
         // Fallback to completely mock data if no collections
         setAuctions(generateMockAuctions());
@@ -193,14 +225,22 @@ const LiveAuctions = () => {
                 </div>
 
                 {/* Creator */}
-                <div className="flex items-center gap-2 mb-3">
-                  <img
-                    src={auction.creatorAvatar}
-                    alt={auction.creatorName}
-                    className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full flex-shrink-0"
-                  />
-                  <span className="text-gray-400 text-xs sm:text-sm line-clamp-1">{auction.creatorName}</span>
-                </div>
+                {(() => {
+                  const walletAddress = auction.creatorWallet || auction.owner || auction.walletAddress;
+                  const profile = walletAddress ? creatorProfiles.get(walletAddress) : null;
+                  const username = profile?.username || auction.creatorName || 'Creator';
+                  const avatar = profile?.avatar || auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
+                  return (
+                    <div className="flex items-center gap-2 mb-3">
+                      <img
+                        src={avatar}
+                        alt={username}
+                        className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full flex-shrink-0 border border-gray-700"
+                      />
+                      <span className="text-gray-400 text-xs sm:text-sm line-clamp-1">{username}</span>
+                    </div>
+                  );
+                })()}
 
                 {/* Place Bid Button */}
                 <button
