@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { nftAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -11,6 +12,7 @@ const LiveAuctions = () => {
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timers, setTimers] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAuctions();
@@ -115,7 +117,20 @@ const LiveAuctions = () => {
       {/* Auctions Grid - Mobile: 2 cols, Tablet: 2 cols, Desktop: 3-4 cols */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 w-full">
         {auctions.map((auction) => (
-          <div key={auction._id} className="group cursor-pointer w-full min-w-0">
+          <div 
+            key={auction._id} 
+            className="group cursor-pointer w-full min-w-0"
+            onClick={() => {
+              // Navigate to collection if it's a collection-based auction, otherwise to NFT
+              if (auction.collectionId || auction.collection) {
+                const network = auction.network || 'polygon';
+                const collectionName = auction.collection || auction.name;
+                navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+              } else if (auction.nftId || auction._id) {
+                navigate(`/nft/${auction.nftId || auction._id}`);
+              }
+            }}
+          >
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col w-full">
               {/* Image Container */}
               <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
@@ -141,11 +156,26 @@ const LiveAuctions = () => {
                 </div>
 
                 {/* Place Bid Overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm">
+                <div 
+                  className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (auction.collectionId || auction.collection) {
+                        const network = auction.network || 'polygon';
+                        const collectionName = auction.collection || auction.name;
+                        navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+                      } else if (auction.nftId || auction._id) {
+                        navigate(`/nft/${auction.nftId || auction._id}`);
+                      }
+                    }}
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition text-xs md:text-sm"
+                  >
                     <Gavel size={14} className="sm:w-[18px]" />
-                    <span className="hidden sm:inline">Place Bid</span>
-                    <span className="sm:hidden">Bid</span>
+                    <span className="hidden sm:inline">View Details</span>
+                    <span className="sm:hidden">View</span>
                   </button>
                 </div>
               </div>

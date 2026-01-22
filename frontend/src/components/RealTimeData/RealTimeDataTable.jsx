@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { nftAPI } from '../../services/api';
 
 /**
@@ -10,6 +11,7 @@ const RealTimeDataTable = () => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trendData, setTrendData] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMarketData();
@@ -160,7 +162,11 @@ const RealTimeDataTable = () => {
               </thead>
               <tbody>
                 {tableData.map((row, idx) => (
-                  <tr key={idx} className="border-b border-gray-700/50 hover:bg-gray-800/50 transition">
+                  <tr 
+                    key={idx} 
+                    className="border-b border-gray-700/50 hover:bg-gray-800/50 transition cursor-pointer"
+                    onClick={() => navigate(`/nft/${row._id}`)}
+                  >
                     {/* NFT */}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2 min-w-0">

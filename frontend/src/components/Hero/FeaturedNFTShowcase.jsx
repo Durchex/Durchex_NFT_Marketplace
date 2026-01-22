@@ -128,10 +128,10 @@ const FeaturedNFTShowcase = () => {
     return [
       {
         _id: 'collection-1',
-        name: 'Victory of Olympus',
-        image: 'https://via.placeholder.com/600x400?text=Victory+of+Olympus',
-        description: 'A collection inspired by ancient Greek mythology',
-        itemCount: 250,
+      name: 'Victory of Olympus',
+      image: 'https://via.placeholder.com/600x400?text=Victory+of+Olympus',
+      description: 'A collection inspired by ancient Greek mythology',
+      itemCount: 250,
         floorPrice: '0.6',
         network: 'polygon'
       },
@@ -179,9 +179,14 @@ const FeaturedNFTShowcase = () => {
   };
 
   const handleViewCollection = (collection) => {
-    const network = collection.network || 'polygon';
-    const collectionName = collection.name || collection.collectionName;
-    navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+    // Use collectionId if available, otherwise use network/name format
+    if (collection._id || collection.collectionId) {
+      navigate(`/collection/${collection._id || collection.collectionId}`);
+    } else {
+      const network = collection.network || 'polygon';
+      const collectionName = collection.name || collection.collectionName;
+      navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+    }
   };
 
   const nextCollection = () => {
@@ -320,6 +325,7 @@ const FeaturedNFTShowcase = () => {
               <div
                 key={nft._id || idx}
                 className="relative rounded-lg overflow-hidden cursor-pointer group w-full aspect-square min-w-0"
+                onClick={() => navigate(`/nft/${nft._id}`)}
               >
                 <img
                   src={nft.image || `https://via.placeholder.com/200x200?text=NFT%20${idx + 1}`}

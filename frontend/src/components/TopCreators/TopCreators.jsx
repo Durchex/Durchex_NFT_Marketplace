@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, ArrowRight } from 'lucide-react';
-import { nftAPI } from '../../services/api';
-import { Link } from 'react-router-dom';
+import { nftAPI, userAPI } from '../../services/api';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 /**
  * TopCreators - Displays users with NFTs, arranged by most recent NFT
+ * Shows username and avatar, clickable to profile
  */
 const TopCreators = () => {
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTopCreators();
@@ -82,14 +84,28 @@ const TopCreators = () => {
       // Take top 10
       creatorsList = creatorsList.slice(0, 10);
       
-      // Calculate followers (mock for now, can be enhanced with actual data)
-      creatorsList = creatorsList.map(creator => ({
-        ...creator,
-        followers: Math.floor(creator.nftCount * 50 + Math.random() * 1000)
-      }));
+      // Fetch user profiles to get usernames and avatars
+      const creatorsWithProfiles = await Promise.all(
+        creatorsList.map(async (creator) => {
+          try {
+            const profile = await userAPI.getUserProfile(creator.address);
+            if (profile) {
+              return {
+                ...creator,
+                username: profile.username || creator.username,
+                avatar: profile.image || profile.avatar || creator.avatar
+              };
+            }
+            return creator;
+          } catch (error) {
+            console.warn(`[TopCreators] Error fetching profile for ${creator.address}:`, error);
+            return creator;
+          }
+        })
+      );
       
-      setCreators(creatorsList);
-      console.log(`[TopCreators] Loaded ${creatorsList.length} creators`);
+      setCreators(creatorsWithProfiles);
+      console.log(`[TopCreators] Loaded ${creatorsWithProfiles.length} creators`);
     } catch (error) {
       console.error('[TopCreators] Error fetching creators:', error);
       // Generate mock data if API fails
@@ -106,13 +122,10 @@ const TopCreators = () => {
     ];
     
     return names.map((name, idx) => ({
-      _id: `creator-${idx}`,
+      address: `0x${Math.random().toString(16).slice(2, 42)}`,
       username: name,
-      address: `0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 10)}`,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-      totalVolume: Math.floor(Math.random() * 500) + 10,
-      followers: Math.floor(Math.random() * 10000),
-      isVerified: Math.random() > 0.5
+      mostRecentNFTDate: new Date(Date.now() - idx * 86400000) // Stagger dates
     }));
   };
 
@@ -149,14 +162,20 @@ const TopCreators = () => {
       {/* Creators Grid - Mobile: 2 cols, Tablet: 3-4 cols, Desktop: 5 cols */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
         {creators.map((creator) => (
-          <Link
-            key={creator._id}
-            to={`/profile/${creator.address}`}
-            className="group text-center w-full min-w-0"
+          <div
+            key={creator.address}
+            className="group text-center w-full min-w-0 cursor-pointer"
+            onClick={() => navigate(`/profile/${creator.address}`)}
           >
             <div className="flex flex-col items-center">
-              {/* Avatar */}
-              <div className="mb-2">
+              {/* Avatar - Clickable */}
+              <div 
+                className="mb-2 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile/${creator.address}`);
+                }}
+              >
                 <img
                   src={creator.avatar}
                   alt={creator.username}
@@ -164,24 +183,15 @@ const TopCreators = () => {
                 />
               </div>
 
-              {/* Name */}
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-purple-400 transition mb-1.5 sm:mb-2 text-center line-clamp-2">
-                {creator.username}
+              {/* Username */}
+              <h3 
+                className="font-bold text-white text-xs sm:text-sm group-hover:text-purple-400 transition text-center line-clamp-2"
+                onClick={() => navigate(`/profile/${creator.address}`)}
+              >
+                {creator.username || `User ${creator.address.substring(0, 6)}`}
               </h3>
-
-              {/* Stats - Simple format */}
-              <div className="space-y-0.5 sm:space-y-1 text-center">
-                <div>
-                  <p className="text-gray-400 text-[10px] sm:text-xs">Followers</p>
-                  <p className="font-bold text-white text-xs">{(creator.followers / 1000).toFixed(0)}K</p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-[10px] sm:text-xs">Volume</p>
-                  <p className="font-bold text-white text-xs">{creator.totalVolume} <span className="text-gray-400">ETH</span></p>
-                </div>
-              </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

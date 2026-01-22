@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { nftAPI } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 
@@ -14,6 +15,7 @@ const ExploreNFTsGrid = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [liked, setLiked] = useState(new Set());
   const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNFTs();
@@ -128,7 +130,11 @@ const ExploreNFTsGrid = () => {
           </div>
         ) : (
           nfts.map((nft) => (
-            <div key={nft._id} className="group cursor-pointer w-full min-w-0">
+            <div 
+              key={nft._id} 
+              className="group cursor-pointer w-full min-w-0"
+              onClick={() => navigate(`/nft/${nft._id}`)}
+            >
               <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col w-full">
                 {/* Image Container */}
                 <div className="relative w-full aspect-square overflow-hidden bg-gradient-to-br from-gray-700 to-gray-800">
@@ -143,9 +149,15 @@ const ExploreNFTsGrid = () => {
                   )}
 
                   {/* Overlay Actions */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center gap-2 md:gap-3 opacity-0 group-hover:opacity-100">
+                  <div 
+                    className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-opacity duration-300 flex items-center justify-center gap-2 md:gap-3 opacity-0 group-hover:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
-                      onClick={() => toggleLike(nft._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLike(nft._id);
+                      }}
                       className={`p-2 md:p-3 rounded-full transition ${
                         liked.has(nft._id)
                           ? 'bg-red-600 text-white'
@@ -158,10 +170,22 @@ const ExploreNFTsGrid = () => {
                       />
                     </button>
                     <button
-                      onClick={() => handleAddToCart(nft.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(nft.name);
+                      }}
                       className="p-2 md:p-3 rounded-full bg-purple-600 hover:bg-purple-700 text-white transition"
                     >
                       <ShoppingCart size={20} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/nft/${nft._id}`);
+                      }}
+                      className="p-2 md:p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition"
+                    >
+                      View Details
                     </button>
                   </div>
 

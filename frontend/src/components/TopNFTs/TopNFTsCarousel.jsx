@@ -123,9 +123,14 @@ const TopNFTsCarousel = () => {
             key={collection._id}
             className="flex-shrink-0 w-[75%] sm:w-56 md:w-64 lg:w-72 snap-start group cursor-pointer"
             onClick={() => {
-              const network = collection.network || 'polygon';
-              const collectionName = collection.name || collection.collectionName;
-              navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+              // Use collectionId if available, otherwise use network/name format
+              if (collection._id || collection.collectionId) {
+                navigate(`/collection/${collection._id || collection.collectionId}`);
+              } else {
+                const network = collection.network || 'polygon';
+                const collectionName = collection.name || collection.collectionName;
+                navigate(`/collection/${network}/${encodeURIComponent(collectionName)}`);
+              }
             }}
           >
             <div className="bg-gray-800/30 rounded-lg overflow-hidden border border-gray-700 hover:border-purple-600/50 transition h-full flex flex-col">
