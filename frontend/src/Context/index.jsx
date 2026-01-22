@@ -210,6 +210,15 @@ export const Index = ({ children }) => {
           provider = window.ethereum;
         } else if (Array.isArray(window.ethereum.providers)) {
           provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
+          // If found, set it as primary provider
+          if (provider) {
+            const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
+            if (providerIndex > 0) {
+              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
+                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
+            }
+            window.ethereum = window.ethereum.providers[0];
+          }
         }
         console.log('[Context] Coinbase Wallet provider selected:', provider);
       } else if (walletId === 'trust' && window.ethereum) {
@@ -217,6 +226,15 @@ export const Index = ({ children }) => {
           provider = window.ethereum;
         } else if (Array.isArray(window.ethereum.providers)) {
           provider = window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
+          // If found, set it as primary provider
+          if (provider) {
+            const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
+            if (providerIndex > 0) {
+              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
+                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
+            }
+            window.ethereum = window.ethereum.providers[0];
+          }
         }
         console.log('[Context] Trust Wallet provider selected:', provider);
       } else if (window.ethereum) {
@@ -309,33 +327,59 @@ export const Index = ({ children }) => {
       console.log('[Context] Attempting to request accounts from provider:', provider);
       
       // Special handling for WalletConnect
-      if (walletId === 'walletconnect' && provider && typeof provider.connect === 'function') {
-        console.log('[Context] Calling connect() for WalletConnect provider');
-        await provider.connect();
-      }
-      
-      // Request account access with proper error handling
-      try {
-        if (provider.request) {
-          accounts = await provider.request({
-            method: "eth_requestAccounts",
-          });
-        } else if (provider.enable) {
-          // Legacy wallet support
-          accounts = await provider.enable();
-        } else {
-          throw new Error("Wallet does not support connection");
+      if (walletId === 'walletconnect' && provider) {
+        console.log('[Context] WalletConnect provider detected');
+        try {
+          // WalletConnect requires explicit connect call
+          if (typeof provider.connect === 'function') {
+            console.log('[Context] Calling connect() for WalletConnect provider');
+            await provider.connect();
+          }
+          
+          // After connecting, get accounts
+          if (provider.request) {
+            accounts = await provider.request({
+              method: "eth_accounts",
+            });
+            // If no accounts, request them
+            if (!accounts || accounts.length === 0) {
+              accounts = await provider.request({
+                method: "eth_requestAccounts",
+              });
+            }
+          }
+        } catch (wcError) {
+          console.error('[Context] WalletConnect connection error:', wcError);
+          if (wcError.code === 4001) {
+            ErrorToast("WalletConnect connection rejected by user");
+            return null;
+          }
+          throw wcError;
         }
-      } catch (requestError) {
-        console.error('[Context] Error requesting accounts:', requestError);
-        if (requestError.code === 4001) {
-          ErrorToast("Connection rejected by user");
-          return null;
-        } else if (requestError.code === -32002) {
-          ErrorToast("Connection request already pending. Please check your wallet.");
-          return null;
+      } else {
+        // Request account access with proper error handling for other wallets
+        try {
+          if (provider.request) {
+            accounts = await provider.request({
+              method: "eth_requestAccounts",
+            });
+          } else if (provider.enable) {
+            // Legacy wallet support
+            accounts = await provider.enable();
+          } else {
+            throw new Error("Wallet does not support connection");
+          }
+        } catch (requestError) {
+          console.error('[Context] Error requesting accounts:', requestError);
+          if (requestError.code === 4001) {
+            ErrorToast("Connection rejected by user");
+            return null;
+          } else if (requestError.code === -32002) {
+            ErrorToast("Connection request already pending. Please check your wallet.");
+            return null;
+          }
+          throw requestError;
         }
-        throw requestError;
       }
 
       if (accounts && accounts.length > 0) {

@@ -173,6 +173,25 @@ const WalletConnect = () => {
         return;
       }
 
+      // For specific wallets, ensure we're using the correct provider before connecting
+      if (wallet.getProvider && wallet.id !== 'walletconnect') {
+        const specificProvider = wallet.getProvider();
+        if (specificProvider && window.ethereum) {
+          // If wallet is in providers array, make it the primary provider
+          if (Array.isArray(window.ethereum.providers)) {
+            const providerIndex = window.ethereum.providers.findIndex(p => p === specificProvider);
+            if (providerIndex > 0) {
+              // Move selected wallet to first position
+              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
+                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
+            }
+            window.ethereum = window.ethereum.providers[0];
+          } else if (specificProvider !== window.ethereum) {
+            window.ethereum = specificProvider;
+          }
+        }
+      }
+      
       // Connect to the selected wallet - the connectWallet function will handle provider selection
       const result = await connectWallet(wallet.id);
       

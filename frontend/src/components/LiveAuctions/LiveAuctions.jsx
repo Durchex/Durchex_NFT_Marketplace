@@ -44,35 +44,50 @@ const LiveAuctions = () => {
         
         setAuctions(mockAuctions);
         
-        // Fetch creator profiles for all auctions
+        // Fetch creator profiles for all auctions with rate limiting
         const profilesMap = new Map();
-        await Promise.all(
-          mockAuctions.map(async (auction) => {
-            const walletAddress = auction.creatorWallet || auction.owner || auction.walletAddress;
-            if (walletAddress && !profilesMap.has(walletAddress)) {
-              try {
-                const profile = await userAPI.getUserProfile(walletAddress);
-                if (profile) {
-                  profilesMap.set(walletAddress, {
-                    username: profile.username || auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                    avatar: profile.image || profile.avatar || auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                  });
-                } else {
-                  profilesMap.set(walletAddress, {
-                    username: auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                    avatar: auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                  });
-                }
-              } catch (error) {
-                console.warn(`[LiveAuctions] Error fetching profile for ${walletAddress}:`, error);
+        const uniqueWallets = [...new Set(mockAuctions.map(auction => 
+          auction.creatorWallet || auction.owner || auction.walletAddress
+        ).filter(Boolean))];
+        
+        // Fetch profiles with a small delay between requests to avoid overwhelming the API
+        for (let i = 0; i < uniqueWallets.length; i++) {
+          const walletAddress = uniqueWallets[i];
+          if (!profilesMap.has(walletAddress)) {
+            try {
+              // Add small delay between requests (except first one)
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+              
+              const profile = await userAPI.getUserProfile(walletAddress);
+              const auction = mockAuctions.find(a => 
+                (a.creatorWallet || a.owner || a.walletAddress) === walletAddress
+              );
+              
+              if (profile) {
                 profilesMap.set(walletAddress, {
-                  username: auction.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                  username: profile.username || auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: profile.image || profile.avatar || auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+                });
+              } else {
+                profilesMap.set(walletAddress, {
+                  username: auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                  avatar: auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
                 });
               }
+            } catch (error) {
+              console.warn(`[LiveAuctions] Error fetching profile for ${walletAddress}:`, error);
+              const auction = mockAuctions.find(a => 
+                (a.creatorWallet || a.owner || a.walletAddress) === walletAddress
+              );
+              profilesMap.set(walletAddress, {
+                username: auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
+                avatar: auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
+              });
             }
-          })
-        );
+          }
+        }
         setCreatorProfiles(profilesMap);
       } else {
         // Fallback to completely mock data if no collections

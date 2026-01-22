@@ -357,9 +357,9 @@ const FeaturedNFTShowcase = () => {
             </div>
           </div>
 
-          {/* Featured NFTs - Inside slider on right (Desktop) / Below banner (Mobile) */}
-          {/* Mobile: 3 column grid below, Desktop: Horizontal row on right inside slider */}
-          <div className="lg:absolute lg:right-0 lg:top-0 lg:h-full lg:flex lg:items-center lg:pr-4 xl:pr-6 lg:py-4 xl:py-6">
+          {/* Featured NFTs - Inside slider at bottom right (Desktop) / Below banner (Mobile) */}
+          {/* Mobile: 3 column grid below, Desktop: Horizontal row at bottom right inside slider */}
+          <div className="lg:absolute lg:bottom-0 lg:right-0 lg:flex lg:justify-end lg:pb-4 xl:pb-6 lg:pr-4 xl:pr-6">
             <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:flex lg:flex-row lg:gap-3 lg:h-auto">
               {displayNFTs.map((nft, idx) => (
                 <div
@@ -397,7 +397,7 @@ const FeaturedNFTShowcase = () => {
               </button>
               <button
                 onClick={nextCollection}
-                className="absolute right-3 sm:right-4 lg:right-[460px] xl:right-[520px] top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-2.5 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white transition shadow-lg"
                 aria-label="Next collection"
               >
                 <ChevronRight size={20} className="sm:w-6 sm:h-6" />
@@ -407,7 +407,7 @@ const FeaturedNFTShowcase = () => {
 
           {/* Slider Dots Indicator */}
           {collections.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:right-[460px] xl:right-[520px] lg:bottom-4 flex gap-2 z-20">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-20 xl:bottom-24 flex gap-2 z-20">
               {collections.map((_, idx) => (
                 <button
                   key={idx}
