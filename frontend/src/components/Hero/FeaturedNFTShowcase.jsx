@@ -357,9 +357,9 @@ const FeaturedNFTShowcase = () => {
             </div>
           </div>
 
-          {/* Featured NFTs - Inside slider at bottom (Desktop) / Below banner (Mobile) */}
-          {/* Mobile: 3 column grid below, Desktop: Horizontal row at bottom inside slider */}
-          <div className="lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:flex lg:justify-center lg:pb-4 xl:pb-6 lg:px-4 xl:px-6">
+          {/* Featured NFTs - Inside slider at bottom right (Desktop) / Below banner (Mobile) */}
+          {/* Mobile: 3 column grid below, Desktop: Horizontal row at bottom right inside slider */}
+          <div className="lg:absolute lg:bottom-0 lg:right-0 lg:flex lg:justify-end lg:pb-4 xl:pb-6 lg:pr-4 xl:pr-6">
             <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:flex lg:flex-row lg:gap-3 lg:h-auto">
               {displayNFTs.map((nft, idx) => (
                 <div
