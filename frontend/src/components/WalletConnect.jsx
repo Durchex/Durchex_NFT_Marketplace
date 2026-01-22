@@ -21,7 +21,7 @@ import {
 import toast from 'react-hot-toast';
 
 const WalletConnect = () => {
-  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress } = useContext(ICOContent);
+  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const buttonRef = useRef(null);
@@ -173,30 +173,72 @@ const WalletConnect = () => {
         return;
       }
 
-      // For specific wallets, ensure we're using the correct provider before connecting
-      if (wallet.getProvider && wallet.id !== 'walletconnect') {
+      // For specific wallets, get the provider and connect directly
+      if (wallet.id === 'walletconnect') {
+        // WalletConnect is handled by connectWallet function
+        const result = await connectWallet(wallet.id);
+        if (result) {
+          toast.success(`Connected to ${wallet.name}!`);
+        }
+      } else if (wallet.getProvider) {
+        // For other wallets, get the specific provider and connect directly
         const specificProvider = wallet.getProvider();
-        if (specificProvider && window.ethereum) {
-          // If wallet is in providers array, make it the primary provider
-          if (Array.isArray(window.ethereum.providers)) {
-            const providerIndex = window.ethereum.providers.findIndex(p => p === specificProvider);
-            if (providerIndex > 0) {
-              // Move selected wallet to first position
-              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
-                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
+        if (!specificProvider) {
+          toast.error(`${wallet.name} provider not found. Please ensure the wallet is installed and unlocked.`);
+          setIsConnecting(false);
+          return;
+        }
+
+        try {
+          // Directly request accounts from the specific provider - this triggers the wallet popup
+          let accounts;
+          if (specificProvider.request) {
+            console.log(`[WalletConnect] Requesting accounts from ${wallet.name} provider`);
+            accounts = await specificProvider.request({
+              method: "eth_requestAccounts",
+            });
+          } else if (specificProvider.enable) {
+            // Legacy wallet support
+            accounts = await specificProvider.enable();
+          } else {
+            throw new Error(`${wallet.name} does not support connection`);
+          }
+
+          if (accounts && accounts.length > 0) {
+            // Update the context with the connected account
+            setAddress(accounts[0]);
+            
+            // Get balance
+            try {
+              const ethersProvider = new ethers.providers.Web3Provider(specificProvider);
+              const balance = await ethersProvider.getBalance(accounts[0]);
+              const balanceFormatted = ethers.utils.formatEther(balance);
+              setAccountBalance(balanceFormatted);
+            } catch (balanceError) {
+              console.error('Error fetching balance:', balanceError);
+              setAccountBalance("0");
             }
-            window.ethereum = window.ethereum.providers[0];
-          } else if (specificProvider !== window.ethereum) {
-            window.ethereum = specificProvider;
+            
+            toast.success(`Connected to ${wallet.name}!`);
+          } else {
+            toast.error("No account found. Please unlock your wallet.");
+          }
+        } catch (error) {
+          console.error(`[WalletConnect] Error connecting to ${wallet.name}:`, error);
+          if (error.code === 4001) {
+            toast.error('Connection rejected by user');
+          } else if (error.code === -32002) {
+            toast.error('Connection request already pending. Please check your wallet.');
+          } else {
+            toast.error(`Failed to connect to ${wallet.name}: ${error.message}`);
           }
         }
-      }
-      
-      // Connect to the selected wallet - the connectWallet function will handle provider selection
-      const result = await connectWallet(wallet.id);
-      
-      if (result) {
-        toast.success(`Connected to ${wallet.name}!`);
+      } else {
+        // Fallback to connectWallet function
+        const result = await connectWallet(wallet.id);
+        if (result) {
+          toast.success(`Connected to ${wallet.name}!`);
+        }
       }
     } catch (error) {
       console.error('Connection error:', error);
