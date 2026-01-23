@@ -92,6 +92,42 @@ const lazyNFTSchema = new mongoose.Schema(
             default: null,
         },
 
+        // Stock/Pieces management
+        pieces: {
+            type: Number,
+            default: 1,
+            min: 1,
+        },
+
+        remainingPieces: {
+            type: Number,
+            default: 1,
+            min: 0,
+        },
+
+        // Pricing and metadata
+        price: {
+            type: String, // Price in ETH or native token
+            default: null,
+        },
+
+        category: {
+            type: String,
+            default: '',
+        },
+
+        collection: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Collection',
+            default: null,
+        },
+
+        // Minting control
+        enableStraightBuy: {
+            type: Boolean,
+            default: true,
+        },
+
         // Metadata for discovery
         attributes: [
             {
@@ -116,12 +152,6 @@ const lazyNFTSchema = new mongoose.Schema(
         redeemedAt: {
             type: Date,
             default: null,
-        },
-
-        // Optional metadata
-        collection: {
-            type: String,
-            default: 'general',
         },
 
         tags: [String],

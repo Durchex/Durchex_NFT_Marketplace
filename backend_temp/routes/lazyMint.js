@@ -82,6 +82,11 @@ router.post('/submit', authMiddleware, async (req, res) => {
             signature,
             messageHash,
             nonce,
+            pieces,
+            price,
+            category,
+            collection,
+            enableStraightBuy,
         } = req.body;
         const creatorAddress = req.user.address;
 
@@ -119,6 +124,12 @@ router.post('/submit', authMiddleware, async (req, res) => {
             signature,
             messageHash,
             nonce,
+            pieces: pieces || 1,
+            remainingPieces: pieces || 1,
+            price: price || null,
+            category: category || '',
+            collection: collection || null,
+            enableStraightBuy: enableStraightBuy !== undefined ? enableStraightBuy : true,
             status: 'pending',
             createdAt: new Date(),
             expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),

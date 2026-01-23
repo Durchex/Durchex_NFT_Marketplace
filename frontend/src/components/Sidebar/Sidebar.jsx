@@ -38,7 +38,7 @@ const Sidebar = () => {
       section: 'Main',
       items: [
         { icon: LayoutGrid, label: 'Explore', path: '/explore', badge: null },
-        { icon: PlusCircle, label: 'Create', path: '/create', badge: null },
+        { icon: Wind, label: 'Create', path: '/create', badge: null },
         { icon: Gamepad2, label: 'Games', path: '/games', badge: 'Coming Soon' },
       ]
     },
@@ -47,8 +47,6 @@ const Sidebar = () => {
       items: [
         { icon: TrendingUp, label: 'Trading', path: '/features/trading', badge: 'Coming Soon' },
         { icon: Zap, label: 'Auctions', path: '/features/auction', badge: 'Coming Soon' },
-        { icon: Wind, label: 'Lazy Mint', path: '/features/lazy-mint', badge: null },
-        { icon: Layers, label: 'Batch Mint', path: '/features/batch-mint', badge: null },
         { icon: Lock, label: 'Rental', path: '/features/rental', badge: 'Coming Soon' },
         { icon: Coins, label: 'Financing', path: '/features/financing', badge: 'Coming Soon' },
         { icon: Gift, label: 'Staking', path: '/features/staking', badge: 'Coming Soon' },
