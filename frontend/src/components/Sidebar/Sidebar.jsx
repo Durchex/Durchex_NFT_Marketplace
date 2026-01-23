@@ -19,7 +19,8 @@ import {
   Settings,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  PlusCircle
 } from 'lucide-react';
 
 /**
@@ -37,6 +38,7 @@ const Sidebar = () => {
       section: 'Main',
       items: [
         { icon: LayoutGrid, label: 'Explore', path: '/explore', badge: null },
+        { icon: PlusCircle, label: 'Create', path: '/create', badge: null },
         { icon: Gamepad2, label: 'Games', path: '/games', badge: 'Coming Soon' },
       ]
     },
