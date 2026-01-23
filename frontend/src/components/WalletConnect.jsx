@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { ICOContent } from '../Context';
 import { useContext } from 'react';
 import { 
@@ -19,13 +20,16 @@ import {
   HiOutlineExternalLink
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { userAPI } from '../services/api';
 
 const WalletConnect = () => {
-  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress } = useContext(ICOContent);
+  const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const buttonRef = useRef(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDropdownOpen && buttonRef.current) {
@@ -36,6 +40,39 @@ const WalletConnect = () => {
       });
     }
   }, [isDropdownOpen]);
+
+  // Fetch user profile when address changes
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (address) {
+        try {
+          const profile = await userAPI.getUserProfile(address);
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            setUserProfile(null);
+          }
+        } catch (error) {
+          console.warn('[WalletConnect] Error fetching user profile:', error);
+          setUserProfile(null);
+        }
+      } else {
+        setUserProfile(null);
+      }
+    };
+
+    fetchUserProfile();
+  }, [address]);
+
+  // Get avatar URL with fallback
+  const avatarUrl = useMemo(() => {
+    if (userProfile?.image) return userProfile.image;
+    if (userProfile?.avatar) return userProfile.avatar;
+    if (address) {
+      return `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`;
+    }
+    return null;
+  }, [userProfile, address]);
 
   // Wallet options with their detection methods
   const walletOptions = [
@@ -156,6 +193,13 @@ const WalletConnect = () => {
   }, []);
 
   const handleWalletSelect = async (wallet) => {
+    console.log('[WalletConnect] handleWalletSelect CALLED with wallet:', wallet);
+    console.log('[WalletConnect] Wallet details:', {
+      id: wallet?.id,
+      name: wallet?.name,
+      isInstalled: wallet?.isInstalled?.()
+    });
+    
     setIsConnecting(true);
     setIsDropdownOpen(false);
 
@@ -173,37 +217,136 @@ const WalletConnect = () => {
         return;
       }
 
-      // For specific wallets, ensure we're using the correct provider before connecting
-      if (wallet.getProvider && wallet.id !== 'walletconnect') {
+      console.log('[WalletConnect] Attempting to connect to:', wallet.name, 'with id:', wallet.id);
+      
+      // For WalletConnect, use the context function directly
+      if (wallet.id === 'walletconnect') {
+        console.log('[WalletConnect] Connecting via WalletConnect protocol');
+        const result = await connectWallet(wallet.id);
+        if (result) {
+          toast.success(`Connected to ${wallet.name}!`);
+        } else {
+          toast.error(`Failed to connect to ${wallet.name}. Please try again.`);
+        }
+        setIsConnecting(false);
+        return;
+      }
+
+      // For other wallets, get the provider and connect directly
+      if (wallet.getProvider && typeof window !== 'undefined') {
         const specificProvider = wallet.getProvider();
-        if (specificProvider && window.ethereum) {
-          // If wallet is in providers array, make it the primary provider
-          if (Array.isArray(window.ethereum.providers)) {
-            const providerIndex = window.ethereum.providers.findIndex(p => p === specificProvider);
+        console.log('[WalletConnect] Got provider for', wallet.name, ':', specificProvider);
+        
+        if (!specificProvider) {
+          toast.error(`Could not find ${wallet.name} provider. Please make sure it's installed.`);
+          setIsConnecting(false);
+          return;
+        }
+
+        // Ensure this provider is the primary one in window.ethereum
+        if (Array.isArray(window.ethereum?.providers)) {
+          const providerIndex = window.ethereum.providers.findIndex(p => p === specificProvider);
+          console.log('[WalletConnect] Provider index in array:', providerIndex);
+          
+          if (providerIndex !== -1) {
+            // Move selected wallet to first position if it's not already first
             if (providerIndex > 0) {
-              // Move selected wallet to first position
+              console.log('[WalletConnect] Moving provider to first position');
               [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
                 [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
             }
+            // Use the first provider (which is now our selected wallet)
             window.ethereum = window.ethereum.providers[0];
-          } else if (specificProvider !== window.ethereum) {
+            console.log('[WalletConnect] Set window.ethereum to first provider');
+          } else {
+            console.warn('[WalletConnect] Provider not found in providers array, using directly');
             window.ethereum = specificProvider;
           }
+        } else if (window.ethereum !== specificProvider) {
+          // If not in array, directly set it
+          console.log('[WalletConnect] Setting window.ethereum directly to provider');
+          window.ethereum = specificProvider;
+        }
+
+        // Verify the provider is set correctly
+        const finalProvider = window.ethereum || specificProvider;
+        console.log('[WalletConnect] Final provider:', finalProvider);
+        console.log('[WalletConnect] Provider has request method:', typeof finalProvider?.request === 'function');
+        console.log('[WalletConnect] Provider isMetaMask:', finalProvider?.isMetaMask);
+        console.log('[WalletConnect] Provider isCoinbaseWallet:', finalProvider?.isCoinbaseWallet);
+
+        // DIRECTLY call eth_requestAccounts on the provider - this will open the wallet popup
+        if (!finalProvider || !finalProvider.request) {
+          throw new Error('Provider does not support connection requests');
+        }
+
+        console.log('[WalletConnect] DIRECTLY calling eth_requestAccounts on provider');
+        try {
+          const accounts = await finalProvider.request({
+            method: "eth_requestAccounts",
+          });
+
+          console.log('[WalletConnect] Accounts received:', accounts);
+
+          if (accounts && accounts.length > 0) {
+            // Directly update the context state with the connected account
+            setAddress(accounts[0]);
+            
+            // Fetch and set the account balance
+            try {
+              const { ethers } = await import('ethers');
+              const ethersProvider = new ethers.providers.Web3Provider(finalProvider);
+              const balance = await ethersProvider.getBalance(accounts[0]);
+              const balanceInEth = ethers.utils.formatEther(balance);
+              setAccountBalance(balanceInEth);
+              console.log('[WalletConnect] Balance set:', balanceInEth);
+            } catch (balanceError) {
+              console.error('[WalletConnect] Error fetching balance:', balanceError);
+              setAccountBalance('0');
+            }
+            
+            // Reset connecting state before showing success
+            setIsConnecting(false);
+            toast.success(`Connected to ${wallet.name}!`);
+            
+            // Force a small delay to ensure state updates propagate
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } else {
+            toast.error('No accounts returned from wallet');
+            setIsConnecting(false);
+          }
+        } catch (requestError) {
+          console.error('[WalletConnect] Error requesting accounts:', requestError);
+          if (requestError.code === 4001) {
+            toast.error('Connection rejected by user');
+          } else if (requestError.code === -32002) {
+            toast.error('Connection request already pending. Please check your wallet.');
+          } else {
+            toast.error(`Failed to connect: ${requestError.message || 'Unknown error'}`);
+          }
+          throw requestError;
+        }
+      } else {
+        // Fallback to context function if no getProvider method
+        console.log('[WalletConnect] Falling back to context connectWallet');
+        const result = await connectWallet(wallet.id);
+        if (result) {
+          toast.success(`Connected to ${wallet.name}!`);
+        } else {
+          toast.error(`Failed to connect to ${wallet.name}. Please try again.`);
         }
       }
-      
-      // Connect to the selected wallet - the connectWallet function will handle provider selection
-      const result = await connectWallet(wallet.id);
-      
-      if (result) {
-        toast.success(`Connected to ${wallet.name}!`);
-      }
     } catch (error) {
-      console.error('Connection error:', error);
+      console.error('[WalletConnect] Connection error:', error);
+      console.error('[WalletConnect] Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       if (error.code === 4001) {
         toast.error('User rejected the connection request');
       } else {
-        toast.error(`Failed to connect to ${wallet.name}. Please try again.`);
+        toast.error(`Failed to connect to ${wallet.name}. ${error.message || 'Please try again.'}`);
       }
     } finally {
       setIsConnecting(false);
@@ -216,9 +359,58 @@ const WalletConnect = () => {
     // After disconnecting, the component will automatically show the connect options
   };
 
-  const handleDisconnect = () => {
-    disconnectWallet();
+  const handleDisconnect = async () => {
+    console.log('[WalletConnect] handleDisconnect called');
     setIsDropdownOpen(false);
+    
+    try {
+      // Directly clear local state first
+      console.log('[WalletConnect] Clearing local state');
+      setAddress(null);
+      setAccountBalance(null);
+      setUserProfile(null);
+      
+      // Clear localStorage
+      try {
+        localStorage.removeItem('wallet_session');
+        localStorage.removeItem('walletconnect');
+        localStorage.removeItem('lastConnectedWallet');
+        console.log('[WalletConnect] Cleared localStorage');
+      } catch (e) {
+        console.warn('[WalletConnect] Error clearing storage:', e);
+      }
+      
+      // Try to disconnect from wallet provider if possible
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          // WalletConnect disconnect
+          if (window.ethereum.isWalletConnect && typeof window.ethereum.disconnect === 'function') {
+            await window.ethereum.disconnect();
+            console.log('[WalletConnect] Disconnected from WalletConnect');
+          }
+          // Generic provider disconnect
+          else if (typeof window.ethereum.disconnect === 'function') {
+            await window.ethereum.disconnect();
+            console.log('[WalletConnect] Disconnected from wallet provider');
+          }
+        } catch (disconnectError) {
+          console.log('[WalletConnect] Provider disconnect error (may be normal):', disconnectError);
+          // Some wallets don't support disconnect, which is fine
+        }
+      }
+      
+      // Call the context disconnect function to ensure everything is cleared
+      await disconnectWallet();
+      toast.success('Wallet disconnected');
+    } catch (error) {
+      console.error('[WalletConnect] Error during disconnect:', error);
+      // Still clear state even if disconnect fails
+      setAddress(null);
+      setAccountBalance(null);
+      setUserProfile(null);
+      await disconnectWallet();
+      toast.success('Wallet disconnected');
+    }
   };
 
   const copyAddress = () => {
@@ -238,18 +430,30 @@ const WalletConnect = () => {
 
   // If wallet is not connected, show wallet selection dropdown
   if (!address) {
+    console.log('[WalletConnect] Component rendered - address:', address, 'isDropdownOpen:', isDropdownOpen, 'isConnecting:', isConnecting);
     return (
       <>
-      <div className="relative wallet-dropdown z-[100]">
+      <div className="relative wallet-dropdown z-[100]" style={{ pointerEvents: 'auto' }}>
         <button
           ref={buttonRef}
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          onClick={(e) => {
+            console.log('[WalletConnect] MAIN BUTTON CLICKED - isDropdownOpen:', isDropdownOpen, 'isConnecting:', isConnecting);
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDropdownOpen(!isDropdownOpen);
+          }}
           disabled={isConnecting}
           className="flex items-center space-x-1.5 xs:space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 rounded-lg xs:rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 relative z-[100]"
         >
           <FiShield className="w-3.5 h-3.5 xs:w-4 xs:h-4 flex-shrink-0" />
-          <span className="font-display text-xs xs:text-sm sm:text-base hidden xs:inline">{isConnecting ? 'Connecting...' : 'Connect'}</span>
-          <span className="font-display text-xs xs:text-sm sm:text-base hidden sm:inline">{isConnecting ? 'Connecting...' : 'Wallet'}</span>
+          {isConnecting ? (
+            <span className="font-display text-xs xs:text-sm sm:text-base">Connecting...</span>
+          ) : (
+            <>
+              <span className="font-display text-xs xs:text-sm sm:text-base hidden xs:inline">Connect</span>
+              <span className="font-display text-xs xs:text-sm sm:text-base hidden sm:inline">Wallet</span>
+            </>
+          )}
           <FiChevronDown 
             className={`w-3.5 h-3.5 xs:w-4 xs:h-4 transition-transform duration-200 flex-shrink-0 hidden xs:block ${
               isDropdownOpen ? 'rotate-180' : ''
@@ -261,12 +465,27 @@ const WalletConnect = () => {
         {/* Wallet Selection Dropdown - Rendered via Portal outside header to prevent expansion */}
         {isDropdownOpen && typeof document !== 'undefined' && createPortal(
           <>
-            <div className="fixed inset-0 z-[9998]" onClick={() => setIsDropdownOpen(false)}></div>
+            <div 
+              className="fixed inset-0 z-[9998]" 
+              onClick={(e) => {
+                console.log('[WalletConnect] Overlay clicked - closing dropdown');
+                setIsDropdownOpen(false);
+              }}
+            ></div>
             <div 
               className="fixed w-80 bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-[9999] overflow-hidden"
               style={{ 
                 top: `${dropdownPosition.top}px`,
-                right: `${dropdownPosition.right}px`
+                right: `${dropdownPosition.right}px`,
+                pointerEvents: 'auto'
+              }}
+              onClick={(e) => {
+                console.log('[WalletConnect] Dropdown container clicked');
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => {
+                console.log('[WalletConnect] Dropdown container mousedown');
+                e.stopPropagation();
               }}
             >
             {/* Header */}
@@ -295,13 +514,42 @@ const WalletConnect = () => {
                 })
                 .map((wallet) => {
                   const isInstalled = wallet.isInstalled();
+                  console.log('[WalletConnect] Rendering wallet button:', wallet.name, 'isInstalled:', isInstalled, 'isConnecting:', isConnecting);
                   return (
                     <button
                       key={wallet.id}
-                      onClick={() => handleWalletSelect(wallet)}
-                      disabled={isConnecting}
+                      type="button"
+                      onMouseDown={(e) => {
+                        console.log('[WalletConnect] WALLET BUTTON MOUSEDOWN:', wallet.name, wallet.id);
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        console.log('[WalletConnect] WALLET BUTTON CLICKED:', wallet.name, wallet.id);
+                        console.log('[WalletConnect] Event details:', {
+                          isConnecting,
+                          isInstalled,
+                          disabled: isConnecting || (!isInstalled && wallet.id !== 'walletconnect'),
+                          target: e.target.tagName,
+                          currentTarget: e.currentTarget.tagName
+                        });
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!isConnecting && (isInstalled || wallet.id === 'walletconnect')) {
+                          console.log('[WalletConnect] Calling handleWalletSelect for:', wallet.name);
+                          handleWalletSelect(wallet);
+                        } else {
+                          console.log('[WalletConnect] Button click IGNORED - isConnecting:', isConnecting, 'isInstalled:', isInstalled);
+                        }
+                      }}
+                      disabled={isConnecting || (!isInstalled && wallet.id !== 'walletconnect')}
+                      style={{ 
+                        pointerEvents: (isConnecting || (!isInstalled && wallet.id !== 'walletconnect')) ? 'none' : 'auto',
+                        position: 'relative',
+                        zIndex: 10000
+                      }}
+                      style={{ pointerEvents: (isConnecting || (!isInstalled && wallet.id !== 'walletconnect')) ? 'none' : 'auto' }}
                       className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors duration-200 group ${
-                        isInstalled
+                        isInstalled || wallet.id === 'walletconnect'
                           ? 'text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer'
                           : 'text-gray-500 hover:text-gray-400 hover:bg-gray-800/50 cursor-not-allowed opacity-60'
                       } ${isConnecting ? 'opacity-50 cursor-wait' : ''}`}
@@ -353,11 +601,37 @@ const WalletConnect = () => {
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center space-x-1.5 xs:space-x-2 sm:space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-gray-500 px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 rounded-lg xs:rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl relative z-[100]"
       >
-        {/* Wallet Icon with Status */}
-        <div className="relative flex-shrink-0">
-          <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-            <FiShield className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white" />
-          </div>
+        {/* Avatar/Profile Picture with Status - Clickable to go to profile */}
+        <div 
+          className="relative flex-shrink-0 cursor-pointer group"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/profile/${address}`);
+          }}
+          title="View Profile"
+        >
+          {avatarUrl ? (
+            <div className="relative">
+              <img 
+                src={avatarUrl} 
+                alt="Profile" 
+                className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-green-500 group-hover:border-green-400 transition-colors"
+                onError={(e) => {
+                  // Fallback to icon if image fails to load
+                  e.target.style.display = 'none';
+                  const fallback = e.target.parentElement.querySelector('.avatar-icon-fallback');
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center hidden avatar-icon-fallback">
+                <FiShield className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white" />
+              </div>
+            </div>
+          ) : (
+            <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center group-hover:from-green-600 group-hover:to-emerald-600 transition-colors">
+              <FiShield className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white" />
+            </div>
+          )}
           <div className="absolute -bottom-0.5 -right-0.5 xs:-bottom-1 xs:-right-1 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
         </div>
 
@@ -394,11 +668,33 @@ const WalletConnect = () => {
           {/* Header */}
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <FiUser className="w-5 h-5 text-white" />
+              <div 
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 cursor-pointer hover:border-purple-400 transition-colors flex-shrink-0 relative"
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  navigate(`/profile/${address}`);
+                }}
+              >
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      const fallback = e.target.parentElement.querySelector('.avatar-fallback');
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center avatar-fallback ${avatarUrl ? 'hidden' : 'flex'}`}>
+                  <FiUser className="w-5 h-5 text-white" />
+                </div>
               </div>
-              <div>
-                <div className="text-white font-display font-medium">Connected Wallet</div>
+              <div className="flex-1">
+                <div className="text-white font-display font-medium">
+                  {userProfile?.username || 'Connected Wallet'}
+                </div>
                 <div className="text-gray-400 font-display text-sm">{shortenAddress(address)}</div>
               </div>
             </div>
@@ -434,12 +730,13 @@ const WalletConnect = () => {
 
             <button
               onClick={() => {
-                window.location.href = '/user-profile';
+                setIsDropdownOpen(false);
+                navigate(`/profile/${address}`);
               }}
               className="w-full flex items-center space-x-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg transition-colors duration-200"
             >
-              <FiSettings className="w-4 h-4" />
-              <span className="font-display">Profile Settings</span>
+              <FiUser className="w-4 h-4" />
+              <span className="font-display">View Profile</span>
             </button>
 
             <hr className="my-2 border-gray-700" />

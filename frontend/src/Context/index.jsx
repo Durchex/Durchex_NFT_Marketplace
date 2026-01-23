@@ -199,42 +199,77 @@ export const Index = ({ children }) => {
     if (typeof window !== "undefined") {
       // If a specific wallet is requested, try to find that specific provider
       if (walletId === 'metamask' && window.ethereum) {
+        // First check if window.ethereum itself is MetaMask (might have been set by WalletConnect component)
         if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
           provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as MetaMask provider (already set)');
         } else if (Array.isArray(window.ethereum.providers)) {
+          // Look for MetaMask in providers array
           provider = window.ethereum.providers.find(p => p.isMetaMask && !p.isCoinbaseWallet);
+          if (provider) {
+            console.log('[Context] Found MetaMask in providers array');
+            // Make it the primary provider
+            const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
+            if (providerIndex > 0) {
+              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
+                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
+            }
+            window.ethereum = window.ethereum.providers[0];
+            provider = window.ethereum;
+          }
+        }
+        // If still no provider, check if window.ethereum was set directly (from WalletConnect component)
+        if (!provider && window.ethereum.isMetaMask) {
+          provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as MetaMask provider (fallback)');
         }
         console.log('[Context] MetaMask provider selected:', provider);
       } else if (walletId === 'coinbase' && window.ethereum) {
         if (window.ethereum.isCoinbaseWallet) {
           provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as Coinbase Wallet provider (already set)');
         } else if (Array.isArray(window.ethereum.providers)) {
           provider = window.ethereum.providers.find(p => p.isCoinbaseWallet);
           // If found, set it as primary provider
           if (provider) {
+            console.log('[Context] Found Coinbase Wallet in providers array');
             const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
             if (providerIndex > 0) {
               [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
                 [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
             }
             window.ethereum = window.ethereum.providers[0];
+            provider = window.ethereum;
           }
+        }
+        // If still no provider, check if window.ethereum was set directly
+        if (!provider && window.ethereum.isCoinbaseWallet) {
+          provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as Coinbase Wallet provider (fallback)');
         }
         console.log('[Context] Coinbase Wallet provider selected:', provider);
       } else if (walletId === 'trust' && window.ethereum) {
         if (window.ethereum.isTrust || window.ethereum.isTrustWallet) {
           provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as Trust Wallet provider (already set)');
         } else if (Array.isArray(window.ethereum.providers)) {
           provider = window.ethereum.providers.find(p => p.isTrust || p.isTrustWallet);
           // If found, set it as primary provider
           if (provider) {
+            console.log('[Context] Found Trust Wallet in providers array');
             const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
             if (providerIndex > 0) {
               [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
                 [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
             }
             window.ethereum = window.ethereum.providers[0];
+            provider = window.ethereum;
           }
+        }
+        // If still no provider, check if window.ethereum was set directly
+        if (!provider && (window.ethereum.isTrust || window.ethereum.isTrustWallet)) {
+          provider = window.ethereum;
+          console.log('[Context] Using window.ethereum as Trust Wallet provider (fallback)');
         }
         console.log('[Context] Trust Wallet provider selected:', provider);
       } else if (window.ethereum) {
@@ -359,18 +394,40 @@ export const Index = ({ children }) => {
       } else {
         // Request account access with proper error handling for other wallets
         try {
+          // Ensure we're using the correct provider - if window.ethereum was set, use it
+          if (typeof window !== 'undefined' && window.ethereum && provider !== window.ethereum) {
+            // If we set window.ethereum to a specific provider, use that instead
+            if (walletId && (walletId === 'metamask' || walletId === 'coinbase' || walletId === 'trust')) {
+              provider = window.ethereum;
+              console.log('[Context] Using window.ethereum as the provider for wallet:', walletId);
+            }
+          }
+          
+          console.log('[Context] Requesting accounts from provider:', provider);
+          console.log('[Context] Provider has request method:', typeof provider.request === 'function');
+          console.log('[Context] Provider has enable method:', typeof provider.enable === 'function');
+          
           if (provider.request) {
+            console.log('[Context] Calling provider.request({ method: "eth_requestAccounts" })');
             accounts = await provider.request({
               method: "eth_requestAccounts",
             });
+            console.log('[Context] Accounts received from request:', accounts);
           } else if (provider.enable) {
             // Legacy wallet support
+            console.log('[Context] Calling provider.enable()');
             accounts = await provider.enable();
+            console.log('[Context] Accounts received from enable:', accounts);
           } else {
             throw new Error("Wallet does not support connection");
           }
         } catch (requestError) {
           console.error('[Context] Error requesting accounts:', requestError);
+          console.error('[Context] Error details:', {
+            code: requestError.code,
+            message: requestError.message,
+            stack: requestError.stack
+          });
           if (requestError.code === 4001) {
             ErrorToast("Connection rejected by user");
             return null;

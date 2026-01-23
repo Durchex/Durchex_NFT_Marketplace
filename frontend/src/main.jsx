@@ -9,6 +9,7 @@ import { UserProvider } from "./Context/UserContext";
 import { CartProvider } from "./Context/CartContext";
 import { AdminProvider } from "./Context/AdminContext";
 import { NetworkProvider } from "./Context/NetworkContext";
+import "./utils/walletTest"; // Import test utility for debugging
 
 
 createRoot(document.getElementById("root")).render(
