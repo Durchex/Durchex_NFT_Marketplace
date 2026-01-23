@@ -149,6 +149,38 @@ router.post('/submit', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/lazy-mint/creator/:address/nonce
+ * Get creator's current nonce for signature verification
+ */
+router.get('/creator/:address/nonce', async (req, res) => {
+    try {
+        const { address } = req.params;
+        
+        if (!address) {
+            return res.status(400).json({
+                success: false,
+                error: 'Creator address required',
+            });
+        }
+
+        // Get nonce from service (which queries contract or returns 0)
+        const nonce = await lazyMintService.getCreatorNonce(address.toLowerCase());
+
+        res.json({
+            success: true,
+            nonce,
+            creator: address.toLowerCase(),
+        });
+    } catch (error) {
+        console.error('Error getting creator nonce:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+});
+
+/**
  * GET /api/lazy-mint/creator
  * Get all lazy mints created by authenticated user
  */

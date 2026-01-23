@@ -47,8 +47,8 @@ const Sidebar = () => {
       items: [
         { icon: TrendingUp, label: 'Trading', path: '/features/trading', badge: 'Coming Soon' },
         { icon: Zap, label: 'Auctions', path: '/features/auction', badge: 'Coming Soon' },
-        { icon: Wind, label: 'Lazy Mint', path: '/features/lazy-mint', badge: 'Coming Soon' },
-        { icon: Layers, label: 'Batch Mint', path: '/features/batch-mint', badge: 'Coming Soon' },
+        { icon: Wind, label: 'Lazy Mint', path: '/features/lazy-mint', badge: null },
+        { icon: Layers, label: 'Batch Mint', path: '/features/batch-mint', badge: null },
         { icon: Lock, label: 'Rental', path: '/features/rental', badge: 'Coming Soon' },
         { icon: Coins, label: 'Financing', path: '/features/financing', badge: 'Coming Soon' },
         { icon: Gift, label: 'Staking', path: '/features/staking', badge: 'Coming Soon' },

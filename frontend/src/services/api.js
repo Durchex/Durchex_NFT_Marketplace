@@ -1491,3 +1491,178 @@ export const settingsAPI = {
   }
 };
 
+// Lazy Mint API functions
+export const lazyMintAPI = {
+  // Get creator's current nonce
+  getCreatorNonce: async (creatorAddress) => {
+    try {
+      const response = await api.get(`/lazy-mint/creator/${creatorAddress}/nonce`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get creator nonce:', error);
+      throw error;
+    }
+  },
+
+  // Create voucher (prepare signing message)
+  createVoucher: async (data) => {
+    try {
+      const response = await api.post('/lazy-mint/create-voucher', data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create voucher:', error);
+      throw error;
+    }
+  },
+
+  // Submit lazy mint (after signing)
+  submitLazyMint: async (data) => {
+    try {
+      const response = await api.post('/lazy-mint/submit', data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to submit lazy mint:', error);
+      throw error;
+    }
+  },
+
+  // Get creator's lazy mints
+  getCreatorLazyMints: async (creatorAddress, page = 1) => {
+    try {
+      const response = await api.get(`/lazy-mint/creator/${creatorAddress}?page=${page}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get creator lazy mints:', error);
+      throw error;
+    }
+  },
+
+  // Get available lazy mints (marketplace)
+  getAvailable: async (page = 1, limit = 20) => {
+    try {
+      const response = await api.get(`/lazy-mint/available?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get available lazy mints:', error);
+      throw error;
+    }
+  },
+
+  // Get specific lazy mint by ID
+  getLazyMint: async (id) => {
+    try {
+      const response = await api.get(`/lazy-mint/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get lazy mint:', error);
+      throw error;
+    }
+  },
+
+  // Like a lazy mint
+  likeLazyMint: async (id) => {
+    try {
+      const response = await api.post(`/lazy-mint/${id}/like`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to like lazy mint:', error);
+      throw error;
+    }
+  },
+
+  // Unlike a lazy mint
+  unlikeLazyMint: async (id) => {
+    try {
+      const response = await api.post(`/lazy-mint/${id}/unlike`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to unlike lazy mint:', error);
+      throw error;
+    }
+  }
+};
+
+// Batch Mint API functions
+export const batchMintAPI = {
+  // Create batch mint
+  createBatch: async (data) => {
+    try {
+      const response = await api.post('/batch-mint', data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create batch mint:', error);
+      throw error;
+    }
+  },
+
+  // Get batch mint details
+  getBatch: async (batchId) => {
+    try {
+      const response = await api.get(`/batch-mint/${batchId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get batch mint:', error);
+      throw error;
+    }
+  },
+
+  // Get batch statistics
+  getBatchStats: async (batchId) => {
+    try {
+      const response = await api.get(`/batch-mint/${batchId}/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get batch stats:', error);
+      throw error;
+    }
+  },
+
+  // Get user's batch history
+  getUserBatches: async (page = 1, limit = 10, status = null) => {
+    try {
+      const params = new URLSearchParams({ page, limit });
+      if (status) params.append('status', status);
+      const response = await api.get(`/batch-mint/user/history?${params}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get user batches:', error);
+      throw error;
+    }
+  },
+
+  // Publish batch NFTs
+  publishBatch: async (batchId, listings) => {
+    try {
+      const response = await api.post(`/batch-mint/${batchId}/publish`, { listings });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to publish batch:', error);
+      throw error;
+    }
+  },
+
+  // Cancel batch mint
+  cancelBatch: async (batchId) => {
+    try {
+      const response = await api.post(`/batch-mint/${batchId}/cancel`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel batch:', error);
+      throw error;
+    }
+  },
+
+  // Download CSV template
+  getTemplate: async () => {
+    try {
+      const response = await api.get('/batch-mint/template', {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get template:', error);
+      throw error;
+    }
+  }
+};
+
