@@ -1,5 +1,5 @@
 // backend_temp/services/lazyMintService.js
-import ethers from 'ethers';
+import { ethers } from 'ethers';
 import LazyNFT from '../models/lazyNFTModel.js';
 import axios from 'axios';
 
