@@ -2,7 +2,7 @@
 import express from 'express';
 import lazyMintService from '../services/lazyMintService.js';
 import LazyNFT from '../models/lazyNFTModel.js';
-import { authMiddleware } from '../middleware/auth.js';
+import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
