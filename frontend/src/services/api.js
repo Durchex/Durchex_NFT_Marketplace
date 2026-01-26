@@ -136,12 +136,51 @@ api.interceptors.response.use(
       return api(config);
     }
 
-    console.error('API Response Error:', error.response?.data || error.message);
+    // Retry on 502/503/504 (Bad Gateway/Service Unavailable/Gateway Timeout) errors
+    // These are often temporary gateway issues
+    if ((response?.status === 502 || response?.status === 503 || response?.status === 504) && !config._retry) {
+      config._retry = true;
+      const maxRetries = config._maxRetries || 2; // Default to 2 retries
+      const retryCount = config._retryCount || 0;
+
+      if (retryCount < maxRetries) {
+        config._retryCount = retryCount + 1;
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+
+        console.warn(`Server error ${response.status} (Bad Gateway/Service Unavailable). Retrying in ${retryDelay}ms... (Attempt ${retryCount + 1}/${maxRetries})`);
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+        // Retry the request
+        return api(config);
+      } else {
+        console.error(`Server error ${response.status} after ${maxRetries} retries. Giving up.`);
+      }
+    }
+
+    // Log error details
+    if (response?.status === 502) {
+      console.error('API Response Error (502 Bad Gateway):', {
+        url: config?.url,
+        baseURL: config?.baseURL,
+        message: error.message,
+        response: error.response?.data || 'No response data'
+      });
+    } else {
+      console.error('API Response Error:', error.response?.data || error.message);
+    }
 
     // Handle database connection errors gracefully
     if (error.response?.data?.error?.includes('buffering timed out')) {
       console.warn('Database connection timeout - using fallback mode');
       // Return empty data instead of throwing error
+      return { data: [] };
+    }
+
+    // Handle 502 errors for GET requests by returning empty data (graceful degradation)
+    if (response?.status === 502 && config?.method?.toLowerCase() === 'get') {
+      console.warn('502 Bad Gateway on GET request - returning empty data for graceful degradation');
       return { data: [] };
     }
 
@@ -312,20 +351,38 @@ export const nftAPI = {
   // Get all NFTs by network
   getAllNftsByNetwork: async (network) => {
     try {
-      const response = await api.get(`/nft/nfts/${network}`);
-      return response.data;
+      const response = await api.get(`/nft/nfts/${network}`, {
+        _maxRetries: 2 // Allow up to 2 retries for this endpoint
+      });
+      return response.data || [];
     } catch (error) {
-      throw new Error(`Failed to get NFTs by network: ${error.message}`);
+      // For 502 errors, return empty array instead of throwing (graceful degradation)
+      if (error.response?.status === 502) {
+        console.warn(`[getAllNftsByNetwork] 502 Bad Gateway for network ${network}. Returning empty array.`);
+        return [];
+      }
+      console.error(`[getAllNftsByNetwork] Error fetching NFTs for network ${network}:`, error.message);
+      // Return empty array instead of throwing to prevent UI breakage
+      return [];
     }
   },
 
   // Get all NFTs for Explore page (regardless of listing status)
   getAllNftsByNetworkForExplore: async (network) => {
     try {
-      const response = await api.get(`/nft/nfts-explore/${network}`);
-      return response.data;
+      const response = await api.get(`/nft/nfts-explore/${network}`, {
+        _maxRetries: 2 // Allow up to 2 retries for this endpoint
+      });
+      return response.data || [];
     } catch (error) {
-      throw new Error(`Failed to get NFTs for explore: ${error.message}`);
+      // For 502 errors, return empty array instead of throwing (graceful degradation)
+      if (error.response?.status === 502) {
+        console.warn(`[getAllNftsByNetworkForExplore] 502 Bad Gateway for network ${network}. Returning empty array.`);
+        return [];
+      }
+      console.error(`[getAllNftsByNetworkForExplore] Error fetching NFTs for network ${network}:`, error.message);
+      // Return empty array instead of throwing to prevent UI breakage
+      return [];
     }
   },
 

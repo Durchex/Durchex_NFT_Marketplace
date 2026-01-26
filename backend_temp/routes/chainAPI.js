@@ -26,9 +26,39 @@ const costLimiter = new CostBasedRateLimiter({
   maxCost: 1000,
 });
 
-// Initialize services
-const multiChainService = new MultiChainService();
-const multiChainAggregator = new MultiChainAggregator(multiChainService);
+// Initialize services lazily to prevent startup crashes
+let multiChainService = null;
+let multiChainAggregator = null;
+
+// Lazy initialization function
+function getMultiChainService() {
+  if (!multiChainService) {
+    try {
+      multiChainService = new MultiChainService();
+    } catch (error) {
+      console.error('Failed to initialize MultiChainService:', error);
+      // Return a mock service that handles errors gracefully
+      multiChainService = {
+        getMultiChainBalance: () => Promise.resolve({ error: 'Service unavailable' }),
+        healthCheck: () => Promise.resolve({ healthy: false, error: 'Service unavailable' }),
+        getStats: () => ({ error: 'Service unavailable' }),
+      };
+    }
+  }
+  return multiChainService;
+}
+
+function getMultiChainAggregator() {
+  if (!multiChainAggregator) {
+    try {
+      multiChainAggregator = new MultiChainAggregator(getMultiChainService());
+    } catch (error) {
+      console.error('Failed to initialize MultiChainAggregator:', error);
+      multiChainAggregator = null;
+    }
+  }
+  return multiChainAggregator;
+}
 
 /**
  * Get multi-chain balance for address
@@ -55,7 +85,7 @@ router.get('/balance/:address', apiLimiter.middleware(), async (req, res) => {
       });
     }
 
-    const balances = await multiChainService.getMultiChainBalance(address);
+    const balances = await getMultiChainService().getMultiChainBalance(address);
 
     // Record operation cost
     costLimiter.recordOperation(req.user?.address || req.ip, 'read_balance');
@@ -105,7 +135,11 @@ router.get('/portfolio/:address', apiLimiter.middleware(), async (req, res) => {
       });
     }
 
-    const portfolio = await multiChainAggregator.getAggregatedPortfolio(address, {
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const portfolio = await aggregator.getAggregatedPortfolio(address, {
       includeDetails: details === 'true',
     });
 
@@ -162,7 +196,11 @@ router.get('/nft-portfolio/:address', chainRateLimitMiddleware(chainLimiter), as
       }
     }
 
-    const nftPortfolio = await multiChainAggregator.getAggregatedNFTPortfolio(
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const nftPortfolio = await aggregator.getAggregatedNFTPortfolio(
       address,
       contractsByChain
     );
@@ -194,7 +232,11 @@ router.get('/gas-prices', apiLimiter.middleware(), async (req, res) => {
   try {
     const { sortBy = 'price' } = req.query;
 
-    const gasPrices = await multiChainAggregator.getBestGasPrices();
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const gasPrices = await aggregator.getBestGasPrices();
 
     // Sort results
     let sortedPrices = Object.entries(gasPrices).map(([chain, prices]) => ({
@@ -231,8 +273,12 @@ router.get('/status', apiLimiter.middleware(), async (req, res) => {
   try {
     const { details = false } = req.query;
 
-    const networkStatus = await multiChainAggregator.getNetworkStatus();
-    const gasPrices = await multiChainAggregator.getBestGasPrices();
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const networkStatus = await aggregator.getNetworkStatus();
+    const gasPrices = await aggregator.getBestGasPrices();
 
     const response = {
       success: true,
@@ -281,7 +327,11 @@ router.get('/transactions/:address', chainRateLimitMiddleware(chainLimiter), asy
         ? ['ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche']
         : chains.split(',');
 
-    const transactions = await multiChainAggregator.getAggregatedTransactionHistory(
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const transactions = await aggregator.getAggregatedTransactionHistory(
       address,
       chainList
     );
@@ -325,7 +375,11 @@ router.get('/arbitrage', apiLimiter.middleware(), async (req, res) => {
 
     const tokenList = tokens.split(',').map(t => t.trim());
 
-    const opportunities = await multiChainAggregator.getArbitrageOpportunities(tokenList);
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const opportunities = await aggregator.getArbitrageOpportunities(tokenList);
 
     res.json({
       success: true,
@@ -361,7 +415,7 @@ router.post('/validate', apiLimiter.middleware(), async (req, res) => {
     // Check if operation allowed by rate limit
     const canPerform = costLimiter.canPerform(req.user?.address || req.ip, operation);
 
-    const multiChainHealth = await multiChainService.healthCheck();
+    const multiChainHealth = await getMultiChainService().healthCheck();
 
     res.json({
       success: true,
@@ -389,8 +443,12 @@ router.post('/validate', apiLimiter.middleware(), async (req, res) => {
  */
 router.get('/stats', apiLimiter.middleware(), async (req, res) => {
   try {
-    const multiChainStats = multiChainService.getStats();
-    const networkStatus = await multiChainAggregator.getNetworkStatus();
+    const multiChainStats = getMultiChainService().getStats();
+    const aggregator = getMultiChainAggregator();
+    if (!aggregator) {
+      return res.status(503).json({ error: 'Multi-chain service unavailable' });
+    }
+    const networkStatus = await aggregator.getNetworkStatus();
 
     res.json({
       success: true,
@@ -419,7 +477,7 @@ router.get('/stats', apiLimiter.middleware(), async (req, res) => {
  */
 router.get('/health', async (req, res) => {
   try {
-    const health = await multiChainService.healthCheck();
+    const health = await getMultiChainService().healthCheck();
 
     const statusCode = health.healthy ? 200 : 503;
 

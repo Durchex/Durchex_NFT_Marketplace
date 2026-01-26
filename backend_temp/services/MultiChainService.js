@@ -77,13 +77,31 @@ class MultiChainService {
    * Initialize providers for all chains
    */
   initializeProviders() {
+    // Check if ethers is available
+    if (!ethers || !ethers.providers) {
+      console.error('⚠️  ethers library not available - blockchain providers disabled');
+      console.error('   This is usually due to a dependency issue. Check: npm install ethers');
+      return;
+    }
+
     for (const [chainName, config] of Object.entries(this.chainConfigs)) {
       try {
-        const provider = new ethers.providers.JsonRpcProvider(config.rpcUrl);
+        // Try ethers v5 syntax first, fallback to v6
+        let provider;
+        if (ethers.providers && ethers.providers.JsonRpcProvider) {
+          provider = new ethers.providers.JsonRpcProvider(config.rpcUrl);
+        } else if (ethers.JsonRpcProvider) {
+          provider = new ethers.JsonRpcProvider(config.rpcUrl);
+        } else {
+          console.error(`✗ ethers.JsonRpcProvider not available for ${chainName}`);
+          continue;
+        }
+        
         this.providers.set(chainName, provider);
         console.log(`✓ Initialized ${chainName} provider`);
       } catch (error) {
         console.error(`✗ Failed to initialize ${chainName} provider:`, error.message);
+        // Don't throw - allow server to continue without this provider
       }
     }
   }
