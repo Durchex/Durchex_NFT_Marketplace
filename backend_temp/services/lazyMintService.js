@@ -1,5 +1,14 @@
 // backend_temp/services/lazyMintService.js
-import { ethers } from 'ethers';
+// Try to import ethers, but handle errors gracefully
+let ethers = null;
+try {
+  const ethersModule = await import('ethers');
+  ethers = ethersModule.ethers || ethersModule.default || ethersModule;
+} catch (error) {
+  console.warn('⚠️  ethers failed to load in lazyMintService:', error.message);
+  console.warn('   Lazy mint features will be disabled');
+}
+
 import LazyNFT from '../models/lazyNFTModel.js';
 import axios from 'axios';
 
@@ -10,9 +19,36 @@ import axios from 'axios';
 
 class LazyMintService {
     constructor() {
-        this.provider = new ethers.providers.JsonRpcProvider(
-            process.env.RPC_URL || 'http://localhost:8545'
-        );
+        this.provider = null;
+        this.ethersAvailable = false;
+        this._initializeProvider();
+    }
+
+    _initializeProvider() {
+        if (!ethers) {
+            console.warn('⚠️  ethers not available - lazy mint features disabled');
+            return;
+        }
+
+        try {
+            // Try ethers v5 syntax first, fallback to v6
+            if (ethers.providers && ethers.providers.JsonRpcProvider) {
+                this.provider = new ethers.providers.JsonRpcProvider(
+                    process.env.RPC_URL || 'http://localhost:8545'
+                );
+            } else if (ethers.JsonRpcProvider) {
+                this.provider = new ethers.JsonRpcProvider(
+                    process.env.RPC_URL || 'http://localhost:8545'
+                );
+            } else {
+                console.warn('⚠️  ethers.JsonRpcProvider not available');
+                return;
+            }
+            this.ethersAvailable = true;
+        } catch (error) {
+            console.error('Failed to initialize provider in LazyMintService:', error.message);
+            this.ethersAvailable = false;
+        }
     }
 
     /**
@@ -46,6 +82,10 @@ class LazyMintService {
 
         if (!ipfsURI.startsWith('ipfs://')) {
             throw new Error('Invalid IPFS URI format');
+        }
+
+        if (!this.ethersAvailable || !ethers) {
+            throw new Error('Ethers library not available - lazy mint features disabled');
         }
 
         try {
@@ -258,6 +298,15 @@ class LazyMintService {
      */
     async getCreatorNonce(creatorAddress) {
         try {
+            // If ethers not available, just return count from database
+            if (!this.ethersAvailable || !ethers || !this.provider) {
+                const count = await LazyNFT.countDocuments({
+                    creator: creatorAddress.toLowerCase(),
+                    status: 'redeemed',
+                });
+                return count;
+            }
+
             // Get contract nonce if already deployed
             if (process.env.LAZY_MINT_CONTRACT_ADDRESS) {
                 const contract = new ethers.Contract(
@@ -290,6 +339,9 @@ class LazyMintService {
      * @returns {boolean} Is valid
      */
     async validateVoucher(voucher) {
+        if (!this.ethersAvailable || !ethers) {
+            return { valid: false, error: 'Ethers library not available' };
+        }
         try {
             // Check required fields
             if (
@@ -375,4 +427,6 @@ class LazyMintService {
     }
 }
 
-export default new LazyMintService();
+// Export singleton instance - will handle missing ethers gracefully
+const lazyMintServiceInstance = new LazyMintService();
+export default lazyMintServiceInstance;
