@@ -109,9 +109,17 @@ router.post('/submit', authMiddleware, async (req, res) => {
         });
 
         if (!isValid) {
+            console.error('[lazyMint/submit] Voucher validation failed:', {
+                creator: creatorAddress,
+                ipfsURI,
+                royaltyPercentage,
+                hasSignature: !!signature,
+                hasMessageHash: !!messageHash,
+                nonce
+            });
             return res.status(400).json({
                 success: false,
-                error: 'Invalid voucher or signature',
+                error: 'Invalid voucher or signature. Please check: signature format, message hash, nonce, and that this voucher hasn\'t been submitted before.',
             });
         }
 
