@@ -1,20 +1,67 @@
-import { Client } from '@elastic/elasticsearch';
+// Import with error handling - if this fails, the class will handle it
 import logger from '../../utils/logger.js';
+
+// Lazy load Client to prevent startup crashes
+let Client = null;
+let elasticsearchAvailable = false;
+
+async function loadElasticsearch() {
+  if (Client !== null) return Client; // Already tried
+  
+  try {
+    const elasticsearchModule = await import('@elastic/elasticsearch');
+    Client = elasticsearchModule.Client || elasticsearchModule.default?.Client;
+    elasticsearchAvailable = true;
+    return Client;
+  } catch (error) {
+    console.warn('⚠️  @elastic/elasticsearch failed to load:', error.message);
+    console.warn('   This is usually due to undici/File API compatibility issue');
+    console.warn('   Elasticsearch features will be disabled');
+    elasticsearchAvailable = false;
+    return null;
+  }
+}
 
 class ElasticsearchClient {
   constructor() {
-    this.client = new Client({
-      node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
-      auth: {
-        username: process.env.ELASTICSEARCH_USER || 'elastic',
-        password: process.env.ELASTICSEARCH_PASSWORD || 'changeme',
-      },
-      maxRetries: 5,
-      requestTimeout: 30000,
-      sniffOnStart: true,
-    });
+    this.available = false;
+    this.client = null;
+    this._initialized = false;
+  }
 
-    this.indices = {
+  async _ensureInitialized() {
+    if (this._initialized) return;
+    
+    const ElasticsearchClient = await loadElasticsearch();
+    
+    if (!ElasticsearchClient) {
+      this.available = false;
+      this._initialized = true;
+      return;
+    }
+    
+    try {
+      this.client = new ElasticsearchClient({
+        node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
+        auth: {
+          username: process.env.ELASTICSEARCH_USER || 'elastic',
+          password: process.env.ELASTICSEARCH_PASSWORD || 'changeme',
+        },
+        maxRetries: 5,
+        requestTimeout: 30000,
+        sniffOnStart: true,
+      });
+      this.available = true;
+    } catch (error) {
+      console.error('Failed to create Elasticsearch client:', error.message);
+      this.available = false;
+    }
+    
+    this._initialized = true;
+  }
+
+  get indices() {
+    return {
       nft: 'nft_search',
       user: 'user_search',
       transaction: 'transaction_search',
@@ -22,6 +69,13 @@ class ElasticsearchClient {
   }
 
   async initialize() {
+    await this._ensureInitialized();
+    
+    if (!this.available || !this.client) {
+      logger.warn('Elasticsearch not available - skipping initialization');
+      return;
+    }
+    
     try {
       await this.client.ping();
       logger.info('Elasticsearch connected successfully');
@@ -36,6 +90,9 @@ class ElasticsearchClient {
   }
 
   async createNFTIndex() {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       const indexExists = await this.client.indices.exists({
         index: this.indices.nft,
@@ -135,6 +192,9 @@ class ElasticsearchClient {
   }
 
   async createUserIndex() {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       const indexExists = await this.client.indices.exists({
         index: this.indices.user,
@@ -192,6 +252,9 @@ class ElasticsearchClient {
   }
 
   async createTransactionIndex() {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       const indexExists = await this.client.indices.exists({
         index: this.indices.transaction,
@@ -231,6 +294,9 @@ class ElasticsearchClient {
   }
 
   async indexNFT(nftData) {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       await this.client.index({
         index: this.indices.nft,
@@ -244,6 +310,9 @@ class ElasticsearchClient {
   }
 
   async updateNFT(nftId, nftData) {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       await this.client.update({
         index: this.indices.nft,
@@ -257,6 +326,9 @@ class ElasticsearchClient {
   }
 
   async deleteNFT(nftId) {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return;
+    
     try {
       await this.client.delete({
         index: this.indices.nft,
@@ -268,6 +340,11 @@ class ElasticsearchClient {
   }
 
   async search(query) {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) {
+      return { total: 0, hits: [], aggregations: {} };
+    }
+    
     try {
       const result = await this.client.search({
         index: this.indices.nft,
@@ -289,6 +366,9 @@ class ElasticsearchClient {
   }
 
   async suggest(prefix, field = 'title') {
+    await this._ensureInitialized();
+    if (!this.available || !this.client) return [];
+    
     try {
       const result = await this.client.search({
         index: this.indices.nft,
@@ -317,7 +397,10 @@ class ElasticsearchClient {
   }
 
   async close() {
-    await this.client.close();
+    await this._ensureInitialized();
+    if (this.available && this.client) {
+      await this.client.close();
+    }
   }
 }
 
