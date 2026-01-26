@@ -11,7 +11,8 @@ const router = express.Router();
  */
 const ROYALTY_CONTRACT_ADDRESS = process.env.ROYALTY_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000';
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'https://ethereum-sepolia.core.chainstack.com/390cec07d0dbe1818b3bb25db398c3ca');
-const royaltyService = new RoyaltyService(ROYALTY_CONTRACT_ADDRESS, provider);
+// TODO: Initialize RoyaltyService once the service file is created
+// const royaltyService = new RoyaltyService(ROYALTY_CONTRACT_ADDRESS, provider);
 
 /**
  * Set collection-level royalties
