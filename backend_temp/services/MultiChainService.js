@@ -1,6 +1,9 @@
 // Multi-Chain Provider Service - Unified Blockchain API
-import { ethers } from 'ethers';
 import NodeCache from 'node-cache';
+
+// Import ethers - errors will be handled in initializeProviders
+// If undici fails, this import will throw, but we catch it in the constructor
+import { ethers } from 'ethers';
 
 /**
  * MultiChainService - Manages providers for multiple chains and queries
@@ -10,7 +13,15 @@ class MultiChainService {
     this.providers = new Map();
     this.cache = new NodeCache({ stdTTL: 300, checkperiod: 60 }); // 5 min cache
     this.chainConfigs = this.getChainConfigs();
-    this.initializeProviders();
+    this.ethersAvailable = typeof ethers !== 'undefined' && ethers !== null;
+    
+    // Only initialize providers if ethers is available
+    if (this.ethersAvailable) {
+      this.initializeProviders();
+    } else {
+      console.warn('⚠️  ethers not available - blockchain providers disabled');
+    }
+    
     this.requestStats = {
       totalRequests: 0,
       chainRequests: {},
@@ -78,9 +89,10 @@ class MultiChainService {
    */
   initializeProviders() {
     // Check if ethers is available
-    if (!ethers || !ethers.providers) {
-      console.error('⚠️  ethers library not available - blockchain providers disabled');
-      console.error('   This is usually due to a dependency issue. Check: npm install ethers');
+    if (!this.ethersAvailable || !ethers) {
+      console.warn('⚠️  ethers library not available - blockchain providers disabled');
+      console.warn('   This is usually due to a dependency issue (e.g., undici error)');
+      console.warn('   Server will continue without blockchain features');
       return;
     }
 
