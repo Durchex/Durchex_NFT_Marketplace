@@ -1,6 +1,7 @@
 // Royalty Routes - ERC-2981 compliant royalty management
 import express from 'express';
-import RoyaltyService from '../services/RoyaltyService.js';
+// TODO: Fix RoyaltyService import - file doesn't exist
+// import RoyaltyService from '../services/RoyaltyService.js';
 import { ethers } from 'ethers';
 const router = express.Router();
 
