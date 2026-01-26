@@ -1,7 +1,7 @@
 // backend_temp/services/lazyMintService.js
-const ethers = require('ethers');
-const LazyNFT = require('../models/lazyNFTModel');
-const axios = require('axios');
+import ethers from 'ethers';
+import LazyNFT from '../models/lazyNFTModel.js';
+import axios from 'axios';
 
 /**
  * Lazy Minting Service
@@ -375,4 +375,4 @@ class LazyMintService {
     }
 }
 
-module.exports = new LazyMintService();
+export default new LazyMintService();

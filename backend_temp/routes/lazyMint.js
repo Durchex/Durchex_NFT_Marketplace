@@ -1,9 +1,10 @@
 // backend_temp/routes/lazyMint.js
-const express = require('express');
+import express from 'express';
+import lazyMintService from '../services/lazyMintService.js';
+import LazyNFT from '../models/lazyNFTModel.js';
+import { authMiddleware } from '../middleware/auth.js';
+
 const router = express.Router();
-const lazyMintService = require('../services/lazyMintService');
-const LazyNFT = require('../models/lazyNFTModel');
-const { authMiddleware } = require('../middleware/auth');
 
 /**
  * POST /api/lazy-mint/create-voucher
@@ -518,4 +519,4 @@ router.post('/search', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

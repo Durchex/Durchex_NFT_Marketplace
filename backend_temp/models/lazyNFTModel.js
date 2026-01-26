@@ -1,5 +1,5 @@
 // backend_temp/models/lazyNFTModel.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const lazyNFTSchema = new mongoose.Schema(
     {
@@ -271,4 +271,4 @@ lazyNFTSchema.statics.getStats = async function () {
     };
 };
 
-module.exports = mongoose.model('LazyNFT', lazyNFTSchema);
+export default mongoose.model('LazyNFT', lazyNFTSchema);
