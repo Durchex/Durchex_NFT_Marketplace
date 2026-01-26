@@ -103,6 +103,22 @@ api.interceptors.request.use(
       console.error('[API] url:', config.url);
     }
     
+    // Add Authorization header with wallet address if available
+    // Get wallet address from localStorage or window context
+    try {
+      const walletAddress = localStorage.getItem('walletAddress') || 
+                           (typeof window !== 'undefined' && window.ethereum?.selectedAddress) ||
+                           null;
+      
+      if (walletAddress) {
+        // Send wallet address as token for authentication
+        config.headers['Authorization'] = walletAddress;
+      }
+    } catch (error) {
+      // Silently fail if localStorage is not available
+      console.warn('[API] Could not get wallet address for auth:', error);
+    }
+    
     return config;
   },
   (error) => {

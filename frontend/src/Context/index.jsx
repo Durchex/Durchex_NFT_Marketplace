@@ -79,7 +79,14 @@ export const Index = ({ children }) => {
       }
 
       if (accounts && accounts.length > 0) {
-        setAddress(accounts[0]);
+        const walletAddress = accounts[0];
+        setAddress(walletAddress);
+        // Store in localStorage for API authentication
+        try {
+          localStorage.setItem('walletAddress', walletAddress);
+        } catch (e) {
+          console.warn('Could not store wallet address in localStorage:', e);
+        }
 
         let ethersProvider;
         let getbalance;
@@ -87,7 +94,7 @@ export const Index = ({ children }) => {
         try {
           if (typeof window !== "undefined" && provider) {
             ethersProvider = new ethers.providers.Web3Provider(provider);
-            getbalance = await ethersProvider.getBalance(accounts[0]);
+            getbalance = await ethersProvider.getBalance(walletAddress);
             const bal = ethers.utils.formatEther(getbalance);
             setAccountBalance(bal);
           } else {
@@ -101,7 +108,7 @@ export const Index = ({ children }) => {
           setAccountBalance("0");
         }
 
-        return accounts[0];
+        return walletAddress;
       } else {
         setAddress(null);
         setAccountBalance(null);
@@ -324,8 +331,19 @@ export const Index = ({ children }) => {
               if (!accounts || accounts.length === 0) {
                 setAddress(null);
                 setAccountBalance(null);
+                try {
+                  localStorage.removeItem('walletAddress');
+                } catch (e) {
+                  console.warn('Could not remove wallet address from localStorage:', e);
+                }
               } else {
-                setAddress(accounts[0]);
+                const walletAddress = accounts[0];
+                setAddress(walletAddress);
+                try {
+                  localStorage.setItem('walletAddress', walletAddress);
+                } catch (e) {
+                  console.warn('Could not store wallet address in localStorage:', e);
+                }
               }
             });
             wprovider.on('chainChanged', () => {
@@ -334,6 +352,11 @@ export const Index = ({ children }) => {
             wprovider.on('disconnect', () => {
               setAddress(null);
               setAccountBalance(null);
+              try {
+                localStorage.removeItem('walletAddress');
+              } catch (e) {
+                console.warn('Could not remove wallet address from localStorage:', e);
+              }
             });
           }
         }
@@ -491,6 +514,12 @@ export const Index = ({ children }) => {
       // Clear local state FIRST to prevent re-connection loops
       setAddress(null);
       setAccountBalance(null);
+      // Clear localStorage
+      try {
+        localStorage.removeItem('walletAddress');
+      } catch (e) {
+        console.warn('Could not remove wallet address from localStorage:', e);
+      }
 
       // Remove any persisted wallet session
       try {
