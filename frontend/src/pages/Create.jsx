@@ -13,7 +13,7 @@ import { FiArrowLeft } from "react-icons/fi";
 export default function Create() {
   const contexts = useContext(ICOContent);
   const navigate = useNavigate();
-  const { address, selectedChain } = contexts;
+  const { address, selectedChain, connectWallet } = contexts;
 
   // Tab state: 'lazy', 'batch', or 'collection'
   const [activeTab, setActiveTab] = useState('lazy');
@@ -194,13 +194,40 @@ export default function Create() {
       setLazyMintLoading(true);
       setLazyMintError('');
 
+      // Ensure wallet is connected and we have an address
+      let creatorAddress = address;
+      if (!creatorAddress) {
+        // Try to actively connect the wallet (MetaMask or default)
+        try {
+          const connected = await connectWallet?.('metamask') || await connectWallet?.();
+          creatorAddress = connected || address;
+        } catch (connectErr) {
+          console.error('Error connecting wallet before signing:', connectErr);
+        }
+      }
+
+      if (!creatorAddress) {
+        throw new Error('Please connect your wallet before signing.');
+      }
+
       if (!window.ethereum) {
-        throw new Error('MetaMask not found');
+        throw new Error('No Web3 wallet found in browser (window.ethereum missing).');
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
+      // Explicitly request accounts so the wallet pops up if needed
+      try {
+        await provider.send('eth_requestAccounts', []);
+      } catch (requestErr) {
+        console.error('Error requesting accounts for signing:', requestErr);
+        if (requestErr.code === 4001) {
+          throw new Error('Signature request was rejected in your wallet.');
+        }
+        throw requestErr;
+      }
+
       const signer = provider.getSigner();
-      const creatorAddress = await signer.getAddress();
+      creatorAddress = await signer.getAddress();
 
       // Get current nonce
       const nonceResponse = await lazyMintAPI.getCreatorNonce(creatorAddress);
@@ -234,13 +261,16 @@ export default function Create() {
       setLazyMintLoading(true);
       setLazyMintError('');
 
-      if (!window.ethereum) {
-        throw new Error('MetaMask not found');
+      // Ensure wallet is connected before final submit (mainly for UX consistency)
+      let creatorAddress = address;
+      if (!creatorAddress) {
+        try {
+          const connected = await connectWallet?.('metamask') || await connectWallet?.();
+          creatorAddress = connected || address;
+        } catch (connectErr) {
+          console.error('Error connecting wallet before submit:', connectErr);
+        }
       }
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const creatorAddress = await signer.getAddress();
 
       // Submit lazy mint to backend
       const response = await lazyMintAPI.submitLazyMint({
