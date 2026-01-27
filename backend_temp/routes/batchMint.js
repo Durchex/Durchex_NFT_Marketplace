@@ -14,7 +14,7 @@ const authMiddleware = require('../middleware/authMiddleware');
  */
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { nfts, autoPublish } = req.body;
+        const { nfts, autoPublish, category, network } = req.body;
         const userId = req.user.id;
 
         if (!nfts || !Array.isArray(nfts) || nfts.length === 0) {
@@ -26,7 +26,9 @@ router.post('/', authMiddleware, async (req, res) => {
         }
 
         const batch = await batchMintService.createBatchMint(userId, nfts, {
-            autoPublish: autoPublish || false
+            autoPublish: autoPublish || false,
+            category: category || null,
+            network: network || null,
         });
 
         res.json({ message: 'Batch mint created', batch });

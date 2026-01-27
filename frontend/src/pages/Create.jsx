@@ -64,6 +64,7 @@ export default function Create() {
     royaltyPercentage: 10,
     pieces: 1,
     price: '',
+    floorPrice: '',
     category: '',
     network: selectedChain || "polygon",
     enableStraightBuy: true,
@@ -87,6 +88,8 @@ export default function Create() {
   const [batchMintAutoPublish, setBatchMintAutoPublish] = useState(false);
   const [batchMintEnableStraightBuy, setBatchMintEnableStraightBuy] = useState(true);
   const [batchMintCollection, setBatchMintCollection] = useState(null);
+  const [batchMintCategory, setBatchMintCategory] = useState('');
+  const [batchMintNetwork, setBatchMintNetwork] = useState(selectedChain || 'polygon');
 
   // ============ COLLECTION STATE ============
   const [collectionForm, setCollectionForm] = useState({
@@ -164,6 +167,10 @@ export default function Create() {
         attributes: [],
         pieces: lazyMintForm.pieces,
         collection: selectedCollectionId || null,
+        price: lazyMintForm.price || '',
+        floorPrice: lazyMintForm.floorPrice || '',
+        category: lazyMintForm.category || '',
+        network: lazyMintForm.network || (selectedChain || 'polygon'),
       };
 
       // Upload metadata to IPFS
@@ -245,6 +252,7 @@ export default function Create() {
         nonce: lazyMintNonce,
         pieces: lazyMintForm.pieces,
         price: lazyMintForm.price,
+        floorPrice: lazyMintForm.floorPrice,
         category: lazyMintForm.category,
         collection: selectedCollectionId,
         enableStraightBuy: lazyMintForm.enableStraightBuy,
@@ -255,7 +263,7 @@ export default function Create() {
         // Reset form
         setTimeout(() => {
           setLazyMintStep(1);
-          setLazyMintForm({ name: '', description: '', royaltyPercentage: 10, pieces: 1, price: '', category: '', network: selectedChain || "polygon", enableStraightBuy: true });
+          setLazyMintForm({ name: '', description: '', royaltyPercentage: 10, pieces: 1, price: '', floorPrice: '', category: '', network: selectedChain || "polygon", enableStraightBuy: true });
           setLazyMintImageFile(null);
           setLazyMintImagePreview(null);
           setLazyMintIpfsURI('');
@@ -339,7 +347,9 @@ export default function Create() {
       image: '',
       royaltyPercentage: 0,
       pieces: 1,
-      attributes: []
+      floorPrice: '',
+      attributes: [],
+      _uploadingImage: false,
     }]);
   };
 
@@ -349,6 +359,36 @@ export default function Create() {
     setBatchMintNFTs(updatedNFTs);
   };
 
+  const handleBatchMintImageChange = async (index, file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setBatchMintError(`NFT ${index + 1}: Please select a valid image file`);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setBatchMintError(`NFT ${index + 1}: Image size must be less than 10MB`);
+      return;
+    }
+
+    const updatedNFTs = [...batchMintNFTs];
+    updatedNFTs[index]._uploadingImage = true;
+    setBatchMintNFTs(updatedNFTs);
+
+    try {
+      const imageHash = await uploadToIPFS(file);
+      const imageURI = `ipfs://${imageHash}`;
+      updatedNFTs[index].image = imageURI;
+      updatedNFTs[index]._uploadingImage = false;
+      setBatchMintNFTs([...updatedNFTs]);
+      setBatchMintError('');
+    } catch (err) {
+      console.error('Error uploading batch NFT image:', err);
+      updatedNFTs[index]._uploadingImage = false;
+      setBatchMintNFTs([...updatedNFTs]);
+      setBatchMintError(`NFT ${index + 1}: Failed to upload image - ${err.message}`);
+    }
+  };
+
   const removeBatchMintNFT = (index) => {
     setBatchMintNFTs(batchMintNFTs.filter((_, i) => i !== index));
   };
@@ -356,6 +396,11 @@ export default function Create() {
   const handleBatchMintSubmit = async () => {
     if (batchMintNFTs.length === 0) {
       setBatchMintError('Add at least one NFT');
+      return;
+    }
+
+    if (!batchMintCategory || !batchMintNetwork) {
+      setBatchMintError('Please select batch category and network');
       return;
     }
 
@@ -375,6 +420,8 @@ export default function Create() {
         autoPublish: batchMintAutoPublish,
         collection: batchMintCollection || selectedCollectionId,
         enableStraightBuy: batchMintEnableStraightBuy,
+        category: batchMintCategory,
+        network: batchMintNetwork,
       });
 
       toast.success('Batch mint created successfully!');
@@ -641,9 +688,9 @@ export default function Create() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                      <label className="text-white/70 font-semibold text-sm mb-2 block">Price (ETH) *</label>
+                      <label className="text-white/70 font-semibold text-sm mb-2 block">Listing Price (ETH) *</label>
                       <input
                         className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
                         type="number"
@@ -653,6 +700,20 @@ export default function Create() {
                         onChange={(e) => setLazyMintForm({...lazyMintForm, price: e.target.value})}
                         required
                       />
+                      <small className="text-gray-400 text-xs">Initial listing price per piece.</small>
+                    </div>
+
+                    <div>
+                      <label className="text-white/70 font-semibold text-sm mb-2 block">Floor Price (ETH)</label>
+                      <input
+                        className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
+                        type="number"
+                        step="0.0001"
+                        placeholder="Optional floor price"
+                        value={lazyMintForm.floorPrice}
+                        onChange={(e) => setLazyMintForm({...lazyMintForm, floorPrice: e.target.value})}
+                      />
+                      <small className="text-gray-400 text-xs">Optional minimum price for offers / analytics.</small>
                     </div>
 
                     <div>
@@ -812,6 +873,43 @@ export default function Create() {
 
               <div className="bg-gray-950 rounded-lg border border-gray-800 p-6 space-y-6">
                 <h2 className="text-2xl font-bold">Batch Mint NFTs</h2>
+                <p className="text-gray-400 text-sm">Upload or define multiple NFTs at once. Category and network apply to the whole batch.</p>
+
+                {/* Batch-level metadata */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-white/70 font-semibold text-sm mb-2 block">Batch Category *</label>
+                    <select
+                      className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
+                      value={batchMintCategory || ''}
+                      onChange={(e) => setBatchMintCategory(e.target.value)}
+                      required
+                    >
+                      <option value="">Select category</option>
+                      <option value="gaming">Gaming</option>
+                      <option value="sports">Sports</option>
+                      <option value="music">Music</option>
+                      <option value="art">Art</option>
+                      <option value="photography">Photography</option>
+                      <option value="utility">Utility</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-white/70 font-semibold text-sm mb-2 block">Batch Network *</label>
+                    <select
+                      className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
+                      value={batchMintNetwork || (selectedChain || 'polygon')}
+                      onChange={(e) => setBatchMintNetwork(e.target.value)}
+                      required
+                    >
+                      {networkOptions.map((network) => (
+                        <option key={network.value} value={network.value}>
+                          {network.label} ({network.symbol})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 {/* Upload Method */}
                 <div className="flex gap-4">
@@ -873,7 +971,7 @@ export default function Create() {
                 {batchMintNFTs.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="font-semibold">NFTs to Mint ({batchMintNFTs.length})</h3>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+        <div className="space-y-4 max-h-96 overflow-y-auto">
                       {batchMintNFTs.map((nft, idx) => (
                         <div key={idx} className="bg-gray-900 rounded-lg p-4 border border-gray-800">
                           <div className="flex justify-between items-start mb-3">
@@ -887,44 +985,64 @@ export default function Create() {
                             </button>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input
-                              type="text"
-                              placeholder="NFT Name"
-                              value={nft.name}
-                              onChange={(e) => handleBatchMintNFTChange(idx, 'name', e.target.value)}
-                              className="bg-gray-800 text-gray-100 rounded-lg p-2"
-                            />
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="Pieces (Stock)"
-                              value={nft.pieces}
-                              onChange={(e) => handleBatchMintNFTChange(idx, 'pieces', parseInt(e.target.value) || 1)}
-                              className="bg-gray-800 text-gray-100 rounded-lg p-2"
-                            />
-                            <textarea
-                              placeholder="Description"
-                              value={nft.description}
-                              onChange={(e) => handleBatchMintNFTChange(idx, 'description', e.target.value)}
-                              rows={2}
-                              className="bg-gray-800 text-gray-100 rounded-lg p-2 md:col-span-2"
-                            />
-                            <input
-                              type="url"
-                              placeholder="Image URL"
-                              value={nft.image}
-                              onChange={(e) => handleBatchMintNFTChange(idx, 'image', e.target.value)}
-                              className="bg-gray-800 text-gray-100 rounded-lg p-2"
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              max="50"
-                              placeholder="Royalty %"
-                              value={nft.royaltyPercentage}
-                              onChange={(e) => handleBatchMintNFTChange(idx, 'royaltyPercentage', parseInt(e.target.value) || 0)}
-                              className="bg-gray-800 text-gray-100 rounded-lg p-2"
-                            />
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">NFT Name *</label>
+                              <input
+                                type="text"
+                                placeholder="NFT Name"
+                                value={nft.name}
+                                onChange={(e) => handleBatchMintNFTChange(idx, 'name', e.target.value)}
+                                className="bg-gray-800 text-gray-100 rounded-lg p-2 w-full"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">Pieces (Stock) *</label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Pieces"
+                                value={nft.pieces}
+                                onChange={(e) => handleBatchMintNFTChange(idx, 'pieces', parseInt(e.target.value) || 1)}
+                                className="bg-gray-800 text-gray-100 rounded-lg p-2 w-full"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs text-gray-400 mb-1">Description *</label>
+                              <textarea
+                                placeholder="Description"
+                                value={nft.description}
+                                onChange={(e) => handleBatchMintNFTChange(idx, 'description', e.target.value)}
+                                rows={2}
+                                className="bg-gray-800 text-gray-100 rounded-lg p-2 w-full"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">Image *</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleBatchMintImageChange(idx, e.target.files[0])}
+                                className="block w-full text-sm text-gray-300"
+                              />
+                              {nft._uploadingImage && (
+                                <p className="text-xs text-purple-400 mt-1">Uploading image to IPFS...</p>
+                              )}
+                              {nft.image && !nft._uploadingImage && (
+                                <p className="text-xs text-green-400 mt-1">Image uploaded</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">Royalty %</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="50"
+                                placeholder="Royalty %"
+                                value={nft.royaltyPercentage}
+                                onChange={(e) => handleBatchMintNFTChange(idx, 'royaltyPercentage', parseInt(e.target.value) || 0)}
+                                className="bg-gray-800 text-gray-100 rounded-lg p-2 w-full"
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}

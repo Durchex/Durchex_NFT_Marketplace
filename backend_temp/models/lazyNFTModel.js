@@ -111,6 +111,12 @@ const lazyNFTSchema = new mongoose.Schema(
             default: null,
         },
 
+        // Optional floor price (starting price / lowest listing)
+        floorPrice: {
+            type: String,
+            default: null,
+        },
+
         category: {
             type: String,
             default: '',

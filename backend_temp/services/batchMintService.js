@@ -15,7 +15,7 @@ class BatchMintService {
      * Create batch mint operation
      */
     async createBatchMint(userId, nftData, options = {}) {
-        const { autoPublish = false } = options;
+        const { autoPublish = false, category = null, network = null } = options;
 
         if (!Array.isArray(nftData) || nftData.length === 0) {
             throw new Error('NFT data array required');
@@ -36,12 +36,18 @@ class BatchMintService {
         const batchMint = new BatchMint({
             creatorId: userId,
             totalCount: nftData.length,
+            // Batch-level metadata
+            category: category || null,
+            network: network || null,
             nfts: nftData.map(nft => ({
                 name: nft.name,
                 description: nft.description,
                 image: nft.image,
                 attributes: nft.attributes || [],
                 royaltyPercentage: nft.royaltyPercentage || 0,
+                category: nft.category || category || null,
+                network: nft.network || network || null,
+                floorPrice: nft.floorPrice || null,
                 unlisted: true,
                 status: 'pending'
             })),

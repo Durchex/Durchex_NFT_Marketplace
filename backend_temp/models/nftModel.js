@@ -74,6 +74,14 @@ const nftSchema = new Schema(
       type: String,
       required: true,
     },
+
+    // Optional floor price (starting / lowest listing price)
+    floorPrice: {
+      type: String,
+      required: false,
+      default: null,
+      description: "Floor price for this NFT (if different from current listing price)",
+    },
     currentlyListed: {
       type: Boolean,
       required: true,
