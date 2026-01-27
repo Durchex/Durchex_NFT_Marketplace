@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { nftAPI } from '../../services/api';
+import { getCurrencySymbol } from '../../Context/constants';
 
 /**
  * RealTimeDataTable - Shows 8 actual NFTs from database (newest to oldest) with real floor prices
@@ -53,15 +54,27 @@ const RealTimeDataTable = () => {
         }
       }
       
+      // ✅ De-duplicate NFTs so the same NFT across networks only appears once
+      const uniqueMap = new Map();
+      allNFTs.forEach((nft) => {
+        const key =
+          nft._id ||
+          `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, nft);
+        }
+      });
+      const uniqueNFTs = Array.from(uniqueMap.values());
+
       // Sort by creation date (newest to oldest)
-      allNFTs.sort((a, b) => {
+      uniqueNFTs.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
         const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
         return dateB - dateA;
       });
       
       // Get first 8 NFTs (newest to oldest)
-      const nftList = allNFTs.slice(0, 8);
+      const nftList = uniqueNFTs.slice(0, 8);
       
       if (nftList.length === 0) {
         throw new Error('No NFTs found');
@@ -227,12 +240,14 @@ const RealTimeDataTable = () => {
 
                     {/* Volume */}
                     <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm hidden sm:table-cell">
-                      {row.volume24h || '0.05'} ETH
+                      {row.volume24h || '0.05'}{' '}
+                      {getCurrencySymbol(row.network || row.chain || 'ethereum')}
                     </td>
 
                     {/* Floor Price */}
                     <td className="px-3 py-3 text-white font-mono text-xs sm:text-sm">
-                      {row.floorPrice} ETH
+                      {row.floorPrice}{' '}
+                      {getCurrencySymbol(row.network || row.chain || 'ethereum')}
                     </td>
 
                     {/* Sales */}

@@ -43,8 +43,8 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   // Direct map for common display names
   const currencyMap = {
-    Polygon: 'POL',
-    'Polygon Mainnet': 'POL',
+    Polygon: 'MATIC',
+    'Polygon Mainnet': 'MATIC',
     Ethereum: 'ETH',
     'Ethereum Mainnet': 'ETH',
     Arbitrum: 'ETH',
@@ -60,7 +60,7 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   // Fallback: normalize typical network keys (polygon, ethereum, bsc, arbitrum, base, solana)
   const lower = value.toLowerCase();
-  if (lower.includes('polygon')) return 'POL';
+  if (lower.includes('polygon')) return 'MATIC';
   if (lower.includes('ethereum') || lower === 'eth') return 'ETH';
   if (lower.includes('arbitrum') || lower === 'arb') return 'ETH';
   if (lower === 'bsc' || lower.includes('binance')) return 'BNB';

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { nftAPI, userAPI } from '../../services/api';
+import { getCurrencySymbol } from '../../Context/constants';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 import { ErrorToast } from '../../app/Toast/Error.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -134,9 +135,21 @@ const FeaturedNFTShowcase = () => {
           }
         }
       }
+
+      // ✅ De-duplicate NFTs before selecting showcase items
+      const uniqueMap = new Map();
+      collectionNFTs.forEach((nft) => {
+        const key =
+          nft._id ||
+          `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, nft);
+        }
+      });
+      const uniqueNFTs = Array.from(uniqueMap.values());
       
       // Get first 3 NFTs from the collection
-      const showcaseNFTs = collectionNFTs.slice(0, 3);
+      const showcaseNFTs = uniqueNFTs.slice(0, 3);
       
       // If still no NFTs, generate mock ones
       if (showcaseNFTs.length === 0) {
@@ -322,7 +335,8 @@ const FeaturedNFTShowcase = () => {
                   <div>
                     <p className="text-gray-400 text-xs sm:text-sm mb-0.5">Floor Price</p>
                     <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                      {currentCollection.floorPrice || '0.5'} ETH
+                      {currentCollection.floorPrice || '0.5'}{' '}
+                      {getCurrencySymbol(currentCollection.network || 'ethereum')}
                     </p>
                   </div>
                   {currentCollection.itemCount && (
@@ -378,7 +392,10 @@ const FeaturedNFTShowcase = () => {
                   {/* NFT Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 to-transparent p-2 sm:p-3">
                     <p className="text-white text-xs sm:text-sm font-semibold line-clamp-1 mb-0.5">{nft.name || `Item ${idx + 1}`}</p>
-                    <p className="text-purple-300 text-xs sm:text-sm font-medium">{nft.price || nft.floorPrice || '0.55'} ETH</p>
+                    <p className="text-purple-300 text-xs sm:text-sm font-medium">
+                      {nft.price || nft.floorPrice || '0.55'}{' '}
+                      {getCurrencySymbol(nft.network || currentCollection.network || 'ethereum')}
+                    </p>
                   </div>
                 </div>
               ))}

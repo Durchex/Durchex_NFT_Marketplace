@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
+import { getCurrencySymbol } from '../../Context/constants';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -39,15 +40,27 @@ const TopNFTsCarousel = () => {
         }
       }
       
+      // ✅ De-duplicate NFTs so we don't show the same one per-network
+      const uniqueMap = new Map();
+      allNFTs.forEach((nft) => {
+        const key =
+          nft._id ||
+          `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, nft);
+        }
+      });
+      const uniqueNFTs = Array.from(uniqueMap.values());
+
       // Sort by creation date (newest to oldest)
-      allNFTs.sort((a, b) => {
+      uniqueNFTs.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
         const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
         return dateB - dateA;
       });
       
       // Take first 12 NFTs
-      const nftsList = allNFTs.slice(0, 12);
+      const nftsList = uniqueNFTs.slice(0, 12);
       
       if (nftsList.length === 0) {
         throw new Error('No NFTs found');
@@ -183,7 +196,8 @@ const TopNFTsCarousel = () => {
                 </h3>
                 {/* Price - positioned below title */}
                 <p className="text-purple-400 font-semibold text-sm sm:text-base mb-3">
-                  {nft.price || nft.floorPrice || '0.55'} ETH
+                  {nft.price || nft.floorPrice || '0.55'}{' '}
+                  {getCurrencySymbol(nft.network || nft.chain || 'ethereum')}
                 </p>
 
                 {/* Creator */}
