@@ -5,6 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 import { nftAPI, lazyMintAPI, batchMintAPI } from "../services/api";
+import { getCurrencySymbol, getUsdValueFromCrypto } from "../Context/constants";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { TiUpload } from "react-icons/ti";
 import { FiArrowLeft } from "react-icons/fi";
@@ -690,7 +691,9 @@ export default function Create() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                      <label className="text-white/70 font-semibold text-sm mb-2 block">Listing Price (ETH) *</label>
+                      <label className="text-white/70 font-semibold text-sm mb-2 block">
+                        Listing Price ({getCurrencySymbol(lazyMintForm.network || selectedChain || "polygon")}) *
+                      </label>
                       <input
                         className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
                         type="number"
@@ -700,11 +703,25 @@ export default function Create() {
                         onChange={(e) => setLazyMintForm({...lazyMintForm, price: e.target.value})}
                         required
                       />
-                      <small className="text-gray-400 text-xs">Initial listing price per piece.</small>
+                      <small className="text-gray-400 text-xs block">
+                        Initial listing price per piece.
+                      </small>
+                      {lazyMintForm.price && (
+                        <small className="text-gray-400 text-xs block mt-1">
+                          ≈ $
+                          {getUsdValueFromCrypto(
+                            lazyMintForm.price,
+                            lazyMintForm.network || selectedChain || "polygon"
+                          ).toFixed(2)}{" "}
+                          USD
+                        </small>
+                      )}
                     </div>
 
                     <div>
-                      <label className="text-white/70 font-semibold text-sm mb-2 block">Floor Price (ETH)</label>
+                      <label className="text-white/70 font-semibold text-sm mb-2 block">
+                        Floor Price ({getCurrencySymbol(lazyMintForm.network || selectedChain || "polygon")})
+                      </label>
                       <input
                         className="bg-gray-900 text-gray-100 rounded-lg p-2.5 w-full"
                         type="number"
@@ -713,7 +730,19 @@ export default function Create() {
                         value={lazyMintForm.floorPrice}
                         onChange={(e) => setLazyMintForm({...lazyMintForm, floorPrice: e.target.value})}
                       />
-                      <small className="text-gray-400 text-xs">Optional minimum price for offers / analytics.</small>
+                      <small className="text-gray-400 text-xs block">
+                        Optional minimum price for offers / analytics.
+                      </small>
+                      {lazyMintForm.floorPrice && (
+                        <small className="text-gray-400 text-xs block mt-1">
+                          ≈ $
+                          {getUsdValueFromCrypto(
+                            lazyMintForm.floorPrice,
+                            lazyMintForm.network || selectedChain || "polygon"
+                          ).toFixed(2)}{" "}
+                          USD
+                        </small>
+                      )}
                     </div>
 
                     <div>

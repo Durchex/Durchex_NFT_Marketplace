@@ -4,7 +4,8 @@ import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiT
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
-import { nftAPI } from '../services/api';
+import { nftAPI, engagementAPI } from '../services/api';
+import { getCurrencySymbol, getUsdValueFromCrypto } from '../Context/constants';
 
 const NftDetailsPage = () => {
   const { id } = useParams();
@@ -16,6 +17,8 @@ const NftDetailsPage = () => {
   const [priceData, setPriceData] = useState([]);
   const [tradeData, setTradeData] = useState([]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [views, setViews] = useState(0);
+  const [likes, setLikes] = useState(0);
 
   useEffect(() => {
     fetchNftDetails();
@@ -99,14 +102,72 @@ const NftDetailsPage = () => {
       }
 
       setNft(nftData);
+      setViews(nftData.views || 0);
+      setLikes(nftData.likes || 0);
       // Generate simulated trading data
       setPriceData(generatePriceData(parseFloat(nftData.price) || 1.5));
       setTradeData(generateTradeData());
+
+      // Track NFT view (best-effort)
+      try {
+        const userWallet =
+          localStorage.getItem('walletAddress') ||
+          (typeof window !== 'undefined' && window.ethereum?.selectedAddress) ||
+          null;
+        await engagementAPI.trackNFTView(
+          nftData._id || nftData.id || id,
+          nftData.itemId,
+          nftData.contractAddress || nftData.nftContract || null,
+          nftData.network || 'ethereum',
+          userWallet
+        );
+        setViews((prev) => prev + 1);
+      } catch (viewErr) {
+        console.warn('Failed to track NFT view:', viewErr?.message || viewErr);
+      }
     } catch (err) {
       console.error('Error fetching NFT details:', err);
       setError('Failed to load NFT details. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!nft) return;
+
+    const userWallet =
+      localStorage.getItem('walletAddress') ||
+      (typeof window !== 'undefined' && window.ethereum?.selectedAddress) ||
+      null;
+
+    if (!userWallet) {
+      // Fallback: local toggle only
+      setLiked((prev) => !prev);
+      return;
+    }
+
+    try {
+      if (liked) {
+        await engagementAPI.unlikeNFT(
+          nft._id || nft.id || id,
+          nft.network || 'ethereum',
+          userWallet
+        );
+        setLikes((prev) => Math.max(0, prev - 1));
+      } else {
+        await engagementAPI.likeNFT(
+          nft._id || nft.id || id,
+          nft.itemId,
+          nft.contractAddress || nft.nftContract || null,
+          nft.network || 'ethereum',
+          userWallet
+        );
+        setLikes((prev) => prev + 1);
+      }
+      setLiked((prev) => !prev);
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
     }
   };
 
@@ -176,21 +237,30 @@ const NftDetailsPage = () => {
                   <FiEye className="w-3 h-3 xs:w-4 xs:h-4" />
                   <span className="hidden xs:inline">Views</span>
                 </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">{(nft.views || 0).toLocaleString()}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">{(views || 0).toLocaleString()}</div>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
                 <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
                   <FiHeart className="w-3 h-3 xs:w-4 xs:h-4" />
                   <span className="hidden xs:inline">Likes</span>
                 </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">{(nft.likes || 0).toLocaleString()}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">{(likes || 0).toLocaleString()}</div>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
                 <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
                   <FiDollarSign className="w-3 h-3 xs:w-4 xs:h-4" />
                   <span className="hidden xs:inline">Price</span>
                 </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">{nft.price || '—'}</div>
+                <div className="text-base xs:text-lg sm:text-xl font-bold">
+                  {nft.price ? (
+                    <>
+                      {parseFloat(nft.price).toFixed(4)}{' '}
+                      {getCurrencySymbol(nft.network || 'ethereum')}
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -216,7 +286,7 @@ const NftDetailsPage = () => {
                     <FiShare2 className="w-4 h-4 xs:w-5 xs:h-5" />
                   </button>
                   <button
-                    onClick={() => setLiked(!liked)}
+                    onClick={handleToggleLike}
                     className="p-2 xs:p-2.5 sm:p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
                     title="Like"
                   >
@@ -265,7 +335,10 @@ const NftDetailsPage = () => {
                 {nft.price && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">Price</span>
-                    <span className="font-bold text-lg">{nft.price} ETH</span>
+                    <span className="font-bold text-lg">
+                      {parseFloat(nft.price).toFixed(4)}{' '}
+                      {getCurrencySymbol(nft.network || 'ethereum')}
+                    </span>
                   </div>
                 )}
               </div>
@@ -311,13 +384,24 @@ const NftDetailsPage = () => {
                   <div className="text-xs xs:text-sm text-gray-400 mb-1 xs:mb-2">Floor Price</div>
                   <div className="flex items-end gap-2">
                     <div className="text-xl xs:text-2xl font-bold text-green-400">
-                      {parseFloat(nft.price || 1.5).toFixed(4)} ETH
+                      {parseFloat(nft.floorPrice || nft.price || 1.5).toFixed(4)}{' '}
+                      {getCurrencySymbol(nft.network || 'ethereum')}
                     </div>
                     <div className="flex items-center gap-1 text-green-400 text-xs xs:text-sm mb-1">
                       <FiTrendingUp className="w-3 h-3 xs:w-4 xs:h-4" />
                       +2.5%
                     </div>
                   </div>
+                  {nft.price && (
+                    <div className="mt-1 text-xs text-gray-400">
+                      ≈ $
+                      {getUsdValueFromCrypto(
+                        nft.price,
+                        nft.network || 'ethereum'
+                      ).toFixed(2)}{' '}
+                      USD
+                    </div>
+                  )}
                 </div>
 
                 {/* Collection Stats */}

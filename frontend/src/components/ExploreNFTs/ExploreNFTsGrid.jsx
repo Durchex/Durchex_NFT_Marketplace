@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
+import { getCurrencySymbol } from '../../Context/constants';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
@@ -62,15 +63,28 @@ const ExploreNFTsGrid = () => {
       }
 
       if (nftsData && nftsData.length > 0) {
+        // ✅ De-duplicate NFTs that may appear under multiple networks
+        const uniqueMap = new Map();
+        nftsData.forEach((nft) => {
+          const key =
+            nft._id ||
+            `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, nft);
+          }
+        });
+        const uniqueNfts = Array.from(uniqueMap.values());
+
         // Sort by creation date (newest to oldest)
-        nftsData.sort((a, b) => {
+        uniqueNfts.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
           const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
           return dateB - dateA;
         });
         
-        console.log(`[ExploreNFTsGrid] Total NFTs fetched: ${nftsData.length}`);
-        setAllNfts(nftsData);
+        console.log(`[ExploreNFTsGrid] Total NFTs fetched (raw): ${nftsData.length}`);
+        console.log(`[ExploreNFTsGrid] Total NFTs after de-duplication: ${uniqueNfts.length}`);
+        setAllNfts(uniqueNfts);
         paginateNFTs();
         
         // Fetch creator profiles for all NFTs
@@ -277,7 +291,10 @@ const ExploreNFTsGrid = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-400 text-xs">Floor:</span>
-                      <span className="text-white text-xs font-semibold">{nft.price || nft.floorPrice || '2.55'} ETH</span>
+                      <span className="text-white text-xs font-semibold">
+                        {nft.floorPrice || nft.price || '2.55'}{' '}
+                        {getCurrencySymbol(nft.network || nft.chain || 'ethereum')}
+                      </span>
                     </div>
                   </div>
                 </div>

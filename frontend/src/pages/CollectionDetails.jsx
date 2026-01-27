@@ -5,10 +5,11 @@ import { Toaster } from "react-hot-toast";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import Header from "../components/Header";
-import { nftAPI, userAPI } from "../services/api";
+import { nftAPI, userAPI, engagementAPI } from "../services/api";
 import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { FiEdit2, FiTrash2, FiArrowLeft, FiDownload } from "react-icons/fi";
+import { getCurrencySymbol } from "../Context/constants";
 import toast from "react-hot-toast";
 
 export default function CollectionDetails() {
@@ -34,6 +35,8 @@ export default function CollectionDetails() {
     avgPrice: 0,
     ownerCount: 0
   });
+  const [collectionViews, setCollectionViews] = useState(0);
+  const [collectionLikes, setCollectionLikes] = useState(0);
 
   // Single unified fetch function
   useEffect(() => {
@@ -88,6 +91,10 @@ export default function CollectionDetails() {
         setCollection(collection);
         setEditData(collection);
 
+        // Initialize engagement counters if present
+        setCollectionViews(collection.views || 0);
+        setCollectionLikes(collection.likes || 0);
+
         // Fetch creator profile information
         if (collection?.creatorWallet) {
           try {
@@ -125,8 +132,20 @@ export default function CollectionDetails() {
           }
         }
 
+        // ✅ De-duplicate NFTs that may appear under multiple networks
+        const uniqueMap = new Map();
+        allNFTs.forEach((nft) => {
+          const key =
+            nft._id ||
+            `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, nft);
+          }
+        });
+        const uniqueNFTs = Array.from(uniqueMap.values());
+
         // 4. Filter NFTs by collection ID
-        const collectionNFTs = allNFTs.filter(nft => {
+        const collectionNFTs = uniqueNFTs.filter(nft => {
           const nftCollection = String(nft.collection || '').toLowerCase();
           const targetId = String(collectionId).toLowerCase();
           return nftCollection === targetId;
@@ -155,6 +174,74 @@ export default function CollectionDetails() {
 
     fetchData();
   }, [collectionId, address]);
+
+  // Track collection view (best-effort, after basic data is loaded)
+  useEffect(() => {
+    const trackView = async () => {
+      if (!collection) return;
+      try {
+        const userWallet =
+          localStorage.getItem('walletAddress') ||
+          (typeof window !== 'undefined' && window.ethereum?.selectedAddress) ||
+          null;
+
+        await engagementAPI.trackCollectionView(
+          collection._id || collection.collectionId || collectionId,
+          collection.name,
+          collection.network || 'ethereum',
+          userWallet
+        );
+        setCollectionViews((prev) => prev + 1);
+      } catch (err) {
+        console.warn('Failed to track collection view:', err?.message || err);
+      }
+    };
+
+    trackView();
+  }, [collection, collectionId]);
+
+  const handleToggleCollectionLike = async () => {
+    if (!collection) return;
+    const userWallet =
+      localStorage.getItem('walletAddress') ||
+      (typeof window !== 'undefined' && window.ethereum?.selectedAddress) ||
+      null;
+
+    if (!userWallet) {
+      // No wallet: do nothing server-side, but avoid crashing
+      return;
+    }
+
+    try {
+      const collectionKey = collection._id || collection.collectionId || collectionId;
+      const isLiked = likedItems.has(collectionKey);
+
+      if (isLiked) {
+        await engagementAPI.unlikeCollection(
+          collectionKey,
+          collection.network || 'ethereum',
+          userWallet
+        );
+        setCollectionLikes((prev) => Math.max(0, prev - 1));
+        const updated = new Set(likedItems);
+        updated.delete(collectionKey);
+        setLikedItems(updated);
+      } else {
+        await engagementAPI.likeCollection(
+          collectionKey,
+          collection.name,
+          collection.network || 'ethereum',
+          userWallet
+        );
+        setCollectionLikes((prev) => prev + 1);
+        const updated = new Set(likedItems);
+        updated.add(collectionKey);
+        setLikedItems(updated);
+      }
+    } catch (err) {
+      console.error('Failed to toggle collection like:', err);
+    }
+  };
 
   const calculateAnalytics = (nftsList) => {
     if (nftsList.length === 0) {
@@ -310,22 +397,31 @@ export default function CollectionDetails() {
               </div>
             </div>
 
-            {isOwner && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowEditModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-                >
-                  <FiEdit2 /> Edit
-                </button>
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
-                >
-                  <FiTrash2 /> Delete
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {isOwner && (
+                <>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+                  >
+                    <FiEdit2 /> Edit
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleToggleCollectionLike}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm"
+              >
+                <span>❤</span>
+                <span>{collectionLikes.toLocaleString()}</span>
+              </button>
+            </div>
           </div>
 
           {collection.image && (
@@ -341,15 +437,24 @@ export default function CollectionDetails() {
         <div className="grid grid-cols-5 gap-4 mb-12">
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Floor Price</p>
-            <p className="text-2xl font-bold text-cyan-400">{stats.floorPrice ? stats.floorPrice.toFixed(4) : '0.0000'} ETH</p>
+            <p className="text-2xl font-bold text-cyan-400">
+              {stats.floorPrice ? stats.floorPrice.toFixed(4) : '0.0000'}{' '}
+              {getCurrencySymbol(collection.network || 'ethereum')}
+            </p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Avg Price</p>
-            <p className="text-2xl font-bold text-cyan-400">{stats.avgPrice ? stats.avgPrice.toFixed(4) : '0.0000'} ETH</p>
+            <p className="text-2xl font-bold text-cyan-400">
+              {stats.avgPrice ? stats.avgPrice.toFixed(4) : '0.0000'}{' '}
+              {getCurrencySymbol(collection.network || 'ethereum')}
+            </p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Total Volume</p>
-            <p className="text-2xl font-bold text-cyan-400">{stats.volume ? stats.volume.toFixed(2) : '0.00'} ETH</p>
+            <p className="text-2xl font-bold text-cyan-400">
+              {stats.volume ? stats.volume.toFixed(2) : '0.00'}{' '}
+              {getCurrencySymbol(collection.network || 'ethereum')}
+            </p>
           </div>
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Items</p>
@@ -358,6 +463,14 @@ export default function CollectionDetails() {
           <div className="bg-slate-700 p-4 rounded-lg">
             <p className="text-gray-400 text-sm">Owners</p>
             <p className="text-2xl font-bold text-cyan-400">{stats.ownerCount || 0}</p>
+          </div>
+          <div className="bg-slate-700 p-4 rounded-lg">
+            <p className="text-gray-400 text-sm">Views</p>
+            <p className="text-2xl font-bold text-cyan-400">{collectionViews.toLocaleString()}</p>
+          </div>
+          <div className="bg-slate-700 p-4 rounded-lg">
+            <p className="text-gray-400 text-sm">Likes</p>
+            <p className="text-2xl font-bold text-cyan-400">{collectionLikes.toLocaleString()}</p>
           </div>
         </div>
 
@@ -400,8 +513,11 @@ export default function CollectionDetails() {
                   <div className="p-4">
                     <h3 className="font-bold mb-2 truncate">{nft.name}</h3>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-400">Floor</span>
-                      <span className="font-bold text-cyan-400">${parseFloat(nft.price || nft.floorPrice || 0).toFixed(2)}</span>
+                      <span className="text-sm text-gray-400">Price</span>
+                      <span className="font-bold text-cyan-400">
+                        {parseFloat(nft.price || nft.floorPrice || 0).toFixed(4)}{' '}
+                        {getCurrencySymbol(nft.network || collection.network || 'ethereum')}
+                      </span>
                     </div>
                   </div>
                 </Link>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiSearch, FiFilter, FiTrendingUp, FiUsers, FiBarChart2, FiEye, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, userAPI } from '../services/api';
+import { getCurrencySymbol } from '../Context/constants';
 import axios from 'axios';
 
 const Collections = () => {
@@ -52,7 +53,20 @@ const Collections = () => {
           }
         }
         
-        console.log(`[Collections] Total NFTs across all networks: ${allNFTs.length}`);
+        // ✅ De-duplicate NFTs that may be returned for multiple networks
+        const uniqueMap = new Map();
+        allNFTs.forEach((nft) => {
+          const key =
+            nft._id ||
+            `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, nft);
+          }
+        });
+        const uniqueNFTs = Array.from(uniqueMap.values());
+
+        console.log(`[Collections] Total NFTs across all networks (raw): ${allNFTs.length}`);
+        console.log(`[Collections] Total NFTs after de-duplication: ${uniqueNFTs.length}`);
         if (allNFTs.length > 0) {
           console.log(`[Collections] Sample NFT:`, {
             name: allNFTs[0].name,
@@ -86,7 +100,7 @@ const Collections = () => {
               }
               
               // Find all NFTs in this collection
-              const collectionNFTs = allNFTs.filter(nft => 
+              const collectionNFTs = uniqueNFTs.filter(nft => 
                 String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
               );
               
@@ -369,7 +383,9 @@ const Collections = () => {
                     <div className="text-xs text-gray-500 mb-1">Floor Price</div>
                     <div className="flex items-center gap-1">
                       <span className="text-lg font-bold">{collection.floorPrice}</span>
-                      <span className="text-xs text-gray-400">ETH</span>
+                      <span className="text-xs text-gray-400">
+                        {getCurrencySymbol(collection.network || 'ethereum')}
+                      </span>
                     </div>
                   </div>
 
