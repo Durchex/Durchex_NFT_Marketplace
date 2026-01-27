@@ -256,16 +256,19 @@ export default function CollectionDetails() {
       return;
     }
 
-    // IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
-    // Prices are stored in wei, need to convert to ETH
+    // Prefer explicit floorPrice when present; otherwise fall back to current price.
+    // Values may be in wei, normalize to human-readable.
     const rawPrices = nftsList.map(nft => {
-      let price = parseFloat(nft.price || '0');
-      // If price is very large (> 1000), it's likely in wei, convert to ETH
-      if (price > 1000) {
-        price = price / 1e18;
+      const source = nft.floorPrice != null && nft.floorPrice !== '' ? nft.floorPrice : nft.price;
+      let value = parseFloat(source || '0');
+      // If value is very large (> 1000), it's likely in wei, convert to ETH-style units
+      if (value > 1000) {
+        value = value / 1e18;
       }
-      console.log(`[CollectionDetails] NFT: ${nft.name}, price: "${nft.price}" => ${price} ETH`);
-      return price;
+      console.log(
+        `[CollectionDetails] NFT: ${nft.name}, floorPrice: "${nft.floorPrice}", price: "${nft.price}" => ${value}`
+      );
+      return value;
     });
     const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
     

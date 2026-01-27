@@ -115,16 +115,17 @@ const Collections = () => {
                 } : 'No NFTs'
               });
               
-              // Calculate stats - IMPORTANT: Only use price field (floorPrice doesn't exist in NFTs)
-              // Prices are stored in wei, need to convert to ETH
+              // Calculate stats - prefer explicit floorPrice when present, otherwise use price.
+              // Values may be in wei for some on-chain data, normalize to human-readable.
               const rawPrices = collectionNFTs.map(n => {
-                let price = parseFloat(n.price || '0');
-                // If price is very large (> 1000), it's likely in wei, convert to ETH
-                if (price > 1000) {
-                  price = price / 1e18;
+                const source = n.floorPrice != null && n.floorPrice !== '' ? n.floorPrice : n.price;
+                let value = parseFloat(source || '0');
+                // If value is very large (> 1000), it's likely in wei, convert to ETH-style units
+                if (value > 1000) {
+                  value = value / 1e18;
                 }
-                console.log(`[Collections] NFT price: "${n.price}" => ${price} ETH`);
-                return price;
+                console.log(`[Collections] NFT: ${n.name}, floorPrice: "${n.floorPrice}", price: "${n.price}" => ${value}`);
+                return value;
               });
               const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
               const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;

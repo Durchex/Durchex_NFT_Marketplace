@@ -41,17 +41,29 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   const value = chainOrNetwork.toString();
 
-  // Direct map for common display names
+  // Direct map for common display or config names
   const currencyMap = {
-    Polygon: 'MATIC',
-    'Polygon Mainnet': 'MATIC',
+    // EVM L1s
     Ethereum: 'ETH',
     'Ethereum Mainnet': 'ETH',
+    Polygon: 'MATIC',
+    'Polygon Mainnet': 'MATIC',
+    BSC: 'BNB',
+    'Binance Smart Chain': 'BNB',
+    Avalanche: 'AVAX',
+    'Avalanche C-Chain': 'AVAX',
+
+    // EVM L2s
     Arbitrum: 'ETH',
     'Arbitrum One': 'ETH',
-    BSC: 'BNB',
     Base: 'ETH',
+    zkSync: 'ETH',
+    'zkSync Era': 'ETH',
+
+    // Non-EVM
     Solana: 'SOL',
+    Tezos: 'XTZ',
+    'Tezos Mainnet': 'XTZ',
   };
 
   if (currencyMap[value]) {
@@ -60,12 +72,16 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   // Fallback: normalize typical network keys (polygon, ethereum, bsc, arbitrum, base, solana)
   const lower = value.toLowerCase();
-  if (lower.includes('polygon')) return 'MATIC';
+  if (lower.includes('polygon') || lower === 'matic') return 'MATIC';
   if (lower.includes('ethereum') || lower === 'eth') return 'ETH';
   if (lower.includes('arbitrum') || lower === 'arb') return 'ETH';
   if (lower === 'bsc' || lower.includes('binance')) return 'BNB';
+  if (lower.includes('avalanche') || lower === 'avax') return 'AVAX';
   if (lower.includes('base')) return 'ETH';
+  if (lower.includes('zksync')) return 'ETH';
   if (lower.includes('solana') || lower === 'sol') return 'SOL';
+  if (lower.includes('tezos') || lower === 'xtz') return 'XTZ';
+  if (lower.includes('monad') || lower === 'mon') return 'MON';
 
   // Default
   return 'ETH';
@@ -75,11 +91,12 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 // NOTE: These are placeholder values and can be wired to a real price oracle/API later.
 const TOKEN_USD_RATES = {
   ETH: 3500,
-  POL: 1,
+  MATIC: 1,
   BNB: 400,
   SOL: 150,
   AVAX: 40,
   MON: 1,
+  XTZ: 1,
 };
 
 export const getTokenUsdRate = (symbolOrNetwork) => {

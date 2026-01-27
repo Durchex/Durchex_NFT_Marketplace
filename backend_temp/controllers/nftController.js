@@ -48,6 +48,7 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
     image: image,
     imageURL: image,
     price: lazyNFT.price || '0',
+    floorPrice: lazyNFT.floorPrice || null,
     network: network, // Lazy NFTs might not have network, use provided or default
     collection: collectionId,
     owner: owner,
