@@ -1,6 +1,81 @@
 import Collection from "../models/collectionModel.js";
 import { nftModel } from "../models/nftModel.js";
+import LazyNFT from "../models/lazyNFTModel.js";
 import nftContractService from "../services/nftContractService.js";
+
+/**
+ * Helper function to convert lazy NFT to regular NFT format
+ * This allows lazy NFTs to be displayed alongside regular NFTs
+ */
+function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
+  // Extract image from IPFS URI or use imageURI
+  let image = lazyNFT.imageURI || '';
+  
+  // If no imageURI, try to construct from IPFS URI
+  // The IPFS URI might point to metadata JSON, but we'll use it as fallback
+  if (!image && lazyNFT.ipfsURI) {
+    // Convert ipfs:// to https://ipfs.io/ipfs/ for display
+    if (lazyNFT.ipfsURI.startsWith('ipfs://')) {
+      image = lazyNFT.ipfsURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    } else {
+      image = lazyNFT.ipfsURI;
+    }
+  }
+
+  // Determine owner: if redeemed, buyer owns it; otherwise creator owns it
+  const owner = lazyNFT.status === 'redeemed' && lazyNFT.buyer 
+    ? lazyNFT.buyer 
+    : lazyNFT.creator;
+
+  // Get collection ID (could be ObjectId or string)
+  let collectionId = null;
+  if (lazyNFT.collection) {
+    if (typeof lazyNFT.collection === 'object' && lazyNFT.collection._id) {
+      collectionId = lazyNFT.collection._id.toString();
+    } else if (typeof lazyNFT.collection === 'object' && lazyNFT.collection.collectionId) {
+      collectionId = lazyNFT.collection.collectionId;
+    } else {
+      collectionId = lazyNFT.collection.toString();
+    }
+  }
+
+  return {
+    _id: lazyNFT._id,
+    itemId: lazyNFT._id.toString(), // Use MongoDB ID as itemId
+    tokenId: lazyNFT.tokenId || lazyNFT._id.toString(), // Use tokenId if redeemed, otherwise _id
+    name: lazyNFT.name || 'Untitled NFT',
+    description: lazyNFT.description || '',
+    image: image,
+    imageURL: image,
+    price: lazyNFT.price || '0',
+    network: network, // Lazy NFTs might not have network, use provided or default
+    collection: collectionId,
+    owner: owner,
+    seller: lazyNFT.creator, // Creator is always the seller
+    creator: lazyNFT.creator,
+    creatorWallet: lazyNFT.creator,
+    currentlyListed: lazyNFT.status === 'pending' && lazyNFT.enableStraightBuy && lazyNFT.remainingPieces > 0,
+    isLazyMint: true, // Flag to identify lazy mints
+    lazyMintStatus: lazyNFT.status,
+    royaltyPercentage: lazyNFT.royaltyPercentage || 10,
+    pieces: lazyNFT.pieces || 1,
+    remainingPieces: lazyNFT.remainingPieces !== undefined ? lazyNFT.remainingPieces : (lazyNFT.pieces || 1),
+    category: lazyNFT.category || '',
+    attributes: lazyNFT.attributes || [],
+    views: lazyNFT.views || 0,
+    likes: lazyNFT.likes?.length || 0,
+    createdAt: lazyNFT.createdAt,
+    updatedAt: lazyNFT.updatedAt,
+    expiresAt: lazyNFT.expiresAt,
+    // Additional lazy mint specific fields
+    ipfsURI: lazyNFT.ipfsURI,
+    signature: lazyNFT.signature,
+    nonce: lazyNFT.nonce,
+    // Mint status
+    isMinted: lazyNFT.status === 'redeemed' && !!lazyNFT.tokenId,
+    mintedAt: lazyNFT.redeemedAt || null,
+  };
+}
 
 // Create a new NFT Collection
 export const createCollection = async (req, res) => {
@@ -162,13 +237,68 @@ export const getCollectionNFTs = async (req, res) => {
   try {
     const { collectionId } = req.params;
     
-    // Query NFTs where the collection field matches the collectionId
-    const nfts = await nftModel.find({
-      collection: collectionId
+    // Find the collection to get its ID (could be _id, collectionId, or name)
+    const collectionDoc = await Collection.findOne({ 
+      $or: [
+        { _id: collectionId },
+        { collectionId: collectionId },
+        { name: collectionId }
+      ]
+    });
+    
+    if (!collectionDoc) {
+      return res.status(404).json({ error: 'Collection not found' });
+    }
+    
+    // Query regular NFTs where the collection field matches
+    const regularNfts = await nftModel.find({
+      collection: collectionDoc._id.toString() // Match by string ID
     }).sort({ createdAt: -1 });
     
-    res.status(200).json(nfts);
+    // Also try matching by collection name/ID string
+    const regularNftsByName = await nftModel.find({
+      $or: [
+        { collection: collectionDoc.name },
+        { collection: collectionDoc.collectionId }
+      ]
+    }).sort({ createdAt: -1 });
+    
+    // Combine regular NFTs (avoid duplicates)
+    const allRegularNfts = [...regularNfts];
+    regularNftsByName.forEach(nft => {
+      if (!allRegularNfts.find(existing => existing._id.toString() === nft._id.toString())) {
+        allRegularNfts.push(nft);
+      }
+    });
+    
+    // Query lazy NFTs in the same collection
+    const lazyNfts = await LazyNFT.find({ 
+      $or: [
+        { collection: collectionDoc._id },
+        { collection: collectionDoc.collectionId }
+      ],
+      status: { $in: ['pending', 'redeemed'] },
+      expiresAt: { $gt: new Date() }
+    }).populate('collection');
+    
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNfts = lazyNfts.map(lazyNFT => 
+      formatLazyNFTAsNFT(lazyNFT, collectionDoc.network || 'polygon')
+    );
+    
+    // Combine both types of NFTs
+    const allNfts = [...allRegularNfts, ...formattedLazyNfts];
+    
+    // Sort by creation date (newest first)
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    res.status(200).json(allNfts);
   } catch (error) {
+    console.error('Error fetching collection NFTs:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -394,10 +524,34 @@ export const fetchCollectionsGroupedByNetwork = async (req, res) => {
 export const fetchAllNftsByNetwork = async (req, res) => {
   const { network } = req.params;
   try {
-    // Only return NFTs that are currently listed (admin has approved for sale)
-    const nfts = await nftModel.find({ network, currentlyListed: true });
-    res.json(nfts);
+    // Fetch regular NFTs that are currently listed
+    const regularNfts = await nftModel.find({ network, currentlyListed: true });
+    
+    // Fetch lazy NFTs that are pending and available for sale
+    // Note: Lazy NFTs might not have network field, so we fetch all pending ones
+    // and filter by network if needed, or include all if network matching is not critical
+    const lazyNfts = await LazyNFT.find({ 
+      status: 'pending',
+      enableStraightBuy: true,
+      expiresAt: { $gt: new Date() } // Not expired
+    }).populate('collection');
+    
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
+    
+    // Combine both types of NFTs
+    const allNfts = [...regularNfts, ...formattedLazyNfts];
+    
+    // Sort by creation date (newest first)
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    res.json(allNfts);
   } catch (error) {
+    console.error('Error fetching NFTs by network:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -406,13 +560,34 @@ export const fetchAllNftsByNetwork = async (req, res) => {
 export const fetchAllNftsByNetworkForExplore = async (req, res) => {
   const { network } = req.params;
   try {
-    // Return ALL NFTs except delisted/flagged ones - admin can delist NFTs
-    const nfts = await nftModel.find({ 
+    // Return ALL regular NFTs except delisted/flagged ones - admin can delist NFTs
+    const regularNfts = await nftModel.find({ 
       network,
       adminStatus: { $ne: 'delisted' } // Exclude delisted NFTs
     });
-    res.json(nfts);
+    
+    // Fetch all lazy NFTs (pending, redeemed, etc.) for explore page
+    const lazyNfts = await LazyNFT.find({ 
+      status: { $in: ['pending', 'redeemed'] }, // Include pending and redeemed
+      expiresAt: { $gt: new Date() } // Not expired
+    }).populate('collection');
+    
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
+    
+    // Combine both types of NFTs
+    const allNfts = [...regularNfts, ...formattedLazyNfts];
+    
+    // Sort by creation date (newest first)
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    res.json(allNfts);
   } catch (error) {
+    console.error('Error fetching NFTs for explore:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -421,9 +596,44 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
 export const fetchCollectionNfts = async (req, res) => {
   const { network, collection } = req.params;
   try {
-    const nfts = await nftModel.find({ network, collection });
-    res.json(nfts);
+    // Fetch regular NFTs in the collection
+    const regularNfts = await nftModel.find({ network, collection });
+    
+    // Find the collection to get its ID
+    const collectionDoc = await Collection.findOne({ 
+      $or: [
+        { _id: collection },
+        { collectionId: collection },
+        { name: collection, network }
+      ]
+    });
+    
+    // Fetch lazy NFTs in the same collection
+    let lazyNfts = [];
+    if (collectionDoc) {
+      lazyNfts = await LazyNFT.find({ 
+        collection: collectionDoc._id,
+        status: { $in: ['pending', 'redeemed'] },
+        expiresAt: { $gt: new Date() }
+      }).populate('collection');
+    }
+    
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
+    
+    // Combine both types of NFTs
+    const allNfts = [...regularNfts, ...formattedLazyNfts];
+    
+    // Sort by creation date (newest first)
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    res.json(allNfts);
   } catch (error) {
+    console.error('Error fetching collection NFTs:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -576,16 +786,54 @@ export const fetchUserNFTs = async (req, res) => {
   }
 
   try {
-    // Find all NFTs owned by the wallet address (normalized to lowercase)
-    const userNFTs = await nftModel.find({
+    const normalizedAddress = walletAddress.toLowerCase();
+    
+    // Find all regular NFTs owned by the wallet address
+    const regularNFTs = await nftModel.find({
       owner: { $regex: `^${walletAddress}$`, $options: 'i' } // Case-insensitive match
     }).sort({ mintedAt: -1 }); // Sort by minted date, newest first
+
+    // Find lazy NFTs:
+    // 1. Lazy NFTs owned by user (redeemed and bought by user)
+    // 2. Lazy NFTs created by user (pending, so they "own" them as creator)
+    const lazyNFTsOwned = await LazyNFT.find({
+      buyer: normalizedAddress,
+      status: 'redeemed'
+    }).populate('collection').sort({ redeemedAt: -1 });
+    
+    const lazyNFTsCreated = await LazyNFT.find({
+      creator: normalizedAddress,
+      status: 'pending'
+    }).populate('collection').sort({ createdAt: -1 });
+
+    // Combine lazy NFTs (avoid duplicates)
+    const allLazyNFTs = [...lazyNFTsOwned];
+    lazyNFTsCreated.forEach(lazyNFT => {
+      if (!allLazyNFTs.find(existing => existing._id.toString() === lazyNFT._id.toString())) {
+        allLazyNFTs.push(lazyNFT);
+      }
+    });
+
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNFTs = allLazyNFTs.map(lazyNFT => 
+      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
+    );
+
+    // Combine both types
+    const allNFTs = [...regularNFTs, ...formattedLazyNFTs];
+
+    // Sort by creation/mint date (newest first)
+    allNFTs.sort((a, b) => {
+      const dateA = new Date(a.mintedAt || a.createdAt || 0);
+      const dateB = new Date(b.mintedAt || b.createdAt || 0);
+      return dateB - dateA;
+    });
 
     res.json({
       success: true,
       walletAddress,
-      count: userNFTs.length,
-      nfts: userNFTs,
+      count: allNFTs.length,
+      nfts: allNFTs,
     });
   } catch (error) {
     console.error('Error fetching user NFTs:', error);
@@ -602,17 +850,54 @@ export const fetchUserNFTsByNetwork = async (req, res) => {
   }
 
   try {
-    const userNFTs = await nftModel.find({
+    const normalizedAddress = walletAddress.toLowerCase();
+    
+    // Find regular NFTs owned by the wallet address on this network
+    const regularNFTs = await nftModel.find({
       owner: { $regex: `^${walletAddress}$`, $options: 'i' },
       network
     }).sort({ mintedAt: -1 });
+
+    // Find lazy NFTs owned or created by user
+    const lazyNFTsOwned = await LazyNFT.find({
+      buyer: normalizedAddress,
+      status: 'redeemed'
+    }).populate('collection').sort({ redeemedAt: -1 });
+    
+    const lazyNFTsCreated = await LazyNFT.find({
+      creator: normalizedAddress,
+      status: 'pending'
+    }).populate('collection').sort({ createdAt: -1 });
+
+    // Combine lazy NFTs (avoid duplicates)
+    const allLazyNFTs = [...lazyNFTsOwned];
+    lazyNFTsCreated.forEach(lazyNFT => {
+      if (!allLazyNFTs.find(existing => existing._id.toString() === lazyNFT._id.toString())) {
+        allLazyNFTs.push(lazyNFT);
+      }
+    });
+
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNFTs = allLazyNFTs.map(lazyNFT => 
+      formatLazyNFTAsNFT(lazyNFT, network)
+    );
+
+    // Combine both types
+    const allNFTs = [...regularNFTs, ...formattedLazyNFTs];
+
+    // Sort by creation/mint date (newest first)
+    allNFTs.sort((a, b) => {
+      const dateA = new Date(a.mintedAt || a.createdAt || 0);
+      const dateB = new Date(b.mintedAt || b.createdAt || 0);
+      return dateB - dateA;
+    });
 
     res.json({
       success: true,
       walletAddress,
       network,
-      count: userNFTs.length,
-      nfts: userNFTs,
+      count: allNFTs.length,
+      nfts: allNFTs,
     });
   } catch (error) {
     console.error('Error fetching user NFTs by network:', error);
@@ -631,20 +916,44 @@ export const fetchUserMintedNFTs = async (req, res) => {
   }
 
   try {
-    // Find all minted NFTs owned by the wallet address (normalized to lowercase)
-    const userMintedNFTs = await nftModel.find({
+    const normalizedAddress = walletAddress.toLowerCase();
+    
+    // Find all regular minted NFTs owned by the wallet address
+    const regularMintedNFTs = await nftModel.find({
       owner: { $regex: `^${walletAddress}$`, $options: 'i' },
       isMinted: true
     }).sort({ mintedAt: -1 }); // Sort by minted date, newest first
 
-    console.log('Found minted NFTs for', walletAddress, ':', userMintedNFTs.length);
-    console.log('NFTs details:', userMintedNFTs.map(nft => ({ name: nft.name, tokenId: nft.tokenId, isMinted: nft.isMinted, owner: nft.owner })));
+    // Find lazy NFTs that were redeemed (minted) by this user
+    const lazyMintedNFTs = await LazyNFT.find({
+      buyer: normalizedAddress,
+      status: 'redeemed',
+      tokenId: { $ne: null } // Only redeemed ones with tokenId
+    }).populate('collection').sort({ redeemedAt: -1 });
+
+    // Convert lazy NFTs to regular NFT format
+    const formattedLazyNFTs = lazyMintedNFTs.map(lazyNFT => 
+      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
+    );
+
+    // Combine both types
+    const allMintedNFTs = [...regularMintedNFTs, ...formattedLazyNFTs];
+
+    // Sort by mint date (newest first)
+    allMintedNFTs.sort((a, b) => {
+      const dateA = new Date(a.mintedAt || a.redeemedAt || a.createdAt || 0);
+      const dateB = new Date(b.mintedAt || b.redeemedAt || b.createdAt || 0);
+      return dateB - dateA;
+    });
+
+    console.log('Found minted NFTs for', walletAddress, ':', allMintedNFTs.length);
+    console.log('Regular NFTs:', regularMintedNFTs.length, 'Lazy NFTs:', lazyMintedNFTs.length);
 
     res.json({
       success: true,
       walletAddress,
-      count: userMintedNFTs.length,
-      nfts: userMintedNFTs,
+      count: allMintedNFTs.length,
+      nfts: allMintedNFTs,
     });
   } catch (error) {
     console.error('Error fetching user minted NFTs:', error);

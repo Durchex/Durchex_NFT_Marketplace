@@ -123,12 +123,57 @@ router.post('/submit', authMiddleware, async (req, res) => {
             });
         }
 
+        // Try to fetch image from IPFS metadata if ipfsURI is provided
+        let imageURI = '';
+        if (ipfsURI) {
+            try {
+                // Convert IPFS URI to HTTP gateway URL
+                let httpURI = ipfsURI;
+                if (ipfsURI.startsWith('ipfs://')) {
+                    const cid = ipfsURI.replace('ipfs://', '');
+                    httpURI = `https://ipfs.io/ipfs/${cid}`;
+                }
+                
+                // Fetch metadata to extract image (with timeout)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                try {
+                    const metadataResponse = await fetch(httpURI, { 
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    if (metadataResponse.ok) {
+                        const metadata = await metadataResponse.json();
+                        if (metadata.image) {
+                            // Convert image IPFS URI to HTTP gateway if needed
+                            if (metadata.image.startsWith('ipfs://')) {
+                                const imageCID = metadata.image.replace('ipfs://', '');
+                                imageURI = `https://ipfs.io/ipfs/${imageCID}`;
+                            } else {
+                                imageURI = metadata.image;
+                            }
+                        }
+                    }
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    throw fetchError;
+                }
+            } catch (metadataError) {
+                // If metadata fetch fails, continue without imageURI
+                // The frontend can fetch it later if needed
+                console.warn('Could not fetch IPFS metadata for image:', metadataError.message);
+            }
+        }
+
         // Store in database
         const lazyNFT = new LazyNFT({
             creator: creatorAddress.toLowerCase(),
             name,
             description,
             ipfsURI,
+            imageURI: imageURI || '', // Store extracted image URI
             royaltyPercentage,
             signature,
             messageHash,
