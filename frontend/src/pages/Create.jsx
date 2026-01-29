@@ -5,7 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 import { nftAPI, lazyMintAPI, batchMintAPI } from "../services/api";
-import { getCurrencySymbol, getUsdValueFromCrypto } from "../Context/constants";
+import { getCurrencySymbol, getUsdValueFromCrypto, changeNetwork } from "../Context/constants";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { TiUpload } from "react-icons/ti";
 import { FiArrowLeft } from "react-icons/fi";
@@ -214,10 +214,9 @@ export default function Create() {
         throw new Error('No Web3 wallet found in browser (window.ethereum missing).');
       }
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      // Explicitly request accounts so the wallet pops up if needed
+      // Request accounts directly via provider (works on Edge and Chrome) – must be user-initiated
       try {
-        await provider.send('eth_requestAccounts', []);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
       } catch (requestErr) {
         console.error('Error requesting accounts for signing:', requestErr);
         if (requestErr.code === 4001) {
@@ -226,6 +225,17 @@ export default function Create() {
         throw requestErr;
       }
 
+      // Switch to the NFT's selected network before signing (not hardcoded to polygon)
+      const targetNetwork = lazyMintForm.network || selectedChain || 'polygon';
+      try {
+        await changeNetwork(targetNetwork);
+        await new Promise((r) => setTimeout(r, 800));
+      } catch (networkErr) {
+        console.error('Network switch error:', networkErr);
+        throw new Error(`Failed to switch to ${targetNetwork}. Please switch manually in your wallet.`);
+      }
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       creatorAddress = await signer.getAddress();
 

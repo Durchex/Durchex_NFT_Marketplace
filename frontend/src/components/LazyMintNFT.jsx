@@ -120,6 +120,16 @@ export default function LazyMintNFT() {
                 throw new Error('MetaMask not found');
             }
 
+            // Request accounts directly (required for Edge and other browsers to open wallet)
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+            } catch (requestErr) {
+                if (requestErr.code === 4001) {
+                    throw new Error('Signature request was rejected in your wallet.');
+                }
+                throw requestErr;
+            }
+
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
             const address = await signer.getAddress();

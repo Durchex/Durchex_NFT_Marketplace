@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2 } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -6,10 +6,12 @@ import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
 import { nftAPI, engagementAPI } from '../services/api';
 import { getCurrencySymbol, getUsdValueFromCrypto } from '../Context/constants';
+import { ICOContent } from '../Context';
 
 const NftDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { address } = useContext(ICOContent);
   const [nft, setNft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -359,11 +361,32 @@ const NftDetailsPage = () => {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* Action Buttons: Buy/Make Offer when no pieces; Mint when pieces left (non-owner); Sell when pieces left (owner) */}
             <div className="space-y-3">
-              <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                <FiDollarSign /> Buy Now / Make Offer
-              </button>
+              {(() => {
+                const remainingPieces = nft.remainingPieces ?? nft.pieces ?? 0;
+                const hasPieces = Number(remainingPieces) > 0;
+                const isOwner = address && nft.owner && (address.toLowerCase() === nft.owner.toLowerCase());
+                if (!hasPieces) {
+                  return (
+                    <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <FiDollarSign /> Buy Now / Make Offer
+                    </button>
+                  );
+                }
+                if (isOwner) {
+                  return (
+                    <button onClick={() => setOfferModalOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <FiDollarSign /> Sell
+                    </button>
+                  );
+                }
+                return (
+                  <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <FiDollarSign /> Mint
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
