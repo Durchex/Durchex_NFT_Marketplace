@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
-import { nftAPI } from '../services/api';
-import { getCurrencySymbol } from '../Context/constants';
-import { getContractAddresses } from '../Context/constants';
+import { nftAPI, lazyMintAPI } from '../services/api';
+import { getCurrencySymbol, getContractAddresses, LazyMintNFT_ABI, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
 /**
  * Dedicated Buy & Mint page – user pays the exact NFT price and mints (no offer modal).
+ * For lazy-minted NFTs: buy and mint in one flow via LazyMint contract redeem.
  */
 export default function BuyMintPage() {
   const { id } = useParams();
@@ -58,7 +58,6 @@ export default function BuyMintPage() {
     fetchNft();
   }, [id]);
 
-  // Lazy-minted NFTs use MongoDB _id (not a contract listing id); they must be purchased via Buy Now / Make Offer on the NFT page.
   const isLazyMint = nft?.isLazyMint === true;
 
   const handleBuyAndMint = async () => {
@@ -66,26 +65,70 @@ export default function BuyMintPage() {
       toast.error('Connect your wallet first.');
       return;
     }
-    if (isLazyMint) {
-      toast.error('Lazy-minted NFTs must be purchased from the NFT page. Use Buy Now / Make Offer there.');
-      navigate(`/nft/${id}`);
-      return;
-    }
-    const contractAddress =
-      nft.contractAddress ||
-      nft.nftContract ||
-      (nft.network && getContractAddresses(nft.network)?.vendor);
-    if (!contractAddress) {
-      toast.error('NFT contract not found for this network.');
-      return;
-    }
-    const itemId = nft.itemId ?? nft.tokenId ?? nft._id;
     const priceEth = String(nft.price || '0');
-    const priceWei = ethers.utils.parseEther(priceEth).toString();
-    const network = nft.network || 'polygon';
+    const priceWei = ethers.utils.parseEther(priceEth);
+    const network = (nft.network || 'polygon').toLowerCase().trim();
     setMinting(true);
     try {
-      await buyNFT(contractAddress, itemId, priceWei, network);
+      if (isLazyMint) {
+        // Lazy-mint: buy and mint in one flow (redeem on LazyMint contract)
+        const lazyNftId = (nft._id && nft._id.toString()) || id;
+        await changeNetwork(network);
+        await new Promise((r) => setTimeout(r, 800));
+        const redemptionRes = await lazyMintAPI.redeem(lazyNftId, priceEth);
+        const { redemptionData } = redemptionRes;
+        if (!redemptionData) throw new Error('No redemption data from server.');
+        const lazyMintAddress = getContractAddresses(network)?.lazyMint;
+        if (!lazyMintAddress || lazyMintAddress === '0x0') {
+          throw new Error('Lazy mint contract is not configured for this network.');
+        }
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(lazyMintAddress, LazyMintNFT_ABI, signer);
+        const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
+        const tx = await contract.redeemNFT(
+          redemptionData.creator,
+          redemptionData.ipfsURI,
+          redemptionData.royaltyPercentage,
+          priceWei,
+          sig,
+          { value: priceWei }
+        );
+        const receipt = await tx.wait();
+        let tokenId = null;
+        const redeemedEvent = receipt.events?.find((e) => e.event === 'NFTRedeemed');
+        if (redeemedEvent?.args?.tokenId != null) tokenId = redeemedEvent.args.tokenId.toString();
+        if (tokenId == null && receipt.logs?.length) {
+          const iface = new ethers.utils.Interface(LazyMintNFT_ABI);
+          for (const log of receipt.logs) {
+            try {
+              const parsed = iface.parseLog(log);
+              if (parsed?.name === 'NFTRedeemed' && parsed.args?.tokenId != null) {
+                tokenId = parsed.args.tokenId.toString();
+                break;
+              }
+            } catch (_) {}
+          }
+        }
+        await lazyMintAPI.confirmRedemption(lazyNftId, {
+          tokenId: tokenId || '0',
+          transactionHash: receipt.transactionHash,
+          salePrice: priceEth,
+        });
+        toast.success('NFT bought and minted successfully!');
+        navigate(`/nft/${id}`);
+        return;
+      }
+      const contractAddress =
+        nft.contractAddress ||
+        nft.nftContract ||
+        getContractAddresses(network)?.vendor;
+      if (!contractAddress) {
+        toast.error('NFT contract not found for this network.');
+        return;
+      }
+      const itemId = nft.itemId ?? nft.tokenId ?? nft._id;
+      await buyNFT(contractAddress, itemId, priceWei.toString(), network);
       toast.success('Minted successfully!');
       navigate(`/nft/${id}`);
     } catch (err) {
@@ -175,28 +218,15 @@ export default function BuyMintPage() {
               <p className="text-amber-400 text-sm mb-4">
                 No pieces available to mint.
               </p>
-            ) : isLazyMint ? (
-              <p className="text-amber-400 text-sm mb-4">
-                This is a lazy-minted NFT. Use Buy Now or Make Offer on the NFT page to purchase.
-              </p>
             ) : null}
-            {isLazyMint ? (
-              <button
-                onClick={() => navigate(`/nft/${id}`)}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                Go to NFT page → Buy Now / Make Offer
-              </button>
-            ) : (
-              <button
-                onClick={handleBuyAndMint}
-                disabled={!address || !hasPieces || minting}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <FiDollarSign />
-                {minting ? 'Minting…' : `Buy & Mint at ${priceDisplay} ${currency}`}
-              </button>
-            )}
+            <button
+              onClick={handleBuyAndMint}
+              disabled={!address || !hasPieces || minting}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <FiDollarSign />
+              {minting ? 'Minting…' : `Buy & Mint at ${priceDisplay} ${currency}`}
+            </button>
           </div>
         </div>
       </div>

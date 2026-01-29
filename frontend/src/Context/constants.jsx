@@ -138,11 +138,41 @@ export const ContractAddress = import.meta.env
 export const VendorContractAddress = import.meta.env
   .VITE_APP_VENDORNFT_CONTRACT_ADDRESS || import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_POLYGON;
 
+/** Minimal ABI for LazyMintNFT redeem (buy & mint in one tx) */
+export const LazyMintNFT_ABI = [
+  {
+    inputs: [
+      { name: 'creator', type: 'address' },
+      { name: 'uri', type: 'string' },
+      { name: 'royaltyPercentage', type: 'uint256' },
+      { name: 'salePrice', type: 'uint256' },
+      { name: 'signature', type: 'bytes' },
+    ],
+    name: 'redeemNFT',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'tokenId', type: 'uint256' },
+      { indexed: true, name: 'creator', type: 'address' },
+      { indexed: true, name: 'buyer', type: 'address' },
+      { indexed: false, name: 'uri', type: 'string' },
+      { indexed: false, name: 'salePrice', type: 'uint256' },
+    ],
+    name: 'NFTRedeemed',
+    type: 'event',
+  },
+];
+
 export const getContractAddresses = (network = 'polygon') => {
   const networkUpper = network.toUpperCase();
   return {
     marketplace: import.meta.env[`VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_${networkUpper}`] || ContractAddress,
-    vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress
+    vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress,
+    lazyMint: import.meta.env[`VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] || import.meta.env.VITE_APP_LAZY_MINT_CONTRACT_ADDRESS,
   };
 };
 

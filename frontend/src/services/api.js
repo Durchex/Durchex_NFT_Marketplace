@@ -1652,7 +1652,33 @@ export const lazyMintAPI = {
       console.error('Failed to unlike lazy mint:', error);
       throw error;
     }
-  }
+  },
+
+  // Get redemption data for buy & mint (requires wallet connected – auth)
+  redeem: async (lazyNftId, salePrice) => {
+    try {
+      const response = await api.post(`/lazy-mint/${lazyNftId}/redeem`, { salePrice });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get lazy mint redemption data:', error);
+      throw error;
+    }
+  },
+
+  // Confirm redemption after on-chain mint (requires wallet connected – auth)
+  confirmRedemption: async (lazyNftId, { tokenId, transactionHash, salePrice }) => {
+    try {
+      const response = await api.post(`/lazy-mint/${lazyNftId}/confirm-redemption`, {
+        tokenId,
+        transactionHash,
+        salePrice,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to confirm lazy mint redemption:', error);
+      throw error;
+    }
+  },
 };
 
 // Batch Mint API functions
