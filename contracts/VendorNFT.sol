@@ -117,10 +117,10 @@ contract VendorNFT is ERC721, Ownable {
     }
 
     // Get NFT by ID
-    function getNFTById(uint256 _tokenId) external view returns (address owner, string memory tokenURI) {
+    function getNFTById(uint256 _tokenId) external view returns (address nftOwner, string memory uri) {
         require(_exists(_tokenId), "Token does not exist");
-        owner = ownerOf(_tokenId);
-        tokenURI = ""; // Would return actual URI in full implementation
+        nftOwner = ownerOf(_tokenId);
+        uri = ""; // Would return actual URI in full implementation
     }
 
     // Withdraw funds

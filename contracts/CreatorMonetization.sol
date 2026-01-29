@@ -95,7 +95,7 @@ contract CreatorMonetization is Ownable, ReentrancyGuard {
     
     uint256 public platformFeePercentage = 500; // 5%
     uint256 public referralCommissionPercentage = 1000; // 10%
-    uint256 public referralTierThresholds = [10, 50, 100]; // Tier thresholds
+    uint256[3] public referralTierThresholds; // Tier thresholds [10, 50, 100]
     
     uint256 public totalTipsDistributed = 0;
     uint256 public totalSubscriptionRevenue = 0;
@@ -127,6 +127,9 @@ contract CreatorMonetization is Ownable, ReentrancyGuard {
     constructor(address _paymentToken, address _treasuryAddress) {
         paymentToken = _paymentToken;
         treasuryAddress = _treasuryAddress;
+        referralTierThresholds[0] = 10;
+        referralTierThresholds[1] = 50;
+        referralTierThresholds[2] = 100;
     }
 
     // ========== Creator Management ==========
@@ -475,8 +478,8 @@ contract CreatorMonetization is Ownable, ReentrancyGuard {
     function getMarketplaceStats() external view returns (
         uint256 totalCreators,
         uint256 totalTips,
-        uint256 totalSubscriptionRevenue,
-        uint256 totalMerchandiseSales
+        uint256 subRevenue,
+        uint256 merchSales
     ) {
         return (
             creatorList.length,

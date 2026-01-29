@@ -427,9 +427,9 @@ contract NFTRental is ReentrancyGuard, Ownable {
         external
         view
         returns (
-            uint256 listings,
-            uint256 bids,
-            uint256 rentals,
+            uint256 totalListingsCount,
+            uint256 totalBidsCount,
+            uint256 totalRentalsCount,
             uint256 feesCollected
         )
     {

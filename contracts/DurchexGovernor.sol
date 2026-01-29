@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
+import "@openzeppelin/contracts/governance/IGovernor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
@@ -84,19 +85,19 @@ contract DurchexGovernor is
         return proposalDescriptions[proposalId];
     }
 
-    // Override required functions
-    function votingDelay() public view override(Governor, GovernorSettings) returns (uint48) {
+    // Override required functions (IGovernor uses uint256 for delay/period; Governor base is abstract)
+    function votingDelay() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
     }
 
-    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint32) {
+    function votingPeriod() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 
     function quorum(uint256 blockNumber)
         public
         view
-        override(Governor, GovernorVotesQuorumFraction)
+        override(IGovernor, GovernorVotesQuorumFraction)
         returns (uint256)
     {
         return super.quorum(blockNumber);
@@ -105,22 +106,21 @@ contract DurchexGovernor is
     function state(uint256 proposalId)
         public
         view
-        override(Governor, GovernorTimelockControl)
+        override(IGovernor, GovernorTimelockControl)
         returns (ProposalState)
     {
         return super.state(proposalId);
     }
 
-    function proposalNeedsQueuing(uint256 proposalId)
-        public
-        view
-        override(Governor, GovernorTimelockControl)
-        returns (bool)
-    {
-        return super.proposalNeedsQueuing(proposalId);
+    /**
+     * @dev Returns true if the proposal has succeeded and needs to be queued for timelock execution.
+     * (OpenZeppelin 4.9 does not define this; we provide it for compatibility.)
+     */
+    function proposalNeedsQueuing(uint256 proposalId) public view returns (bool) {
+        return state(proposalId) == IGovernor.ProposalState.Succeeded;
     }
 
-    function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
+    function proposalThreshold() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.proposalThreshold();
     }
 
@@ -139,7 +139,7 @@ contract DurchexGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal override(Governor, GovernorTimelockControl) returns (uint48) {
+    ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 

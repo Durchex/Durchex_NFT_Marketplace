@@ -101,50 +101,55 @@ contract GovernanceToken is
     /**
      * @dev Get voting power of an account
      */
-    function getVotes(address account) public view override(ERC20Votes) returns (uint256) {
+    function getVotes(address account) public view override returns (uint256) {
         return super.getVotes(account);
     }
 
     /**
      * @dev Get voting power at a specific block
      */
-    function getPastVotes(address account, uint256 blockNumber)
-        public
-        view
-        override(ERC20Votes)
-        returns (uint256)
-    {
+    function getPastVotes(address account, uint256 blockNumber) public view override returns (uint256) {
         return super.getPastVotes(account, blockNumber);
     }
 
     /**
-     * @dev Get total voting power at a specific block
+     * @dev Get total supply at a specific block (used by Governor for quorum)
      */
-    function getPastTotalVotes(uint256 blockNumber)
-        public
-        view
-        override(ERC20Votes)
-        returns (uint256)
-    {
-        return super.getPastTotalVotes(blockNumber);
+    function getPastTotalSupply(uint256 blockNumber) public view override returns (uint256) {
+        return super.getPastTotalSupply(blockNumber);
     }
 
     /**
      * @dev Get voting delegation
      */
-    function delegates(address account) public view override(ERC20Votes) returns (address) {
+    function delegates(address account) public view override returns (address) {
         return super.delegates(account);
-    }
-
-    // Override required functions
-    function _update(address from, address to, uint256 value)
-        internal
-        override(ERC20, ERC20Snapshot, ERC20Votes)
-    {
-        super._update(from, to, value);
     }
 
     function nonces(address owner) public view override(ERC20Permit) returns (uint256) {
         return super.nonces(owner);
+    }
+
+    // Resolve multiple inheritance: ERC20 + ERC20Snapshot + ERC20Votes
+    function _beforeTokenTransfer(address from, address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Snapshot)
+    {
+        super._beforeTokenTransfer(from, to, amount);
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._afterTokenTransfer(from, to, amount);
+    }
+
+    function _mint(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._mint(account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
+        super._burn(account, amount);
     }
 }
