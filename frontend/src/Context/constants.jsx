@@ -120,6 +120,16 @@ export const getUsdValueFromCrypto = (amount, chainOrNetwork) => {
   return parseFloat(formattedPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+/** Normalize price to ETH string for buyNFT (wallet shows ETH; never pass wei/gwei or the wallet shows an impossible figure). */
+export const priceInEthForBuy = (price) => {
+  if (price == null || price === '') return '0';
+  const s = String(price).trim();
+  const num = parseFloat(s);
+  if (Number.isNaN(num)) return '0';
+  if (num >= 1e12) return ethers.utils.formatEther(s);
+  return s;
+};
+
 let provider;
 
 if (typeof window !== "undefined" && window.ethereum) {

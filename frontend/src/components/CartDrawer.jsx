@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { useCart } from '../Context/CartContext';
 import { ICOContent } from '../Context';
+import { priceInEthForBuy } from '../Context/constants';
 import { FiX, FiShoppingCart, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -43,8 +44,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
             continue;
           }
 
-          // Purchase NFT on its listing network
-          await buyNFT(item.contractAddress || item.nftContract, item.nftId, item.price, nftNetwork);
+          // buyNFT expects price in ETH; normalize in case cart stored wei (avoids impossible figure in wallet)
+          await buyNFT(item.contractAddress || item.nftContract, item.nftId, priceInEthForBuy(item.price), nftNetwork);
           toast.success(`Successfully purchased ${item.name}!`);
         } catch (error) {
           console.error(`Failed to buy ${item.name}:`, error);

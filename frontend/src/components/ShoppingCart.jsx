@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../Context/CartContext';
 import { ICOContent } from '../Context';
+import { priceInEthForBuy } from '../Context/constants';
 import { useContext } from 'react';
 import { ethers } from 'ethers';
 import toast from 'react-hot-toast';
@@ -52,8 +53,9 @@ const ShoppingCart = () => {
             toast.error(`${item.name} is missing network information`);
             continue;
           }
-          const priceWei = ethers.utils.parseEther(String(item.price || '0')).toString();
-          await buyNFT(item.contractAddress || item.nftContract, item.nftId, priceWei, nftNetwork);
+          // buyNFT expects price in ETH; normalize in case cart stored wei (avoids impossible figure in wallet)
+          const priceEth = priceInEthForBuy(item.price);
+          await buyNFT(item.contractAddress || item.nftContract, item.nftId, priceEth, nftNetwork);
           toast.success(`Successfully purchased ${item.name}!`);
         } catch (error) {
           console.error(`Failed to buy ${item.name}:`, error);

@@ -86,8 +86,8 @@ const NFTCard = ({ collectionName, currentlyListed,
       console.log("🚀 ~ handleBuy ~ price:", price);
     
       try {
-        // Pass the NFT's network to ensure purchase happens on the correct network
-        await buyNFT(nftContract || itemId, itemId, price, nftListingNetwork)
+        // buyNFT expects price in ETH; this card receives price in wei, so pass formatted ETH (prices)
+        await buyNFT(nftContract || itemId, itemId, prices, nftListingNetwork)
           .then((response) => {
             SuccessToast(
               <div>

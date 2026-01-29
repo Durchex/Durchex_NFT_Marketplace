@@ -22,7 +22,7 @@ import Modal from "./Modal";
 import Button from "./Button";
 import LoadingNFTRow from "./LoadingNftRow";
 import OffersTab from "./OffersTab";
-import { formatPrice, getCurrencySymbol } from "../Context/constants";
+import { formatPrice, getCurrencySymbol, priceInEthForBuy } from "../Context/constants";
 import MyCollection from "./MyCollection";
 import NftInfoItems from "./NftinfoItems";
 import NFTAnalytics from "./NFTAnalytics";
@@ -296,8 +296,8 @@ function App() {
     console.log("🚀 ~ handleBuy ~ price:", price);
 
     try {
-      // Pass the NFT's network to ensure purchase happens on the correct network
-      await buyNFT(nftContract || itemId, itemId, price, nftListingNetwork)
+      // buyNFT expects price in ETH; normalize in case price is wei (avoids impossible figure in wallet)
+      await buyNFT(nftContract || itemId, itemId, priceInEthForBuy(price), nftListingNetwork)
         .then((response) => {
           SuccessToast(
             <div>

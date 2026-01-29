@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useContext } from "react";
 import { Link } from "react-router-dom";
 import { ICOContent } from "../Context";
+import { priceInEthForBuy } from "../Context/constants";
 import { ethers } from "ethers";
 import { ErrorToast } from "../app/Toast/Error";
 import { SuccessToast } from "../app/Toast/Success";
@@ -36,7 +37,7 @@ const NFTCard2 = ({
       .VITE_APP_VENDORNFT_CONTRACT_ADDRESS;
 
     try {
-      await buyNFT(vendorNFTAddress, itemId, price)
+      await buyNFT(vendorNFTAddress, itemId, priceInEthForBuy(price))
         .then(() => {
           SuccessToast("NFT added successfully!");
         })

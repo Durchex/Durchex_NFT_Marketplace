@@ -175,7 +175,8 @@ export default function BuyMintPage() {
         return;
       }
       const itemId = nft.itemId ?? nft.tokenId ?? nft._id;
-      await buyNFT(contractAddress, itemId, priceWei.toString(), network);
+      // buyNFT expects price in ETH (it uses parseEther internally); do not pass wei or the wallet will show an impossible figure
+      await buyNFT(contractAddress, itemId, priceEth, network);
       toast.success('Minted successfully!');
       navigate(`/nft/${id}`);
     } catch (err) {
