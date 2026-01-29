@@ -29,6 +29,17 @@ async function main() {
   }
   console.log('Deployer:', deployer.address);
 
+  const balance = await deployer.getBalance();
+  const balanceEth = hre.ethers.utils.formatEther(balance);
+  console.log('Balance on', networkName + ':', balanceEth, 'ETH');
+  if (balance.isZero()) {
+    throw new Error(
+      'Deployer has 0 balance on ' + networkName + '. ' +
+      'Fund this address with ETH on ' + networkName + ': ' + deployer.address + ' ' +
+      '(e.g. via basescan.org for Base, or switch PRIVATE_KEY to the wallet that already has ETH on this network).'
+    );
+  }
+
   const LazyMintNFT = await hre.ethers.getContractFactory('LazyMintNFT');
   const lazyMint = await LazyMintNFT.deploy();
   await lazyMint.deployed();
