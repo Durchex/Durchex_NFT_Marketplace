@@ -120,8 +120,8 @@ export const getUsdValueFromCrypto = (amount, chainOrNetwork) => {
   return parseFloat(formattedPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-/** Normalize price to ETH string for buyNFT (wallet shows ETH; never pass wei/gwei or the wallet shows an impossible figure). */
-export const priceInEthForBuy = (price) => {
+/** Normalize price to decimal string for buyNFT. buyNFT uses parseEther(price) so it expects the human-readable amount (e.g. "0.01") of the chain's native token (ETH on Ethereum, MATIC on Polygon, BNB on BSC, etc.). If price was stored in wei (large number), we convert to decimal so the wallet shows the correct amount on every network; we do not force ETH—each network still uses its own native token. */
+export const priceInDecimalForBuy = (price) => {
   if (price == null || price === '') return '0';
   const s = String(price).trim();
   const num = parseFloat(s);
@@ -129,6 +129,9 @@ export const priceInEthForBuy = (price) => {
   if (num >= 1e12) return ethers.utils.formatEther(s);
   return s;
 };
+
+/** @deprecated Use priceInDecimalForBuy. Same behavior; name was misleading (works for all chains, not just ETH). */
+export const priceInEthForBuy = priceInDecimalForBuy;
 
 let provider;
 
