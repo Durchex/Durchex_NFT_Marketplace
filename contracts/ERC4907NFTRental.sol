@@ -22,7 +22,7 @@ contract ERC4907NFTRental is ERC721, ERC721Enumerable, IERC4907, Ownable, Reentr
     
     // ============ Events ============
     
-    event RentalListing(
+    event RentalListingUpdated(
         uint256 indexed tokenId,
         address indexed owner,
         uint256 pricePerDay,
@@ -157,7 +157,7 @@ contract ERC4907NFTRental is ERC721, ERC721Enumerable, IERC4907, Ownable, Reentr
             maxRentalDays: maxDays
         });
         
-        emit RentalListing(tokenId, msg.sender, pricePerDay, true);
+        emit RentalListingUpdated(tokenId, msg.sender, pricePerDay, true);
     }
 
     /**
@@ -166,7 +166,7 @@ contract ERC4907NFTRental is ERC721, ERC721Enumerable, IERC4907, Ownable, Reentr
     function removeRentalListing(uint256 tokenId) external {
         require(rentalListings[tokenId].owner == msg.sender, "Not rental owner");
         rentalListings[tokenId].active = false;
-        emit RentalListing(tokenId, msg.sender, 0, false);
+        emit RentalListingUpdated(tokenId, msg.sender, 0, false);
     }
 
     /**
