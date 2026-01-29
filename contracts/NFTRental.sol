@@ -129,7 +129,7 @@ contract NFTRental is ReentrancyGuard, Ownable {
         config = Config({
             platformFeePercentage: 250, // 2.5%
             treasuryAddress: _treasuryAddress,
-            paused: false,
+            paused: false
         });
     }
 
@@ -166,7 +166,7 @@ contract NFTRental is ReentrancyGuard, Ownable {
             maxDays: _maxDays,
             status: ListingStatus.Active,
             createdAt: block.timestamp,
-            updatedAt: block.timestamp,
+            updatedAt: block.timestamp
         });
 
         userListings[msg.sender].push(listingId);
@@ -228,7 +228,7 @@ contract NFTRental is ReentrancyGuard, Ownable {
             endDate: 0,
             status: BidStatus.Pending,
             createdAt: block.timestamp,
-            acceptedAt: 0,
+            acceptedAt: 0
         });
 
         userBids[msg.sender].push(bidId);
@@ -270,7 +270,7 @@ contract NFTRental is ReentrancyGuard, Ownable {
             startDate: bid.startDate,
             endDate: bid.endDate,
             totalPrice: bid.totalPrice,
-            returned: false,
+            returned: false
         });
 
         userRentals[bid.renter].push(rentalId);

@@ -342,13 +342,13 @@ contract ERC4907NFTRental is ERC721, ERC721Enumerable, IERC4907, Ownable, Reentr
     /**
      * @dev Calculate rental price
      */
-    function calculateRentalPrice(uint256 tokenId, uint256 days)
+    function calculateRentalPrice(uint256 tokenId, uint256 numDays)
         external
         view
         returns (uint256 totalPrice, uint256 platformFee, uint256 ownerPayment)
     {
         RentalListing memory listing = rentalListings[tokenId];
-        totalPrice = listing.pricePerDay * days;
+        totalPrice = listing.pricePerDay * numDays;
         platformFee = (totalPrice * platformFeePercentage) / 10000;
         ownerPayment = totalPrice - platformFee;
     }

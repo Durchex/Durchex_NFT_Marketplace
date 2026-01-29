@@ -92,7 +92,7 @@ contract NFTStaking is ReentrancyGuard, Ownable {
             minimumStakingPeriod: _minimumPeriod,
             earlyUnstakeFee: 500, // 5%
             totalRewardsPool: 0,
-            paused: false,
+            paused: false
         });
 
         // Initialize default tiers
