@@ -602,52 +602,51 @@ export const networks = {
   },
 };
 
+/** Normalize chainId to hex for comparison (wallets may return "8453" or "0x2105") */
+function normalizeChainId(chainId) {
+  if (chainId == null) return null;
+  const s = String(chainId).toLowerCase();
+  if (s.startsWith("0x")) return s;
+  const num = parseInt(chainId, 10);
+  if (Number.isNaN(num)) return null;
+  return "0x" + num.toString(16);
+}
+
 export const changeNetwork = async (networkName) => {
+  if (!window.ethereum) throw new Error("No crypto wallet found");
+
+  const networkData = networks[networkName];
+  if (!networkData || !networkData.chainId) {
+    console.error(`Invalid network data for ${networkName}`, networkData);
+    throw new Error(`Unknown network: ${networkName}`);
+  }
+
+  const currentChainIdRaw = await window.ethereum.request({
+    method: "eth_chainId",
+  });
+  const currentHex = normalizeChainId(currentChainIdRaw);
+  const targetHex = normalizeChainId(networkData.chainId);
+
+  if (currentHex && targetHex && currentHex === targetHex) {
+    return;
+  }
+
   try {
-    if (!window.ethereum) throw new Error("No crypto wallet found");
-
-    const networkData = networks[networkName];
-
-    console.log("Network Key:", networkName);
-    console.log("Network Data:", networkData);
-
-    if (!networkData || !networkData.chainId) {
-      console.error(
-        `Error: Invalid network data for ${networkName}`,
-        networkData
-      );
-      return;
-    }
-
-    const currentChainId = await window.ethereum.request({
-      method: "eth_chainId",
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: networkData.chainId }],
     });
-
-    if (currentChainId === networkData.chainId) {
-      SuccessToast(`Already on ${networkName} network`);
-      return;
-    }
-
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: networkData.chainId }],
-      });
-    } catch (switchErr) {
-      if (switchErr?.code === 4902 || switchErr?.message?.includes("Unrecognized chain")) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{ ...networks[networkName] }],
-        });
-      } else {
-        throw switchErr;
-      }
-    }
-
     SuccessToast(`Switched to ${networkName} network`);
-    console.log(`Switched to================= ${networkName}`);
-  } catch (error) {
-    console.error("Error switching network:", error);
+  } catch (switchErr) {
+    if (switchErr?.code === 4902 || switchErr?.message?.includes("Unrecognized chain")) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{ ...networks[networkName] }],
+      });
+      SuccessToast(`Added and switched to ${networkName} network`);
+    } else {
+      throw switchErr;
+    }
   }
 };
 

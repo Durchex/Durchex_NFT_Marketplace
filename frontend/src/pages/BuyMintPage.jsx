@@ -71,10 +71,16 @@ export default function BuyMintPage() {
     setMinting(true);
     try {
       if (isLazyMint) {
-        // Lazy-mint: buy and mint in one flow (redeem on LazyMint contract)
         const lazyNftId = (nft._id && nft._id.toString()) || id;
+
+        if (!window.ethereum) {
+          throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+        }
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+
         await changeNetwork(network);
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 500));
+
         const redemptionRes = await lazyMintAPI.redeem(lazyNftId, priceEth);
         const { redemptionData } = redemptionRes;
         if (!redemptionData) throw new Error('No redemption data from server.');
