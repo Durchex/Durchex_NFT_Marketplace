@@ -8,6 +8,9 @@ import nftContractService from "../services/nftContractService.js";
  * This allows lazy NFTs to be displayed alongside regular NFTs
  */
 function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
+  // Use stored network from the NFT (from creation form dropdown) when available
+  const resolvedNetwork = (lazyNFT.network && String(lazyNFT.network).toLowerCase()) || network || 'polygon';
+
   // Extract image from IPFS URI or use imageURI
   let image = lazyNFT.imageURI || '';
   
@@ -49,7 +52,7 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
     imageURL: image,
     price: lazyNFT.price || '0',
     floorPrice: lazyNFT.floorPrice || null,
-    network: network, // Lazy NFTs might not have network, use provided or default
+    network: resolvedNetwork, // Use NFT's selected network for correct marketplace display
     collection: collectionId,
     owner: owner,
     seller: lazyNFT.creator, // Creator is always the seller

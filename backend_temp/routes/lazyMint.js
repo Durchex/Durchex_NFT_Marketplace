@@ -89,6 +89,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             category,
             collection,
             enableStraightBuy,
+            network: networkFromBody,
         } = req.body;
         const creatorAddress = req.user.address;
 
@@ -168,7 +169,12 @@ router.post('/submit', authMiddleware, async (req, res) => {
             }
         }
 
-        // Store in database
+        // Normalize network from form (dropdown selection)
+        const network = (networkFromBody && String(networkFromBody).trim()) 
+            ? String(networkFromBody).toLowerCase() 
+            : 'polygon';
+
+        // Store in database (including selected network for marketplace display)
         const lazyNFT = new LazyNFT({
             creator: creatorAddress.toLowerCase(),
             name,
@@ -185,6 +191,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             floorPrice: floorPrice || null,
             category: category || '',
             collection: collection || null,
+            network,
             enableStraightBuy: enableStraightBuy !== undefined ? enableStraightBuy : true,
             status: 'pending',
             createdAt: new Date(),

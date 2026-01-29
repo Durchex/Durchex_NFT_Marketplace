@@ -282,7 +282,7 @@ export default function Create() {
         }
       }
 
-      // Submit lazy mint to backend
+      // Submit lazy mint to backend (include selected network so NFT is created on correct chain)
       const response = await lazyMintAPI.submitLazyMint({
         name: lazyMintForm.name,
         description: lazyMintForm.description,
@@ -296,6 +296,7 @@ export default function Create() {
         floorPrice: lazyMintForm.floorPrice,
         category: lazyMintForm.category,
         collection: selectedCollectionId,
+        network: lazyMintForm.network || selectedChain || 'polygon',
         enableStraightBuy: lazyMintForm.enableStraightBuy,
       });
 

@@ -122,6 +122,14 @@ const lazyNFTSchema = new mongoose.Schema(
             default: '',
         },
 
+        // Chain/network (e.g. polygon, ethereum, arbitrum, bsc, base)
+        network: {
+            type: String,
+            default: 'polygon',
+            lowercase: true,
+            index: true,
+        },
+
         collection: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Collection',
