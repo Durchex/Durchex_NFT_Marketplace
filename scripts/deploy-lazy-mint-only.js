@@ -26,13 +26,12 @@ async function main() {
   await lazyMint.deployed();
 
   console.log('\n✅ LazyMintNFT deployed to:', lazyMint.address);
-  console.log('\n--- Add this to your .env (project root or frontend) ---');
+  console.log('\n--- COPY ONE OF THESE LINES INTO YOUR .env ---');
   console.log(`VITE_APP_LAZY_MINT_CONTRACT_ADDRESS=${lazyMint.address}`);
-  console.log('--------------------------------------------------------\n');
-
-  // Optional: per-network env var (e.g. for Sepolia)
   const envKey = `VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_${networkName.toUpperCase()}`;
-  console.log(`Or for this network only: ${envKey}=${lazyMint.address}\n`);
+  console.log(`# Or for ${networkName} only: ${envKey}=${lazyMint.address}`);
+  console.log('--------------------------------------------------------');
+  console.log('Then restart your frontend (or rebuild) so it picks up the new address.\n');
 }
 
 main()
