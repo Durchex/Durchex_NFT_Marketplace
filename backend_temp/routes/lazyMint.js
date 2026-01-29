@@ -89,9 +89,11 @@ router.post('/submit', authMiddleware, async (req, res) => {
             category,
             collection,
             enableStraightBuy,
-            network: networkFromBody,
         } = req.body;
         const creatorAddress = req.user.address;
+
+        // Read network explicitly from body (creation form dropdown) so it's always used
+        const networkFromBody = req.body?.network ?? req.body?.Network;
 
         if (!signature || !ipfsURI || !messageHash || nonce === undefined) {
             return res.status(400).json({
@@ -169,10 +171,14 @@ router.post('/submit', authMiddleware, async (req, res) => {
             }
         }
 
-        // Normalize network from form (dropdown selection)
-        const network = (networkFromBody && String(networkFromBody).trim()) 
-            ? String(networkFromBody).toLowerCase() 
+        // Normalize network from form (dropdown selection) – must match what frontend sends
+        const network = (networkFromBody != null && String(networkFromBody).trim() !== '')
+            ? String(networkFromBody).toLowerCase().trim()
             : 'polygon';
+
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[lazy-mint/submit] network from body:', networkFromBody, '-> saved as:', network);
+        }
 
         // Store in database (including selected network for marketplace display)
         const lazyNFT = new LazyNFT({
@@ -210,6 +216,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
                 ipfsURI: lazyNFT.ipfsURI,
                 royaltyPercentage: lazyNFT.royaltyPercentage,
                 status: lazyNFT.status,
+                network: lazyNFT.network || network,
                 createdAt: lazyNFT.createdAt,
             },
         });

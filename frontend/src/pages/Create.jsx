@@ -282,7 +282,8 @@ export default function Create() {
         }
       }
 
-      // Submit lazy mint to backend (include selected network so NFT is created on correct chain)
+      // Submit lazy mint to backend – network must match dropdown so DB and marketplace show correct chain
+      const selectedNetwork = String(lazyMintForm.network || selectedChain || 'polygon').toLowerCase().trim();
       const response = await lazyMintAPI.submitLazyMint({
         name: lazyMintForm.name,
         description: lazyMintForm.description,
@@ -296,7 +297,7 @@ export default function Create() {
         floorPrice: lazyMintForm.floorPrice,
         category: lazyMintForm.category,
         collection: selectedCollectionId,
-        network: lazyMintForm.network || selectedChain || 'polygon',
+        network: selectedNetwork,
         enableStraightBuy: lazyMintForm.enableStraightBuy,
       });
 
