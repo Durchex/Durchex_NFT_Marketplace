@@ -21,8 +21,8 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 module.exports = {
   solidity: {
     compilers: [
-      { version: "0.8.19", settings: { optimizer: { enabled: true, runs: 200 } } },
-      { version: "0.8.20", settings: { optimizer: { enabled: true, runs: 200 } } }
+      { version: "0.8.19", settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true } },
+      { version: "0.8.20", settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true } }
     ]
   },
   networks: {

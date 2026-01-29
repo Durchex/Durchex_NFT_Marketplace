@@ -478,7 +478,12 @@ contract NFTFinancing is Ownable, ReentrancyGuard, Pausable {
      * @dev Calculate maximum loan amount based on collateral
      */
     function _calculateMaxLoanAmount(uint256 collateralValue, uint256 riskTier) internal view returns (uint256) {
-        uint256[] memory ltv = [8000, 7000, 6000, 5000, 4000]; // LTV by risk tier
+        uint256[] memory ltv = new uint256[](5);
+        ltv[0] = 8000;
+        ltv[1] = 7000;
+        ltv[2] = 6000;
+        ltv[3] = 5000;
+        ltv[4] = 4000;
         return (collateralValue * ltv[riskTier]) / 10000;
     }
 

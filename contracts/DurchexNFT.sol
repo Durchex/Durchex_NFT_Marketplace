@@ -55,15 +55,15 @@ contract DurchexNFT is
     
     /**
      * @dev Initialize the contract (called by factory)
-     * @param name Collection name
-     * @param symbol Collection symbol
+     * @param collectionName Collection name
+     * @param collectionSymbol Collection symbol
      * @param owner Collection owner
      * @param _royaltyPercentage Royalty percentage (e.g., 250 = 2.5%)
      * @param _royaltyRecipient Address to receive royalties
      */
     function initialize(
-        string memory name,
-        string memory symbol,
+        string memory collectionName,
+        string memory collectionSymbol,
         address owner,
         uint256 _royaltyPercentage,
         address _royaltyRecipient
@@ -73,8 +73,8 @@ contract DurchexNFT is
         require(_royaltyRecipient != address(0), "Invalid royalty recipient");
 
         // Set collection name and symbol (ERC721 base uses "" in constructor for proxy)
-        _collectionName = name;
-        _collectionSymbol = symbol;
+        _collectionName = collectionName;
+        _collectionSymbol = collectionSymbol;
         
         // Transfer ownership to specified owner
         _transferOwnership(owner);
@@ -83,7 +83,7 @@ contract DurchexNFT is
         royaltyPercentage = _royaltyPercentage;
         royaltyRecipient = _royaltyRecipient;
         
-        _setDefaultRoyalty(_royaltyRecipient, _royaltyPercentage);
+        _setDefaultRoyalty(_royaltyRecipient, uint96(_royaltyPercentage));
         
         // Start token ID counter at 1
         _tokenIdCounter.increment();
@@ -196,7 +196,7 @@ contract DurchexNFT is
         royaltyPercentage = percentage;
         royaltyRecipient = recipient;
         
-        _setDefaultRoyalty(recipient, percentage);
+        _setDefaultRoyalty(recipient, uint96(percentage));
     }
 
     // ============ View Functions ============
