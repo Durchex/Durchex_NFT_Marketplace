@@ -2,6 +2,8 @@
 
 LazyMintNFT is the contract used for **Buy & Mint** of lazy-minted NFTs. The frontend needs its address in the env so the Mint page can call `redeemNFT`.
 
+**Note:** `Bridge.sol` has been moved to `contracts-disabled/` because it depends on `@layerzerolabs/lz-evm-sdk-v1-0.2`, which is not on npm. That allows `npx hardhat compile` and the LazyMint deploy to run without that dependency. To use Bridge again, see `contracts-disabled/README.md`.
+
 ---
 
 ## Option 1: Deploy only LazyMintNFT (recommended)
