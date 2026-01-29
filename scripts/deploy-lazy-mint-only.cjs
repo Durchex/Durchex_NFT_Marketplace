@@ -19,7 +19,14 @@ async function main() {
   const networkName = hre.network.name;
   console.log(`\n🚀 Deploying LazyMintNFT to ${networkName}...\n`);
 
-  const [deployer] = await hre.ethers.getSigners();
+  const signers = await hre.ethers.getSigners();
+  const deployer = signers[0];
+  if (!deployer) {
+    throw new Error(
+      'No deployer account. Set PRIVATE_KEY in your .env (project root). ' +
+      'Use the private key of the wallet that will pay gas (without 0x prefix).'
+    );
+  }
   console.log('Deployer:', deployer.address);
 
   const LazyMintNFT = await hre.ethers.getContractFactory('LazyMintNFT');
