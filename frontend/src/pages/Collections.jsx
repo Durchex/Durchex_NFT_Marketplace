@@ -115,32 +115,25 @@ const Collections = () => {
                 } : 'No NFTs'
               });
               
-              // Calculate stats - prefer explicit floorPrice when present, otherwise use price.
-              // Values may be in wei for some on-chain data, normalize to human-readable.
-              const rawPrices = collectionNFTs.map(n => {
+              // Price per NFT (normalize wei); pieces per NFT for volume = sum(price × pieces)
+              const pricePerNft = (n) => {
                 const source = n.floorPrice != null && n.floorPrice !== '' ? n.floorPrice : n.price;
-                let value = parseFloat(source || '0');
-                // If value is very large (> 1000), it's likely in wei, convert to ETH-style units
-                if (value > 1000) {
-                  value = value / 1e18;
-                }
-                console.log(`[Collections] NFT: ${n.name}, floorPrice: "${n.floorPrice}", price: "${n.price}" => ${value}`);
-                return value;
-              });
-              const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
+                let v = parseFloat(source || '0');
+                if (v > 1000) v = v / 1e18;
+                return isNaN(v) || v < 0 ? 0 : v;
+              };
+              const piecesPerNft = (n) => Math.max(1, Number(n.pieces ?? n.remainingPieces ?? 1) || 1);
+              const prices = collectionNFTs.map(pricePerNft).filter(p => p > 0);
               const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
               const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-              const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+              const totalVolume = collectionNFTs.reduce((sum, n) => sum + pricePerNft(n) * piecesPerNft(n), 0);
               
               // Calculate unique owners
               const owners = new Set(collectionNFTs.map(n => String(n.owner || '').toLowerCase())).size;
-              console.log(`[Collections] "${col.name}" stats:`, {
+              console.log(`[Collections] "${col.name}" stats (totalVolume = sum(price×pieces)):`, {
                 nftCount: collectionNFTs.length,
-                rawPrices: collectionNFTs.map(n => n.price),
-                parsedPrices: prices,
                 floorPrice: floorPrice.toFixed(4),
-                avgPrice: avgPrice.toFixed(4),
-                volume: volume.toFixed(4),
+                totalVolume: totalVolume.toFixed(4),
                 uniqueOwners: owners
               });
               
@@ -153,7 +146,8 @@ const Collections = () => {
                 description: col.description || '',
                 image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
                 floorPrice: floorPrice > 0 ? floorPrice.toFixed(4) : '0.0000',
-                volume24h: volume > 0 ? volume.toFixed(2) : '0.00',
+                volume24h: totalVolume > 0 ? totalVolume.toFixed(2) : '0.00',
+                totalVolume: totalVolume > 0 ? totalVolume.toFixed(2) : '0.00',
                 volume7d: col.volume7d || 0,
                 percentChange24h: col.percentChange24h || 0,
                 items: collectionNFTs.length,
@@ -391,11 +385,11 @@ const Collections = () => {
                   </div>
 
                   <div className="bg-gray-800 rounded p-3">
-                    <div className="text-xs text-gray-500 mb-1">24h Volume</div>
+                    <div className="text-xs text-gray-500 mb-1">Total Volume</div>
                     <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold">{collection.volume24h}</span>
-                      <span className={`text-xs ${collection.percentChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {collection.percentChange24h >= 0 ? '+' : ''}{collection.percentChange24h}%
+                      <span className="text-lg font-bold">{collection.totalVolume ?? collection.volume24h}</span>
+                      <span className="text-xs text-gray-400">
+                        {getCurrencySymbol(collection.network || 'ethereum')}
                       </span>
                     </div>
                   </div>

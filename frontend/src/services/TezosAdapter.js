@@ -1,27 +1,41 @@
 /**
  * Tezos Adapter - TaquitoClient
- * 
+ *
  * Provides a skeleton implementation for Tezos blockchain integration
- * using the Taquito library. Includes context branching for wallet management
- * and contract interaction patterns compatible with the existing EVM setup.
- * 
- * Installation:
+ * using the Taquito library. Uses dynamic import so the build can succeed
+ * even if @taquito/taquito is not installed; Tezos features require:
  * npm install @taquito/taquito @taquito/local-forging
  */
 
-import { TezosToolkit } from '@taquito/taquito';
-
 /**
  * TaquitoClient - Tezos blockchain interaction wrapper
- * 
+ *
  * Mirrors the ethers.js API structure for consistency with EVM implementations
  */
 export class TaquitoClient {
   constructor(rpcUrl = 'https://mainnet.api.tezos.com') {
     this.rpcUrl = rpcUrl;
-    this.tezos = new TezosToolkit(rpcUrl);
+    this.tezos = null;
+    this._tezosPromise = null;
     this.wallet = null;
     this.contract = null;
+  }
+
+  /** Lazy-load TezosToolkit via dynamic import so build does not require @taquito/taquito to resolve. */
+  async getTezos() {
+    if (this.tezos) return this.tezos;
+    if (!this._tezosPromise) {
+      this._tezosPromise = import('@taquito/taquito')
+        .then((m) => {
+          this.tezos = new m.TezosToolkit(this.rpcUrl);
+          return this.tezos;
+        })
+        .catch((err) => {
+          this._tezosPromise = null;
+          throw new Error('@taquito/taquito not available. Install with: npm install @taquito/taquito');
+        });
+    }
+    return this._tezosPromise;
   }
 
   /**
@@ -35,7 +49,6 @@ export class TaquitoClient {
 
       switch (walletType) {
         case 'temple':
-          // Temple Wallet API
           wallet = window.templeWallet || window.thanosWallet;
           if (!wallet) {
             throw new Error('Temple Wallet not installed');
@@ -44,7 +57,6 @@ export class TaquitoClient {
           break;
 
         case 'kukai':
-          // Kukai integration
           wallet = window.kekaiWallet;
           if (!wallet) {
             throw new Error('Kukai Wallet not installed');
@@ -52,7 +64,6 @@ export class TaquitoClient {
           break;
 
         case 'keepwallet':
-          // Keep Wallet integration
           wallet = window.keepWallet;
           if (!wallet) {
             throw new Error('Keep Wallet not installed');
@@ -63,12 +74,11 @@ export class TaquitoClient {
           throw new Error(`Unsupported wallet type: ${walletType}`);
       }
 
-      // Set up Taquito with wallet
-      await this.tezos.setWallet(wallet);
+      const tezos = await this.getTezos();
+      await tezos.setWallet(wallet);
       this.wallet = wallet;
 
-      // Get account
-      const account = await this.tezos.wallet.pkh();
+      const account = await tezos.wallet.pkh();
       console.log('Connected to Tezos:', account);
       return account;
     } catch (error) {
@@ -88,7 +98,8 @@ export class TaquitoClient {
         throw new Error('Wallet not connected');
       }
 
-      const contract = await this.tezos.wallet.at(contractAddress);
+      const tezos = await this.getTezos();
+      const contract = await tezos.wallet.at(contractAddress);
       this.contract = contract;
       return contract;
     } catch (error) {
@@ -144,7 +155,8 @@ export class TaquitoClient {
    */
   async getBalance(accountAddress) {
     try {
-      const balance = await this.tezos.tz.getBalance(accountAddress);
+      const tezos = await this.getTezos();
+      const balance = await tezos.tz.getBalance(accountAddress);
       return balance.toNumber();
     } catch (error) {
       console.error('Balance fetch error:', error);

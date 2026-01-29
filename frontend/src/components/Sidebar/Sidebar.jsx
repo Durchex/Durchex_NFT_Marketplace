@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Zap,
   Wind,
-  Layers,
   Lock,
   Coins,
   Gift,
@@ -20,7 +19,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  PlusCircle
+  MessageSquare,
+  FolderOpen
 } from 'lucide-react';
 
 /**
@@ -32,41 +32,45 @@ const Sidebar = () => {
   const [isHovering, setIsHovering] = React.useState(false);
   const location = useLocation();
 
-  // Navigation items grouped by category
+  // Navigation items – aligned with App routes; all live and functional
   const navItems = [
     {
       section: 'Main',
       items: [
-        { icon: LayoutGrid, label: 'Explore', path: '/explore', badge: null },
+        { icon: LayoutGrid, label: 'Explore', path: '/', badge: null },
         { icon: Wind, label: 'Create', path: '/create', badge: null },
-        { icon: Gamepad2, label: 'Games', path: '/games', badge: 'Coming Soon' },
+        { icon: FolderOpen, label: 'Collections', path: '/collections', badge: null },
+        { icon: Gamepad2, label: 'Games', path: '/games', badge: null },
+        { icon: MessageSquare, label: 'Reviews', path: '/reviews', badge: null },
       ]
     },
     {
       section: 'Features',
       items: [
-        { icon: TrendingUp, label: 'Trading', path: '/features/trading', badge: 'Coming Soon' },
-        { icon: Zap, label: 'Auctions', path: '/features/auction', badge: 'Coming Soon' },
-        { icon: Lock, label: 'Rental', path: '/features/rental', badge: 'Coming Soon' },
-        { icon: Coins, label: 'Financing', path: '/features/financing', badge: 'Coming Soon' },
-        { icon: Gift, label: 'Staking', path: '/features/staking', badge: 'Coming Soon' },
-        { icon: Users, label: 'Governance', path: '/features/governance', badge: 'Coming Soon' },
-        { icon: BarChart3, label: 'Monetization', path: '/features/monetization', badge: 'Coming Soon' },
-        { icon: Repeat2, label: 'Analytics', path: '/features/analytics', badge: 'Coming Soon' },
-        { icon: Repeat2, label: 'Bridge', path: '/features/bridge', badge: 'Coming Soon' },
-        { icon: Bell, label: 'Notifications', path: '/features/notifications', badge: 'Coming Soon' },
+        { icon: TrendingUp, label: 'Trading', path: '/features/trading', badge: null },
+        { icon: Zap, label: 'Auctions', path: '/features/auction', badge: null },
+        { icon: Lock, label: 'Rental', path: '/features/rental', badge: null },
+        { icon: Coins, label: 'Financing', path: '/features/financing', badge: null },
+        { icon: Gift, label: 'Staking', path: '/features/staking', badge: null },
+        { icon: Users, label: 'Governance', path: '/features/governance', badge: null },
+        { icon: BarChart3, label: 'Monetization', path: '/features/monetization', badge: null },
+        { icon: Repeat2, label: 'Analytics', path: '/features/analytics', badge: null },
+        { icon: Repeat2, label: 'Bridge', path: '/features/bridge', badge: null },
+        { icon: Bell, label: 'Notifications', path: '/features/notifications', badge: null },
       ]
     },
     {
       section: 'User',
       items: [
+        { icon: ShoppingCart, label: 'Cart', path: '/cart', badge: null },
         { icon: ShoppingCart, label: 'Minting', path: '/minting', badge: null },
-        { icon: Settings, label: 'Settings', path: '/settings', badge: null },
+        { icon: Settings, label: 'Profile', path: '/profile', badge: null },
       ]
     }
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || (path === '/' && location.pathname === '/explore');
   const showLabel = isSidebarOpen || isHovering;
 
   return (

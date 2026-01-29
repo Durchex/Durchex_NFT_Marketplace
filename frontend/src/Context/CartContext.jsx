@@ -28,8 +28,9 @@ export const CartProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const cart = await cartAPI.getUserCart(walletAddress);
-      setCartItems(cart.items || []);
-      calculateTotal(cart.items || []);
+      const items = Array.isArray(cart) ? cart : (cart.items || []);
+      setCartItems(items);
+      calculateTotal(items);
     } catch (error) {
       console.error('Failed to load cart:', error);
       setCartItems([]);
@@ -47,6 +48,17 @@ export const CartProvider = ({ children }) => {
     setCartTotal(total);
   };
 
+  // Ensure backend gets a numeric nftId (for lazy mints itemId can be string)
+  const toCartNftId = (nftData) => {
+    const raw = nftData.itemId ?? nftData.tokenId;
+    if (typeof raw === 'number' && !isNaN(raw)) return raw;
+    if (typeof raw === 'string' && /^\d+$/.test(raw)) return parseInt(raw, 10);
+    const str = String(nftData.itemId ?? nftData.tokenId ?? nftData._id ?? '0');
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+    return Math.abs(h) || 0;
+  };
+
   // Add NFT to cart
   const addToCart = async (nftData, walletAddress) => {
     if (!walletAddress) {
@@ -58,13 +70,13 @@ export const CartProvider = ({ children }) => {
     try {
       const cartItem = {
         walletAddress,
-        nftId: nftData.itemId || nftData.tokenId,
-        contractAddress: nftData.nftContract,
+        nftId: toCartNftId(nftData),
+        contractAddress: nftData.contractAddress || nftData.nftContract,
         tokenId: nftData.tokenId,
         price: nftData.price,
         name: nftData.name,
-        image: nftData.image,
-        metadata: nftData.metadata,
+        image: nftData.image || nftData.imageURL,
+        metadata: { ...(nftData.metadata || {}), network: nftData.network },
         addedAt: new Date().toISOString(),
       };
 
@@ -114,7 +126,7 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Check if NFT is in cart
+  // Check if NFT is in cart (use same id as addToCart: getCartNftId(nft))
   const isInCart = (nftId, contractAddress) => {
     return cartItems.some(
       item => item.nftId === nftId && item.contractAddress === contractAddress
@@ -135,6 +147,7 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     clearCart,
     isInCart,
+    getCartNftId: toCartNftId,
     getCartItemCount,
   };
 

@@ -47,6 +47,7 @@ import complianceRouter from "./routes/compliance.js";
 import performanceRouter from "./routes/performance.js";
 import mintingRoutes from "./routes/mintingRoutes.js";
 import lazyMintRouter from "./routes/lazyMint.js";
+import reviewRouter from "./routes/reviewRouter.js";
 
 // connect db
 connectDB();
@@ -148,6 +149,7 @@ app.use('/api/v1/compliance', complianceRouter);
 app.use('/api/v1/performance', performanceRouter);
 app.use('/api/v1/minting', mintingRoutes);
 app.use('/api/v1/lazy-mint', lazyMintRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

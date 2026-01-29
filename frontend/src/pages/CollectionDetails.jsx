@@ -1,6 +1,7 @@
 import { useContext, useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ICOContent } from "../Context";
+import { useCart } from "../Context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
@@ -17,13 +18,13 @@ export default function CollectionDetails() {
   const navigate = useNavigate();
   const contexts = useContext(ICOContent);
   const { address } = contexts;
+  const { addToCart, isInCart, getCartNftId } = useCart();
 
   // State
   const [collection, setCollection] = useState(null);
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
-  const [cartItems, setCartItems] = useState(new Set());
   const [likedItems, setLikedItems] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -256,34 +257,28 @@ export default function CollectionDetails() {
       return;
     }
 
-    // Prefer explicit floorPrice when present; otherwise fall back to current price.
-    // Values may be in wei, normalize to human-readable.
-    const rawPrices = nftsList.map(nft => {
+    // Price per NFT (floorPrice or price); normalize wei to human-readable.
+    const pricePerNft = (nft) => {
       const source = nft.floorPrice != null && nft.floorPrice !== '' ? nft.floorPrice : nft.price;
       let value = parseFloat(source || '0');
-      // If value is very large (> 1000), it's likely in wei, convert to ETH-style units
-      if (value > 1000) {
-        value = value / 1e18;
-      }
-      console.log(
-        `[CollectionDetails] NFT: ${nft.name}, floorPrice: "${nft.floorPrice}", price: "${nft.price}" => ${value}`
-      );
-      return value;
-    });
-    const prices = rawPrices.filter(p => !isNaN(p) && p > 0);
-    
+      if (value > 1000) value = value / 1e18;
+      return isNaN(value) || value < 0 ? 0 : value;
+    };
+    // Pieces per NFT (for volume = price × pieces summed)
+    const piecesPerNft = (nft) => Math.max(1, Number(nft.pieces ?? nft.remainingPieces ?? 1) || 1);
+
+    const prices = nftsList.map(pricePerNft).filter(p => p > 0);
     const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-    const volume = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) : 0;
+    // Total volume = sum of (price × pieces) for each NFT
+    const volume = nftsList.reduce((sum, nft) => sum + pricePerNft(nft) * piecesPerNft(nft), 0);
     const uniqueOwners = new Set(nftsList.map(nft => String(nft.owner || '').toLowerCase()).filter(owner => owner));
 
-    console.log('[CollectionDetails] Calculated stats:', {
+    console.log('[CollectionDetails] Calculated stats (volume = sum(price×pieces)):', {
       nftCount: nftsList.length,
-      rawPrices: nftsList.map(n => n.price),
-      parsedPrices: prices,
       floorPrice: floorPrice.toFixed(4),
       avgPrice: avgPrice.toFixed(4),
-      volume: volume.toFixed(4),
+      totalVolume: volume.toFixed(4),
       uniqueOwners: uniqueOwners.size
     });
 
@@ -296,11 +291,17 @@ export default function CollectionDetails() {
     });
   };
 
-  const handleAddToCart = (nft) => {
-    const newCart = new Set(cartItems);
-    newCart.add(nft._id);
-    setCartItems(newCart);
-    SuccessToast("Added to cart");
+  const handleAddToCart = async (nft) => {
+    if (!address) {
+      toast.error('Connect your wallet to add to cart');
+      return;
+    }
+    try {
+      await addToCart(nft, address);
+      SuccessToast("Added to cart");
+    } catch (e) {
+      toast.error(e.message || 'Could not add to cart');
+    }
   };
 
   const handleLike = (nft) => {
@@ -510,6 +511,7 @@ export default function CollectionDetails() {
                       onAddToCart={() => handleAddToCart(nft)}
                       onLike={() => handleLike(nft)}
                       isLiked={likedItems.has(nft._id)}
+                      isInCart={getCartNftId ? isInCart(getCartNftId(nft), nft.contractAddress || nft.nftContract) : false}
                     />
                   </div>
 

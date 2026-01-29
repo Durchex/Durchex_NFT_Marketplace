@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2 } from 'react-icons/fi';
+import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2, FiShoppingCart } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
 import { nftAPI, engagementAPI } from '../services/api';
 import { getCurrencySymbol, getUsdValueFromCrypto } from '../Context/constants';
 import { ICOContent } from '../Context';
+import { useCart } from '../Context/CartContext';
+import toast from 'react-hot-toast';
 
 const NftDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { address } = useContext(ICOContent);
+  const { addToCart, isInCart, getCartNftId } = useCart();
   const [nft, setNft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -361,12 +364,13 @@ const NftDetailsPage = () => {
               </div>
             )}
 
-            {/* Action Buttons: Buy/Make Offer when no pieces; Mint when pieces left (non-owner); Sell when pieces left (owner) */}
+            {/* Action Buttons: Buy/Make Offer when no pieces; Mint (dedicated page) when pieces left (non-owner); Sell when pieces left (owner); Add to cart */}
             <div className="space-y-3">
               {(() => {
                 const remainingPieces = nft.remainingPieces ?? nft.pieces ?? 0;
                 const hasPieces = Number(remainingPieces) > 0;
                 const isOwner = address && nft.owner && (address.toLowerCase() === nft.owner.toLowerCase());
+                const mintId = nft.itemId ?? nft._id ?? id;
                 if (!hasPieces) {
                   return (
                     <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
@@ -382,8 +386,27 @@ const NftDetailsPage = () => {
                   );
                 }
                 return (
-                  <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <button onClick={() => navigate(`/mint/${mintId}`)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                     <FiDollarSign /> Mint
+                  </button>
+                );
+              })()}
+              {!address ? null : (() => {
+                const cartNftId = getCartNftId ? getCartNftId(nft) : (nft.itemId ?? nft.tokenId);
+                const inCart = isInCart(cartNftId, nft.contractAddress ?? nft.nftContract);
+                return (
+                  <button
+                    onClick={inCart ? undefined : async () => {
+                      try {
+                        await addToCart(nft, address);
+                      } catch (e) {
+                        toast.error(e.message || 'Could not add to cart');
+                      }
+                    }}
+                    disabled={inCart}
+                    className={`w-full font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${inCart ? 'bg-gray-600 text-gray-400 cursor-default' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                  >
+                    <FiShoppingCart /> {inCart ? 'In cart' : 'Add to cart'}
                   </button>
                 );
               })()}

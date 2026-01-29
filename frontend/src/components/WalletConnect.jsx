@@ -547,7 +547,6 @@ const WalletConnect = () => {
                         position: 'relative',
                         zIndex: 10000
                       }}
-                      style={{ pointerEvents: (isConnecting || (!isInstalled && wallet.id !== 'walletconnect')) ? 'none' : 'auto' }}
                       className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors duration-200 group ${
                         isInstalled || wallet.id === 'walletconnect'
                           ? 'text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer'

@@ -1739,3 +1739,34 @@ export const batchMintAPI = {
   }
 };
 
+// Reviews API – users must be signed in (wallet connected) to submit
+export const reviewsAPI = {
+  getReviews: async (page = 1, limit = 20) => {
+    try {
+      const response = await api.get('/reviews', { params: { page, limit } });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+      throw error;
+    }
+  },
+  getStats: async () => {
+    try {
+      const response = await api.get('/reviews/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch review stats:', error);
+      throw error;
+    }
+  },
+  createReview: async (data) => {
+    try {
+      const response = await api.post('/reviews', data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create review:', error);
+      throw error;
+    }
+  }
+};
+

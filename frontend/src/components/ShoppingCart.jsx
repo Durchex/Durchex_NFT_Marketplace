@@ -43,8 +43,9 @@ const ShoppingCart = () => {
             continue;
           }
 
-          // Purchase NFT on its listing network
-          await buyNFT(item.contractAddress || item.nftContract, item.nftId, item.price, nftNetwork);
+          // buyNFT expects price in wei; cart may store price in ETH
+          const priceWei = ethers.utils.parseEther(String(item.price || '0')).toString();
+          await buyNFT(item.contractAddress || item.nftContract, item.nftId, priceWei, nftNetwork);
           toast.success(`Successfully purchased ${item.name}!`);
         } catch (error) {
           console.error(`Failed to buy ${item.name}:`, error);

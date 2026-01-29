@@ -17,6 +17,7 @@ const Create = lazy(() => import("./pages/Create"));
 const Explore = lazy(() => import("./pages/Explore"));
 const Collections = lazy(() => import("./pages/Collections"));
 const NftDetailsPage = lazy(() => import("./pages/NftDetailsPage"));
+const BuyMintPage = lazy(() => import("./pages/BuyMintPage"));
 const NftCreatorForm = lazy(() => import("./components/NftCreatorForm"));
 const CreateNFTCollection = lazy(() =>
   import("./components/CreateNFTCollection")
@@ -56,6 +57,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const MintingHub = lazy(() => import("./pages/MintingHub"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const Games = lazy(() => import("./pages/Games"));
+const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
 export default function App() {
@@ -159,6 +161,7 @@ export default function App() {
           <Route path="/nft/:tokenId/:itemId/:price/:collection" element={<NftInfo />} />
           <Route path="/nft/:tokenId/:itemId/:price/" element={<NftInfo2 />} />
           <Route path="/nft/:id" element={<NftDetailsPage />} />
+          <Route path="/mint/:id" element={<BuyMintPage />} />
           {/* Admin Routes - Partner routes must come before general admin routes */}
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin/partner/*" element={<PartnerAdmin />} />
@@ -185,6 +188,7 @@ export default function App() {
           <Route path="/minting" element={<MintingHub />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           
