@@ -96,14 +96,34 @@ export default function BuyMintPage() {
         const signer = provider.getSigner();
         const contract = new ethers.Contract(lazyMintAddress, LazyMintNFT_ABI, signer);
         const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
-        const tx = await contract.redeemNFT(
-          redemptionData.creator,
-          redemptionData.ipfsURI,
-          redemptionData.royaltyPercentage,
-          priceWei,
-          sig,
-          { value: priceWei }
-        );
+
+        const sendTx = () =>
+          contract.redeemNFT(
+            redemptionData.creator,
+            redemptionData.ipfsURI,
+            redemptionData.royaltyPercentage,
+            priceWei,
+            sig,
+            { value: priceWei }
+          );
+
+        let tx;
+        try {
+          tx = await sendTx();
+        } catch (txErr) {
+          const txCode = txErr?.code ?? txErr?.error?.code;
+          const txMsg = txErr?.message || txErr?.error?.message || '';
+          const isNoResponse =
+            txCode === -32603 ||
+            txMsg.includes('Response has no error or result') ||
+            txMsg.includes('JsonRpcEngine');
+          if (isNoResponse) {
+            await new Promise((r) => setTimeout(r, 800));
+            tx = await sendTx();
+          } else {
+            throw txErr;
+          }
+        }
         const receipt = await tx.wait();
         let tokenId = null;
         const redeemedEvent = receipt.events?.find((e) => e.event === 'NFTRedeemed');
@@ -147,7 +167,7 @@ export default function BuyMintPage() {
       const msg = err?.message || err?.error?.message || '';
       if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
         toast.error(
-          'Wallet did not respond. Switch to the correct network (e.g. Base) in your wallet, then try Buy & Mint again. If you rejected the popup, click again to retry.'
+          "Wallet didn't respond. Click Buy & Mint again and approve the transaction when your wallet opens."
         );
       } else if (code === 4001 || code === 'ACTION_REJECTED' || msg.includes('rejected')) {
         toast.error('Transaction was rejected.');
