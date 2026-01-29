@@ -619,29 +619,32 @@ export const changeNetwork = async (networkName) => {
       return;
     }
 
-    console.log("Current Ethereum provider:", window.ethereum);
-    // Check if the network is already added in MetaMask
     const currentChainId = await window.ethereum.request({
       method: "eth_chainId",
     });
-    console.log("🚀 ~ changeNetwork ~ currentChainId:", currentChainId);
 
-    // If the selected network is not the same as the current network, switch the network
-    if (currentChainId !== networkData.chainId) {
+    if (currentChainId === networkData.chainId) {
+      SuccessToast(`Already on ${networkName} network`);
+      return;
+    }
+
+    try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: networkData.chainId }],
       });
-    } else {
-      console.log("Already on the selected network");
+    } catch (switchErr) {
+      if (switchErr?.code === 4902 || switchErr?.message?.includes("Unrecognized chain")) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{ ...networks[networkName] }],
+        });
+      } else {
+        throw switchErr;
+      }
     }
 
-    await window.ethereum.request({
-      method: "wallet_addEthereumChain",
-      params: [{ ...networks[networkName] }],
-    });
-
-    SuccessToast(`Tradingg Now on ${networkName} Network`);
+    SuccessToast(`Switched to ${networkName} network`);
     console.log(`Switched to================= ${networkName}`);
   } catch (error) {
     console.error("Error switching network:", error);

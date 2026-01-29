@@ -137,7 +137,17 @@ export default function BuyMintPage() {
       navigate(`/nft/${id}`);
     } catch (err) {
       console.error('Mint error:', err);
-      toast.error(err.message || 'Mint failed.');
+      const code = err?.code ?? err?.error?.code;
+      const msg = err?.message || err?.error?.message || '';
+      if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
+        toast.error(
+          'Wallet did not respond. Switch to the correct network (e.g. Base) in your wallet, then try Buy & Mint again. If you rejected the popup, click again to retry.'
+        );
+      } else if (code === 4001 || code === 'ACTION_REJECTED' || msg.includes('rejected')) {
+        toast.error('Transaction was rejected.');
+      } else {
+        toast.error(msg || 'Mint failed.');
+      }
     } finally {
       setMinting(false);
     }
