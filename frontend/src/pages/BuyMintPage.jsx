@@ -92,24 +92,37 @@ export default function BuyMintPage() {
               ' for this network), then rebuild. Use the address from your LazyMintNFT deployment.'
           );
         }
+        const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
+        const iface = new ethers.utils.Interface(LazyMintNFT_ABI);
+        const encodedData = iface.encodeFunctionData('redeemNFT', [
+          redemptionData.creator,
+          redemptionData.ipfsURI,
+          redemptionData.royaltyPercentage,
+          priceWei,
+          sig,
+        ]);
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const contract = new ethers.Contract(lazyMintAddress, LazyMintNFT_ABI, signer);
-        const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
 
-        const sendTx = () =>
-          contract.redeemNFT(
-            redemptionData.creator,
-            redemptionData.ipfsURI,
-            redemptionData.royaltyPercentage,
-            priceWei,
-            sig,
-            { value: priceWei }
-          );
+        const valueHex = ethers.BigNumber.isBigNumber(priceWei) ? priceWei.toHexString() : ethers.utils.hexValue(priceWei);
 
-        let tx;
+        const sendRawTx = async () => {
+          return window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: address,
+              to: lazyMintAddress,
+              value: valueHex,
+              data: encodedData,
+              gasLimit: '0x493E0',
+            }],
+          });
+        };
+
+        let txHash;
         try {
-          tx = await sendTx();
+          txHash = await sendRawTx();
         } catch (txErr) {
           const txCode = txErr?.code ?? txErr?.error?.code;
           const txMsg = txErr?.message || txErr?.error?.message || '';
@@ -118,13 +131,17 @@ export default function BuyMintPage() {
             txMsg.includes('Response has no error or result') ||
             txMsg.includes('JsonRpcEngine');
           if (isNoResponse) {
-            await new Promise((r) => setTimeout(r, 800));
-            tx = await sendTx();
+            await new Promise((r) => setTimeout(r, 1000));
+            txHash = await sendRawTx();
           } else {
             throw txErr;
           }
         }
-        const receipt = await tx.wait();
+
+        if (!txHash || typeof txHash !== 'string') {
+          throw new Error('No transaction hash returned from wallet.');
+        }
+        const receipt = await provider.waitForTransaction(txHash);
         let tokenId = null;
         const redeemedEvent = receipt.events?.find((e) => e.event === 'NFTRedeemed');
         if (redeemedEvent?.args?.tokenId != null) tokenId = redeemedEvent.args.tokenId.toString();
