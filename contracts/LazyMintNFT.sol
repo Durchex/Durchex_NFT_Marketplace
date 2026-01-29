@@ -189,10 +189,16 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
             "Array lengths don't match"
         );
 
+        uint256 totalValue = 0;
+        for (uint256 j = 0; j < salePrices.length; j++) {
+            totalValue += salePrices[j];
+        }
+        require(msg.value >= totalValue, "Insufficient value for batch");
+
         uint256[] memory tokenIds = new uint256[](creators.length);
 
         for (uint256 i = 0; i < creators.length; i++) {
-            tokenIds[i] = redeemNFT(
+            tokenIds[i] = this.redeemNFT{value: salePrices[i]}(
                 creators[i],
                 uris[i],
                 royaltyPercentages[i],
