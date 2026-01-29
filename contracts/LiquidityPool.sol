@@ -374,7 +374,7 @@ contract LiquidityPool is Ownable, ReentrancyGuard, Pausable {
      */
     function pausePool(bytes32 poolId) external onlyOwner poolExists(poolId) {
         emit PoolPaused(poolId);
-        pause();
+        _pause();
     }
 
     /**
