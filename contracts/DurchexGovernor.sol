@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
-import "@openzeppelin/contracts/governance/IGovernor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
@@ -85,19 +84,19 @@ contract DurchexGovernor is
         return proposalDescriptions[proposalId];
     }
 
-    // Override required functions (IGovernor uses uint256 for delay/period; Governor base is abstract)
-    function votingDelay() public view override(IGovernor, GovernorSettings) returns (uint256) {
+    // Override required functions (return uint256 to match IGovernor)
+    function votingDelay() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
     }
 
-    function votingPeriod() public view override(IGovernor, GovernorSettings) returns (uint256) {
+    function votingPeriod() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 
     function quorum(uint256 blockNumber)
         public
         view
-        override(IGovernor, GovernorVotesQuorumFraction)
+        override(Governor, GovernorVotesQuorumFraction)
         returns (uint256)
     {
         return super.quorum(blockNumber);
@@ -106,7 +105,7 @@ contract DurchexGovernor is
     function state(uint256 proposalId)
         public
         view
-        override(IGovernor, GovernorTimelockControl)
+        override(Governor, GovernorTimelockControl)
         returns (ProposalState)
     {
         return super.state(proposalId);
@@ -117,10 +116,10 @@ contract DurchexGovernor is
      * (OpenZeppelin 4.9 does not define this; we provide it for compatibility.)
      */
     function proposalNeedsQueuing(uint256 proposalId) public view returns (bool) {
-        return state(proposalId) == IGovernor.ProposalState.Succeeded;
+        return state(proposalId) == Governor.ProposalState.Succeeded;
     }
 
-    function proposalThreshold() public view override(IGovernor, GovernorSettings) returns (uint256) {
+    function proposalThreshold() public view override(Governor, GovernorSettings) returns (uint256) {
         return super.proposalThreshold();
     }
 

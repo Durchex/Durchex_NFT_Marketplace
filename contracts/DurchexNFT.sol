@@ -29,6 +29,8 @@ contract DurchexNFT is
     Counters.Counter private _tokenIdCounter;
     
     string private _baseTokenURI;
+    string private _collectionName;
+    string private _collectionSymbol;
     
     mapping(uint256 => string) private _tokenURIs;
     mapping(address => bool) public minters;
@@ -70,9 +72,9 @@ contract DurchexNFT is
         require(_royaltyPercentage <= 10000, "Royalty too high");
         require(_royaltyRecipient != address(0), "Invalid royalty recipient");
 
-        // Set ERC721 name and symbol
-        ERC721._name = name;
-        ERC721._symbol = symbol;
+        // Set collection name and symbol (ERC721 base uses "" in constructor for proxy)
+        _collectionName = name;
+        _collectionSymbol = symbol;
         
         // Transfer ownership to specified owner
         _transferOwnership(owner);
@@ -88,6 +90,17 @@ contract DurchexNFT is
         
         // Add owner as initial minter
         minters[owner] = true;
+    }
+
+    /**
+     * @dev Override name/symbol for proxy: return values set in initialize()
+     */
+    function name() public view virtual override returns (string memory) {
+        return bytes(_collectionName).length > 0 ? _collectionName : super.name();
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return bytes(_collectionSymbol).length > 0 ? _collectionSymbol : super.symbol();
     }
 
     // ============ Minting Functions ============
