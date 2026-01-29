@@ -76,7 +76,7 @@ export const CartProvider = ({ children }) => {
         price: nftData.price,
         name: nftData.name,
         image: nftData.image || nftData.imageURL,
-        metadata: { ...(nftData.metadata || {}), network: nftData.network },
+        metadata: { ...(nftData.metadata || {}), network: nftData.network, isLazyMint: !!nftData.isLazyMint },
         addedAt: new Date().toISOString(),
       };
 

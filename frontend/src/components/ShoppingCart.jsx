@@ -31,19 +31,27 @@ const ShoppingCart = () => {
       return;
     }
 
+    const lazyItems = cartItems.filter((item) => item.metadata?.isLazyMint);
+    const buyableItems = cartItems.filter((item) => !item.metadata?.isLazyMint);
+    if (lazyItems.length > 0) {
+      toast(
+        `${lazyItems.length} lazy-minted item(s) must be purchased from their NFT pages (Buy Now / Make Offer). Proceeding with ${buyableItems.length} marketplace item(s) only.`,
+        { duration: 5000 }
+      );
+    }
+    if (buyableItems.length === 0) {
+      toast.error('No marketplace items to buy here. Remove lazy-minted items and buy them from their NFT pages.');
+      return;
+    }
+
     try {
-      // Process each item in the cart
-      for (const item of cartItems) {
+      for (const item of buyableItems) {
         try {
-          // Get the NFT's listing network from cart item
           const nftNetwork = item.network || item.metadata?.network;
-          
           if (!nftNetwork) {
             toast.error(`${item.name} is missing network information`);
             continue;
           }
-
-          // buyNFT expects price in wei; cart may store price in ETH
           const priceWei = ethers.utils.parseEther(String(item.price || '0')).toString();
           await buyNFT(item.contractAddress || item.nftContract, item.nftId, priceWei, nftNetwork);
           toast.success(`Successfully purchased ${item.name}!`);
@@ -52,10 +60,8 @@ const ShoppingCart = () => {
           toast.error(`Failed to buy ${item.name}: ${error.message || 'Unknown error'}`);
         }
       }
-
-      // Clear cart after successful purchases
       await clearCart(address);
-      toast.success('All items purchased successfully!');
+      toast.success('Purchases completed!');
     } catch (error) {
       console.error('Error during bulk purchase:', error);
       toast.error('Some items failed to purchase');

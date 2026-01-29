@@ -1231,6 +1231,14 @@ export const Index = ({ children }) => {
       throw new Error("No crypto wallet found. Please install MetaMask or another Web3 wallet.");
     }
 
+    // Lazy-minted NFTs use MongoDB _id (24-char hex); the marketplace contract expects a numeric listing id.
+    const itemIdStr = String(itemIds ?? '');
+    if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      throw new Error(
+        "This item is a lazy-minted NFT and cannot be purchased through the marketplace contract. Please use the NFT page to Buy Now or Make an Offer."
+      );
+    }
+
     try {
       // Determine the network to use - prioritize NFT's listing network
       const targetNetwork = (nftNetwork || selectedChain).toLowerCase();

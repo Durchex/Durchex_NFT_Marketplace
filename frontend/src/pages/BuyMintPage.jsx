@@ -58,9 +58,17 @@ export default function BuyMintPage() {
     fetchNft();
   }, [id]);
 
+  // Lazy-minted NFTs use MongoDB _id (not a contract listing id); they must be purchased via Buy Now / Make Offer on the NFT page.
+  const isLazyMint = nft?.isLazyMint === true;
+
   const handleBuyAndMint = async () => {
     if (!nft || !address) {
       toast.error('Connect your wallet first.');
+      return;
+    }
+    if (isLazyMint) {
+      toast.error('Lazy-minted NFTs must be purchased from the NFT page. Use Buy Now / Make Offer there.');
+      navigate(`/nft/${id}`);
       return;
     }
     const contractAddress =
@@ -167,15 +175,28 @@ export default function BuyMintPage() {
               <p className="text-amber-400 text-sm mb-4">
                 No pieces available to mint.
               </p>
+            ) : isLazyMint ? (
+              <p className="text-amber-400 text-sm mb-4">
+                This is a lazy-minted NFT. Use Buy Now or Make Offer on the NFT page to purchase.
+              </p>
             ) : null}
-            <button
-              onClick={handleBuyAndMint}
-              disabled={!address || !hasPieces || minting}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <FiDollarSign />
-              {minting ? 'Minting…' : `Buy & Mint at ${priceDisplay} ${currency}`}
-            </button>
+            {isLazyMint ? (
+              <button
+                onClick={() => navigate(`/nft/${id}`)}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Go to NFT page → Buy Now / Make Offer
+              </button>
+            ) : (
+              <button
+                onClick={handleBuyAndMint}
+                disabled={!address || !hasPieces || minting}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <FiDollarSign />
+                {minting ? 'Minting…' : `Buy & Mint at ${priceDisplay} ${currency}`}
+              </button>
+            )}
           </div>
         </div>
       </div>
