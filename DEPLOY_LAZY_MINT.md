@@ -28,13 +28,13 @@ LazyMintNFT is the contract used for **Buy & Mint** of lazy-minted NFTs. The fro
 
    **Sepolia testnet:**
    ```bash
-   npx hardhat run scripts/deploy-lazy-mint-only.js --network sepolia
+   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network sepolia
    ```
    Optional in `.env`: `SEPOLIA_RPC_URL=https://rpc.ankr.com/eth_sepolia`
 
    **Polygon:**
    ```bash
-   npx hardhat run scripts/deploy-lazy-mint-only.js --network polygon
+   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network polygon
    ```
 
    **Local Hardhat node:**
@@ -43,7 +43,7 @@ LazyMintNFT is the contract used for **Buy & Mint** of lazy-minted NFTs. The fro
    ```
    In another terminal:
    ```bash
-   npx hardhat run scripts/deploy-lazy-mint-only.js --network localhost
+   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network localhost
    ```
 
 5. **Copy the printed address** and add it to your env:
@@ -90,7 +90,7 @@ The frontend currently reads `VITE_APP_LAZY_MINT_CONTRACT_ADDRESS` from env; it 
 |------|-------------------|
 | 1 | Add `PRIVATE_KEY` to `.env` |
 | 2 | `npx hardhat compile` |
-| 3 | `npx hardhat run scripts/deploy-lazy-mint-only.js --network sepolia` (or `polygon` / `localhost`) |
+| 3 | `npx hardhat run scripts/deploy-lazy-mint-only.cjs --network sepolia` (or `polygon` / `base` / `localhost`) |
 | 4 | Add `VITE_APP_LAZY_MINT_CONTRACT_ADDRESS=0x...` to `.env` |
 | 5 | Restart dev server or rebuild frontend |
 

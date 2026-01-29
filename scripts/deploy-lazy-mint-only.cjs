@@ -2,9 +2,10 @@
  * Deploy only LazyMintNFT (for Buy & Mint on the marketplace).
  *
  * Usage:
- *   npx hardhat run scripts/deploy-lazy-mint-only.js --network sepolia
- *   npx hardhat run scripts/deploy-lazy-mint-only.js --network polygon
- *   npx hardhat run scripts/deploy-lazy-mint-only.js --network localhost
+ *   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network sepolia
+ *   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network polygon
+ *   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network base
+ *   npx hardhat run scripts/deploy-lazy-mint-only.cjs --network localhost
  *
  * Requires in .env: PRIVATE_KEY (and optional RPC URL per network).
  * After deploy, add to .env:
