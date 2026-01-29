@@ -80,7 +80,11 @@ export default function BuyMintPage() {
         if (!redemptionData) throw new Error('No redemption data from server.');
         const lazyMintAddress = getContractAddresses(network)?.lazyMint;
         if (!lazyMintAddress || lazyMintAddress === '0x0') {
-          throw new Error('Lazy mint contract is not configured for this network.');
+          throw new Error(
+            'Lazy mint contract is not configured. Add VITE_APP_LAZY_MINT_CONTRACT_ADDRESS to your .env (or VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_' +
+              network.toUpperCase() +
+              ' for this network), then rebuild. Use the address from your LazyMintNFT deployment.'
+          );
         }
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();

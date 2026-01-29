@@ -167,12 +167,19 @@ export const LazyMintNFT_ABI = [
   },
 ];
 
+// Default LazyMint address for local/dev (e.g. Hardhat). Set VITE_APP_LAZY_MINT_CONTRACT_ADDRESS for real deployments.
+const LAZY_MINT_DEV_FALLBACK = '0x5FbDB2315678afccb333f8a9c6122015ea74f6';
+
 export const getContractAddresses = (network = 'polygon') => {
   const networkUpper = network.toUpperCase();
+  const lazyMintEnv =
+    import.meta.env[`VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] ||
+    import.meta.env.VITE_APP_LAZY_MINT_CONTRACT_ADDRESS;
+  const lazyMint = lazyMintEnv || (import.meta.env.DEV ? LAZY_MINT_DEV_FALLBACK : null);
   return {
     marketplace: import.meta.env[`VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_${networkUpper}`] || ContractAddress,
     vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress,
-    lazyMint: import.meta.env[`VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] || import.meta.env.VITE_APP_LAZY_MINT_CONTRACT_ADDRESS,
+    lazyMint: lazyMint || undefined,
   };
 };
 
