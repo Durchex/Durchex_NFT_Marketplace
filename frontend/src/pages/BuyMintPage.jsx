@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, lazyMintAPI } from '../services/api';
-import { getCurrencySymbol, getContractAddresses, LazyMintNFT_ABI, changeNetwork } from '../Context/constants';
+import { getCurrencySymbol, getContractAddresses, LazyMintNFT_ABI, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
@@ -65,7 +65,8 @@ export default function BuyMintPage() {
       toast.error('Connect your wallet first.');
       return;
     }
-    const priceEth = String(nft.price || '0');
+    // API may return price in wei; normalize to decimal so wallet shows correct amount (not huge figure)
+    const priceEth = priceInDecimalForBuy(nft.price);
     const priceWei = ethers.utils.parseEther(priceEth);
     const network = (nft.network || 'polygon').toLowerCase().trim();
     setMinting(true);
@@ -125,11 +126,15 @@ export default function BuyMintPage() {
           txHash = await sendRawTx();
         } catch (txErr) {
           const txCode = txErr?.code ?? txErr?.error?.code;
-          const txMsg = txErr?.message || txErr?.error?.message || '';
+          const txMsg = (txErr?.message || txErr?.error?.message || '').toLowerCase();
+          const isInsufficientFunds = txCode === -32003 || txMsg.includes('insufficient funds');
           const isNoResponse =
             txCode === -32603 ||
-            txMsg.includes('Response has no error or result') ||
-            txMsg.includes('JsonRpcEngine');
+            txMsg.includes('response has no error or result') ||
+            txMsg.includes('jsonrpcengine');
+          if (isInsufficientFunds) {
+            throw txErr;
+          }
           if (isNoResponse) {
             await new Promise((r) => setTimeout(r, 1000));
             txHash = await sendRawTx();
@@ -182,8 +187,13 @@ export default function BuyMintPage() {
     } catch (err) {
       console.error('Mint error:', err);
       const code = err?.code ?? err?.error?.code;
-      const msg = err?.message || err?.error?.message || '';
-      if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
+      const msg = String(err?.message || err?.error?.message || '');
+      const token = getCurrencySymbol(network || 'ethereum');
+      if (code === -32003 || msg.toLowerCase().includes('insufficient funds')) {
+        toast.error(
+          `Insufficient funds on ${network || 'this network'}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
+        );
+      } else if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
         toast.error(
           "Wallet didn't respond. Click Buy & Mint again and approve the transaction when your wallet opens."
         );
@@ -225,7 +235,8 @@ export default function BuyMintPage() {
     );
   }
 
-  const priceDisplay = parseFloat(nft.price || '0').toFixed(4);
+  // Use same normalizer as tx so UI and wallet show the same price (avoids huge figure if API returns wei)
+  const priceDisplay = parseFloat(priceInDecimalForBuy(nft.price)).toFixed(4);
   const currency = getCurrencySymbol(nft.network || 'ethereum');
   const hasPieces = Number(nft.remainingPieces ?? nft.pieces ?? 0) > 0;
 

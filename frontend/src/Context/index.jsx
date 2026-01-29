@@ -21,6 +21,7 @@ import {
   getVendorNFTContracts,
   getVendorNFTContract,
   contractAddresses,
+  getCurrencySymbol,
 } from "./constants";
 
 export const ICOContent = createContext();
@@ -1322,17 +1323,26 @@ export const Index = ({ children }) => {
       return receipt;
     } catch (error) {
       console.error("Buy NFT error:", error);
-      
+      const code = error?.code ?? error?.error?.code;
+      const msg = String(error?.message ?? error?.error?.message ?? "");
+
       // Provide user-friendly error messages
-      if (error.code === 4001) {
+      if (code === 4001) {
         throw new Error("Transaction was rejected by user");
-      } else if (error.code === -32603) {
-        throw new Error("Transaction failed. Please check you have enough balance for the purchase and gas fees.");
-      } else if (error.message?.includes("network")) {
-        throw error;
-      } else {
-        throw new Error(`Failed to purchase NFT: ${error.message || error}`);
       }
+      if (code === -32003 || msg.toLowerCase().includes("insufficient funds")) {
+        const token = getCurrencySymbol(targetNetwork);
+        throw new Error(
+          `Insufficient funds on ${targetNetwork}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
+        );
+      }
+      if (code === -32603) {
+        throw new Error("Transaction failed. Please check you have enough balance for the purchase and gas fees.");
+      }
+      if (msg.includes("network")) {
+        throw error;
+      }
+      throw new Error(`Failed to purchase NFT: ${msg || "Unknown error"}`);
     }
   };
 
