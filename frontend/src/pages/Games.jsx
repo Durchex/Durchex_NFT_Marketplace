@@ -14,6 +14,7 @@ import {
   CircleDot,
   Sparkles,
   Ticket,
+  Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
