@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
+import { useGameRoom } from '../../hooks/useGameRoom';
+import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
@@ -22,12 +24,20 @@ const DEG_PER_SEGMENT = 360 / NUM_SEGMENTS;
 
 const SpinTheWheel = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const [mode, setMode] = useState('single');
+  const gameRoom = useGameRoom('wheel');
+  const { joined, leaveRoom, emitResult } = gameRoom;
   const [spinBet, setSpinBet] = useState(10);
   const [spinning, setSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [lastResult, setLastResult] = useState(null);
   const [showWinBurst, setShowWinBurst] = useState(false);
   const rotationRef = useRef(0);
+
+  const handleSetMode = (m) => {
+    if (m === 'single' && joined) leaveRoom();
+    setMode(m);
+  };
 
   useEffect(() => {
     if (lastResult && lastResult.win >= lastResult.bet) {
@@ -73,6 +83,9 @@ const SpinTheWheel = () => {
         win,
         newBalance,
       });
+      if (mode === 'multiplayer' && joined) {
+        emitResult({ bet, win });
+      }
       if (win > bet) toast.success(`Won ${segment.label}! +$${(win - bet).toFixed(2)}`);
       else if (win < bet) toast.error(`Landed on ${segment.label}. -$${(bet - win).toFixed(2)}`);
       else toast('Landed on 1x – push.');
@@ -87,6 +100,12 @@ const SpinTheWheel = () => {
       themeColor="amber"
       gameBalance={gameBalance}
     >
+      <GameMultiplayerBar
+        mode={mode}
+        setMode={handleSetMode}
+        themeColor="amber"
+        {...gameRoom}
+      />
       <NeonBorder color="amber" pulse={spinning}>
         <div className="flex flex-col lg:flex-row items-center justify-center gap-10">
           <div className="casino-perspective relative flex items-center justify-center">

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
+import { useGameRoom } from '../../hooks/useGameRoom';
+import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
@@ -11,6 +13,9 @@ const BLACK = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 3
 
 const Roulette = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const [mode, setMode] = useState('single');
+  const gameRoom = useGameRoom('roulette');
+  const { joined, leaveRoom, emitResult } = gameRoom;
   const [bet, setBet] = useState(10);
   const [betType, setBetType] = useState('red');
   const [numberBet, setNumberBet] = useState(17);
@@ -19,6 +24,11 @@ const Roulette = () => {
   const [wheelRotation, setWheelRotation] = useState(0);
   const [lastResult, setLastResult] = useState(null);
   const wheelRef = React.useRef(0);
+
+  const handleSetMode = (m) => {
+    if (m === 'single' && joined) leaveRoom();
+    setMode(m);
+  };
 
   const spin = () => {
     if (spinning || gameBalance < bet) {
@@ -56,6 +66,7 @@ const Roulette = () => {
         setGameBalance(newBalance);
         setLastResult({ final, win, newBalance, betType });
         setSpinning(false);
+        if (mode === 'multiplayer' && joined) emitResult({ bet, win });
         if (win > 0) toast.success(`Won $${(win - bet).toFixed(2)}!`);
         else toast.error(`Lost $${bet.toFixed(2)}.`);
         return;
@@ -77,6 +88,12 @@ const Roulette = () => {
       themeColor="red"
       gameBalance={gameBalance}
     >
+      <GameMultiplayerBar
+        mode={mode}
+        setMode={handleSetMode}
+        themeColor="red"
+        {...gameRoom}
+      />
       <NeonBorder color="red" pulse={spinning}>
         <div className="flex flex-col items-center gap-8">
           <div className="flex gap-4">

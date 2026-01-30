@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
+import { useGameRoom } from '../../hooks/useGameRoom';
+import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
@@ -11,12 +13,20 @@ const PAYOUTS = { '7': 10, 'DM': 5, 'ST': 3, 'BL': 2, 'GR': 1.5, 'OR': 1.2, 'LM'
 
 const Slots = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const [mode, setMode] = useState('single');
+  const gameRoom = useGameRoom('slots');
+  const { joined, leaveRoom, emitResult } = gameRoom;
   const [bet, setBet] = useState(5);
   const [reels, setReels] = useState(['CH', 'CH', 'CH']);
   const [spinning, setSpinning] = useState(false);
   const [lastWin, setLastWin] = useState(null);
   const [reelKeys, setReelKeys] = useState([0, 0, 0]);
   const [showWinFlash, setShowWinFlash] = useState(false);
+
+  const handleSetMode = (m) => {
+    if (m === 'single' && joined) leaveRoom();
+    setMode(m);
+  };
 
   useEffect(() => {
     if (lastWin && lastWin.win > 0) {
@@ -57,6 +67,7 @@ const Slots = () => {
         setGameBalance((prev) => prev - bet + win);
         setLastWin({ win, newBalance: gameBalance - bet + win });
         setSpinning(false);
+        if (mode === 'multiplayer' && joined) emitResult({ bet, win });
         if (win > 0) toast.success('Won!');
         else toast('No match.');
         return;
@@ -74,6 +85,12 @@ const Slots = () => {
       themeColor="emerald"
       gameBalance={gameBalance}
     >
+      <GameMultiplayerBar
+        mode={mode}
+        setMode={handleSetMode}
+        themeColor="emerald"
+        {...gameRoom}
+      />
       <NeonBorder color="emerald" pulse={spinning}>
         <div className="flex flex-col items-center gap-8">
           <div

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
+import { useGameRoom } from '../../hooks/useGameRoom';
+import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
@@ -119,29 +121,38 @@ const Blackjack = () => {
     setPhase('result');
     const pv = handValue(p);
     const dv = handValue(dealerCards);
+    let winAmount = 0;
     if (pv > 21) {
       setMessage('Bust!');
+      if (mode === 'multiplayer' && joined) emitResult({ bet, win: 0 });
       return;
     }
     if (dv > 21) {
       setMessage('Dealer bust! You win!');
-      setGameBalance(gameBalance - bet + bet * 2);
+      winAmount = bet * 2;
+      setGameBalance(gameBalance - bet + winAmount);
+      if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
       toast.success('Dealer bust! You win!');
       return;
     }
     if (pv > dv) {
       setMessage('You win!');
-      setGameBalance(gameBalance - bet + bet * 2);
+      winAmount = bet * 2;
+      setGameBalance(gameBalance - bet + winAmount);
+      if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
       toast.success('You win!');
       return;
     }
     if (pv < dv) {
       setMessage('Dealer wins.');
+      if (mode === 'multiplayer' && joined) emitResult({ bet, win: 0 });
       toast.error('Dealer wins.');
       return;
     }
     setMessage('Push.');
+    winAmount = bet;
     setGameBalance(gameBalance - bet + bet);
+    if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
     toast('Push.');
   };
 
@@ -153,6 +164,12 @@ const Blackjack = () => {
       themeColor="violet"
       gameBalance={gameBalance}
     >
+      <GameMultiplayerBar
+        mode={mode}
+        setMode={handleSetMode}
+        themeColor="violet"
+        {...gameRoom}
+      />
       <NeonBorder color="violet">
         <div className="casino-felt rounded-3xl p-6 md:p-8 space-y-8">
           <div>

@@ -92,6 +92,67 @@ app.get('/', (req, res) => {
 // Rate limiting temporarily disabled to prevent blocking legitimate requests
 // app.use(limiter);
 
+// In-memory game rooms: roomCode -> { roomName, gameType, players, roundId, bets, countdownTimer, resultTimer }
+const gameRooms = new Map();
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateRoomCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+  return code;
+}
+
+function getPlayersList(room) {
+  if (!room?.players) return [];
+  return Array.from(room.players.entries()).map(([sid, p]) => ({
+    socketId: sid,
+    username: p.username || 'Player',
+    avatarUrl: p.avatarUrl || null,
+    wallet: p.wallet || null,
+  }));
+}
+
+function resolveDiceRound(roomCode) {
+  const room = gameRooms.get(roomCode);
+  if (!room || !room.roundId || room.countdownTimer == null) return;
+  clearTimeout(room.countdownTimer);
+  room.countdownTimer = null;
+  const diceValue = 1 + Math.floor(Math.random() * 6);
+  const results = [];
+  const bets = room.bets || new Map();
+  bets.forEach((bet, sid) => {
+    const player = room.players?.get(sid);
+    const won = (bet.choice === 'over' && diceValue > bet.target) || (bet.choice === 'under' && diceValue < bet.target);
+    const push = (bet.choice === 'over' && diceValue === bet.target) || (bet.choice === 'under' && diceValue === bet.target);
+    let amount = 0;
+    if (push) amount = bet.bet;
+    else if (won) amount = bet.bet * 2;
+    results.push({
+      socketId: sid,
+      username: player?.username || 'Player',
+      avatarUrl: player?.avatarUrl,
+      won,
+      push,
+      amount,
+      bet: bet.bet,
+      choice: bet.choice,
+      target: bet.target,
+    });
+  });
+  room.bets = new Map();
+  const roomName = `game_${room.gameType}_${roomCode}`;
+  io.to(roomName).emit('round_result', {
+    roundId: room.roundId,
+    diceValue,
+    results,
+  });
+  room.resultTimer = setTimeout(() => {
+    room.resultTimer = null;
+    room.roundId = null;
+    io.to(roomName).emit('round_next', {});
+  }, 5000);
+}
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -114,38 +175,116 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('user_activity_update', data);
   });
 
-  // Game rooms: multiplayer games (dice, etc.)
-  socket.on('game_join_room', (data) => {
-    const roomId = data?.roomId || 'default';
+  // Game: create room (returns room code)
+  socket.on('game_create_room', (data, ack) => {
     const gameType = data?.gameType || 'dice';
-    const room = `game_${gameType}_${roomId}`;
-    socket.join(room);
-    socket.gameRoom = room;
-    socket.gameRoomId = roomId;
-    socket.gameType = gameType;
-    const playerCount = io.sockets.adapter.rooms.get(room)?.size || 1;
-    io.to(room).emit('game_room_joined', {
-      roomId,
+    let code = generateRoomCode();
+    while (gameRooms.has(code)) code = generateRoomCode();
+    const roomName = `game_${gameType}_${code}`;
+    const room = {
+      roomCode: code,
       gameType,
-      socketId: socket.id,
-      displayName: data?.displayName || socket.id.slice(0, 8),
-      playerCount,
+      players: new Map(),
+      roundId: null,
+      bets: new Map(),
+      countdownTimer: null,
+      resultTimer: null,
+    };
+    room.players.set(socket.id, {
+      username: data?.username || 'Player',
+      avatarUrl: data?.avatarUrl || null,
+      wallet: data?.wallet || null,
     });
-    console.log('Game join room:', socket.id, room, 'players:', playerCount);
+    gameRooms.set(code, room);
+    socket.join(roomName);
+    socket.gameRoom = roomName;
+    socket.gameRoomId = code;
+    socket.gameType = gameType;
+    socket.isRoomHost = true;
+    const players = getPlayersList(room);
+    io.to(roomName).emit('game_players_updated', { roomCode: code, players });
+    if (typeof ack === 'function') ack({ roomCode: code, success: true });
+    console.log('Game room created:', code, 'by', socket.id);
+  });
+
+  // Game: join room by code
+  socket.on('game_join_room', (data, ack) => {
+    const roomCode = String(data?.roomCode || data?.roomId || '').toUpperCase().trim();
+    const gameType = data?.gameType || 'dice';
+    const room = gameRooms.get(roomCode);
+    if (!room) {
+      if (typeof ack === 'function') ack({ success: false, error: 'Room not found' });
+      return;
+    }
+    const roomName = `game_${gameType}_${roomCode}`;
+    room.players.set(socket.id, {
+      username: data?.username || 'Player',
+      avatarUrl: data?.avatarUrl || null,
+      wallet: data?.wallet || null,
+    });
+    socket.join(roomName);
+    socket.gameRoom = roomName;
+    socket.gameRoomId = roomCode;
+    socket.gameType = gameType;
+    socket.isRoomHost = false;
+    const players = getPlayersList(room);
+    io.to(roomName).emit('game_players_updated', { roomCode, players });
+    if (typeof ack === 'function') ack({ roomCode, success: true });
+    console.log('Game join room:', socket.id, roomCode);
   });
 
   socket.on('game_leave_room', () => {
-    if (socket.gameRoom) {
+    if (socket.gameRoom && socket.gameRoomId) {
+      const room = gameRooms.get(socket.gameRoomId);
+      if (room) {
+        room.players.delete(socket.id);
+        if (room.players.size === 0) {
+          if (room.countdownTimer) clearTimeout(room.countdownTimer);
+          if (room.resultTimer) clearTimeout(room.resultTimer);
+          gameRooms.delete(socket.gameRoomId);
+        } else {
+          io.to(socket.gameRoom).emit('game_players_updated', { roomCode: socket.gameRoomId, players: getPlayersList(room) });
+          io.to(socket.gameRoom).emit('game_room_left', { socketId: socket.id, playerCount: room.players.size });
+        }
+      }
       socket.leave(socket.gameRoom);
-      io.to(socket.gameRoom).emit('game_room_left', {
-        socketId: socket.id,
-        roomId: socket.gameRoomId,
-        playerCount: io.sockets.adapter.rooms.get(socket.gameRoom)?.size || 0,
-      });
       socket.gameRoom = null;
       socket.gameRoomId = null;
       socket.gameType = null;
+      socket.isRoomHost = null;
     }
+  });
+
+  // Dice: submit bet for current round
+  socket.on('game_submit_bet', (data) => {
+    const room = gameRooms.get(socket.gameRoomId);
+    if (!room || !room.roundId) return;
+    const { choice, target, bet } = data || {};
+    if (choice !== 'over' && choice !== 'under') return;
+    const t = Math.max(1, Math.min(6, parseInt(target, 10) || 4));
+    const b = Math.max(0, parseFloat(bet) || 0);
+    if (!room.bets) room.bets = new Map();
+    room.bets.set(socket.id, { choice, target: t, bet: b });
+    io.to(socket.gameRoom).emit('game_bet_placed', {
+      socketId: socket.id,
+      username: room.players.get(socket.id)?.username || 'Player',
+      choice,
+      target: t,
+      bet: b,
+    });
+  });
+
+  // Dice: start round (host or any player)
+  socket.on('game_start_round', () => {
+    const room = gameRooms.get(socket.gameRoomId);
+    if (!room) return;
+    if (room.roundId || room.countdownTimer) return;
+    const roundId = Date.now().toString();
+    room.roundId = roundId;
+    room.bets = new Map();
+    const countdownEnd = Date.now() + 10000;
+    io.to(socket.gameRoom).emit('round_start', { roundId, countdownEnd });
+    room.countdownTimer = setTimeout(() => resolveDiceRound(socket.gameRoomId), 10000);
   });
 
   socket.on('game_action', (data) => {
@@ -161,12 +300,19 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    if (socket.gameRoom) {
-      io.to(socket.gameRoom).emit('game_room_left', {
-        socketId: socket.id,
-        roomId: socket.gameRoomId,
-        playerCount: io.sockets.adapter.rooms.get(socket.gameRoom)?.size ? io.sockets.adapter.rooms.get(socket.gameRoom).size - 1 : 0,
-      });
+    if (socket.gameRoom && socket.gameRoomId) {
+      const room = gameRooms.get(socket.gameRoomId);
+      if (room) {
+        room.players.delete(socket.id);
+        if (room.players.size === 0) {
+          if (room.countdownTimer) clearTimeout(room.countdownTimer);
+          if (room.resultTimer) clearTimeout(room.resultTimer);
+          gameRooms.delete(socket.gameRoomId);
+        } else {
+          io.to(socket.gameRoom).emit('game_players_updated', { roomCode: socket.gameRoomId, players: getPlayersList(room) });
+          io.to(socket.gameRoom).emit('game_room_left', { socketId: socket.id, playerCount: room.players.size });
+        }
+      }
     }
     console.log('User disconnected:', socket.id);
   });

@@ -202,12 +202,26 @@ class SocketService {
   }
 
   // Game rooms (multiplayer)
-  joinGameRoom(roomId, gameType = 'dice', displayName) {
-    this.emit('game_join_room', { roomId: String(roomId), gameType, displayName });
+  createGameRoom(gameType = 'dice', playerInfo, callback) {
+    if (!this.socket) return;
+    this.socket.emit('game_create_room', { gameType, ...playerInfo }, callback);
+  }
+
+  joinGameRoom(roomCode, gameType = 'dice', playerInfo, callback) {
+    if (!this.socket) return;
+    this.socket.emit('game_join_room', { roomCode: String(roomCode).toUpperCase().trim(), gameType, ...playerInfo }, callback);
   }
 
   leaveGameRoom() {
     this.emit('game_leave_room');
+  }
+
+  submitDiceBet(choice, target, bet) {
+    this.emit('game_submit_bet', { choice, target, bet });
+  }
+
+  startDiceRound() {
+    this.emit('game_start_round');
   }
 
   emitGameAction(payload) {
@@ -216,6 +230,26 @@ class SocketService {
 
   onGameBroadcast(callback) {
     this.on('game_broadcast', callback);
+  }
+
+  onGamePlayersUpdated(callback) {
+    this.on('game_players_updated', callback);
+  }
+
+  onRoundStart(callback) {
+    this.on('round_start', callback);
+  }
+
+  onRoundResult(callback) {
+    this.on('round_result', callback);
+  }
+
+  onRoundNext(callback) {
+    this.on('round_next', callback);
+  }
+
+  onGameBetPlaced(callback) {
+    this.on('game_bet_placed', callback);
   }
 
   onGameRoomJoined(callback) {
