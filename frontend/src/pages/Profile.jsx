@@ -18,6 +18,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
 import ListNft from "../components/ListNft.jsx";
+import ListNftForm from "../components/ListNftForm.jsx";
 import ListingRequestForm from "../components/ListingRequestForm.jsx";
 import MyCollections from "../components/MyCollections.jsx";
 import MyPoints from "../components/MyPoints.jsx";
@@ -249,7 +250,12 @@ function App() {
           {activeTab === "My Collections" && (
             <MyCollections placeholder={"Collection"} />
           )}
-          {activeTab === "List NFT" && <ListingRequestForm />}
+          {activeTab === "List NFT" && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              <ListNftForm />
+              <ListingRequestForm />
+            </div>
+          )}
           {activeTab === "Withdrawals" && <WithdrawalSystem />}
           {activeTab === "Verification" && (
             <div className="max-w-4xl mx-auto">
