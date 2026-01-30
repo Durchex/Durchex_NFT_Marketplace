@@ -28,54 +28,48 @@ class SocketService {
     this._maxReconnectAttempts = 2;
   }
 
-  // Connect to Socket.io server
+  // Connect to Socket.io server. Creates socket immediately so create/join room can be used; connection runs async.
   connect(serverUrl) {
     const resolvedUrl = serverUrl || getSocketServerUrl();
 
-    // Don't attempt connection if already connected
+    // Already connected
     if (this.socket && this.isConnected) {
       return this.socket;
     }
 
-    // After too many failures, don't keep trying (avoids console spam)
+    // After too many failures, still return existing socket so reconnection can be retried from UI
+    if (this._reconnectAttempts >= this._maxReconnectAttempts && this.socket) {
+      this.socket.connect();
+      return this.socket;
+    }
     if (this._reconnectAttempts >= this._maxReconnectAttempts) {
-      return this.socket || null;
+      return null;
     }
 
     // Convert to HTTPS/WSS for production if page is HTTPS
-    let healthCheckUrl = resolvedUrl;
     let socketUrl = resolvedUrl;
-
     if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
       if (resolvedUrl.startsWith('http://')) {
-        healthCheckUrl = resolvedUrl.replace('http://', 'https://');
-        socketUrl = healthCheckUrl;
+        socketUrl = resolvedUrl.replace('http://', 'https://');
       }
       if (socketUrl.startsWith('https://')) {
         socketUrl = socketUrl.replace('https://', 'wss://');
       }
     }
 
-    // Check if backend server is running before attempting connection
-    this.isBackendAvailable(healthCheckUrl).then(isAvailable => {
-      if (!isAvailable) {
-        if (!this._connectErrorLogged) {
-          this._connectErrorLogged = true;
-          console.warn('[Socket] Backend not available at', healthCheckUrl, '– real-time features disabled.');
-        }
-        return null;
-      }
-
-      try {
+    // Create socket synchronously so createGameRoom/joinGameRoom always have a socket reference.
+    // Socket.io will queue emits until connected; ack will be called when server responds.
+    try {
+      if (!this.socket) {
         this.socket = io(socketUrl, {
-          transports: ['websocket', 'polling'],
-          timeout: 8000,
+          transports: ['polling', 'websocket'],
+          timeout: 12000,
           forceNew: true,
           autoConnect: false,
           reconnection: true,
-          reconnectionAttempts: 2,
-          reconnectionDelay: 3000,
-          reconnectionDelayMax: 8000,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+          reconnectionDelayMax: 10000,
         });
 
         this.socket.on('connect', () => {
@@ -95,29 +89,21 @@ class SocketService {
           this._reconnectAttempts++;
           if (!this._connectErrorLogged) {
             this._connectErrorLogged = true;
-            console.warn('[Socket] Connection failed – real-time features disabled. Set VITE_SOCKET_URL to your backend if needed.');
+            console.warn('[Socket] Connection failed. Set VITE_SOCKET_URL to your backend URL if needed.');
           }
           this.emit('socket_error', { error: error.message });
         });
-
-        this.socket.connect();
-        return this.socket;
-      } catch (error) {
-        if (!this._connectErrorLogged) {
-          this._connectErrorLogged = true;
-          console.warn('[Socket] Init failed:', error.message);
-        }
-        return null;
       }
-    }).catch(() => {
+
+      this.socket.connect();
+      return this.socket;
+    } catch (error) {
       if (!this._connectErrorLogged) {
         this._connectErrorLogged = true;
-        console.warn('[Socket] Backend check failed – real-time features disabled.');
+        console.warn('[Socket] Init failed:', error.message);
       }
       return null;
-    });
-
-    return this.socket;
+    }
   }
 
   // Check if backend server is available
@@ -241,15 +227,51 @@ class SocketService {
     });
   }
 
-  // Game rooms (multiplayer)
+  // Game rooms (multiplayer). Ensures socket exists (calls connect) and invokes callback with error if not.
   createGameRoom(gameType = 'dice', playerInfo, callback) {
-    if (!this.socket) return;
-    this.socket.emit('game_create_room', { gameType, ...playerInfo }, callback);
+    const cb = typeof callback === 'function' ? callback : () => {};
+    this._reconnectAttempts = 0;
+    this.connect();
+    if (!this.socket) {
+      cb({ success: false, error: 'Could not connect to server. Check VITE_SOCKET_URL or try again.' });
+      return;
+    }
+    let done = false;
+    const once = (res) => {
+      if (done) return;
+      done = true;
+      cb(res);
+    };
+    const ackTimeout = setTimeout(() => once({ success: false, error: 'Server did not respond. Is the backend running with Socket.io?' }), 15000);
+    this.socket.emit('game_create_room', { gameType, ...playerInfo }, (res) => {
+      clearTimeout(ackTimeout);
+      once(res);
+    });
   }
 
   joinGameRoom(roomCode, gameType = 'dice', playerInfo, callback) {
-    if (!this.socket) return;
-    this.socket.emit('game_join_room', { roomCode: String(roomCode).toUpperCase().trim(), gameType, ...playerInfo }, callback);
+    const cb = typeof callback === 'function' ? callback : () => {};
+    this._reconnectAttempts = 0;
+    this.connect();
+    if (!this.socket) {
+      cb({ success: false, error: 'Could not connect to server. Check VITE_SOCKET_URL or try again.' });
+      return;
+    }
+    let done = false;
+    const once = (res) => {
+      if (done) return;
+      done = true;
+      cb(res);
+    };
+    const ackTimeout = setTimeout(() => once({ success: false, error: 'Server did not respond or room not found.' }), 15000);
+    this.socket.emit('game_join_room', {
+      roomCode: String(roomCode).toUpperCase().trim(),
+      gameType,
+      ...playerInfo,
+    }, (res) => {
+      clearTimeout(ackTimeout);
+      once(res);
+    });
   }
 
   leaveGameRoom() {

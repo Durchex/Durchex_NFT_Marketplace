@@ -148,7 +148,7 @@ const MultiplayerDice = () => {
         setIsHost(true);
         toast.success('Room created! Share the code.');
       } else {
-        toast.error('Failed to create room');
+        toast.error(res?.error || 'Failed to create room');
       }
     });
   };

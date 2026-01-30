@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { ICOContent } from '../Context';
 import socketService from '../services/socketService';
 import { userAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 /**
  * Shared hook for multiplayer room (create/join by code, players list, activity feed).
@@ -78,18 +79,25 @@ export function useGameRoom(gameType = 'wheel') {
         setRoomCode(res.roomCode);
         setJoined(true);
         if (onDone) onDone();
+      } else {
+        toast.error(res?.error || 'Could not create room');
       }
     });
   };
 
   const joinRoom = (code, onDone) => {
     const c = String(code || joinCode).toUpperCase().trim();
-    if (!c) return;
+    if (!c) {
+      toast.error('Enter a room code');
+      return;
+    }
     socketService.joinGameRoom(c, gameType, { username, avatarUrl, wallet: address }, (res) => {
       if (res?.success) {
         setRoomCode(res.roomCode);
         setJoined(true);
         if (onDone) onDone();
+      } else {
+        toast.error(res?.error || 'Could not join room');
       }
     });
   };
