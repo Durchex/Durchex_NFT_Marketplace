@@ -18,14 +18,22 @@ function getSocketServerUrl() {
   return 'http://localhost:3000';
 }
 
+const INTERNAL_EVENTS = ['socket_connected', 'socket_disconnected', 'socket_error'];
+
 class SocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    this._internalListeners = new Map();
     this._connectErrorLogged = false;
     this._reconnectAttempts = 0;
     this._maxReconnectAttempts = 2;
+  }
+
+  _emitInternal(event, data) {
+    const cbs = this._internalListeners.get(event);
+    if (cbs) cbs.forEach((cb) => { try { cb(data); } catch (_) {} });
   }
 
   // Connect to Socket.io server. Creates socket immediately so create/join room can be used; connection runs async.
@@ -76,12 +84,12 @@ class SocketService {
           this._connectErrorLogged = false;
           this._reconnectAttempts = 0;
           this.isConnected = true;
-          this.emit('socket_connected', { socketId: this.socket.id });
+          this._emitInternal('socket_connected', { socketId: this.socket.id });
         });
 
         this.socket.on('disconnect', (reason) => {
           this.isConnected = false;
-          this.emit('socket_disconnected', { reason });
+          this._emitInternal('socket_disconnected', { reason });
         });
 
         this.socket.on('connect_error', (error) => {
@@ -91,7 +99,7 @@ class SocketService {
             this._connectErrorLogged = true;
             console.warn('[Socket] Connection failed. Set VITE_SOCKET_URL to your backend URL if needed.');
           }
-          this.emit('socket_error', { error: error.message });
+          this._emitInternal('socket_error', { error: error.message });
         });
       }
 
@@ -137,29 +145,36 @@ class SocketService {
     }
   }
 
-  // Listen to events from server
+  // Listen to events from server, or internal events (socket_connected, socket_error, socket_disconnected)
   on(event, callback) {
+    if (INTERNAL_EVENTS.includes(event)) {
+      if (!this._internalListeners.has(event)) this._internalListeners.set(event, []);
+      this._internalListeners.get(event).push(callback);
+      return;
+    }
     if (this.socket) {
       this.socket.on(event, callback);
-      // Store listener for cleanup
-      if (!this.listeners.has(event)) {
-        this.listeners.set(event, []);
-      }
+      if (!this.listeners.has(event)) this.listeners.set(event, []);
       this.listeners.get(event).push(callback);
     }
   }
 
   // Remove event listener
   off(event, callback) {
+    if (INTERNAL_EVENTS.includes(event)) {
+      const cbs = this._internalListeners.get(event);
+      if (cbs) {
+        const i = cbs.indexOf(callback);
+        if (i > -1) cbs.splice(i, 1);
+      }
+      return;
+    }
     if (this.socket) {
       this.socket.off(event, callback);
-      // Remove from stored listeners
-      if (this.listeners.has(event)) {
-        const callbacks = this.listeners.get(event);
-        const index = callbacks.indexOf(callback);
-        if (index > -1) {
-          callbacks.splice(index, 1);
-        }
+      const cbs = this.listeners.get(event);
+      if (cbs) {
+        const i = cbs.indexOf(callback);
+        if (i > -1) cbs.splice(i, 1);
       }
     }
   }
