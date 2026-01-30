@@ -10,6 +10,7 @@ import { adminAPI } from "../services/adminAPI";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success.jsx";
 import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay.jsx";
+import SellModal from "../components/SellModal.jsx";
 import toast from "react-hot-toast";
 
 function MyMintedNFTs() {
@@ -63,7 +64,14 @@ function MyMintedNFTs() {
   const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', or specific categories
   const [cartItems, setCartItems] = useState(new Set());
   const [likedItems, setLikedItems] = useState(new Set());
+  const [sellModalNft, setSellModalNft] = useState(null);
   const { address: userWalletAddress } = useContext(ICOContent) || {};
+
+  // User is the initial creator (can edit/delete). Non-creator owners see Sell only.
+  const isCreator = (nft) =>
+    address &&
+    (nft.creator || nft.creatorWallet) &&
+    String(nft.creator || nft.creatorWallet).toLowerCase() === address.toLowerCase();
 
   useEffect(() => {
     const fetchMyNFTs = async () => {
@@ -562,29 +570,42 @@ function MyMintedNFTs() {
                           </div>
                           
                           <div className="flex gap-2 mb-3">
-                            <button
-                              onClick={() => handleEditNFT(nft)}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteNFT(nft)}
-                              className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-semibold text-sm"
-                            >
-                              Delete
-                            </button>
+                            {isCreator(nft) ? (
+                              <>
+                                <button
+                                  onClick={() => handleEditNFT(nft)}
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteNFT(nft)}
+                                  className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-semibold text-sm"
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => setSellModalNft(nft)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                              >
+                                Sell
+                              </button>
+                            )}
                           </div>
                           
-                          <div className="mt-4 pt-4 border-t border-gray-700">
-                            <p className="text-xs text-gray-400 mb-2">
-                              Use this token ID to request admin listing:
-                            </p>
-                            <div className="bg-gray-900 p-2 rounded text-xs font-mono">
-                              Token ID: {nft.tokenId}
+                          {isCreator(nft) && (
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                              <p className="text-xs text-gray-400 mb-2">
+                                Use this token ID to request admin listing:
+                              </p>
+                              <div className="bg-gray-900 p-2 rounded text-xs font-mono">
+                                Token ID: {nft.tokenId}
+                              </div>
                             </div>
-                          </div>
-                        </>
+                          )}
+                          </>
                       )}
                     </div>
                   ))}
@@ -597,6 +618,11 @@ function MyMintedNFTs() {
           </div>
         )}
       </main>
+      <SellModal
+        isOpen={!!sellModalNft}
+        onClose={() => setSellModalNft(null)}
+        nft={sellModalNft}
+      />
     </div>
   );
 }

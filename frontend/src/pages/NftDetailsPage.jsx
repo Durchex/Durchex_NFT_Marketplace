@@ -4,6 +4,7 @@ import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiT
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
+import SellModal from '../components/SellModal';
 import { nftAPI, engagementAPI } from '../services/api';
 import { getCurrencySymbol, getUsdValueFromCrypto } from '../Context/constants';
 import { ICOContent } from '../Context';
@@ -22,6 +23,7 @@ const NftDetailsPage = () => {
   const [priceData, setPriceData] = useState([]);
   const [tradeData, setTradeData] = useState([]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [sellModalOpen, setSellModalOpen] = useState(false);
   const [views, setViews] = useState(0);
   const [likes, setLikes] = useState(0);
 
@@ -380,7 +382,7 @@ const NftDetailsPage = () => {
                 }
                 if (isOwner) {
                   return (
-                    <button onClick={() => setOfferModalOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <button onClick={() => setSellModalOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                       <FiDollarSign /> Sell
                     </button>
                   );
@@ -557,8 +559,10 @@ const NftDetailsPage = () => {
         </div>
       </main>
 
-      {/* Offer Modal */}
+      {/* Buy / Make Offer Modal */}
       <OfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} nft={nft} />
+      {/* Sell Modal – list for sale (owner only) */}
+      <SellModal isOpen={sellModalOpen} onClose={() => setSellModalOpen(false)} nft={nft} />
     </div>
   );
 };

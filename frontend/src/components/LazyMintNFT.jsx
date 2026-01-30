@@ -145,6 +145,10 @@ export default function LazyMintNFT() {
                 [ipfsURI, formData.royaltyPercentage, currentNonce]
             );
 
+            // Wake wallet again right before signing so the popup opens (Edge, etc.)
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            await new Promise((r) => setTimeout(r, 300));
+
             // Sign the message
             const sig = await signer.signMessage(
                 ethers.utils.arrayify(messageHash)
