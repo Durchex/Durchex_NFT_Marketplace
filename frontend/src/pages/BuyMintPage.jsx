@@ -20,6 +20,7 @@ export default function BuyMintPage() {
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
   const [error, setError] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchNft = async () => {
@@ -59,15 +60,18 @@ export default function BuyMintPage() {
   }, [id]);
 
   const isLazyMint = nft?.isLazyMint === true;
+  const remainingPieces = Number(nft?.remainingPieces ?? nft?.pieces ?? 0);
+  const maxQuantity = Math.max(1, remainingPieces);
 
   const handleBuyAndMint = async () => {
     if (!nft || !address) {
       toast.error('Connect your wallet first.');
       return;
     }
-    // API may return price in wei; normalize to decimal so wallet shows correct amount (not huge figure)
-    const priceEth = priceInDecimalForBuy(nft.price);
-    const priceWei = ethers.utils.parseEther(priceEth);
+    const qty = Math.max(1, Math.min(maxQuantity, quantity));
+    const pricePerPiece = priceInDecimalForBuy(nft.price);
+    const totalPriceEth = (parseFloat(pricePerPiece) * qty).toFixed(18);
+    const totalPriceWei = ethers.utils.parseEther(totalPriceEth);
     const network = (nft.network || 'polygon').toLowerCase().trim();
     setMinting(true);
     try {
@@ -82,7 +86,7 @@ export default function BuyMintPage() {
         await changeNetwork(network);
         await new Promise((r) => setTimeout(r, 500));
 
-        const redemptionRes = await lazyMintAPI.redeem(lazyNftId, priceEth);
+        const redemptionRes = await lazyMintAPI.redeem(lazyNftId, pricePerPiece, qty);
         const { redemptionData } = redemptionRes;
         if (!redemptionData) throw new Error('No redemption data from server.');
         const lazyMintAddress = getContractAddresses(network)?.lazyMint;
@@ -95,18 +99,36 @@ export default function BuyMintPage() {
         }
         const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
         const iface = new ethers.utils.Interface(LazyMintNFT_ABI);
-        const encodedData = iface.encodeFunctionData('redeemNFT', [
-          redemptionData.creator,
-          redemptionData.ipfsURI,
-          redemptionData.royaltyPercentage,
-          priceWei,
-          sig,
-        ]);
+
+        let encodedData;
+        let valueWei;
+        const useMulti = qty > 1 && redemptionData.pricePerPiece != null && redemptionData.maxQuantity != null;
+        if (useMulti) {
+          const pricePerPieceWei = ethers.utils.parseEther(String(redemptionData.pricePerPiece));
+          encodedData = iface.encodeFunctionData('redeemNFTWithQuantity', [
+            redemptionData.creator,
+            redemptionData.ipfsURI,
+            redemptionData.royaltyPercentage,
+            pricePerPieceWei,
+            qty,
+            redemptionData.maxQuantity,
+            sig,
+          ]);
+          valueWei = totalPriceWei;
+        } else {
+          const singlePrice = qty === 1 ? totalPriceWei : ethers.utils.parseEther(totalPriceEth);
+          encodedData = iface.encodeFunctionData('redeemNFT', [
+            redemptionData.creator,
+            redemptionData.ipfsURI,
+            redemptionData.royaltyPercentage,
+            singlePrice,
+            sig,
+          ]);
+          valueWei = singlePrice;
+        }
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-
-        const valueHex = ethers.BigNumber.isBigNumber(priceWei) ? priceWei.toHexString() : ethers.utils.hexValue(priceWei);
+        const valueHex = ethers.BigNumber.isBigNumber(valueWei) ? valueWei.toHexString() : ethers.utils.hexValue(valueWei);
 
         const sendRawTx = async () => {
           return window.ethereum.request({
@@ -116,7 +138,7 @@ export default function BuyMintPage() {
               to: lazyMintAddress,
               value: valueHex,
               data: encodedData,
-              gasLimit: '0x493E0',
+              gasLimit: useMulti ? '0x989680' : '0x493E0',
             }],
           });
         };
@@ -147,27 +169,29 @@ export default function BuyMintPage() {
           throw new Error('No transaction hash returned from wallet.');
         }
         const receipt = await provider.waitForTransaction(txHash);
-        let tokenId = null;
-        const redeemedEvent = receipt.events?.find((e) => e.event === 'NFTRedeemed');
-        if (redeemedEvent?.args?.tokenId != null) tokenId = redeemedEvent.args.tokenId.toString();
-        if (tokenId == null && receipt.logs?.length) {
-          const iface = new ethers.utils.Interface(LazyMintNFT_ABI);
-          for (const log of receipt.logs) {
-            try {
-              const parsed = iface.parseLog(log);
-              if (parsed?.name === 'NFTRedeemed' && parsed.args?.tokenId != null) {
-                tokenId = parsed.args.tokenId.toString();
-                break;
-              }
-            } catch (_) {}
-          }
+        let firstTokenId = null;
+        const redeemedEvents = receipt.logs?.length
+          ? receipt.logs
+              .map((log) => {
+                try {
+                  return iface.parseLog(log);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .filter((p) => p?.name === 'NFTRedeemed' && p.args?.tokenId != null)
+          : [];
+        if (redeemedEvents.length > 0) {
+          firstTokenId = redeemedEvents[0].args.tokenId.toString();
         }
         await lazyMintAPI.confirmRedemption(lazyNftId, {
-          tokenId: tokenId || '0',
+          tokenId: qty === 1 ? firstTokenId || '0' : undefined,
+          firstTokenId: qty > 1 ? firstTokenId : undefined,
+          quantity: qty,
           transactionHash: receipt.transactionHash,
-          salePrice: priceEth,
+          salePrice: totalPriceEth,
         });
-        toast.success('NFT bought and minted successfully!');
+        toast.success(qty > 1 ? `${qty} NFTs bought and minted successfully!` : 'NFT bought and minted successfully!');
         navigate(`/nft/${id}`);
         return;
       }
@@ -180,8 +204,10 @@ export default function BuyMintPage() {
         return;
       }
       const itemId = nft.itemId ?? nft.tokenId ?? nft._id;
+      const qty = Math.max(1, Math.min(maxQuantity, quantity));
+      const totalEth = (parseFloat(priceInDecimalForBuy(nft.price)) * qty).toFixed(18);
       // buyNFT expects price in ETH (it uses parseEther internally); do not pass wei or the wallet will show an impossible figure
-      await buyNFT(contractAddress, itemId, priceEth, network);
+      await buyNFT(contractAddress, itemId, totalEth, network);
       toast.success('Minted successfully!');
       navigate(`/nft/${id}`);
     } catch (err) {
@@ -236,9 +262,11 @@ export default function BuyMintPage() {
   }
 
   // Use same normalizer as tx so UI and wallet show the same price (avoids huge figure if API returns wei)
-  const priceDisplay = parseFloat(priceInDecimalForBuy(nft.price)).toFixed(4);
+  const pricePerPiece = parseFloat(priceInDecimalForBuy(nft.price));
+  const priceDisplay = pricePerPiece.toFixed(4);
+  const totalDisplay = (pricePerPiece * Math.max(1, Math.min(maxQuantity, quantity))).toFixed(4);
   const currency = getCurrencySymbol(nft.network || 'ethereum');
-  const hasPieces = Number(nft.remainingPieces ?? nft.pieces ?? 0) > 0;
+  const hasPieces = remainingPieces > 0;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -273,10 +301,30 @@ export default function BuyMintPage() {
                 <span className="ml-2">Network: {nft.network}</span>
               )}
             </p>
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-gray-400">Price</span>
-              <span className="text-xl font-bold text-purple-400">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-400">Price per piece</span>
+              <span className="text-lg font-bold text-purple-400">
                 {priceDisplay} {currency}
+              </span>
+            </div>
+            {hasPieces && (
+              <div className="mb-4">
+                <label className="text-gray-400 text-sm block mb-1">Pieces to buy</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={maxQuantity}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Math.min(maxQuantity, parseInt(e.target.value, 10) || 1)))}
+                  className="w-full max-w-[120px] bg-black/50 border border-purple-500/40 rounded-lg px-3 py-2 text-white text-center focus:ring-2 focus:ring-purple-500/50"
+                />
+                <span className="text-gray-500 text-sm ml-2">of {maxQuantity} available</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-gray-400">Total</span>
+              <span className="text-xl font-bold text-purple-400">
+                {totalDisplay} {currency}
               </span>
             </div>
             {!address ? (
@@ -294,7 +342,7 @@ export default function BuyMintPage() {
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <FiDollarSign />
-              {minting ? 'Minting…' : `Buy & Mint at ${priceDisplay} ${currency}`}
+              {minting ? 'Minting…' : `Buy & Mint ${quantity} piece(s) — ${totalDisplay} ${currency}`}
             </button>
           </div>
         </div>

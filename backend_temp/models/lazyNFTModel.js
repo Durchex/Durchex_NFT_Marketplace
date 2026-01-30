@@ -62,7 +62,7 @@ const lazyNFTSchema = new mongoose.Schema(
         // Status tracking
         status: {
             type: String,
-            enum: ['pending', 'redeemed', 'expired', 'cancelled'],
+            enum: ['pending', 'redeemed', 'fully_redeemed', 'expired', 'cancelled'],
             default: 'pending',
             index: true,
         },
@@ -167,6 +167,18 @@ const lazyNFTSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+
+        /** Multi-piece: each redemption (firstTokenId, quantity, buyer, ...) */
+        redemptions: [
+            {
+                firstTokenId: { type: String, default: null },
+                quantity: { type: Number, default: 1 },
+                buyer: { type: String, lowercase: true, default: null },
+                transactionHash: { type: String, default: null },
+                salePrice: { type: String, default: null },
+                redeemedAt: { type: Date, default: Date.now },
+            },
+        ],
 
         tags: [String],
 

@@ -230,10 +230,11 @@ export default function Create() {
       const currentNonce = nonceResponse.nonce || 0;
       setLazyMintNonce(currentNonce);
 
-      // Create message to sign
+      // Create message to sign (include pieces so multi-piece redeem is supported)
+      const piecesForHash = Math.max(1, parseInt(lazyMintForm.pieces, 10) || 1);
       const messageHash = ethers.utils.solidityKeccak256(
-        ['string', 'uint256', 'uint256'],
-        [lazyMintIpfsURI, lazyMintForm.royaltyPercentage, currentNonce]
+        ['string', 'uint256', 'uint256', 'uint256'],
+        [lazyMintIpfsURI, lazyMintForm.royaltyPercentage, currentNonce, piecesForHash]
       );
 
       // Open wallet again right before signing – same as Connect Wallet so popup always opens

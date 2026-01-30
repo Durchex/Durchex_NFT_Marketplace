@@ -288,6 +288,21 @@ export const userAPI = {
       throw new Error(msg || 'Failed to redeem game code');
     }
   },
+
+  getGameBalance: async (walletAddress) => {
+    try {
+      const response = await api.get(`/user/game-balance/${walletAddress || ''}`);
+      return response.data?.gameBalance ?? 0;
+    } catch (error) {
+      return 0;
+    }
+  },
+
+  syncGameBalance: async (walletAddress, balance) => {
+    try {
+      await api.patch('/user/game-balance', { walletAddress: (walletAddress || '').toLowerCase(), balance: Math.max(0, Number(balance) || 0) });
+    } catch (_) {}
+  },
 };
 
 // NFT API functions
@@ -1700,10 +1715,10 @@ export const lazyMintAPI = {
     }
   },
 
-  // Get redemption data for buy & mint (requires wallet connected – auth)
-  redeem: async (lazyNftId, salePrice) => {
+  // Get redemption data for buy & mint (requires wallet connected – auth). quantity = pieces to buy.
+  redeem: async (lazyNftId, salePrice, quantity = 1) => {
     try {
-      const response = await api.post(`/lazy-mint/${lazyNftId}/redeem`, { salePrice });
+      const response = await api.post(`/lazy-mint/${lazyNftId}/redeem`, { salePrice, quantity });
       return response.data;
     } catch (error) {
       console.error('Failed to get lazy mint redemption data:', error);
@@ -1711,11 +1726,13 @@ export const lazyMintAPI = {
     }
   },
 
-  // Confirm redemption after on-chain mint (requires wallet connected – auth)
-  confirmRedemption: async (lazyNftId, { tokenId, transactionHash, salePrice }) => {
+  // Confirm redemption after on-chain mint (requires wallet connected – auth). For multi-piece pass firstTokenId + quantity.
+  confirmRedemption: async (lazyNftId, { tokenId, firstTokenId, quantity, transactionHash, salePrice }) => {
     try {
       const response = await api.post(`/lazy-mint/${lazyNftId}/confirm-redemption`, {
         tokenId,
+        firstTokenId,
+        quantity,
         transactionHash,
         salePrice,
       });

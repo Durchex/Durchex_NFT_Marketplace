@@ -68,7 +68,9 @@ export const getUserProfile = async (req, res) => {
     }
 };
 
-// Redeem game code: body { code, walletAddress }. Only the code owner can redeem; credits 1000 points (frontend adds to balance).
+const GAME_POINTS_PER_REDEEM = 1000;
+
+// Redeem game code: body { code, walletAddress }. Only the code owner can redeem; credits 1000 points and persists to DB.
 export const redeemGameCode = async (req, res) => {
     try {
         const { code, walletAddress } = req.body;
@@ -89,8 +91,46 @@ export const redeemGameCode = async (req, res) => {
         if (user.walletAddress !== wallet) {
             return res.status(403).json({ error: "Only the account that received this code can redeem it" });
         }
-        await updateUserByWalletAddress(user.walletAddress, { gameCodeRedeemed: true }, true);
-        res.status(200).json({ success: true, points: 1000 });
+        const currentBalance = typeof user.gameBalance === "number" ? user.gameBalance : 0;
+        const newBalance = currentBalance + GAME_POINTS_PER_REDEEM;
+        await updateUserByWalletAddress(user.walletAddress, {
+            gameCodeRedeemed: true,
+            gameBalance: newBalance,
+        }, true);
+        res.status(200).json({
+            success: true,
+            points: GAME_POINTS_PER_REDEEM,
+            gameBalance: newBalance,
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get or sync game balance: GET returns balance for wallet; PATCH body { walletAddress, balance } updates (so frontend can restore/sync).
+export const getGameBalance = async (req, res) => {
+    try {
+        const { walletAddress } = req.params;
+        const user = await getUserByWalletAddress(walletAddress);
+        const balance = user && typeof user.gameBalance === "number" ? user.gameBalance : 0;
+        res.status(200).json({ gameBalance: balance });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const syncGameBalance = async (req, res) => {
+    try {
+        const { walletAddress, balance } = req.body;
+        if (!walletAddress || typeof balance !== "number" || balance < 0) {
+            return res.status(400).json({ error: "walletAddress and balance (number >= 0) required" });
+        }
+        const user = await getUserByWalletAddress(walletAddress);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        await updateUserByWalletAddress(walletAddress, { gameBalance: Math.max(0, balance) }, true);
+        res.status(200).json({ success: true, gameBalance: Math.max(0, balance) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

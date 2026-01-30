@@ -1,29 +1,56 @@
 import { io } from 'socket.io-client';
 
+/** Derive socket server URL: use VITE_SOCKET_URL, else same host as VITE_API_BASE_URL (strip /api/v1), else localhost. */
+function getSocketServerUrl() {
+  const explicit = import.meta.env.VITE_SOCKET_URL;
+  if (explicit && typeof explicit === 'string' && (explicit.startsWith('http://') || explicit.startsWith('https://'))) {
+    return explicit.replace(/\/+$/, '');
+  }
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  if (apiBase && typeof apiBase === 'string') {
+    const base = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '') || apiBase;
+    return base.startsWith('http') ? base : `https://${base}`;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocal ? 'http://localhost:3000' : `${window.location.protocol}//${window.location.hostname}`;
+  }
+  return 'http://localhost:3000';
+}
+
 class SocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    this._connectErrorLogged = false;
+    this._reconnectAttempts = 0;
+    this._maxReconnectAttempts = 2;
   }
 
   // Connect to Socket.io server
-  connect(serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000') {
+  connect(serverUrl) {
+    const resolvedUrl = serverUrl || getSocketServerUrl();
+
     // Don't attempt connection if already connected
     if (this.socket && this.isConnected) {
       return this.socket;
     }
 
+    // After too many failures, don't keep trying (avoids console spam)
+    if (this._reconnectAttempts >= this._maxReconnectAttempts) {
+      return this.socket || null;
+    }
+
     // Convert to HTTPS/WSS for production if page is HTTPS
-    let healthCheckUrl = serverUrl;
-    let socketUrl = serverUrl;
-    
+    let healthCheckUrl = resolvedUrl;
+    let socketUrl = resolvedUrl;
+
     if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-      if (serverUrl.startsWith('http://')) {
-        healthCheckUrl = serverUrl.replace('http://', 'https://');
-        socketUrl = serverUrl.replace('http://', 'https://');
+      if (resolvedUrl.startsWith('http://')) {
+        healthCheckUrl = resolvedUrl.replace('http://', 'https://');
+        socketUrl = healthCheckUrl;
       }
-      // Ensure socket URL uses wss:// for HTTPS pages
       if (socketUrl.startsWith('https://')) {
         socketUrl = socketUrl.replace('https://', 'wss://');
       }
@@ -32,48 +59,61 @@ class SocketService {
     // Check if backend server is running before attempting connection
     this.isBackendAvailable(healthCheckUrl).then(isAvailable => {
       if (!isAvailable) {
-        console.warn('Backend server not available, skipping socket connection');
+        if (!this._connectErrorLogged) {
+          this._connectErrorLogged = true;
+          console.warn('[Socket] Backend not available at', healthCheckUrl, '– real-time features disabled.');
+        }
         return null;
       }
 
       try {
         this.socket = io(socketUrl, {
           transports: ['websocket', 'polling'],
-          timeout: 5000,
+          timeout: 8000,
           forceNew: true,
           autoConnect: false,
           reconnection: true,
-          reconnectionAttempts: 3,
-          reconnectionDelay: 2000
+          reconnectionAttempts: 2,
+          reconnectionDelay: 3000,
+          reconnectionDelayMax: 8000,
         });
 
         this.socket.on('connect', () => {
-          console.log('Socket connected:', this.socket.id);
+          this._connectErrorLogged = false;
+          this._reconnectAttempts = 0;
           this.isConnected = true;
           this.emit('socket_connected', { socketId: this.socket.id });
         });
 
         this.socket.on('disconnect', (reason) => {
-          console.log('Socket disconnected:', reason);
           this.isConnected = false;
           this.emit('socket_disconnected', { reason });
         });
 
         this.socket.on('connect_error', (error) => {
-          console.warn('Socket connection error:', error.message);
           this.isConnected = false;
+          this._reconnectAttempts++;
+          if (!this._connectErrorLogged) {
+            this._connectErrorLogged = true;
+            console.warn('[Socket] Connection failed – real-time features disabled. Set VITE_SOCKET_URL to your backend if needed.');
+          }
           this.emit('socket_error', { error: error.message });
         });
 
-        // Attempt connection
         this.socket.connect();
         return this.socket;
       } catch (error) {
-        console.warn('Failed to initialize socket:', error.message);
+        if (!this._connectErrorLogged) {
+          this._connectErrorLogged = true;
+          console.warn('[Socket] Init failed:', error.message);
+        }
         return null;
       }
     }).catch(() => {
-      console.warn('Backend availability check failed');
+      if (!this._connectErrorLogged) {
+        this._connectErrorLogged = true;
+        console.warn('[Socket] Backend check failed – real-time features disabled.');
+      }
       return null;
     });
 

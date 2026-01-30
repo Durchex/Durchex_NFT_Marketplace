@@ -84,6 +84,34 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
     }
 
     /**
+     * @dev Message hash including maxQuantity (pieces) for multi-piece redeem
+     */
+    function getMessageHashWithQuantity(
+        string memory uri,
+        uint256 royaltyPercentage,
+        uint256 nonce,
+        uint256 maxQuantity
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(uri, royaltyPercentage, nonce, maxQuantity));
+    }
+
+    /**
+     * @dev Verify signature with quantity (for redeemNFTWithQuantity)
+     */
+    function verifySignatureWithQuantity(
+        address creator,
+        string memory uri,
+        uint256 royaltyPercentage,
+        uint256 nonce,
+        uint256 maxQuantity,
+        bytes memory signature
+    ) public pure returns (bool) {
+        bytes32 messageHash = getMessageHashWithQuantity(uri, royaltyPercentage, nonce, maxQuantity);
+        address signer = recoverSigner(messageHash, signature);
+        return signer == creator;
+    }
+
+    /**
      * @dev Convert hash to Eth signed message hash
      */
     function getEthSignedMessageHash(bytes32 messageHash)
@@ -177,6 +205,65 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
         emit NFTRedeemed(tokenId, creator, msg.sender, uri, salePrice);
 
         return tokenId;
+    }
+
+    /**
+     * @dev Redeem multiple pieces in one tx. Creator must have signed with getMessageHashWithQuantity(uri, royaltyPercentage, nonce, maxQuantity).
+     * Creator is retained in nftMetadata for royalties on secondary sales.
+     */
+    function redeemNFTWithQuantity(
+        address creator,
+        string memory uri,
+        uint256 royaltyPercentage,
+        uint256 pricePerPiece,
+        uint256 quantity,
+        uint256 maxQuantity,
+        bytes memory signature
+    ) external payable returns (uint256 firstTokenId) {
+        require(quantity >= 1 && quantity <= maxQuantity, "Invalid quantity");
+        uint256 totalPrice = pricePerPiece * quantity;
+        require(msg.value >= totalPrice, "Insufficient value");
+        require(royaltyPercentage <= 50, "Royalty too high (max 50%)");
+
+        uint256 nonce = nonces[creator];
+        require(
+            verifySignatureWithQuantity(creator, uri, royaltyPercentage, nonce, maxQuantity, signature),
+            "Invalid signature"
+        );
+        require(!_usedSignatures[signature], "Signature already used");
+
+        nonces[creator]++;
+        _usedSignatures[signature] = true;
+
+        firstTokenId = _tokenIdCounter.current();
+        for (uint256 i = 0; i < quantity; i++) {
+            uint256 tokenId = _tokenIdCounter.current();
+            _tokenIdCounter.increment();
+            _mint(msg.sender, tokenId);
+            _setTokenURI(tokenId, uri);
+            nftMetadata[tokenId] = NFTMetadata({
+                creator: creator,
+                royaltyPercentage: royaltyPercentage,
+                salePrice: pricePerPiece,
+                minted: true
+            });
+            emit NFTRedeemed(tokenId, creator, msg.sender, uri, pricePerPiece);
+        }
+
+        uint256 feeAmount = (totalPrice * platformFeeBps) / 10000;
+        uint256 creatorAmount = totalPrice - feeAmount;
+        if (feeAmount > 0 && platformFeeReceiver != address(0)) {
+            (bool feeOk, ) = platformFeeReceiver.call{value: feeAmount}("");
+            require(feeOk, "Platform fee transfer failed");
+        }
+        if (creatorAmount > 0) {
+            (bool creatorOk, ) = payable(creator).call{value: creatorAmount}("");
+            require(creatorOk, "Creator payment failed");
+        }
+        if (msg.value > totalPrice) {
+            payable(msg.sender).call{value: msg.value - totalPrice}("");
+        }
+        return firstTokenId;
     }
 
     /**

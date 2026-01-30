@@ -385,11 +385,18 @@ class LazyMintService {
             // If ethers is available, verify signature cryptographically
             if (this.ethersAvailable && ethers) {
                 try {
-                    // Reconstruct the message hash
-                    const reconstructedHash = ethers.utils.solidityKeccak256(
+                    // Reconstruct the message hash (support 3-param legacy and 4-param with maxQuantity/pieces)
+                    const maxQty = voucher.maxQuantity ?? voucher.pieces;
+                    let reconstructedHash = ethers.utils.solidityKeccak256(
                         ['string', 'uint256', 'uint256'],
                         [voucher.ipfsURI, voucher.royaltyPercentage, voucher.nonce]
                     );
+                    if (maxQty != null && Number(maxQty) >= 1 && reconstructedHash.toLowerCase() !== voucher.messageHash.toLowerCase()) {
+                        reconstructedHash = ethers.utils.solidityKeccak256(
+                            ['string', 'uint256', 'uint256', 'uint256'],
+                            [voucher.ipfsURI, voucher.royaltyPercentage, voucher.nonce, Math.max(1, Number(maxQty))]
+                        );
+                    }
 
                     // Check if message hash matches
                     if (reconstructedHash.toLowerCase() !== voucher.messageHash.toLowerCase()) {

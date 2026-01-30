@@ -167,6 +167,21 @@ export const LazyMintNFT_ABI = [
     type: 'function',
   },
   {
+    inputs: [
+      { name: 'creator', type: 'address' },
+      { name: 'uri', type: 'string' },
+      { name: 'royaltyPercentage', type: 'uint256' },
+      { name: 'pricePerPiece', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+      { name: 'maxQuantity', type: 'uint256' },
+      { name: 'signature', type: 'bytes' },
+    ],
+    name: 'redeemNFTWithQuantity',
+    outputs: [{ name: 'firstTokenId', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
     anonymous: false,
     inputs: [
       { indexed: true, name: 'tokenId', type: 'uint256' },

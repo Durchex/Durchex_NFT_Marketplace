@@ -100,7 +100,8 @@ const Games = () => {
     try {
       const data = await userAPI.redeemGameCode(code, address);
       if (data?.success && data?.points) {
-        setGameBalance(gameBalance + (data.points || GAME_POINTS_PER_REDEEM));
+        const newBalance = typeof data.gameBalance === 'number' ? data.gameBalance : gameBalance + (data.points || GAME_POINTS_PER_REDEEM);
+        setGameBalance(newBalance);
         setGameCode('');
         toast.success(`${data.points || GAME_POINTS_PER_REDEEM} game points added!`);
       } else {

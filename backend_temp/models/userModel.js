@@ -56,6 +56,11 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    gameBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

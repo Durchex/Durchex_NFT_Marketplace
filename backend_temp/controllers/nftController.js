@@ -281,7 +281,7 @@ export const getCollectionNFTs = async (req, res) => {
         { collection: collectionDoc._id },
         { collection: collectionDoc.collectionId }
       ],
-      status: { $in: ['pending', 'redeemed'] },
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
       expiresAt: { $gt: new Date() }
     }).populate('collection');
     
@@ -572,7 +572,7 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
     
     // Fetch all lazy NFTs (pending, redeemed, etc.) for explore page
     const lazyNfts = await LazyNFT.find({ 
-      status: { $in: ['pending', 'redeemed'] }, // Include pending and redeemed
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] }, // Include pending and redeemed
       expiresAt: { $gt: new Date() } // Not expired
     }).populate('collection');
     
@@ -617,7 +617,7 @@ export const fetchCollectionNfts = async (req, res) => {
     if (collectionDoc) {
       lazyNfts = await LazyNFT.find({ 
         collection: collectionDoc._id,
-        status: { $in: ['pending', 'redeemed'] },
+        status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
         expiresAt: { $gt: new Date() }
       }).populate('collection');
     }

@@ -102,7 +102,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             });
         }
 
-        // Validate voucher
+        // Validate voucher (include pieces for 4-param hash used by multi-piece redeem)
         const isValid = await lazyMintService.validateVoucher({
             creator: creatorAddress,
             ipfsURI,
@@ -110,6 +110,8 @@ router.post('/submit', authMiddleware, async (req, res) => {
             signature,
             messageHash,
             nonce,
+            pieces: pieces || 1,
+            maxQuantity: pieces || 1,
         });
 
         if (!isValid) {
@@ -431,13 +433,14 @@ router.post('/:id/unlike', authMiddleware, async (req, res) => {
 
 /**
  * POST /api/lazy-mint/:id/redeem
- * Redeem lazy mint on blockchain (buyer calls this)
- * Includes payment and signature verification
+ * Redeem lazy mint on blockchain (buyer calls this).
+ * Accepts quantity (default 1). Total price = pricePerPiece * quantity.
  */
 router.post('/:id/redeem', authMiddleware, async (req, res) => {
     try {
-        const { salePrice } = req.body;
+        const { salePrice, quantity: reqQuantity } = req.body;
         const buyerAddress = req.user.address;
+        const quantity = Math.max(1, parseInt(reqQuantity, 10) || 1);
 
         const lazyNFT = await LazyNFT.findById(req.params.id);
 
@@ -455,10 +458,25 @@ router.post('/:id/redeem', authMiddleware, async (req, res) => {
             });
         }
 
-        // Return redemption instructions
+        const remaining = lazyNFT.remainingPieces ?? lazyNFT.pieces ?? 1;
+        if (quantity > remaining) {
+            return res.status(400).json({
+                success: false,
+                error: `Only ${remaining} piece(s) available. Requested ${quantity}.`,
+            });
+        }
+
+        const pricePerPiece = parseFloat(lazyNFT.price) || parseFloat(salePrice) || 0;
+        const totalPrice = pricePerPiece * quantity;
+        const maxQuantity = lazyNFT.pieces ?? 1;
+
         res.json({
             success: true,
             message: 'Ready to redeem on blockchain',
+            quantity,
+            pricePerPiece,
+            totalPrice,
+            maxQuantity,
             redemptionData: {
                 lazyNFTId: lazyNFT._id,
                 creator: lazyNFT.creator,
@@ -467,7 +485,11 @@ router.post('/:id/redeem', authMiddleware, async (req, res) => {
                 signature: lazyNFT.signature,
                 messageHash: lazyNFT.messageHash,
                 nonce: lazyNFT.nonce,
-                salePrice,
+                salePrice: quantity === 1 ? String(totalPrice) : undefined,
+                pricePerPiece: quantity > 1 ? String(pricePerPiece) : undefined,
+                totalPrice: String(totalPrice),
+                quantity,
+                maxQuantity,
                 buyer: buyerAddress,
             },
         });
@@ -482,26 +504,17 @@ router.post('/:id/redeem', authMiddleware, async (req, res) => {
 
 /**
  * POST /api/lazy-mint/:id/confirm-redemption
- * Confirm redemption after blockchain transaction
- * Called after NFT is actually minted on-chain
+ * Confirm redemption after blockchain transaction.
+ * Accepts firstTokenId + quantity for multi-piece; creator is retained for royalties.
  */
 router.post('/:id/confirm-redemption', authMiddleware, async (req, res) => {
     try {
-        const { tokenId, transactionHash, salePrice } = req.body;
+        const { tokenId, firstTokenId, quantity: reqQuantity, transactionHash, salePrice } = req.body;
         const buyerAddress = req.user.address;
+        const quantity = Math.max(1, parseInt(reqQuantity, 10) || 1);
+        const firstId = firstTokenId != null ? firstTokenId.toString() : (tokenId != null ? tokenId.toString() : null);
 
-        const lazyNFT = await LazyNFT.findByIdAndUpdate(
-            req.params.id,
-            {
-                status: 'redeemed',
-                tokenId: tokenId.toString(),
-                buyer: buyerAddress.toLowerCase(),
-                transactionHash,
-                salePrice,
-                redeemedAt: new Date(),
-            },
-            { new: true }
-        );
+        const lazyNFT = await LazyNFT.findById(req.params.id);
 
         if (!lazyNFT) {
             return res.status(404).json({
@@ -510,10 +523,44 @@ router.post('/:id/confirm-redemption', authMiddleware, async (req, res) => {
             });
         }
 
+        const update = {};
+        if (quantity > 1 && firstId != null) {
+            // Multi-piece: decrement remainingPieces, push to redemptions (creator stays as listing owner)
+            const redemptions = lazyNFT.redemptions || [];
+            redemptions.push({
+                firstTokenId: firstId,
+                quantity,
+                buyer: buyerAddress.toLowerCase(),
+                transactionHash: transactionHash || null,
+                salePrice: salePrice != null ? String(salePrice) : null,
+                redeemedAt: new Date(),
+            });
+            update.$set = {
+                remainingPieces: Math.max(0, (lazyNFT.remainingPieces ?? lazyNFT.pieces ?? 1) - quantity),
+                redemptions,
+            };
+            if ((lazyNFT.remainingPieces ?? lazyNFT.pieces ?? 1) - quantity <= 0) {
+                update.$set.status = 'fully_redeemed';
+            }
+        } else {
+            // Single piece: legacy behavior (one tokenId, set buyer/tokenId/status)
+            update.$set = {
+                status: 'redeemed',
+                tokenId: firstId != null ? firstId : (tokenId != null ? tokenId.toString() : null),
+                buyer: buyerAddress.toLowerCase(),
+                transactionHash: transactionHash || null,
+                salePrice: salePrice != null ? String(salePrice) : null,
+                redeemedAt: new Date(),
+                remainingPieces: Math.max(0, (lazyNFT.remainingPieces ?? lazyNFT.pieces ?? 1) - 1),
+            };
+        }
+
+        const updated = await LazyNFT.findByIdAndUpdate(req.params.id, update, { new: true });
+
         res.json({
             success: true,
             message: 'Redemption confirmed',
-            lazyNFT,
+            lazyNFT: updated,
         });
     } catch (error) {
         console.error('Error confirming redemption:', error);
