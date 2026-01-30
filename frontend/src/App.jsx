@@ -62,6 +62,7 @@ const Slots = lazy(() => import("./pages/games/Slots"));
 const Blackjack = lazy(() => import("./pages/games/Blackjack"));
 const Roulette = lazy(() => import("./pages/games/Roulette"));
 const Dice = lazy(() => import("./pages/games/Dice"));
+const MultiplayerDice = lazy(() => import("./pages/games/MultiplayerDice"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
@@ -198,6 +199,7 @@ export default function App() {
           <Route path="/games/blackjack" element={<Blackjack />} />
           <Route path="/games/roulette" element={<Roulette />} />
           <Route path="/games/dice" element={<Dice />} />
+          <Route path="/games/multiplayer-dice" element={<MultiplayerDice />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

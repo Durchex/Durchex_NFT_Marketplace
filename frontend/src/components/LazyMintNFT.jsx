@@ -1,6 +1,7 @@
 // frontend/src/components/LazyMintNFT.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { ethers } from 'ethers';
+import { ICOContent } from '../Context';
 import { uploadToIPFS } from '../services/ipfs';
 import { lazyMintAPI } from '../services/api';
 import './LazyMintNFT.css';
@@ -11,6 +12,7 @@ import './LazyMintNFT.css';
  * Signature is created off-chain, NFT mints on buyer purchase
  */
 export default function LazyMintNFT() {
+    const { connectWallet } = useContext(ICOContent) || {};
     const [step, setStep] = useState(1); // 1: Upload, 2: Sign, 3: Confirm
     const [formData, setFormData] = useState({
         name: '',
@@ -109,22 +111,21 @@ export default function LazyMintNFT() {
         }
     };
 
-    // Step 2: Sign with wallet
+    // Step 2: Sign with wallet – open wallet the same way as Connect Wallet so it never fails
     const handleSign = async () => {
         try {
             setLoading(true);
             setError('');
 
-            // Get wallet provider
             if (!window.ethereum) {
                 throw new Error('MetaMask not found');
             }
 
-            // Request accounts directly (required for Edge and other browsers to open wallet)
+            // Use connectWallet (same as Connect Wallet button) so the wallet opens reliably
             try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                await (connectWallet?.('metamask') || connectWallet?.());
             } catch (requestErr) {
-                if (requestErr.code === 4001) {
+                if (requestErr?.code === 4001) {
                     throw new Error('Signature request was rejected in your wallet.');
                 }
                 throw requestErr;
@@ -145,8 +146,8 @@ export default function LazyMintNFT() {
                 [ipfsURI, formData.royaltyPercentage, currentNonce]
             );
 
-            // Wake wallet again right before signing so the popup opens (Edge, etc.)
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            // Open wallet again right before signing – same as Connect Wallet so popup always opens
+            await (connectWallet?.('metamask') || connectWallet?.());
             await new Promise((r) => setTimeout(r, 300));
 
             // Sign the message

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Header from '../../components/Header';
-import Footer from '../../FooterComponents/Footer';
 import { useGameWallet } from '../../hooks/useGameWallet';
-import { CircleDot, ArrowLeft, Wallet } from 'lucide-react';
+import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CasinoLayout from '../../components/games/CasinoLayout';
+import NeonBorder from '../../components/games/NeonBorder';
+import '../../styles/casino.css';
 
-const SUITS = ['S', 'H', 'D', 'C'];
+const SUITS = ['♠', '♥', '♦', '♣'];
+const SUIT_COLORS = { '♠': 'text-gray-900', '♥': 'text-red-600', '♦': 'text-red-600', '♣': 'text-gray-900' };
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const VALUES = { A: 11, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, J: 10, Q: 10, K: 10 };
 
@@ -34,10 +35,26 @@ function handValue(cards) {
   return total;
 }
 
-const Card = ({ card }) => (
-  <div className="w-14 h-20 md:w-16 md:h-22 bg-white rounded-lg border border-gray-300 flex flex-col items-center justify-center text-black shadow-lg">
-    <span className="text-lg font-bold">{card.rank}</span>
-    <span className="text-red-600 text-sm">{card.suit}</span>
+const Card = ({ card, index = 0, faceDown = false }) => (
+  <div
+    className={`card-deal-in w-14 h-20 md:w-16 md:h-22 rounded-lg border-2 flex flex-col items-center justify-center font-bold shadow-lg casino-3d-child ${
+      faceDown
+        ? 'bg-gradient-to-br from-violet-700 to-violet-900 border-violet-600'
+        : 'bg-white border-gray-300'
+    }`}
+    style={{
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
+      animationDelay: `${index * 0.1}s`,
+    }}
+  >
+    {faceDown ? (
+      <span className="text-violet-300 text-2xl">?</span>
+    ) : (
+      <>
+        <span className={`text-lg ${SUIT_COLORS[card.suit] || 'text-gray-900'}`}>{card.rank}</span>
+        <span className={`text-xl ${SUIT_COLORS[card.suit] || 'text-gray-900'}`}>{card.suit}</span>
+      </>
+    )}
   </div>
 );
 
@@ -129,71 +146,96 @@ const Blackjack = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-violet-950/30 to-slate-950">
-      <Header />
-      <main className="flex-1 w-full max-w-4xl mx-auto px-4 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <Link to="/games" className="flex items-center gap-2 text-gray-300 hover:text-white transition">
-            <ArrowLeft size={20} /> Back to Games
-          </Link>
-          <div className="flex items-center gap-2 bg-black/40 rounded-xl px-4 py-2 border border-violet-500/30">
-            <Wallet className="text-violet-400" size={20} />
-            <span className="text-xl font-bold text-violet-400">${gameBalance.toFixed(2)}</span>
-          </div>
-        </div>
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
-            <CircleDot className="text-violet-400" size={36} /> Blackjack
-          </h1>
-          <p className="text-gray-400">Get 21 or closer. Beat the dealer.</p>
-        </div>
-        <div className="bg-gray-900/60 backdrop-blur rounded-3xl border border-violet-500/20 p-8 md:p-10 shadow-2xl">
-          <div className="space-y-8">
-            <div>
-              <p className="text-gray-400 text-sm mb-2">Dealer {phase !== 'bet' && dealer.length ? '(' + handValue(dealer) + ')' : ''}</p>
-              <div className="flex flex-wrap gap-2">
-                {dealer.map((c, i) => (
-                  <Card key={i} card={c} />
-                ))}
-                {dealerHole && (
-                  <div className="w-14 h-20 md:w-16 md:h-22 bg-violet-800 rounded-lg border border-violet-600 flex items-center justify-center text-violet-300">?</div>
-                )}
-              </div>
+    <CasinoLayout
+      title="Blackjack"
+      subtitle="Get 21 or closer. Beat the dealer."
+      icon={CircleDot}
+      themeColor="violet"
+      gameBalance={gameBalance}
+    >
+      <NeonBorder color="violet">
+        <div className="casino-felt rounded-3xl p-6 md:p-8 space-y-8">
+          <div>
+            <p className="text-emerald-200/90 text-sm mb-2">
+              Dealer {phase !== 'bet' && dealer.length ? `(${handValue(dealer)})` : ''}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {dealer.map((c, i) => (
+                <Card key={i} card={c} index={i} />
+              ))}
+              {dealerHole && <Card faceDown index={dealer.length} />}
             </div>
-            <div>
-              <p className="text-gray-400 text-sm mb-2">You {player.length ? '(' + handValue(player) + ')' : ''}</p>
-              <div className="flex flex-wrap gap-2">
-                {player.map((c, i) => (
-                  <Card key={i} card={c} />
-                ))}
-              </div>
-            </div>
-            {message && <p className="text-center text-xl font-bold text-white">{message}</p>}
-            {phase === 'bet' && (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <div>
-                  <label className="text-gray-400 text-sm block mb-1">Bet ($)</label>
-                  <input type="number" min={1} max={gameBalance} value={bet} onChange={(e) => setBet(Math.max(1, Math.min(gameBalance, parseFloat(e.target.value) || 1)))} className="w-32 bg-black/50 border border-violet-500/30 rounded-xl px-4 py-3 text-white text-center" />
-                </div>
-                <button onClick={startHand} disabled={gameBalance < 1} className="px-8 py-4 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-violet-500/25">Deal</button>
-              </div>
-            )}
-            {phase === 'play' && (
-              <div className="flex justify-center gap-4">
-                <button onClick={hit} className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl">Hit</button>
-                <button onClick={stand} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">Stand</button>
-              </div>
-            )}
-            {phase === 'result' && (
-              <div className="flex justify-center">
-                <button onClick={() => { setPhase('bet'); setPlayer([]); setDealer([]); setDealerHole(null); setMessage(''); }} className="px-8 py-4 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl">New Hand</button>
-              </div>
-            )}
           </div>
+          <div>
+            <p className="text-emerald-200/90 text-sm mb-2">
+              You {player.length ? `(${handValue(player)})` : ''}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {player.map((c, i) => (
+                <Card key={i} card={c} index={i} />
+              ))}
+            </div>
+          </div>
+          {message && (
+            <p className="text-center text-xl font-bold text-white drop-shadow-lg">{message}</p>
+          )}
+          {phase === 'bet' && (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div>
+                <label className="text-emerald-200/80 text-sm block mb-1">Bet ($)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={gameBalance}
+                  value={bet}
+                  onChange={(e) => setBet(Math.max(1, Math.min(gameBalance, parseFloat(e.target.value) || 1)))}
+                  className="w-32 bg-black/40 border border-violet-500/40 rounded-xl px-4 py-3 text-white text-center focus:ring-2 focus:ring-violet-500/50"
+                />
+              </div>
+              <button
+                onClick={startHand}
+                disabled={gameBalance < 1}
+                className="casino-btn px-8 py-4 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-violet-500/25"
+              >
+                Deal
+              </button>
+            </div>
+          )}
+          {phase === 'play' && (
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={hit}
+                className="casino-btn px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg"
+              >
+                Hit
+              </button>
+              <button
+                onClick={stand}
+                className="casino-btn px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg"
+              >
+                Stand
+              </button>
+            </div>
+          )}
+          {phase === 'result' && (
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  setPhase('bet');
+                  setPlayer([]);
+                  setDealer([]);
+                  setDealerHole(null);
+                  setMessage('');
+                }}
+                className="casino-btn px-8 py-4 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/25"
+              >
+                New Hand
+              </button>
+            </div>
+          )}
         </div>
-      </main>
-      <Footer />
-    </div>
+      </NeonBorder>
+    </CasinoLayout>
   );
 };
 

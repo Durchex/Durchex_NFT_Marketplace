@@ -201,6 +201,31 @@ class SocketService {
     });
   }
 
+  // Game rooms (multiplayer)
+  joinGameRoom(roomId, gameType = 'dice', displayName) {
+    this.emit('game_join_room', { roomId: String(roomId), gameType, displayName });
+  }
+
+  leaveGameRoom() {
+    this.emit('game_leave_room');
+  }
+
+  emitGameAction(payload) {
+    this.emit('game_action', payload);
+  }
+
+  onGameBroadcast(callback) {
+    this.on('game_broadcast', callback);
+  }
+
+  onGameRoomJoined(callback) {
+    this.on('game_room_joined', callback);
+  }
+
+  onGameRoomLeft(callback) {
+    this.on('game_room_left', callback);
+  }
+
   // Get connection status
   getConnectionStatus() {
     return {

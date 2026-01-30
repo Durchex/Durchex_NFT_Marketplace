@@ -194,16 +194,13 @@ export default function Create() {
       setLazyMintLoading(true);
       setLazyMintError('');
 
-      // Ensure wallet is connected and we have an address
+      // Open wallet the same way as Connect Wallet – use connectWallet so it never fails to open
       let creatorAddress = address;
-      if (!creatorAddress) {
-        // Try to actively connect the wallet (MetaMask or default)
-        try {
-          const connected = await connectWallet?.('metamask') || await connectWallet?.();
-          creatorAddress = connected || address;
-        } catch (connectErr) {
-          console.error('Error connecting wallet before signing:', connectErr);
-        }
+      try {
+        const connected = await connectWallet?.('metamask') || await connectWallet?.();
+        creatorAddress = connected || address;
+      } catch (connectErr) {
+        console.error('Error connecting wallet before signing:', connectErr);
       }
 
       if (!creatorAddress) {
@@ -212,17 +209,6 @@ export default function Create() {
 
       if (!window.ethereum) {
         throw new Error('No Web3 wallet found in browser (window.ethereum missing).');
-      }
-
-      // Request accounts directly via provider (works on Edge and Chrome) – must be user-initiated
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-      } catch (requestErr) {
-        console.error('Error requesting accounts for signing:', requestErr);
-        if (requestErr.code === 4001) {
-          throw new Error('Signature request was rejected in your wallet.');
-        }
-        throw requestErr;
       }
 
       // Switch to the NFT's selected network before signing (not hardcoded to polygon)
@@ -250,8 +236,8 @@ export default function Create() {
         [lazyMintIpfsURI, lazyMintForm.royaltyPercentage, currentNonce]
       );
 
-      // Wake wallet again right before signing so the popup opens (Edge, etc.)
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      // Open wallet again right before signing – same as Connect Wallet so popup always opens
+      await (connectWallet?.('metamask') || connectWallet?.());
       await new Promise((r) => setTimeout(r, 300));
 
       // Sign the message

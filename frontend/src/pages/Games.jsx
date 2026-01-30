@@ -63,6 +63,15 @@ const GAMES = [
     glow: 'shadow-cyan-500/20',
     desc: 'Roll over or under a target. Double or nothing.',
   },
+  {
+    id: 'multiplayer-dice',
+    name: 'Multiplayer Dice',
+    path: '/games/multiplayer-dice',
+    icon: Users,
+    color: 'from-indigo-500 to-cyan-600',
+    glow: 'shadow-indigo-500/20',
+    desc: 'Join a room and play with others. See everyone\'s rolls live.',
+  },
 ];
 
 const GAME_POINTS_PER_REDEEM = 1000;

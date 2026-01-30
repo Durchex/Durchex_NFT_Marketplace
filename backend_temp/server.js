@@ -111,11 +111,63 @@ io.on('connection', (socket) => {
   // Handle user activity
   socket.on('user_activity', (data) => {
     console.log('User activity:', data);
-    // Broadcast to all users in the room
     socket.broadcast.emit('user_activity_update', data);
   });
 
+  // Game rooms: multiplayer games (dice, etc.)
+  socket.on('game_join_room', (data) => {
+    const roomId = data?.roomId || 'default';
+    const gameType = data?.gameType || 'dice';
+    const room = `game_${gameType}_${roomId}`;
+    socket.join(room);
+    socket.gameRoom = room;
+    socket.gameRoomId = roomId;
+    socket.gameType = gameType;
+    const playerCount = io.sockets.adapter.rooms.get(room)?.size || 1;
+    io.to(room).emit('game_room_joined', {
+      roomId,
+      gameType,
+      socketId: socket.id,
+      displayName: data?.displayName || socket.id.slice(0, 8),
+      playerCount,
+    });
+    console.log('Game join room:', socket.id, room, 'players:', playerCount);
+  });
+
+  socket.on('game_leave_room', () => {
+    if (socket.gameRoom) {
+      socket.leave(socket.gameRoom);
+      io.to(socket.gameRoom).emit('game_room_left', {
+        socketId: socket.id,
+        roomId: socket.gameRoomId,
+        playerCount: io.sockets.adapter.rooms.get(socket.gameRoom)?.size || 0,
+      });
+      socket.gameRoom = null;
+      socket.gameRoomId = null;
+      socket.gameType = null;
+    }
+  });
+
+  socket.on('game_action', (data) => {
+    const room = socket.gameRoom;
+    if (!room || !data) return;
+    const payload = {
+      ...data,
+      socketId: socket.id,
+      displayName: data.displayName || socket.id.slice(0, 8),
+      timestamp: new Date().toISOString(),
+    };
+    io.to(room).emit('game_broadcast', payload);
+  });
+
   socket.on('disconnect', () => {
+    if (socket.gameRoom) {
+      io.to(socket.gameRoom).emit('game_room_left', {
+        socketId: socket.id,
+        roomId: socket.gameRoomId,
+        playerCount: io.sockets.adapter.rooms.get(socket.gameRoom)?.size ? io.sockets.adapter.rooms.get(socket.gameRoom).size - 1 : 0,
+      });
+    }
     console.log('User disconnected:', socket.id);
   });
 });
