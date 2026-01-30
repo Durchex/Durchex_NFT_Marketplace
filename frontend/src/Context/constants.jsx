@@ -178,6 +178,18 @@ export const LazyMintNFT_ABI = [
     name: 'NFTRedeemed',
     type: 'event',
   },
+  { inputs: [], name: 'platformFeeBps', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'platformFeeReceiver', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
+  {
+    inputs: [
+      { name: '_feeBps', type: 'uint256' },
+      { name: '_receiver', type: 'address' },
+    ],
+    name: 'setPlatformFeeAndReceiver',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ];
 
 // Default LazyMint address for local/dev (e.g. Hardhat). Set VITE_APP_LAZY_MINT_CONTRACT_ADDRESS for real deployments.
@@ -453,6 +465,39 @@ export const getNFTMarketplaceContracts = async (networkName) => {
       `Error fetching marketplace contract for ${networkName}:`,
       error
     );
+  }
+};
+
+/** LazyMint contract (read-only) for a network. Uses getContractAddresses(network).lazyMint. */
+export const getLazyMintContract = async (networkName) => {
+  try {
+    if (!networkName) return null;
+    const net = String(networkName).toLowerCase();
+    const rpcUrl = rpcUrls[net];
+    const contractAddress = getContractAddresses(networkName)?.lazyMint;
+    if (!rpcUrl || !contractAddress) return null;
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+    return new ethers.Contract(contractAddress, LazyMintNFT_ABI, provider);
+  } catch (error) {
+    console.error(`Error fetching LazyMint contract for ${networkName}:`, error);
+    return null;
+  }
+};
+
+/** LazyMint contract with signer (for setPlatformFeeAndReceiver). */
+export const getLazyMintContractWithSigner = async (networkName) => {
+  try {
+    if (!networkName || typeof window?.ethereum === "undefined") return null;
+    const net = String(networkName).toLowerCase();
+    const rpcUrl = rpcUrls[net];
+    const contractAddress = getContractAddresses(networkName)?.lazyMint;
+    if (!rpcUrl || !contractAddress) return null;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    return new ethers.Contract(contractAddress, LazyMintNFT_ABI, signer);
+  } catch (error) {
+    console.error(`Error fetching LazyMint contract (signer) for ${networkName}:`, error);
+    return null;
   }
 };
 

@@ -48,6 +48,7 @@ import performanceRouter from "./routes/performance.js";
 import mintingRoutes from "./routes/mintingRoutes.js";
 import lazyMintRouter from "./routes/lazyMint.js";
 import reviewRouter from "./routes/reviewRouter.js";
+import marketplaceSettingsRouter from "./routes/marketplaceSettingsRouter.js";
 
 // connect db
 connectDB();
@@ -150,6 +151,7 @@ app.use('/api/v1/performance', performanceRouter);
 app.use('/api/v1/minting', mintingRoutes);
 app.use('/api/v1/lazy-mint', lazyMintRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/settings/marketplace', marketplaceSettingsRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

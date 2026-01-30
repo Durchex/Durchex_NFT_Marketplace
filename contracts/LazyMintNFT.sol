@@ -33,9 +33,11 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
 
     mapping(uint256 => NFTMetadata) public nftMetadata;
 
-    // Marketplace settings
+    // Marketplace settings: fee taken on sale, rest to creator
     address public marketplaceOwner;
-    uint256 public marketplaceFeePercentage = 25; // 2.5% = 25/1000
+    uint256 public marketplaceFeePercentage = 25; // 2.5% = 25/1000 (legacy, use platformFeeBps)
+    uint256 public platformFeeBps = 250; // 2.5% in basis points; taken by marketplace before crediting creator
+    address payable public platformFeeReceiver; // Marketplace treasury wallet for this network
 
     event LazyMintCreated(
         address indexed creator,
@@ -66,6 +68,7 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
 
     constructor() ERC721("DurchexLazyNFT", "THRX-LAZY") {
         marketplaceOwner = msg.sender;
+        platformFeeReceiver = payable(msg.sender); // Default: owner until admin sets per-network wallet
     }
 
     /**
@@ -119,9 +122,7 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
     }
 
     /**
-     * @dev Buyer redeems a lazy minted NFT
-     * Creator's signature is verified, then NFT is minted
-     * Marketplace and royalties handled in separate transactions
+     * @dev Buyer redeems a lazy minted NFT. Payment is split: platform fee to marketplace treasury, rest to creator.
      */
     function redeemNFT(
         address creator,
@@ -130,40 +131,48 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
         uint256 salePrice,
         bytes memory signature
     ) external payable returns (uint256) {
-        // Validate royalty percentage
+        require(msg.value >= salePrice, "Insufficient value");
         require(royaltyPercentage <= 50, "Royalty too high (max 50%)");
 
-        // Get creator's current nonce
         uint256 nonce = nonces[creator];
-
-        // Verify signature
         require(
             verifySignature(creator, uri, royaltyPercentage, nonce, signature),
             "Invalid signature"
         );
-
-        // Prevent signature reuse
         require(!_usedSignatures[signature], "Signature already used");
 
-        // Increment nonce to prevent replay attacks
         nonces[creator]++;
         _usedSignatures[signature] = true;
 
-        // Mint token ID
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
 
-        // Mint to buyer
         _mint(msg.sender, tokenId);
         _setTokenURI(tokenId, uri);
 
-        // Store metadata
         nftMetadata[tokenId] = NFTMetadata({
             creator: creator,
             royaltyPercentage: royaltyPercentage,
             salePrice: salePrice,
             minted: true
         });
+
+        // Split payment: platform fee to marketplace wallet, rest to creator
+        uint256 feeAmount = (salePrice * platformFeeBps) / 10000;
+        uint256 creatorAmount = salePrice - feeAmount;
+        if (feeAmount > 0 && platformFeeReceiver != address(0)) {
+            (bool feeOk, ) = platformFeeReceiver.call{value: feeAmount}("");
+            require(feeOk, "Platform fee transfer failed");
+        }
+        if (creatorAmount > 0) {
+            (bool creatorOk, ) = payable(creator).call{value: creatorAmount}("");
+            require(creatorOk, "Creator payment failed");
+        }
+
+        // Refund excess
+        if (msg.value > salePrice) {
+            payable(msg.sender).call{value: msg.value - salePrice}("");
+        }
 
         emit NFTRedeemed(tokenId, creator, msg.sender, uri, salePrice);
 
@@ -267,6 +276,15 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
     function setMarketplaceFee(uint256 newFeePercentage) external onlyOwner {
         require(newFeePercentage <= 100, "Fee too high (max 10%)");
         marketplaceFeePercentage = newFeePercentage;
+    }
+
+    /**
+     * @dev Set sale fee and treasury (marketplace wallet for this network). Fee in basis points (e.g. 250 = 2.5%).
+     */
+    function setPlatformFeeAndReceiver(uint256 _feeBps, address payable _receiver) external onlyOwner {
+        require(_feeBps <= 1000, "Fee too high (max 10%)");
+        platformFeeBps = _feeBps;
+        platformFeeReceiver = _receiver;
     }
 
     /**

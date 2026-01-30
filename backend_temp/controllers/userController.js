@@ -1,4 +1,4 @@
-import { createUser, deleteUserByWalletAddress, getUserByWalletAddress, getUsers, updateUserByWalletAddress } from "../models/userModel.js";
+import { createUser, deleteUserByWalletAddress, getUserByWalletAddress, getUserByGameCode, getUsers, updateUserByWalletAddress, ensureUniqueGameCode } from "../models/userModel.js";
 
 // Create or update user profile
 export const createOrUpdateUserProfile = async (req, res) => {
@@ -49,15 +49,48 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// Get single user by wallet address
+// Get single user by wallet address (ensure gameCode exists for existing users)
 export const getUserProfile = async (req, res) => {
     try {
         const { walletAddress } = req.params;
-        const user = await getUserByWalletAddress(walletAddress);
+        let user = await getUserByWalletAddress(walletAddress);
         if (!user) {
-            res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ message: "User not found" });
+        }
+        if (!user.gameCode) {
+            const code = await ensureUniqueGameCode();
+            await updateUserByWalletAddress(walletAddress, { gameCode: code, gameCodeRedeemed: false }, true);
+            user = await getUserByWalletAddress(walletAddress);
         }
         res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Redeem game code: body { code, walletAddress }. Only the code owner can redeem; credits 1000 points (frontend adds to balance).
+export const redeemGameCode = async (req, res) => {
+    try {
+        const { code, walletAddress } = req.body;
+        if (!code || typeof code !== "string" || !code.trim()) {
+            return res.status(400).json({ error: "Game code is required" });
+        }
+        if (!walletAddress || typeof walletAddress !== "string") {
+            return res.status(400).json({ error: "Wallet address is required" });
+        }
+        const user = await getUserByGameCode(code.trim());
+        if (!user) {
+            return res.status(404).json({ error: "Invalid game code" });
+        }
+        if (user.gameCodeRedeemed) {
+            return res.status(400).json({ error: "This game code has already been redeemed" });
+        }
+        const wallet = walletAddress.trim().toLowerCase();
+        if (user.walletAddress !== wallet) {
+            return res.status(403).json({ error: "Only the account that received this code can redeem it" });
+        }
+        await updateUserByWalletAddress(user.walletAddress, { gameCodeRedeemed: true }, true);
+        res.status(200).json({ success: true, points: 1000 });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

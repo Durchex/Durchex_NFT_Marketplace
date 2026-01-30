@@ -27,6 +27,9 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
     address public vendorNFT;
     uint256 public listingFee = 0.0001 ether; // 0.0001 ETH
     uint256 public pointThreshold = 100; // Points needed for airdrop eligibility
+    // Sale fee: percentage taken by marketplace before crediting seller (basis points, e.g. 250 = 2.5%)
+    uint256 public platformFeeBps = 250;
+    address payable public platformFeeReceiver; // Marketplace treasury wallet for this network
 
     mapping(uint256 => ListedToken) public idToListedToken;
     mapping(address => mapping(uint256 => Offer[])) public nftOffers;
@@ -45,9 +48,11 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
     event OfferCanceled(address indexed buyer, address indexed nftContract, uint256 indexed offerId);
     event OfferAccepted(address indexed seller, address indexed buyer, address nftContract, uint256 tokenId, uint256 amount);
     event ListingFeeUpdated(uint256 newFee);
+    event PlatformFeeUpdated(uint256 feeBps, address receiver);
 
     constructor(address _vendorNFT, address payable _owner) {
         vendorNFT = _vendorNFT;
+        platformFeeReceiver = _owner; // Default: owner receives sale fee until admin sets per-network wallet
         transferOwnership(_owner);
     }
 
@@ -93,7 +98,7 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
         emit NFTDelisted(_itemId, msg.sender);
     }
 
-    // Buy NFT
+    // Buy NFT: marketplace takes platformFeeBps % of sale price, rest goes to seller
     function buyNFT(address _nftContract, uint256 _itemId) external payable nonReentrant {
         ListedToken storage token = idToListedToken[_itemId];
         require(token.currentlyListed, "NFT not listed");
@@ -105,8 +110,17 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
         // Transfer NFT to buyer
         IERC721(token.nftContract).transferFrom(address(this), msg.sender, token.tokenId);
 
-        // Pay seller
-        token.seller.transfer(token.price);
+        // Split payment: platform fee to marketplace treasury, rest to seller
+        uint256 feeAmount = (token.price * platformFeeBps) / 10000;
+        uint256 sellerAmount = token.price - feeAmount;
+        if (feeAmount > 0 && platformFeeReceiver != address(0)) {
+            (bool feeOk, ) = platformFeeReceiver.call{value: feeAmount}("");
+            require(feeOk, "Platform fee transfer failed");
+        }
+        if (sellerAmount > 0) {
+            (bool sellerOk, ) = token.seller.call{value: sellerAmount}("");
+            require(sellerOk, "Seller payment failed");
+        }
 
         // Refund excess payment
         if (msg.value > token.price) {
@@ -119,7 +133,7 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
         emit NFTBought(msg.sender, token.tokenId, token.price);
     }
 
-    // Buy NFT with offchain payment (for fiat payments)
+    // Buy NFT with offchain payment (for fiat payments): same fee split
     function buyNFTWithOffchainPayment(address _buyer, uint256 _itemId) external payable onlyOwner nonReentrant {
         ListedToken storage token = idToListedToken[_itemId];
         require(token.currentlyListed, "NFT not listed");
@@ -130,15 +144,21 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
         // Transfer NFT to buyer
         IERC721(token.nftContract).transferFrom(address(this), _buyer, token.tokenId);
 
-        // Pay seller
-        token.seller.transfer(token.price);
+        uint256 feeAmount = (token.price * platformFeeBps) / 10000;
+        uint256 sellerAmount = token.price - feeAmount;
+        if (feeAmount > 0 && platformFeeReceiver != address(0)) {
+            (bool feeOk, ) = platformFeeReceiver.call{value: feeAmount}("");
+            require(feeOk, "Platform fee transfer failed");
+        }
+        if (sellerAmount > 0) {
+            (bool sellerOk, ) = token.seller.call{value: sellerAmount}("");
+            require(sellerOk, "Seller payment failed");
+        }
 
-        // Refund excess payment to contract owner
         if (msg.value > token.price) {
             payable(owner()).transfer(msg.value - token.price);
         }
 
-        // Add points to buyer
         userPoints[_buyer] += 10;
 
         emit NFTBought(_buyer, token.tokenId, token.price);
@@ -322,6 +342,14 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
     function updateListingFee(uint256 _newFee) external onlyOwner {
         listingFee = _newFee;
         emit ListingFeeUpdated(_newFee);
+    }
+
+    // Set sale fee and treasury (marketplace wallet for this network). Fee in basis points (e.g. 250 = 2.5%).
+    function setPlatformFeeAndReceiver(uint256 _feeBps, address payable _receiver) external onlyOwner {
+        require(_feeBps <= 1000, "Fee too high (max 10%)");
+        platformFeeBps = _feeBps;
+        platformFeeReceiver = _receiver;
+        emit PlatformFeeUpdated(_feeBps, _receiver);
     }
 
     // Withdraw escrow balance

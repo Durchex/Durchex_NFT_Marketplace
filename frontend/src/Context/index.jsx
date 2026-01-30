@@ -18,6 +18,8 @@ import {
   shortenAddress,
   getNFTMarketplaceContract,
   getNFTMarketplaceContracts,
+  getLazyMintContract,
+  getLazyMintContractWithSigner,
   getVendorNFTContracts,
   getVendorNFTContract,
   contractAddresses,
@@ -1665,6 +1667,69 @@ export const Index = ({ children }) => {
     }
   };
 
+  // Sale fee: percentage taken by marketplace before crediting seller. Fee in basis points (e.g. 250 = 2.5%).
+  const getPlatformFeeAndReceiver = async (networkName = null) => {
+    try {
+      const net = (networkName || selectedChain).toLowerCase();
+      const contract = await getNFTMarketplaceContract(net);
+      const feeBps = await contract.platformFeeBps();
+      const receiver = await contract.platformFeeReceiver();
+      return { feeBps: feeBps?.toString?.() ?? String(feeBps), receiver: receiver ?? ethers.constants.AddressZero };
+    } catch (error) {
+      console.log("getPlatformFeeAndReceiver", error);
+      return { feeBps: "250", receiver: ethers.constants.AddressZero };
+    }
+  };
+
+  const setPlatformFeeAndReceiver = async (feeBps, receiverAddress, networkName = null) => {
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const net = (networkName || selectedChain).toLowerCase();
+      const MarketContractInstance = await getNFTMarketplaceContracts(net);
+      const tx = await MarketContractInstance.setPlatformFeeAndReceiver(
+        ethers.BigNumber.from(String(Math.round(Number(feeBps)))) ,
+        receiverAddress
+      );
+      await tx.wait();
+      return tx;
+    } catch (error) {
+      console.log(error + " in setPlatformFeeAndReceiver");
+      throw error;
+    }
+  };
+
+  const getLazyMintPlatformFeeAndReceiver = async (networkName = null) => {
+    try {
+      const net = (networkName || selectedChain).toLowerCase();
+      const contract = await getLazyMintContract(net);
+      if (!contract) return null;
+      const feeBps = await contract.platformFeeBps();
+      const receiver = await contract.platformFeeReceiver();
+      return { feeBps: feeBps?.toString?.() ?? String(feeBps), receiver: receiver ?? ethers.constants.AddressZero };
+    } catch (error) {
+      console.log("getLazyMintPlatformFeeAndReceiver", error);
+      return null;
+    }
+  };
+
+  const setLazyMintPlatformFeeAndReceiver = async (feeBps, receiverAddress, networkName = null) => {
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const net = (networkName || selectedChain).toLowerCase();
+      const LazyMintInstance = await getLazyMintContractWithSigner(net);
+      if (!LazyMintInstance) throw new Error("LazyMint contract not configured for this network");
+      const tx = await LazyMintInstance.setPlatformFeeAndReceiver(
+        ethers.BigNumber.from(String(Math.round(Number(feeBps)))),
+        receiverAddress
+      );
+      await tx.wait();
+      return tx;
+    } catch (error) {
+      console.log(error + " in setLazyMintPlatformFeeAndReceiver");
+      throw error;
+    }
+  };
+
   const getActiveListings = async () => {
     try {
       const networkName = selectedChain.toLowerCase();
@@ -1784,6 +1849,10 @@ export const Index = ({ children }) => {
         getAllVendors,
         checkEligibleForAirdrop,
         updateListingFee,
+        getPlatformFeeAndReceiver,
+        setPlatformFeeAndReceiver,
+        getLazyMintPlatformFeeAndReceiver,
+        setLazyMintPlatformFeeAndReceiver,
         getNFTById_,
         getNFTById,
         getMyNFTs,

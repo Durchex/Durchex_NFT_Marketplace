@@ -918,6 +918,30 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "platformFeeBps",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "platformFeeReceiver",
+      "outputs": [{"internalType": "address payable", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"internalType": "uint256", "name": "_feeBps", "type": "uint256"},
+        {"internalType": "address payable", "name": "_receiver", "type": "address"}
+      ],
+      "name": "setPlatformFeeAndReceiver",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",

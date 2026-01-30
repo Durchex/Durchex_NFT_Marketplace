@@ -1,9 +1,10 @@
 import { useContext, useEffect, useState } from "react";
 import { ICOContent } from "../../Context";
-import { contractAddresses } from "../../Context/constants";
+import { contractAddresses, getContractAddresses } from "../../Context/constants";
 import { ErrorToast } from "../../app/Toast/Error";
 import { SuccessToast } from "../../app/Toast/Success";
 import TezosWithdrawUI from "../../components/TezosWithdrawUI";
+import { marketplaceSettingsAPI } from "../../services/api";
 import { 
   FiDollarSign, 
   FiUsers, 
@@ -29,6 +30,9 @@ const ContractManagement = () => {
     updatePointsPerTransaction,
     updatePointThreshold,
     updateListingFee,
+    getPlatformFeeAndReceiver,
+    setPlatformFeeAndReceiver,
+    setLazyMintPlatformFeeAndReceiver,
   } = contexts || {};
 
   const [listingFee, setListingFee] = useState("");
@@ -43,6 +47,9 @@ const ContractManagement = () => {
   const [authorizedVendor, setAuthorizedVendor] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState(contexts?.selectedChain || 'polygon');
+  const [saleFeePercent, setSaleFeePercent] = useState("");
+  const [marketplaceWallet, setMarketplaceWallet] = useState("");
+  const [saleFeeLoading, setSaleFeeLoading] = useState(false);
 
   useEffect(() => {
     if (getAllVendors) {
@@ -67,6 +74,103 @@ const ContractManagement = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadSaleFeeAndWallet = async () => {
+    if (!getPlatformFeeAndReceiver) return;
+    setSaleFeeLoading(true);
+    try {
+      if (contexts?.setSelectedChain) contexts.setSelectedChain(selectedNetwork);
+      await new Promise((r) => setTimeout(r, 300));
+      const { feeBps, receiver } = await getPlatformFeeAndReceiver(selectedNetwork);
+      setSaleFeePercent(feeBps ? (Number(feeBps) / 100).toFixed(2) : "2.5");
+      setMarketplaceWallet(receiver && receiver !== "0x0000000000000000000000000000000000000000" ? receiver : "");
+    } catch (e) {
+      console.error(e);
+      ErrorToast("Failed to load sale fee settings");
+    } finally {
+      setSaleFeeLoading(false);
+    }
+  };
+
+  const updateSaleFeeAndWallet = async () => {
+    if (!setPlatformFeeAndReceiver) {
+      ErrorToast("Set sale fee function not available");
+      return;
+    }
+    const pct = parseFloat(saleFeePercent);
+    if (isNaN(pct) || pct < 0 || pct > 10) {
+      ErrorToast("Sale fee must be between 0 and 10%");
+      return;
+    }
+    if (!marketplaceWallet || !/^0x[a-fA-F0-9]{40}$/.test(marketplaceWallet)) {
+      ErrorToast("Enter a valid marketplace wallet address (0x...)");
+      return;
+    }
+    setSaleFeeLoading(true);
+    try {
+      if (contexts?.setSelectedChain) contexts.setSelectedChain(selectedNetwork);
+      await new Promise((r) => setTimeout(r, 300));
+      const feeBps = Math.round(pct * 100);
+      await setPlatformFeeAndReceiver(feeBps, marketplaceWallet, selectedNetwork);
+      const lazyMintAddress = getContractAddresses(selectedNetwork)?.lazyMint;
+      if (lazyMintAddress && setLazyMintPlatformFeeAndReceiver) {
+        try {
+          await setLazyMintPlatformFeeAndReceiver(feeBps, marketplaceWallet, selectedNetwork);
+          SuccessToast("Sale fee & marketplace wallet updated for Marketplace and LazyMint on " + selectedNetwork);
+        } catch (lazyErr) {
+          SuccessToast("Marketplace updated; LazyMint update failed: " + (lazyErr?.message || "check console"));
+          console.error("LazyMint fee update failed:", lazyErr);
+        }
+      } else {
+        SuccessToast("Sale fee & marketplace wallet updated for " + selectedNetwork);
+      }
+    } catch (error) {
+      ErrorToast(error?.message || "Failed to update sale fee & wallet");
+      console.error(error);
+    } finally {
+      setSaleFeeLoading(false);
+    }
+  };
+
+  const loadSaleFeeFromDb = async () => {
+    setSaleFeeDbLoading(true);
+    try {
+      const data = await marketplaceSettingsAPI.getByNetwork(selectedNetwork);
+      if (data?.saleFeeBps != null) setSaleFeePercent((Number(data.saleFeeBps) / 100).toFixed(2));
+      if (data?.treasuryWallet != null) setMarketplaceWallet(data.treasuryWallet || "");
+      SuccessToast("Loaded sale fee & wallet from database for " + selectedNetwork);
+    } catch (e) {
+      ErrorToast(e?.message || "Failed to load from database");
+      console.error(e);
+    } finally {
+      setSaleFeeDbLoading(false);
+    }
+  };
+
+  const saveSaleFeeToDb = async () => {
+    const pct = parseFloat(saleFeePercent);
+    if (isNaN(pct) || pct < 0 || pct > 10) {
+      ErrorToast("Sale fee must be between 0 and 10%");
+      return;
+    }
+    if (!marketplaceWallet || !/^0x[a-fA-F0-9]{40}$/.test(marketplaceWallet)) {
+      ErrorToast("Enter a valid marketplace wallet address (0x...)");
+      return;
+    }
+    setSaleFeeDbLoading(true);
+    try {
+      await marketplaceSettingsAPI.upsert(selectedNetwork, {
+        saleFeeBps: Math.round(pct * 100),
+        treasuryWallet: marketplaceWallet,
+      });
+      SuccessToast("Sale fee & marketplace wallet saved to database for " + selectedNetwork);
+    } catch (e) {
+      ErrorToast(e?.message || "Failed to save to database");
+      console.error(e);
+    } finally {
+      setSaleFeeDbLoading(false);
     }
   };
 
@@ -334,6 +438,79 @@ const ContractManagement = () => {
             >
               Update Listing Fee
             </button>
+          </Card>
+
+          {/* Sale fee & marketplace wallet: percentage on sale goes to this network wallet before crediting seller */}
+          <Card title="Sale fee & marketplace wallet" icon={FiDollarSign} color="purple">
+            <p className="text-sm text-gray-600 mb-3 font-display">
+              On each sale, a percentage goes to the marketplace wallet; the rest is credited to the seller. Set per network.
+            </p>
+            <div className="mb-3">
+              <label className="block text-sm text-gray-600 mb-1">Network</label>
+              <select
+                value={selectedNetwork}
+                onChange={(e) => setSelectedNetwork(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white border border-gray-300 text-gray-900"
+              >
+                {Object.keys(contractAddresses).map((net) => (
+                  <option key={net} value={net}>{net}</option>
+                ))}
+              </select>
+            </div>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="10"
+              className="w-full p-3 mb-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Sale fee % (e.g. 2.5)"
+              value={saleFeePercent}
+              onChange={(e) => setSaleFeePercent(e.target.value)}
+            />
+            <input
+              type="text"
+              className="w-full p-3 mb-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+              placeholder="Marketplace wallet address (0x...)"
+              value={marketplaceWallet}
+              onChange={(e) => setMarketplaceWallet(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={loadSaleFeeAndWallet}
+                disabled={saleFeeLoading}
+                className="flex-1 min-w-[100px] px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-gray-800 rounded-lg font-display font-medium transition-colors"
+              >
+                Load from contract
+              </button>
+              <button
+                type="button"
+                onClick={updateSaleFeeAndWallet}
+                disabled={saleFeeLoading || !saleFeePercent || !marketplaceWallet}
+                className="flex-1 min-w-[100px] px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-display font-medium transition-colors"
+              >
+                {saleFeeLoading ? "Updating…" : "Update contracts"}
+              </button>
+              <button
+                type="button"
+                onClick={loadSaleFeeFromDb}
+                disabled={saleFeeDbLoading}
+                className="flex-1 min-w-[100px] px-4 py-2 bg-slate-200 hover:bg-slate-300 disabled:opacity-50 text-gray-800 rounded-lg font-display font-medium transition-colors"
+              >
+                Load from DB
+              </button>
+              <button
+                type="button"
+                onClick={saveSaleFeeToDb}
+                disabled={saleFeeDbLoading || !saleFeePercent || !marketplaceWallet}
+                className="flex-1 min-w-[100px] px-4 py-2 bg-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-display font-medium transition-colors"
+              >
+                {saleFeeDbLoading ? "Saving…" : "Save to DB"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Update contracts applies to Marketplace (and LazyMint if configured for this network). Load/Save to DB stores or restores values in the database.
+            </p>
           </Card>
 
           {/* Update Points Per Transaction */}

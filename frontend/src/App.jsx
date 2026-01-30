@@ -57,6 +57,11 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const MintingHub = lazy(() => import("./pages/MintingHub"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const Games = lazy(() => import("./pages/Games"));
+const SpinTheWheel = lazy(() => import("./pages/games/SpinTheWheel"));
+const Slots = lazy(() => import("./pages/games/Slots"));
+const Blackjack = lazy(() => import("./pages/games/Blackjack"));
+const Roulette = lazy(() => import("./pages/games/Roulette"));
+const Dice = lazy(() => import("./pages/games/Dice"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
@@ -188,6 +193,11 @@ export default function App() {
           <Route path="/minting" element={<MintingHub />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/games/spin-the-wheel" element={<SpinTheWheel />} />
+          <Route path="/games/slots" element={<Slots />} />
+          <Route path="/games/blackjack" element={<Blackjack />} />
+          <Route path="/games/roulette" element={<Roulette />} />
+          <Route path="/games/dice" element={<Dice />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

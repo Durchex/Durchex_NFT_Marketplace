@@ -1,10 +1,10 @@
 import express from 'express';
 
 // import asyncHandler from '../utils/asyncHandler';
-import { createOrUpdateUserProfile, deleteUserProfile, getAllUsers, getUserProfile, updateUserProfile } from "../controllers/userController.js";
+import { createOrUpdateUserProfile, deleteUserProfile, getAllUsers, getUserProfile, updateUserProfile, redeemGameCode } from "../controllers/userController.js";
 const router = express.Router();
 
-
+router.post("/game-code/redeem", redeemGameCode);
 router.post("/users", createOrUpdateUserProfile);
 router.get("/users", getAllUsers);
 router.get("/users/:walletAddress", getUserProfile);

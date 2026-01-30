@@ -277,6 +277,17 @@ export const userAPI = {
       throw new Error(`Failed to delete user profile: ${error.message}`);
     }
   },
+
+  // Redeem game code (body: { code, walletAddress }). Returns { success: true, points: 1000 }.
+  redeemGameCode: async (code, walletAddress) => {
+    try {
+      const response = await api.post('/user/game-code/redeem', { code: (code || '').trim(), walletAddress: walletAddress || '' });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || error.message;
+      throw new Error(msg || 'Failed to redeem game code');
+    }
+  },
 };
 
 // NFT API functions
@@ -1560,6 +1571,41 @@ export const settingsAPI = {
     } catch (error) {
       console.error('Failed to check minting status:', error);
       return true; // Default to enabled if error
+    }
+  }
+};
+
+// Marketplace settings: sale fee % and treasury wallet per network (stored in DB)
+export const marketplaceSettingsAPI = {
+  getAll: async () => {
+    try {
+      const response = await api.get('/settings/marketplace');
+      return response.data || [];
+    } catch (error) {
+      console.error('Failed to fetch marketplace settings:', error);
+      throw error;
+    }
+  },
+  getByNetwork: async (network) => {
+    try {
+      const response = await api.get(`/settings/marketplace/${encodeURIComponent(String(network).toLowerCase())}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch marketplace settings for network:', error);
+      throw error;
+    }
+  },
+  upsert: async (network, { saleFeeBps, treasuryWallet, updatedBy }) => {
+    try {
+      const response = await api.put(`/settings/marketplace/${encodeURIComponent(String(network).toLowerCase())}`, {
+        saleFeeBps,
+        treasuryWallet,
+        updatedBy,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to upsert marketplace settings:', error);
+      throw error;
     }
   }
 };

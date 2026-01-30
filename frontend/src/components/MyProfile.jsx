@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
-import { Edit3, Share2 } from "lucide-react";
+import { Edit3, Share2, Copy } from "lucide-react";
+import toast from "react-hot-toast";
 import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error";
 import LoadingSpinner from "./LoadingSpinner"; // Import the loading spinner
@@ -20,6 +21,7 @@ const MyProfile = () => {
     favoriteCreators: "",
     partnerWallet: "",
     partnerSharePercentage: 0,
+    gameCode: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Loading state
@@ -49,6 +51,7 @@ const MyProfile = () => {
           favoriteCreators: data.favoriteCreators || "",
           partnerWallet: data.partnerWallet || "",
           partnerSharePercentage: data.partnerSharePercentage || 0,
+          gameCode: data.gameCode || "",
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -172,6 +175,7 @@ const MyProfile = () => {
         favoriteCreators: "",
         partnerWallet: "",
         partnerSharePercentage: 0,
+        gameCode: "",
       });
       setIsEditing(false);
     } catch (error) {
@@ -376,6 +380,7 @@ const MyProfile = () => {
                     favoriteCreators: data.favoriteCreators || "",
                     partnerWallet: data.partnerWallet || "",
                     partnerSharePercentage: data.partnerSharePercentage || 0,
+                    gameCode: data.gameCode || "",
                   });
                 });
               }
@@ -412,6 +417,35 @@ const MyProfile = () => {
 
       {/* Profile Details */}
       <div className="space-y-6">
+        {/* Game code – redeem on Games page for 1000 points */}
+        <div className="bg-[#222] rounded-lg p-4 flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm text-gray-400 mb-1">Game code</label>
+            <span className="text-white font-mono truncate block">
+              {profileData.gameCode || "—"}
+            </span>
+            {profileData.gameCode && (
+              <p className="text-xs text-gray-500 mt-1">
+                Redeem on the Games page to get 1000 points.
+              </p>
+            )}
+          </div>
+          {profileData.gameCode && (
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(profileData.gameCode);
+                toast.success("Game code copied!");
+              }}
+              className="shrink-0 flex items-center gap-2 bg-[#333] hover:bg-[#444] rounded-lg px-3 py-2 text-sm text-white transition"
+              title="Copy game code"
+            >
+              <Copy className="h-4 w-4" />
+              Copy
+            </button>
+          )}
+        </div>
+
         <input
           type="email"
           name="email"
