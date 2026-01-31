@@ -49,6 +49,7 @@ import mintingRoutes from "./routes/mintingRoutes.js";
 import lazyMintRouter from "./routes/lazyMint.js";
 import reviewRouter from "./routes/reviewRouter.js";
 import marketplaceSettingsRouter from "./routes/marketplaceSettingsRouter.js";
+import casinoRouter from "./routes/casinoRouter.js";
 
 // connect db
 connectDB();
