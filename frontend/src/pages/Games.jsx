@@ -15,8 +15,13 @@ import {
   Sparkles,
   Ticket,
   Users,
+  Coins,
+  Bomb,
+  ArrowUpDown,
+  Gauge,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { casinoAssets } from '../config/casinoAssets';
 
 const GAMES = [
   {
@@ -72,6 +77,51 @@ const GAMES = [
     color: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-500/20',
     desc: 'Provably fair. Server generates crash point. Cash out before it crashes.',
+  },
+  {
+    id: 'coin-flip',
+    name: 'Coin Flip',
+    path: '/games/coin-flip',
+    icon: Coins,
+    color: 'from-amber-500 to-orange-600',
+    glow: 'shadow-amber-500/20',
+    desc: 'Heads or tails. Provably fair.',
+  },
+  {
+    id: 'plinko',
+    name: 'Plinko',
+    path: '/games/plinko',
+    icon: CircleDot,
+    color: 'from-cyan-500 to-blue-600',
+    glow: 'shadow-cyan-500/20',
+    desc: 'Drop the ball. Land in a bucket for a multiplier.',
+  },
+  {
+    id: 'mines',
+    name: 'Mines',
+    path: '/games/mines',
+    icon: Bomb,
+    color: 'from-red-500 to-rose-600',
+    glow: 'shadow-red-500/20',
+    desc: 'Reveal tiles. Cash out before you hit a mine.',
+  },
+  {
+    id: 'hi-lo',
+    name: 'Hi-Lo',
+    path: '/games/hi-lo',
+    icon: ArrowUpDown,
+    color: 'from-violet-500 to-purple-600',
+    glow: 'shadow-violet-500/20',
+    desc: 'Guess if the next card is higher or lower.',
+  },
+  {
+    id: 'limbo',
+    name: 'Limbo',
+    path: '/games/limbo',
+    icon: Gauge,
+    color: 'from-rose-500 to-pink-600',
+    glow: 'shadow-rose-500/20',
+    desc: 'Pick a target multiplier. Win if the result reaches it.',
   },
   {
     id: 'multiplayer-dice',
@@ -185,24 +235,36 @@ const Games = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {GAMES.map((game) => {
             const Icon = game.icon;
+            const cardImage = casinoAssets.gameCards?.[game.id];
             return (
               <Link
                 key={game.id}
                 to={game.path}
-                className="group block bg-gray-900/60 backdrop-blur rounded-2xl border border-gray-700/50 p-6 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300"
+                className="group block bg-gray-900/60 backdrop-blur rounded-2xl border border-gray-700/50 overflow-hidden hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300"
               >
-                <div
-                  className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${game.color} ${game.glow} shadow-lg mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  <Icon className="text-white" size={32} />
+                <div className="relative h-40 w-full overflow-hidden bg-gray-800">
+                  {cardImage ? (
+                    <img
+                      src={cardImage}
+                      alt={game.name}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${game.color} ${game.glow}`}>
+                      <Icon className="text-white opacity-90" size={48} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-transparent to-transparent" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition">
-                  {game.name}
-                </h3>
-                <p className="text-gray-400 text-sm">{game.desc}</p>
-                <span className="inline-flex items-center gap-1 text-purple-400 text-sm font-medium mt-3 group-hover:gap-2 transition-all">
-                  Play now <Gamepad2 size={14} />
-                </span>
+                <div className="p-5">
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-200 transition">
+                    {game.name}
+                  </h3>
+                  <p className="text-gray-400 text-sm">{game.desc}</p>
+                  <span className="inline-flex items-center gap-1 text-purple-400 text-sm font-medium mt-3 group-hover:gap-2 transition-all">
+                    Play now <Gamepad2 size={14} />
+                  </span>
+                </div>
               </Link>
             );
           })}
@@ -210,6 +272,7 @@ const Games = () => {
       </main>
 
       <Footer />
+      </div>
     </div>
   );
 };

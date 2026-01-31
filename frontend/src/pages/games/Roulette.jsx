@@ -7,6 +7,7 @@ import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
 import CasinoGameSurface from '../../components/games/CasinoGameSurface';
+import { casinoAssets } from '../../config/casinoAssets';
 import '../../styles/casino.css';
 
 const RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -40,7 +41,8 @@ const Roulette = () => {
     setSpinning(true);
     setLastResult(null);
     setBall(null);
-    setGameBalance(gameBalance - bet);
+    setGameBalance((prev) => prev - bet);
+    sound.playRouletteSpin();
 
     const final = Math.floor(Math.random() * 37);
     const spinDuration = 4000;
@@ -64,9 +66,11 @@ const Roulette = () => {
         } else {
           if (BLACK.includes(final)) win = bet * 2;
         }
-        const newBalance = gameBalance - bet + win;
-        setGameBalance(newBalance);
-        setLastResult({ final, win, newBalance, betType });
+        setGameBalance((prev) => {
+          const newBalance = prev + win;
+          setLastResult({ final, win, newBalance, betType });
+          return newBalance;
+        });
         setSpinning(false);
         sound.playRouletteBall();
         if (win > 0) sound.playWin();
@@ -99,7 +103,7 @@ const Roulette = () => {
         themeColor="red"
         {...gameRoom}
       />
-      <CasinoGameSurface themeColor="red" pulse={spinning} idle>
+      <CasinoGameSurface themeColor="red" pulse={spinning} idle backgroundImage={casinoAssets.images.backgroundFelt}>
         <div className="flex flex-col items-center gap-8">
           <div className="flex gap-4">
             <button

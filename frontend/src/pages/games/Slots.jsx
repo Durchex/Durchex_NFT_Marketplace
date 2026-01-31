@@ -8,9 +8,20 @@ import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
 import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import CasinoParticles from '../../components/games/CasinoParticles';
+import { casinoAssets } from '../../config/casinoAssets';
 import '../../styles/casino.css';
 
 const SYMBOLS = ['CH', 'LM', 'OR', 'GR', 'DM', '7', 'ST', 'BL'];
+const SYMBOL_IMAGES = {
+  CH: casinoAssets.sprites.slotCherry,
+  LM: casinoAssets.sprites.slotLemon,
+  OR: casinoAssets.sprites.slotOrange,
+  GR: casinoAssets.sprites.slotGrape,
+  DM: casinoAssets.sprites.slotDiamond,
+  '7': casinoAssets.sprites.slotSeven,
+  ST: casinoAssets.sprites.slotStar,
+  BL: casinoAssets.sprites.slotBell,
+};
 const PAYOUTS = { '7': 10, 'DM': 5, 'ST': 3, 'BL': 2, 'GR': 1.5, 'OR': 1.2, 'LM': 1, 'CH': 0.8 };
 
 const Slots = () => {
@@ -50,7 +61,8 @@ const Slots = () => {
     }
     setSpinning(true);
     setLastWin(null);
-    setGameBalance(gameBalance - bet);
+    setGameBalance((prev) => prev - bet);
+    sound.playSlotSpin();
     let count = 0;
     const maxCount = 18;
     const tick = () => {
@@ -79,8 +91,11 @@ const Slots = () => {
           if (a === c) matchingIndices.push(0, 2);
         }
         const win = bet * multiplier;
-        setGameBalance((prev) => prev - bet + win);
-        setLastWin({ win, newBalance: gameBalance - bet + win, matchingIndices });
+        setGameBalance((prev) => {
+          const newBalance = prev + win;
+          setLastWin({ win, newBalance, matchingIndices });
+          return newBalance;
+        });
         setSpinning(false);
         if (mode === 'multiplayer' && joined) emitResult({ bet, win });
         if (win > 0) toast.success('Won!');
@@ -106,7 +121,7 @@ const Slots = () => {
         themeColor="emerald"
         {...gameRoom}
       />
-      <CasinoGameSurface themeColor="emerald" pulse={spinning} idle>
+      <CasinoGameSurface themeColor="emerald" pulse={spinning} idle backgroundImage={casinoAssets.images.backgroundCasino}>
         <div className="flex flex-col items-center gap-8 relative">
           <CasinoParticles active={showParticles} count={28} duration={1200} />
           <div
@@ -118,14 +133,14 @@ const Slots = () => {
             {reels.map((s, i) => (
               <div
                 key={reelKeys[i] ?? i}
-                className={`w-24 h-28 md:w-28 md:h-32 flex items-center justify-center text-2xl md:text-3xl font-bold rounded-xl border-2 border-emerald-500/30 bg-gradient-to-b from-gray-800 to-gray-900 text-emerald-300 reel-drop-in`}
+                className={`w-24 h-28 md:w-28 md:h-32 flex items-center justify-center rounded-xl border-2 border-emerald-500/30 bg-gradient-to-b from-gray-800 to-gray-900 overflow-hidden reel-drop-in ${(lastWin?.matchingIndices ?? []).includes(i) ? 'casino-symbol-win ring-2 ring-emerald-400' : ''}`}
                 style={{
                   boxShadow: 'inset 0 2px 8px rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.4)',
                   animationDuration: '0.35s',
                   animationDelay: `${i * 0.05}s`,
                 }}
               >
-                {s}
+                <img src={SYMBOL_IMAGES[s] || casinoAssets.sprites.slotCherry} alt={s} className="w-16 h-16 object-contain" />
               </div>
             ))}
           </div>

@@ -57,6 +57,7 @@ const SpinTheWheel = () => {
     }
     setSpinning(true);
     setLastResult(null);
+    setGameBalance((prev) => prev - bet);
     sound.playRouletteSpin();
 
     const index = Math.floor(Math.random() * NUM_SEGMENTS);
@@ -76,14 +77,16 @@ const SpinTheWheel = () => {
     setTimeout(() => {
       setSpinning(false);
       const win = bet * segment.multiplier;
-      const newBalance = gameBalance - bet + win;
-      setGameBalance(newBalance);
-      setLastResult({
-        multiplier: segment.multiplier,
-        label: segment.label,
-        bet,
-        win,
-        newBalance,
+      setGameBalance((prev) => {
+        const newBalance = prev + win;
+        setLastResult({
+          multiplier: segment.multiplier,
+          label: segment.label,
+          bet,
+          win,
+          newBalance,
+        });
+        return newBalance;
       });
       if (win > bet) sound.playWin();
       else if (win < bet) sound.playLose();

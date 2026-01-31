@@ -64,6 +64,11 @@ const Roulette = lazy(() => import("./pages/games/Roulette"));
 const Dice = lazy(() => import("./pages/games/Dice"));
 const MultiplayerDice = lazy(() => import("./pages/games/MultiplayerDice"));
 const Crash = lazy(() => import("./pages/games/Crash"));
+const CoinFlip = lazy(() => import("./pages/games/CoinFlip"));
+const Plinko = lazy(() => import("./pages/games/Plinko"));
+const Mines = lazy(() => import("./pages/games/Mines"));
+const HiLo = lazy(() => import("./pages/games/HiLo"));
+const Limbo = lazy(() => import("./pages/games/Limbo"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
@@ -202,6 +207,11 @@ export default function App() {
           <Route path="/games/dice" element={<Dice />} />
           <Route path="/games/multiplayer-dice" element={<MultiplayerDice />} />
           <Route path="/games/crash" element={<Crash />} />
+          <Route path="/games/coin-flip" element={<CoinFlip />} />
+          <Route path="/games/plinko" element={<Plinko />} />
+          <Route path="/games/mines" element={<Mines />} />
+          <Route path="/games/hi-lo" element={<HiLo />} />
+          <Route path="/games/limbo" element={<Limbo />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

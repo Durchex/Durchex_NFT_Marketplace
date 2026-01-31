@@ -6,6 +6,7 @@ import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
 import CasinoGameSurface from '../../components/games/CasinoGameSurface';
+import { casinoAssets } from '../../config/casinoAssets';
 import '../../styles/casino.css';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -69,7 +70,7 @@ const Blackjack = () => {
     setDealer([dealerCards[0]]);
     setDealerHole(dealerCards[1]);
     setPhase('play');
-    setGameBalance(gameBalance - bet);
+    setGameBalance((prev) => prev - bet);
     setMessage('');
     if (handValue(p) === 21) {
       setDealer([dealerCards[0], dealerCards[1]]);
@@ -119,7 +120,7 @@ const Blackjack = () => {
       setMessage('Dealer bust! You win!');
       winAmount = bet * 2;
       sound.playWin();
-      setGameBalance(gameBalance - bet + winAmount);
+      setGameBalance((prev) => prev + winAmount);
       if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
       toast.success('Dealer bust! You win!');
       return;
@@ -142,7 +143,7 @@ const Blackjack = () => {
     }
     setMessage('Push.');
     winAmount = bet;
-    setGameBalance(gameBalance - bet + bet);
+    setGameBalance((prev) => prev + bet);
     if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
     toast('Push.');
   };
@@ -161,7 +162,7 @@ const Blackjack = () => {
         themeColor="violet"
         {...gameRoom}
       />
-      <CasinoGameSurface themeColor="violet" pulse={phase === 'play'} idle>
+      <CasinoGameSurface themeColor="violet" pulse={phase === 'play'} idle backgroundImage={casinoAssets.images.backgroundFelt}>
         <div className="casino-felt casino-panel-frame rounded-3xl p-6 md:p-8 space-y-8 casino-idle-float">
           <div>
             <p className="text-emerald-200/90 text-sm mb-2">

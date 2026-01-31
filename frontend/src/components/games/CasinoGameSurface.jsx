@@ -20,6 +20,7 @@ export default function CasinoGameSurface({
     violet: 'rgba(139, 92, 246, 0.08)',
     red: 'rgba(239, 68, 68, 0.08)',
     cyan: 'rgba(6, 182, 212, 0.08)',
+    rose: 'rgba(251, 113, 133, 0.08)',
   }[themeColor] || 'rgba(16, 185, 129, 0.08)';
 
   return (

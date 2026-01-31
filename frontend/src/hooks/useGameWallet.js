@@ -14,7 +14,8 @@ export function useGameWallet() {
   const [gameBalance, setGameBalance] = useState(0);
   const syncTimeoutRef = useRef(null);
 
-  // On load: use max(localStorage, server) so we restore from server if local was cleared
+  // On load: use max(localStorage, server). Re-read localStorage inside the callback so we
+  // never overwrite a balance that was updated by a game while the fetch was in flight.
   useEffect(() => {
     if (!address) {
       try {
@@ -27,24 +28,27 @@ export function useGameWallet() {
       return;
     }
     let cancelled = false;
-    const local = (() => {
-      try {
-        const s = localStorage.getItem(walletKey);
-        return s != null ? parseFloat(s) || 0 : 0;
-      } catch (_) {
-        return 0;
-      }
-    })();
     userAPI.getGameBalance(address).then((serverBalance) => {
       if (cancelled) return;
+      let localNow = 0;
+      try {
+        const s = localStorage.getItem(walletKey);
+        localNow = s != null ? parseFloat(s) || 0 : 0;
+      } catch (_) {}
       const server = typeof serverBalance === 'number' ? serverBalance : 0;
-      const use = Math.max(local, server);
+      const use = Math.max(localNow, server);
       setGameBalance(use);
       try {
         localStorage.setItem(walletKey, String(use));
       } catch (_) {}
     }).catch(() => {
-      if (!cancelled) setGameBalance(local);
+      if (cancelled) return;
+      let localNow = 0;
+      try {
+        const s = localStorage.getItem(walletKey);
+        localNow = s != null ? parseFloat(s) || 0 : 0;
+      } catch (_) {}
+      setGameBalance(localNow);
     });
     return () => { cancelled = true; };
   }, [walletKey, address]);

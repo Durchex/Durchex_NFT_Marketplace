@@ -37,7 +37,7 @@ const Dice = () => {
     setLastResult(null);
     setDiceValue(null);
     setRollKey((k) => k + 1);
-    setGameBalance(gameBalance - bet);
+    setGameBalance((prev) => prev - bet);
     sound.playDiceRoll();
 
     const rollDuration = 1500;
@@ -57,9 +57,11 @@ const Dice = () => {
         let win = 0;
         if (push) win = bet;
         else if (winOver || winUnder) win = bet * 2;
-        const newBalance = gameBalance - bet + win;
-        setGameBalance(newBalance);
-        setLastResult({ final, win, newBalance, choice, target });
+        setGameBalance((prev) => {
+          const newBalance = prev + win;
+          setLastResult({ final, win, newBalance, choice, target });
+          return newBalance;
+        });
         setRolling(false);
         if (win > bet) toast.success(`You won $${(win - bet).toFixed(2)}!`);
         else if (win === bet) toast('Push – bet returned.');
@@ -79,7 +81,7 @@ const Dice = () => {
       themeColor="cyan"
       gameBalance={gameBalance}
     >
-      <CasinoGameSurface themeColor="cyan" pulse={rolling} idle>
+      <CasinoGameSurface themeColor="cyan" pulse={rolling} idle backgroundImage={casinoAssets.images.backgroundFelt}>
         <div className="flex flex-col items-center gap-8">
           <div className="flex gap-4">
             <button
