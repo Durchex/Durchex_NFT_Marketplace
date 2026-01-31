@@ -272,7 +272,6 @@ const Games = () => {
       </main>
 
       <Footer />
-      </div>
     </div>
   );
 };
