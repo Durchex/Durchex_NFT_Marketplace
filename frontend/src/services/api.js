@@ -305,6 +305,40 @@ export const userAPI = {
   },
 };
 
+// Casino API (provably fair, server-authoritative)
+export const casinoAPI = {
+  placeBet: async ({ walletAddress, gameId, betAmount, clientSeed, options = {} }) => {
+    const response = await api.post('/casino/place-bet', {
+      walletAddress: (walletAddress || '').toLowerCase(),
+      gameId,
+      betAmount: Math.max(0.01, Number(betAmount) || 0),
+      clientSeed: clientSeed || undefined,
+      options,
+    });
+    return response.data;
+  },
+  minesCashout: async ({ walletAddress, roundId, revealedIndices = [] }) => {
+    const response = await api.post('/casino/mines-cashout', {
+      walletAddress: (walletAddress || '').toLowerCase(),
+      roundId,
+      revealedIndices,
+    });
+    return response.data;
+  },
+  getRound: async (roundId) => {
+    const response = await api.get(`/casino/round/${roundId}`);
+    return response.data;
+  },
+  getConfig: async () => {
+    const response = await api.get('/casino/config');
+    return response.data;
+  },
+  getAnalytics: async () => {
+    const response = await api.get('/casino/analytics');
+    return response.data;
+  },
+};
+
 // NFT API functions
 export const nftAPI = {
   // Check if NFT exists

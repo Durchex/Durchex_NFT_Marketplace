@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
 import { useGameRoom } from '../../hooks/useGameRoom';
+import { useCasinoSound } from '../../hooks/useCasinoSound';
 import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
-import NeonBorder from '../../components/games/NeonBorder';
+import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import '../../styles/casino.css';
 
 const SEGMENTS = [
@@ -56,6 +57,7 @@ const SpinTheWheel = () => {
     }
     setSpinning(true);
     setLastResult(null);
+    sound.playRouletteSpin();
 
     const index = Math.floor(Math.random() * NUM_SEGMENTS);
     const segment = SEGMENTS[index];
@@ -83,6 +85,8 @@ const SpinTheWheel = () => {
         win,
         newBalance,
       });
+      if (win > bet) sound.playWin();
+      else if (win < bet) sound.playLose();
       if (mode === 'multiplayer' && joined) {
         emitResult({ bet, win });
       }
@@ -106,12 +110,12 @@ const SpinTheWheel = () => {
         themeColor="amber"
         {...gameRoom}
       />
-      <NeonBorder color="amber" pulse={spinning}>
+      <CasinoGameSurface themeColor="amber" pulse={spinning} idle>
         <div className="flex flex-col lg:flex-row items-center justify-center gap-10">
-          <div className="casino-perspective relative flex items-center justify-center">
+          <div className="casino-perspective relative flex items-center justify-center casino-idle-float">
             {/* 3D wheel with depth and glow */}
             <div
-              className="relative rounded-full border-8 border-amber-500/60 shadow-2xl"
+              className="relative rounded-full border-8 border-amber-500/60 shadow-2xl casino-panel-frame"
               style={{
                 width: 'clamp(280px, 80vw, 380px)',
                 height: 'clamp(280px, 80vw, 380px)',
@@ -198,7 +202,7 @@ const SpinTheWheel = () => {
             )}
           </div>
         </div>
-      </NeonBorder>
+      </CasinoGameSurface>
     </CasinoLayout>
   );
 };

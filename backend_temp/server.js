@@ -350,6 +350,7 @@ app.use('/api/v1/minting', mintingRoutes);
 app.use('/api/v1/lazy-mint', lazyMintRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/settings/marketplace', marketplaceSettingsRouter);
+app.use('/api/v1/casino', casinoRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

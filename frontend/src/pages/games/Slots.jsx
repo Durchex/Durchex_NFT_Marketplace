@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
 import { useGameRoom } from '../../hooks/useGameRoom';
+import { useCasinoSound } from '../../hooks/useCasinoSound';
 import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
-import NeonBorder from '../../components/games/NeonBorder';
+import CasinoGameSurface from '../../components/games/CasinoGameSurface';
+import CasinoParticles from '../../components/games/CasinoParticles';
 import '../../styles/casino.css';
 
 const SYMBOLS = ['CH', 'LM', 'OR', 'GR', 'DM', '7', 'ST', 'BL'];
@@ -13,6 +15,7 @@ const PAYOUTS = { '7': 10, 'DM': 5, 'ST': 3, 'BL': 2, 'GR': 1.5, 'OR': 1.2, 'LM'
 
 const Slots = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const sound = useCasinoSound({ volume: 0.5 });
   const [mode, setMode] = useState('single');
   const gameRoom = useGameRoom('slots');
   const { joined, leaveRoom, emitResult } = gameRoom;
@@ -22,6 +25,7 @@ const Slots = () => {
   const [lastWin, setLastWin] = useState(null);
   const [reelKeys, setReelKeys] = useState([0, 0, 0]);
   const [showWinFlash, setShowWinFlash] = useState(false);
+  const [showParticles, setShowParticles] = useState(false);
 
   const handleSetMode = (m) => {
     if (m === 'single' && joined) leaveRoom();
@@ -31,8 +35,11 @@ const Slots = () => {
   useEffect(() => {
     if (lastWin && lastWin.win > 0) {
       setShowWinFlash(true);
+      setShowParticles(true);
+      sound.playSlotWin();
       const t = setTimeout(() => setShowWinFlash(false), 600);
-      return () => clearTimeout(t);
+      const t2 = setTimeout(() => setShowParticles(false), 1400);
+      return () => { clearTimeout(t); clearTimeout(t2); };
     }
   }, [lastWin]);
 
@@ -61,11 +68,19 @@ const Slots = () => {
         setReels([a, b, c]);
         setReelKeys([count * 3, count * 3 + 1, count * 3 + 2]);
         let multiplier = 0;
-        if (a === b && b === c) multiplier = PAYOUTS[a] ?? 1;
-        else if (a === b || b === c || a === c) multiplier = 0.5;
+        const matchingIndices = [];
+        if (a === b && b === c) {
+          multiplier = PAYOUTS[a] ?? 1;
+          matchingIndices.push(0, 1, 2);
+        } else if (a === b || b === c || a === c) {
+          multiplier = 0.5;
+          if (a === b) matchingIndices.push(0, 1);
+          if (b === c) matchingIndices.push(1, 2);
+          if (a === c) matchingIndices.push(0, 2);
+        }
         const win = bet * multiplier;
         setGameBalance((prev) => prev - bet + win);
-        setLastWin({ win, newBalance: gameBalance - bet + win });
+        setLastWin({ win, newBalance: gameBalance - bet + win, matchingIndices });
         setSpinning(false);
         if (mode === 'multiplayer' && joined) emitResult({ bet, win });
         if (win > 0) toast.success('Won!');
@@ -91,10 +106,11 @@ const Slots = () => {
         themeColor="emerald"
         {...gameRoom}
       />
-      <NeonBorder color="emerald" pulse={spinning}>
-        <div className="flex flex-col items-center gap-8">
+      <CasinoGameSurface themeColor="emerald" pulse={spinning} idle>
+        <div className="flex flex-col items-center gap-8 relative">
+          <CasinoParticles active={showParticles} count={28} duration={1200} />
           <div
-            className={`relative flex gap-4 md:gap-6 p-6 rounded-2xl border-4 border-emerald-500/40 bg-black/60 ${
+            className={`relative flex gap-4 md:gap-6 p-6 rounded-2xl casino-panel-frame border-emerald-500/40 bg-black/60 ${
               showWinFlash ? 'win-burst shadow-[0_0_40px_rgba(16,185,129,0.4)]' : ''
             }`}
             style={{ boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5), 0 0 30px rgba(16,185,129,0.15)' }}
@@ -144,7 +160,7 @@ const Slots = () => {
             </div>
           )}
         </div>
-      </NeonBorder>
+      </CasinoGameSurface>
     </CasinoLayout>
   );
 };

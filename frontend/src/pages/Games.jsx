@@ -65,6 +65,15 @@ const GAMES = [
     desc: 'Roll over or under a target. Double or nothing.',
   },
   {
+    id: 'crash',
+    name: 'Crash',
+    path: '/games/crash',
+    icon: Sparkles,
+    color: 'from-emerald-500 to-teal-600',
+    glow: 'shadow-emerald-500/20',
+    desc: 'Provably fair. Server generates crash point. Cash out before it crashes.',
+  },
+  {
     id: 'multiplayer-dice',
     name: 'Multiplayer Dice',
     path: '/games/multiplayer-dice',

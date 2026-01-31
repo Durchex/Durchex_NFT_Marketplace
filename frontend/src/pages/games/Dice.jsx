@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
+import { useCasinoSound } from '../../hooks/useCasinoSound';
 import { Dices, TrendingUp, TrendingDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
-import NeonBorder from '../../components/games/NeonBorder';
+import CasinoGameSurface from '../../components/games/CasinoGameSurface';
+import CasinoDice from '../../components/games/CasinoDice';
 import '../../styles/casino.css';
 
 const Dice = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const sound = useCasinoSound({ volume: 0.5 });
   const [bet, setBet] = useState(10);
   const [choice, setChoice] = useState('over');
   const [target, setTarget] = useState(4);
@@ -35,6 +38,7 @@ const Dice = () => {
     setDiceValue(null);
     setRollKey((k) => k + 1);
     setGameBalance(gameBalance - bet);
+    sound.playDiceRoll();
 
     const rollDuration = 1500;
     const interval = 80;
@@ -75,7 +79,7 @@ const Dice = () => {
       themeColor="cyan"
       gameBalance={gameBalance}
     >
-      <NeonBorder color="cyan" pulse={rolling}>
+      <CasinoGameSurface themeColor="cyan" pulse={rolling} idle>
         <div className="flex flex-col items-center gap-8">
           <div className="flex gap-4">
             <button
@@ -114,18 +118,14 @@ const Dice = () => {
             />
           </div>
 
-          <div className="casino-perspective relative">
-            <div
-              key={rollKey}
-              className={`w-28 h-28 md:w-32 md:h-32 flex items-center justify-center rounded-2xl border-4 border-cyan-500/50 text-5xl md:text-6xl font-bold text-cyan-400 ${
-                rolling ? 'dice-roll-animation' : ''
-              } ${showWinBurst ? 'win-burst' : ''}`}
-              style={{
-                background: 'linear-gradient(145deg, #0e3342 0%, #083042 50%, #062830 100%)',
-                boxShadow: 'inset 0 0 30px rgba(0,0,0,0.4), 0 0 40px rgba(6,182,212,0.2), 0 10px 30px rgba(0,0,0,0.3)',
-              }}
-            >
-              {diceValue ?? '?'}
+          <div className="relative">
+            <div key={rollKey} className={`relative inline-block ${showWinBurst ? 'win-burst' : ''}`}>
+              <CasinoDice
+                value={diceValue ?? 1}
+                rolling={rolling}
+                size={112}
+                className="w-28 h-28 md:w-32 md:h-32"
+              />
             </div>
           </div>
 
@@ -162,7 +162,7 @@ const Dice = () => {
             </div>
           )}
         </div>
-      </NeonBorder>
+      </CasinoGameSurface>
     </CasinoLayout>
   );
 };

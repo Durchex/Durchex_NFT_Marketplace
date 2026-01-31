@@ -200,6 +200,7 @@ export default function App() {
           <Route path="/games/roulette" element={<Roulette />} />
           <Route path="/games/dice" element={<Dice />} />
           <Route path="/games/multiplayer-dice" element={<MultiplayerDice />} />
+          <Route path="/games/crash" element={<Crash />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

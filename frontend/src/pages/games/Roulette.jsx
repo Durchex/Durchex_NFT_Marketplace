@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
 import { useGameRoom } from '../../hooks/useGameRoom';
+import { useCasinoSound } from '../../hooks/useCasinoSound';
 import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
-import NeonBorder from '../../components/games/NeonBorder';
+import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import '../../styles/casino.css';
 
 const RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
@@ -13,6 +14,7 @@ const BLACK = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 3
 
 const Roulette = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const sound = useCasinoSound({ volume: 0.5 });
   const [mode, setMode] = useState('single');
   const gameRoom = useGameRoom('roulette');
   const { joined, leaveRoom, emitResult } = gameRoom;
@@ -66,6 +68,9 @@ const Roulette = () => {
         setGameBalance(newBalance);
         setLastResult({ final, win, newBalance, betType });
         setSpinning(false);
+        sound.playRouletteBall();
+        if (win > 0) sound.playWin();
+        else sound.playLose();
         if (mode === 'multiplayer' && joined) emitResult({ bet, win });
         if (win > 0) toast.success(`Won $${(win - bet).toFixed(2)}!`);
         else toast.error(`Lost $${bet.toFixed(2)}.`);
@@ -94,7 +99,7 @@ const Roulette = () => {
         themeColor="red"
         {...gameRoom}
       />
-      <NeonBorder color="red" pulse={spinning}>
+      <CasinoGameSurface themeColor="red" pulse={spinning} idle>
         <div className="flex flex-col items-center gap-8">
           <div className="flex gap-4">
             <button
@@ -184,10 +189,10 @@ const Roulette = () => {
               </div>
               <div className="text-gray-400 text-sm">Balance: ${lastResult.newBalance.toFixed(2)}</div>
             </div>
-          )}
-        </div>
-      </NeonBorder>
-    </CasinoLayout>
+            )}
+          </div>
+        </CasinoGameSurface>
+      </CasinoLayout>
   );
 };
 

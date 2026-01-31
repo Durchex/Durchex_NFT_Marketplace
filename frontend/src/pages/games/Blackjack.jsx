@@ -5,7 +5,7 @@ import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
-import NeonBorder from '../../components/games/NeonBorder';
+import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import '../../styles/casino.css';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
@@ -37,31 +37,12 @@ function handValue(cards) {
   return total;
 }
 
-const Card = ({ card, index = 0, faceDown = false }) => (
-  <div
-    className={`card-deal-in w-14 h-20 md:w-16 md:h-22 rounded-lg border-2 flex flex-col items-center justify-center font-bold shadow-lg casino-3d-child ${
-      faceDown
-        ? 'bg-gradient-to-br from-violet-700 to-violet-900 border-violet-600'
-        : 'bg-white border-gray-300'
-    }`}
-    style={{
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5)',
-      animationDelay: `${index * 0.1}s`,
-    }}
-  >
-    {faceDown ? (
-      <span className="text-violet-300 text-2xl">?</span>
-    ) : (
-      <>
-        <span className={`text-lg ${SUIT_COLORS[card.suit] || 'text-gray-900'}`}>{card.rank}</span>
-        <span className={`text-xl ${SUIT_COLORS[card.suit] || 'text-gray-900'}`}>{card.suit}</span>
-      </>
-    )}
-  </div>
-);
-
 const Blackjack = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const sound = useCasinoSound({ volume: 0.5 });
+  const [mode, setMode] = useState('single');
+  const gameRoom = useGameRoom('blackjack');
+  const { joined, leaveRoom, emitResult } = gameRoom;
   const [bet, setBet] = useState(10);
   const [deck, setDeck] = useState([]);
   const [player, setPlayer] = useState([]);
@@ -69,6 +50,11 @@ const Blackjack = () => {
   const [dealerHole, setDealerHole] = useState(null);
   const [phase, setPhase] = useState('bet');
   const [message, setMessage] = useState('');
+
+  const handleSetMode = (m) => {
+    if (m === 'single' && joined) leaveRoom();
+    setMode(m);
+  };
 
   const startHand = () => {
     if (gameBalance < bet) {
@@ -93,6 +79,7 @@ const Blackjack = () => {
   };
 
   const hit = () => {
+    sound.playCardFlip();
     const d = [...deck];
     const p = [...player, d.pop()];
     setDeck(d);
@@ -124,12 +111,14 @@ const Blackjack = () => {
     let winAmount = 0;
     if (pv > 21) {
       setMessage('Bust!');
+      sound.playLose();
       if (mode === 'multiplayer' && joined) emitResult({ bet, win: 0 });
       return;
     }
     if (dv > 21) {
       setMessage('Dealer bust! You win!');
       winAmount = bet * 2;
+      sound.playWin();
       setGameBalance(gameBalance - bet + winAmount);
       if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
       toast.success('Dealer bust! You win!');
@@ -138,6 +127,7 @@ const Blackjack = () => {
     if (pv > dv) {
       setMessage('You win!');
       winAmount = bet * 2;
+      sound.playWin();
       setGameBalance(gameBalance - bet + winAmount);
       if (mode === 'multiplayer' && joined) emitResult({ bet, win: winAmount });
       toast.success('You win!');
@@ -145,6 +135,7 @@ const Blackjack = () => {
     }
     if (pv < dv) {
       setMessage('Dealer wins.');
+      sound.playLose();
       if (mode === 'multiplayer' && joined) emitResult({ bet, win: 0 });
       toast.error('Dealer wins.');
       return;
@@ -170,8 +161,8 @@ const Blackjack = () => {
         themeColor="violet"
         {...gameRoom}
       />
-      <NeonBorder color="violet">
-        <div className="casino-felt rounded-3xl p-6 md:p-8 space-y-8">
+      <CasinoGameSurface themeColor="violet" pulse={phase === 'play'} idle>
+        <div className="casino-felt casino-panel-frame rounded-3xl p-6 md:p-8 space-y-8 casino-idle-float">
           <div>
             <p className="text-emerald-200/90 text-sm mb-2">
               Dealer {phase !== 'bet' && dealer.length ? `(${handValue(dealer)})` : ''}
@@ -189,7 +180,7 @@ const Blackjack = () => {
             </p>
             <div className="flex flex-wrap gap-2">
               {player.map((c, i) => (
-                <Card key={i} card={c} index={i} />
+                <CasinoCard key={i} card={c} index={i} />
               ))}
             </div>
           </div>
@@ -251,7 +242,7 @@ const Blackjack = () => {
             </div>
           )}
         </div>
-      </NeonBorder>
+      </CasinoGameSurface>
     </CasinoLayout>
   );
 };

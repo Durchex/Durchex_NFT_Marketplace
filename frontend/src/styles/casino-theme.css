@@ -1,0 +1,74 @@
+/**
+ * Casino theme – visual layer only. No game logic.
+ * Re-theme by overriding these variables; all math/RTP unchanged.
+ */
+
+:root {
+  /* Dark UI base – crypto-casino aesthetic */
+  --casino-bg-base: #0f172a;
+  --casino-bg-surface: #1e293b;
+  --casino-bg-overlay: rgba(15, 23, 42, 0.9);
+  --casino-border: rgba(255, 255, 255, 0.08);
+  --casino-border-accent: rgba(212, 175, 55, 0.35);
+
+  /* Neon / gold / metallic accents */
+  --casino-accent-gold: #d4af37;
+  --casino-accent-neon: #00ffcc;
+  --casino-accent-glow: rgba(0, 255, 204, 0.25);
+  --casino-text-primary: #f8fafc;
+  --casino-text-muted: #94a3b8;
+  --casino-text-highlight: #fbbf24;
+
+  /* Per-game accents (override in skin) */
+  --casino-theme-amber: #f59e0b;
+  --casino-theme-emerald: #10b981;
+  --casino-theme-violet: #8b5cf6;
+  --casino-theme-red: #ef4444;
+  --casino-theme-cyan: #06b6d4;
+
+  /* Layers */
+  --casino-layer-bg: 0;
+  --casino-layer-surface: 1;
+  --casino-layer-overlay: 2;
+  --casino-layer-effects: 3;
+}
+
+/* Layered game container */
+.casino-game-layer {
+  position: relative;
+  isolation: isolate;
+}
+
+.casino-layer-bg {
+  position: absolute;
+  inset: 0;
+  z-index: var(--casino-layer-bg);
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0, 0, 0, 0.4) 0%, transparent 50%),
+    var(--casino-bg-base);
+}
+
+.casino-layer-surface {
+  position: relative;
+  z-index: var(--casino-layer-surface);
+}
+
+.casino-layer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--casino-layer-overlay);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.casino-layer-effects {
+  position: absolute;
+  inset: 0;
+  z-index: var(--casino-layer-effects);
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+}
