@@ -63,6 +63,7 @@ const Blackjack = lazy(() => import("./pages/games/Blackjack"));
 const Roulette = lazy(() => import("./pages/games/Roulette"));
 const Dice = lazy(() => import("./pages/games/Dice"));
 const MultiplayerDice = lazy(() => import("./pages/games/MultiplayerDice"));
+const Crash = lazy(() => import("./pages/games/Crash"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
 
