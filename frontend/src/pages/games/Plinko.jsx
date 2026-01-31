@@ -62,7 +62,8 @@ const Plinko = () => {
     for (let i = 0; i < BUCKETS; i++) {
       const dist = Math.abs(i - mid);
       const norm = mid <= 0 ? 0 : dist / mid;
-      mults.push(Math.max(0.1, Math.min(10, (0.5 + 2 * (1 - norm)) * 0.96)).toFixed(2);
+      const mult = Math.max(0.1, Math.min(10, (0.5 + 2 * (1 - norm)) * 0.96));
+      mults.push(mult.toFixed(2));
     }
     setBucketMultipliers(mults);
     return () => {
