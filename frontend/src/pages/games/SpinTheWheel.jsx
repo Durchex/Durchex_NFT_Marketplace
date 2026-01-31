@@ -25,6 +25,7 @@ const DEG_PER_SEGMENT = 360 / NUM_SEGMENTS;
 
 const SpinTheWheel = () => {
   const { gameBalance, setGameBalance } = useGameWallet();
+  const sound = useCasinoSound({ volume: 0.5 });
   const [mode, setMode] = useState('single');
   const gameRoom = useGameRoom('wheel');
   const { joined, leaveRoom, emitResult } = gameRoom;

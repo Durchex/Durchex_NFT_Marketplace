@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
 import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import CasinoDice from '../../components/games/CasinoDice';
+import { casinoAssets } from '../../config/casinoAssets';
 import '../../styles/casino.css';
 
 const Dice = () => {

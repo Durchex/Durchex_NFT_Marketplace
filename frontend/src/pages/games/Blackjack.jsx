@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
 import { useGameRoom } from '../../hooks/useGameRoom';
+import { useCasinoSound } from '../../hooks/useCasinoSound';
 import GameMultiplayerBar from '../../components/games/GameMultiplayerBar';
 import { CircleDot } from 'lucide-react';
 import toast from 'react-hot-toast';

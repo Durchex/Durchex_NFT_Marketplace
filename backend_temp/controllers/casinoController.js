@@ -102,10 +102,14 @@ export async function placeBet(req, res) {
       ? (userBefore.gameBalance - bet)
       : (userBefore.gameBalance - bet + payout);
 
+    const responseOutcome = gameId === GAME_IDS.MINES
+      ? { totalTiles: outcome.totalTiles, mineCount: outcome.mineCount }
+      : outcome;
+
     res.status(200).json({
       roundId: round._id.toString(),
       gameId,
-      outcome,
+      outcome: responseOutcome,
       bet,
       payout: gameId === GAME_IDS.MINES ? 0 : payout,
       payoutMultiplier: payoutMultiplierNum,
@@ -121,6 +125,40 @@ export async function placeBet(req, res) {
   } catch (err) {
     console.error('[Casino] placeBet error', err);
     res.status(500).json({ error: 'Place bet failed' });
+  }
+}
+
+/**
+ * POST /api/v1/casino/mines-reveal
+ * Body: { walletAddress, roundId, tileIndex }
+ * - Returns { isMine } for that tile (does not expose other mines).
+ */
+export async function minesReveal(req, res) {
+  try {
+    const { walletAddress, roundId, tileIndex } = req.body || {};
+    const w = (walletAddress || '').toLowerCase();
+    const index = Number(tileIndex);
+    if (!w || !roundId || (index !== 0 && !index)) {
+      return res.status(400).json({ error: 'walletAddress, roundId, and tileIndex are required' });
+    }
+
+    const round = await findRoundById(roundId);
+    if (!round) return res.status(404).json({ error: 'Round not found' });
+    if (round.walletAddress !== w) return res.status(403).json({ error: 'Not your round' });
+    if (round.gameId !== GAME_IDS.MINES) return res.status(400).json({ error: 'Not a mines round' });
+    if (round.status !== 'pending_cashout') return res.status(400).json({ error: 'Round already resolved' });
+
+    const totalTiles = round.outcome?.totalTiles ?? 25;
+    if (index < 0 || index >= totalTiles) {
+      return res.status(400).json({ error: 'Invalid tileIndex' });
+    }
+
+    const mineIndices = round.outcome?.mineIndices || [];
+    const isMine = mineIndices.includes(index);
+    res.status(200).json({ isMine, tileIndex: index });
+  } catch (err) {
+    console.error('[Casino] minesReveal error', err);
+    res.status(500).json({ error: 'Reveal failed' });
   }
 }
 

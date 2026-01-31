@@ -317,6 +317,14 @@ export const casinoAPI = {
     });
     return response.data;
   },
+  minesReveal: async ({ walletAddress, roundId, tileIndex }) => {
+    const response = await api.post('/casino/mines-reveal', {
+      walletAddress: (walletAddress || '').toLowerCase(),
+      roundId,
+      tileIndex: Number(tileIndex),
+    });
+    return response.data;
+  },
   minesCashout: async ({ walletAddress, roundId, revealedIndices = [] }) => {
     const response = await api.post('/casino/mines-cashout', {
       walletAddress: (walletAddress || '').toLowerCase(),

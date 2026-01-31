@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { useGameWallet } from '../../hooks/useGameWallet';
 import { ICOContent } from '../../Context';
 import { Gauge } from 'lucide-react';
@@ -6,7 +6,11 @@ import toast from 'react-hot-toast';
 import CasinoLayout from '../../components/games/CasinoLayout';
 import CasinoGameSurface from '../../components/games/CasinoGameSurface';
 import { casinoAPI } from '../../services/api';
+import { casinoAssets } from '../../config/casinoAssets';
 import '../../styles/casino.css';
+
+const CLIMB_DURATION_MS = 2500;
+const TICK_MS = 40;
 
 const Limbo = () => {
   const { address } = useContext(ICOContent) || {};
@@ -15,6 +19,16 @@ const Limbo = () => {
   const [targetMultiplier, setTargetMultiplier] = useState(2);
   const [loading, setLoading] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [phase, setPhase] = useState('idle'); // idle | climbing | done
+  const [displayMultiplier, setDisplayMultiplier] = useState(0);
+  const outcomeRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   const handlePlay = async () => {
     if (!address) {
@@ -28,6 +42,8 @@ const Limbo = () => {
     const target = Math.max(1, Math.min(1000000, Number(targetMultiplier) || 1));
     setLoading(true);
     setLastResult(null);
+    setPhase('idle');
+    setDisplayMultiplier(0);
     try {
       const data = await casinoAPI.placeBet({
         walletAddress: address,
@@ -37,38 +53,78 @@ const Limbo = () => {
       });
       setGameBalance(data.newBalance ?? gameBalance - bet);
       const outcome = data.outcome || {};
-      setLastResult({
-        outcomeMultiplier: outcome.outcomeMultiplier,
+      const outcomeMult = outcome.outcomeMultiplier ?? 0;
+      outcomeRef.current = {
+        outcomeMultiplier: outcomeMult,
         targetMultiplier: outcome.targetMultiplier ?? target,
         win: outcome.win,
         payout: data.payout ?? 0,
         bet: data.bet ?? bet,
         newBalance: data.newBalance,
-      });
-      if (outcome.win) toast.success(`Hit ${(outcome.outcomeMultiplier ?? 0).toFixed(2)}x!`);
-      else toast.error(`Landed at ${(outcome.outcomeMultiplier ?? 0).toFixed(2)}x (target ${target}x).`);
+      };
+      setLastResult(outcomeRef.current);
+      setPhase('climbing');
+
+      const startTime = Date.now();
+      intervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(1, elapsed / CLIMB_DURATION_MS);
+        const eased = 1 - Math.pow(1 - t, 1.5);
+        const current = outcomeMult * eased;
+        setDisplayMultiplier(current);
+        if (t >= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = null;
+          setDisplayMultiplier(outcomeMult);
+          setPhase('done');
+          if (outcomeRef.current?.win) toast.success(`Hit ${outcomeMult.toFixed(2)}x!`);
+          else toast.error(`Landed at ${outcomeMult.toFixed(2)}x (target ${target}x).`);
+        }
+      }, TICK_MS);
     } catch (err) {
       toast.error(err.response?.data?.error || err.message || 'Play failed');
       setLastResult(null);
+      setPhase('idle');
     } finally {
       setLoading(false);
     }
   };
 
+  const target = lastResult?.targetMultiplier ?? targetMultiplier;
+  const maxGauge = Math.max(target * 1.5, displayMultiplier * 1.2, 2);
+
   return (
-    <CasinoLayout title="Limbo" subtitle="Pick a target multiplier. Win if the result reaches it." icon={Gauge} themeColor="rose" gameBalance={gameBalance}>
-      <CasinoGameSurface themeColor="rose" pulse={loading} idle>
-        <div className="flex flex-col items-center gap-8">
-          <div className="casino-panel-frame rounded-2xl p-6 text-center casino-idle-float">
-            {lastResult != null ? (
-              <>
-                <div className="text-2xl font-bold text-rose-400">{(lastResult.outcomeMultiplier ?? 0).toFixed(2)}x</div>
-                <div className="text-gray-400 text-sm">Target was {(lastResult.targetMultiplier ?? 0).toFixed(2)}x</div>
-              </>
-            ) : (
-              <div className="text-gray-500">—</div>
+    <CasinoLayout
+      title="Limbo"
+      subtitle="Pick a target. Watch the multiplier climb to the result."
+      icon={Gauge}
+      themeColor="rose"
+      gameBalance={gameBalance}
+    >
+      <CasinoGameSurface themeColor="rose" pulse={loading} idle backgroundImage={casinoAssets?.images?.backgroundFelt}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="casino-panel-frame rounded-2xl p-6 text-center casino-idle-float w-full max-w-sm">
+            <div className="text-gray-400 text-sm mb-1">Multiplier</div>
+            <div
+              className={`text-4xl font-mono font-bold tabular-nums transition-colors ${
+                phase === 'done' ? (lastResult?.win ? 'text-rose-400 limbo-number-roll' : 'text-red-400 limbo-number-roll') : 'text-rose-300'
+              }`}
+            >
+              {displayMultiplier.toFixed(2)}x
+            </div>
+            {phase === 'climbing' && (
+              <div className="limbo-gauge w-full mt-4">
+                <div
+                  className="limbo-gauge-fill bg-gradient-to-r from-rose-500 to-pink-500"
+                  style={{ width: `${Math.min(100, (displayMultiplier / maxGauge) * 100)}%` }}
+                />
+              </div>
+            )}
+            {phase === 'done' && lastResult != null && (
+              <div className="text-gray-400 text-sm mt-2">Target was {target.toFixed(2)}x</div>
             )}
           </div>
+
           <div className="w-full max-w-sm">
             <label className="text-gray-400 text-sm block mb-1">Target multiplier (1 – 1,000,000)</label>
             <input
@@ -96,13 +152,13 @@ const Limbo = () => {
             </div>
             <button
               onClick={handlePlay}
-              disabled={loading || gameBalance < 0.01 || !address}
+              disabled={loading || gameBalance < 0.01 || !address || phase === 'climbing'}
               className="casino-btn w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-xl disabled:opacity-50"
             >
-              {loading ? 'Playing…' : 'Play'}
+              {loading ? 'Playing…' : phase === 'climbing' ? 'Climbing…' : 'Play'}
             </button>
           </div>
-          {lastResult != null && (
+          {lastResult != null && phase === 'done' && (
             <div className="bg-black/40 rounded-xl p-4 border border-rose-500/30 text-center w-full max-w-sm">
               <div className={lastResult.win ? 'text-rose-400 font-bold' : 'text-red-400'}>
                 {lastResult.win ? `+$${(lastResult.payout - lastResult.bet).toFixed(2)}` : `-$${lastResult.bet.toFixed(2)}`}
