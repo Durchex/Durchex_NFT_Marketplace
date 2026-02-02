@@ -206,6 +206,20 @@ export const LazyMintNFT_ABI = [
   { inputs: [{ name: '', type: 'address' }], name: 'nonces', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
   {
     inputs: [
+      { name: 'creator', type: 'address' },
+      { name: 'uri', type: 'string' },
+      { name: 'royaltyPercentage', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'maxQuantity', type: 'uint256' },
+      { name: 'signature', type: 'bytes' },
+    ],
+    name: 'verifySignatureWithQuantity',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
       { name: '_feeBps', type: 'uint256' },
       { name: '_receiver', type: 'address' },
     ],

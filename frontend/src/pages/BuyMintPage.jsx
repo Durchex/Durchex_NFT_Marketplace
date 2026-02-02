@@ -125,11 +125,12 @@ export default function BuyMintPage() {
           ? ethers.utils.getAddress(redemptionData.creator)
           : redemptionData.creator;
 
-        if (redemptionData.nonce != null && typeof contract.nonces === 'function') {
+        let onChainNonce = null;
+        if (typeof contract.nonces === 'function') {
           try {
-            const onChainNonce = await contract.nonces(creatorAddress);
+            onChainNonce = await contract.nonces(creatorAddress);
             const voucherNonce = Number(redemptionData.nonce);
-            if (onChainNonce.gt(voucherNonce)) {
+            if (redemptionData.nonce != null && onChainNonce.gt(voucherNonce)) {
               toast.error(
                 'This listing was already redeemed on-chain or is no longer valid. Please refresh and try another listing.'
               );
@@ -138,6 +139,28 @@ export default function BuyMintPage() {
             }
           } catch (_) {
             // ignore nonce check errors
+          }
+        }
+
+        if (onChainNonce != null && typeof contract.verifySignatureWithQuantity === 'function') {
+          try {
+            const valid = await contract.verifySignatureWithQuantity(
+              creatorAddress,
+              redemptionData.ipfsURI,
+              Number(redemptionData.royaltyPercentage ?? 0) || 0,
+              onChainNonce,
+              maxQuantity,
+              sig
+            );
+            if (!valid) {
+              toast.error(
+                'This voucher is no longer valid (signature doesn\'t match). Another item from this creator may have been redeemed already.'
+              );
+              setMinting(false);
+              return;
+            }
+          } catch (_) {
+            // ignore; will try tx and get revert if invalid
           }
         }
 
@@ -186,7 +209,14 @@ export default function BuyMintPage() {
       const msg = String(err?.message || err?.error?.message || '');
       const errNetwork = nft?.network || 'ethereum';
       const token = getCurrencySymbol(errNetwork);
-      if (code === -32003 || msg.toLowerCase().includes('insufficient funds')) {
+      const receipt = err?.receipt ?? err?.transaction?.receipt;
+      const txFailed = code === 'CALL_EXCEPTION' || receipt?.status === 0;
+
+      if (txFailed || msg.includes('CALL_EXCEPTION') || msg.includes('transaction failed')) {
+        toast.error(
+          'Transaction failed. This listing may already have been redeemed, or the voucher may have expired. Try another listing or refresh the page.'
+        );
+      } else if (code === -32003 || msg.toLowerCase().includes('insufficient funds')) {
         toast.error(
           `Insufficient funds on ${errNetwork}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
         );
