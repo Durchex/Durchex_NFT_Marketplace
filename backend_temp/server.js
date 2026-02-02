@@ -62,7 +62,7 @@ connectDB();
 
 // Services required by routes (so financing/governance/monetization/analytics don't 500)
 app.locals.financingService = new FinancingServiceStub();
-app.locals.governanceService = new GovernanceService();
+app.locals.governanceService = GovernanceService;
 app.locals.monetizationService = new MonetizationServiceStub();
 app.locals.analyticsService = new AnalyticsServiceStub();
 
