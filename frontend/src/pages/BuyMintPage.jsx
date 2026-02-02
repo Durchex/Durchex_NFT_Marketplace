@@ -111,32 +111,25 @@ export default function BuyMintPage() {
         const sig = redemptionData.signature?.startsWith('0x')
           ? redemptionData.signature
           : '0x' + (redemptionData.signature || '');
-        const useMulti = qty > 1 && redemptionData.pricePerPiece != null && redemptionData.maxQuantity != null;
+        // Creator always signs with getMessageHashWithQuantity(uri, royaltyPercentage, nonce, maxQuantity) in Create.jsx,
+        // so we must always call redeemNFTWithQuantity (never redeemNFT) or signature verification fails.
+        const maxQuantity = redemptionData.maxQuantity ?? nft.pieces ?? 1;
+        const pricePerPieceWei =
+          redemptionData.pricePerPiece != null
+            ? ethers.utils.parseEther(String(redemptionData.pricePerPiece))
+            : totalPriceWei;
 
-        if (useMulti) {
-          const pricePerPieceWei = ethers.utils.parseEther(String(redemptionData.pricePerPiece));
-          const tx = await contract.redeemNFTWithQuantity(
-            redemptionData.creator,
-            redemptionData.ipfsURI,
-            redemptionData.royaltyPercentage ?? 0,
-            pricePerPieceWei,
-            qty,
-            redemptionData.maxQuantity,
-            sig,
-            { value: totalPriceWei }
-          );
-          await tx.wait();
-        } else {
-          const tx = await contract.redeemNFT(
-            redemptionData.creator,
-            redemptionData.ipfsURI,
-            redemptionData.royaltyPercentage ?? 0,
-            totalPriceWei,
-            sig,
-            { value: totalPriceWei }
-          );
-          await tx.wait();
-        }
+        const tx = await contract.redeemNFTWithQuantity(
+          redemptionData.creator,
+          redemptionData.ipfsURI,
+          redemptionData.royaltyPercentage ?? 0,
+          pricePerPieceWei,
+          qty,
+          maxQuantity,
+          sig,
+          { value: totalPriceWei }
+        );
+        await tx.wait();
 
         toast.success(qty > 1 ? `${qty} pieces minted to your wallet.` : 'Piece minted to your wallet.');
         navigate(`/nft/${id}`);
