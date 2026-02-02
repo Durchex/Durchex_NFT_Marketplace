@@ -50,9 +50,21 @@ import lazyMintRouter from "./routes/lazyMint.js";
 import reviewRouter from "./routes/reviewRouter.js";
 import marketplaceSettingsRouter from "./routes/marketplaceSettingsRouter.js";
 import casinoRouter from "./routes/casinoRouter.js";
+import auctionRouter from "./routes/auctionRouter.js";
+import stakingRouter from "./routes/staking.js";
+import FinancingServiceStub from "./services/FinancingServiceStub.js";
+import GovernanceService from "./services/GovernanceService.js";
+import MonetizationServiceStub from "./services/MonetizationServiceStub.js";
+import AnalyticsServiceStub from "./services/AnalyticsServiceStub.js";
 
 // connect db
 connectDB();
+
+// Services required by routes (so financing/governance/monetization/analytics don't 500)
+app.locals.financingService = new FinancingServiceStub();
+app.locals.governanceService = new GovernanceService();
+app.locals.monetizationService = new MonetizationServiceStub();
+app.locals.analyticsService = new AnalyticsServiceStub();
 
 // Rate limiting configuration
 const limiter = rateLimit({
@@ -352,6 +364,9 @@ app.use('/api/v1/lazy-mint', lazyMintRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/settings/marketplace', marketplaceSettingsRouter);
 app.use('/api/v1/casino', casinoRouter);
+app.use('/api/v1/auctions', auctionRouter);
+app.use('/api/v1/staking', stakingRouter);
+app.use('/api/v1/notifications', notificationRouter);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>

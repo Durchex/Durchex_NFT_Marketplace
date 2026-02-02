@@ -22,13 +22,35 @@ import {
   fetchUserNFTs,
   fetchUserNFTsByNetwork,
   fetchUserMintedNFTs,
+  updateNftOwner,
+  createPendingTransfer,
+  getPendingTransfer,
+  deletePendingTransfer,
+  createPieceSellOrder,
+  getPieceSellOrdersByNft,
+  getPieceHoldingsByWallet,
+  fillPieceSellOrder,
+  getNftTrades,
+  getNftAnalytics,
 } from "../controllers/nftController.js"; // Adjust path & file accordingly
 // import { createNft } from "../models/nftModel.js";
 
 const router = express.Router();
 
 router.post("/nfts/check", checkNftExists);
+router.post("/nfts/update-owner", updateNftOwner);
 router.post("/nfts", createNft);
+
+// Piece sell orders (collectors sell pieces back into liquidity — no relist/approval)
+router.post("/nfts/piece-sell-orders", createPieceSellOrder);
+router.get("/nfts/piece-sell-orders/:network/:itemId", getPieceSellOrdersByNft);
+router.get("/nfts/piece-holdings/:wallet", getPieceHoldingsByWallet);
+router.post("/nfts/piece-sell-orders/:orderId/fill", fillPieceSellOrder);
+
+// Pending transfers (post-buy sync)
+router.post("/pending-transfers", createPendingTransfer);
+router.get("/pending-transfers/:network/:itemId", getPendingTransfer);
+router.delete("/pending-transfers/:network/:itemId", deletePendingTransfer);
 
 // ✅ ISSUE #4: Fetch user's NFTs by wallet address
 router.get("/user-nfts/:walletAddress", fetchUserNFTs);
@@ -57,7 +79,9 @@ router.patch("/collections/:collectionId", updateCollection);
 // Delete collection
 router.delete("/collections/:collectionId", deleteCollection);
 
-// Other example routes (you can add all you want similarly)
+// NFT trades & analytics (transaction history, price movement, market cap) — MUST be before /nfts/:network
+router.get("/nfts/:network/:itemId/trades", getNftTrades);
+router.get("/nfts/:network/:itemId/analytics", getNftAnalytics);
 
 // Get all NFTs on a network (for marketplace - only listed)
 router.get("/nfts/:network", fetchAllNftsByNetwork);

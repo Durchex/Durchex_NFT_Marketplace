@@ -5,7 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 import { nftAPI, lazyMintAPI, batchMintAPI } from "../services/api";
-import { getCurrencySymbol, getUsdValueFromCrypto, changeNetwork } from "../Context/constants";
+import { getCurrencySymbol, getUsdValueFromCrypto, changeNetwork, SUPPORTED_NETWORKS } from "../Context/constants";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { TiUpload } from "react-icons/ti";
 import { FiArrowLeft } from "react-icons/fi";
@@ -23,39 +23,13 @@ export default function Create() {
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [showCollectionForm, setShowCollectionForm] = useState(false);
 
-  // Network options
-  const networkOptions = [
-    { 
-      value: "polygon", 
-      label: "Polygon", 
-      symbol: "POL",
-      icon: "https://wallet-asset.matic.network/img/tokens/pol.svg"
-    },
-    { 
-      value: "ethereum", 
-      label: "Ethereum", 
-      symbol: "ETH",
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
-    },
-    { 
-      value: "arbitrum", 
-      label: "Arbitrum", 
-      symbol: "ETH",
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png"
-    },
-    { 
-      value: "bsc", 
-      label: "BSC", 
-      symbol: "BNB",
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png"
-    },
-    { 
-      value: "base", 
-      label: "Base", 
-      symbol: "ETH",
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png"
-    },
-  ];
+  // Network options – single source of truth (includes Asset Chain and all SUPPORTED_NETWORKS)
+  const networkOptions = SUPPORTED_NETWORKS.filter((n) => n.isEVM).map((n) => ({
+    value: n.id,
+    label: n.name,
+    symbol: n.symbol,
+    icon: n.icon,
+  }));
 
   // ============ LAZY MINT STATE ============
   const [lazyMintStep, setLazyMintStep] = useState(1);

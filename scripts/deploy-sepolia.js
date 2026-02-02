@@ -55,10 +55,10 @@ async function main() {
             txHash: auction.deployTransaction.hash,
         };
 
-        // 3. Deploy Offer
+        // 3. Deploy Offer (platform fee receiver = deployer)
         console.log('\n3️⃣ Deploying Offer...');
         const Offer = await hre.ethers.getContractFactory('Offer');
-        const offer = await Offer.deploy();
+        const offer = await Offer.deploy(deployer.address);
         await offer.deployed();
         console.log(`✅ Offer deployed to: ${offer.address}`);
 
@@ -104,6 +104,20 @@ async function main() {
         await royalties.setPlatformWallet(deployer.address);
         console.log('   ✓ Platform wallet set');
 
+        // Optional: Deploy NFTStaking (requires NFT_COLLECTION_FOR_STAKING + REWARD_TOKEN_ADDRESS in env)
+        const nftCollectionForStaking = process.env.NFT_COLLECTION_FOR_STAKING;
+        const rewardTokenAddress = process.env.REWARD_TOKEN_ADDRESS;
+        if (nftCollectionForStaking && rewardTokenAddress) {
+            console.log('\n6️⃣ Deploying NFTStaking...');
+            const dailyReward = process.env.STAKING_DAILY_REWARD || hre.ethers.utils.parseEther('1').toString();
+            const minPeriod = process.env.STAKING_MIN_PERIOD || (7 * 24 * 60 * 60).toString(); // 7 days
+            const NFTStaking = await hre.ethers.getContractFactory('NFTStaking');
+            const nftStaking = await NFTStaking.deploy(nftCollectionForStaking, rewardTokenAddress, dailyReward, minPeriod);
+            await nftStaking.deployed();
+            console.log(`✅ NFTStaking deployed to: ${nftStaking.address}`);
+            deploymentLog.contracts.NFTStaking = { address: nftStaking.address };
+        }
+
         // 7. Save deployment info
         const deploymentInfo = {
             ...deploymentLog,
@@ -129,6 +143,7 @@ async function main() {
                 Offer: offer.address,
                 Collection: collection.address,
                 Royalties: royalties.address,
+                ...(deploymentLog.contracts.NFTStaking && { NFTStaking: deploymentLog.contracts.NFTStaking.address }),
             },
         };
 
@@ -155,6 +170,7 @@ async function main() {
         console.log(`   Offer:        ${offer.address}`);
         console.log(`   Collection:   ${collection.address}`);
         console.log(`   Royalties:    ${royalties.address}`);
+        if (deploymentLog.contracts.NFTStaking) console.log(`   NFTStaking:   ${deploymentLog.contracts.NFTStaking.address}`);
         console.log(`\n🔍 View on Etherscan: https://sepolia.etherscan.io/address/${deployer.address}`);
         console.log('='.repeat(60) + '\n');
 

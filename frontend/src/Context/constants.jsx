@@ -57,8 +57,14 @@ export const getCurrencySymbol = (chainOrNetwork) => {
     Arbitrum: 'ETH',
     'Arbitrum One': 'ETH',
     Base: 'ETH',
+    Optimism: 'ETH',
     zkSync: 'ETH',
     'zkSync Era': 'ETH',
+
+    // Asset Chain
+    'Asset Chain': 'AST',
+    AssetChain: 'AST',
+    assetchain: 'AST',
 
     // Non-EVM
     Solana: 'SOL',
@@ -82,6 +88,7 @@ export const getCurrencySymbol = (chainOrNetwork) => {
   if (lower.includes('solana') || lower === 'sol') return 'SOL';
   if (lower.includes('tezos') || lower === 'xtz') return 'XTZ';
   if (lower.includes('monad') || lower === 'mon') return 'MON';
+  if (lower.includes('asset') || lower === 'assetchain' || lower === 'ast') return 'AST';
 
   // Default
   return 'ETH';
@@ -97,6 +104,7 @@ const TOKEN_USD_RATES = {
   AVAX: 40,
   MON: 1,
   XTZ: 1,
+  AST: 1,
 };
 
 export const getTokenUsdRate = (symbolOrNetwork) => {
@@ -304,12 +312,37 @@ export const rpcUrls = {
   bsc: import.meta.env.VITE_RPC_URL_BSC || "https://bsc-dataseed.binance.org/",
   base: import.meta.env.VITE_RPC_URL_BASE || "https://mainnet.base.org",
   avalanche: import.meta.env.VITE_RPC_URL_AVALANCHE || "https://api.avax.network/ext/bc/C/rpc",
+  optimism: import.meta.env.VITE_RPC_URL_OPTIMISM || "https://mainnet.optimism.io",
   monad: import.meta.env.VITE_RPC_URL_MONAD || "https://mainnet-rpc.monad.xyz",
   hyperliquid: import.meta.env.VITE_RPC_URL_HYPERLIQUID || "https://api.hyperliquid.xyz/evm",
   hyperliquidTestnet: import.meta.env.VITE_RPC_URL_HYPERLIQUID_TESTNET || "https://api.hyperliquid-testnet.xyz/evm",
   tezosMainnet: import.meta.env.VITE_TEZOS_RPC_MAINNET || "https://mainnet.api.tezos.com",
   tezosTestnet: import.meta.env.VITE_TEZOS_RPC_TESTNET || "https://rpc.ghostnet.teztnets.xyz",
+  assetchain: import.meta.env.VITE_RPC_URL_ASSETCHAIN || "https://rpc.assetchain.network",
 };
+
+/**
+ * Single source of truth for all supported networks.
+ * Used by: network dropdown, contract resolution, gas service, API.
+ * id = key for contractAddresses & rpcUrls.
+ */
+const _networks = [
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', chainId: 1, rpcUrl: rpcUrls.ethereum, blockExplorerUrl: 'https://etherscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'polygon', name: 'Polygon', symbol: 'MATIC', chainId: 137, rpcUrl: rpcUrls.polygon, blockExplorerUrl: 'https://polygonscan.com', icon: 'https://wallet-asset.matic.network/img/tokens/pol.svg', isEVM: true, walletType: 'evm' },
+  { id: 'bsc', name: 'BSC', symbol: 'BNB', chainId: 56, rpcUrl: rpcUrls.bsc, blockExplorerUrl: 'https://bscscan.com', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'arbitrum', name: 'Arbitrum', symbol: 'ARB', chainId: 42161, rpcUrl: rpcUrls.arbitrum, blockExplorerUrl: 'https://arbiscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'optimism', name: 'Optimism', symbol: 'OP', chainId: 10, rpcUrl: rpcUrls.optimism, blockExplorerUrl: 'https://optimistic.etherscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/optimism/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'avalanche', name: 'Avalanche', symbol: 'AVAX', chainId: 43114, rpcUrl: rpcUrls.avalanche, blockExplorerUrl: 'https://snowtrace.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'base', name: 'Base', symbol: 'ETH', chainId: 8453, rpcUrl: rpcUrls.base, blockExplorerUrl: 'https://basescan.org', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'assetchain', name: 'Asset Chain', symbol: 'AST', chainId: 4242, rpcUrl: rpcUrls.assetchain, blockExplorerUrl: import.meta.env.VITE_ASSETCHAIN_EXPLORER || 'https://explorer.assetchain.network', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'hyperliquid', name: 'Hyperliquid', symbol: 'HYPE', chainId: 999, rpcUrl: rpcUrls.hyperliquid, blockExplorerUrl: 'https://hypurrscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', isEVM: true, walletType: 'evm' },
+  { id: 'tezosMainnet', name: 'Tezos', symbol: 'XTZ', chainId: 1729, rpcUrl: rpcUrls.tezosMainnet, blockExplorerUrl: 'https://tzstats.com', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tezos/info/logo.png', isEVM: false, walletType: 'tezos' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL', chainId: 101, rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com', blockExplorerUrl: import.meta.env.VITE_SOLANA_BLOCK_EXPLORER || 'https://solscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', isEVM: false, walletType: 'solana' },
+];
+export const SUPPORTED_NETWORKS = _networks.map((n) => ({ ...n, blockExplorer: n.blockExplorerUrl }));
+
+export const getNetworkById = (id) => SUPPORTED_NETWORKS.find((n) => n.id === (id || '').toLowerCase()) || null;
+export const getNetworkIdFromName = (name) => (SUPPORTED_NETWORKS.find((n) => n.name === name) || {}).id || (name || '').toLowerCase().replace(/\s+/g, '');
 
 // export const rpcUrls = {
 //   polygon: "https://eth-sepolia.g.alchemy.com/v2/chL87jzrfXklYJR_OmMTNKc1Ab1OfQpT",
@@ -370,6 +403,18 @@ export const contractAddresses = {
   base: {
     marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE, // 0x1BBE1EC42D897e2f0dd39B6Cc6c1070515f7B307
     vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_BASE, // 0xb0F0733302967e210B61f50b59511B3F119aE869
+  },
+  optimism: {
+    marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_OPTIMISM,
+    vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_OPTIMISM,
+  },
+  avalanche: {
+    marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_AVALANCHE,
+    vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_AVALANCHE,
+  },
+  assetchain: {
+    marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ASSETCHAIN,
+    vendorNFT: import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS_ASSETCHAIN,
   },
   hyperliquid: {
     marketplace: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_HYPERLIQUID || "0x0",

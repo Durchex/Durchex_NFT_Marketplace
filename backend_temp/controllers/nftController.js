@@ -1,6 +1,9 @@
 import Collection from "../models/collectionModel.js";
 import { nftModel } from "../models/nftModel.js";
 import LazyNFT from "../models/lazyNFTModel.js";
+import { pieceHoldingModel } from "../models/pieceHoldingModel.js";
+import { pieceSellOrderModel } from "../models/pieceSellOrderModel.js";
+import { nftTradeModel } from "../models/nftTradeModel.js";
 import nftContractService from "../services/nftContractService.js";
 
 /**
@@ -381,6 +384,392 @@ export const checkNftExists = async (req, res) => {
   }
 };
 
+// In-memory store for pending transfers (network:itemId -> record)
+const pendingTransfersStore = new Map();
+
+/** POST /nfts/update-owner — Post-buy sync: decrement remainingPieces, add piece holding for buyer, record trade (price/market cap). Creator/owner of token is never changed. */
+export const updateNftOwner = async (req, res) => {
+  try {
+    const { network, itemId, tokenId, newOwner, listed, quantity = 1, price, transactionHash, seller } = req.body;
+    if (!network || itemId == null || !newOwner) {
+      return res.status(400).json({ error: "network, itemId, and newOwner are required" });
+    }
+    const net = String(network).toLowerCase();
+    const buyerNorm = String(newOwner).toLowerCase();
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+
+    // 1. Find NFT — token owner stays creator; we only update remainingPieces and piece holdings
+    const existing = await nftModel.findOne({ network: net, itemId: String(itemId) });
+    if (!existing) {
+      // Fall through to LazyNFT check below
+    } else {
+      const currentRemaining = Math.max(0, Number(existing.remainingPieces ?? existing.pieces ?? 1));
+      const newRemaining = Math.max(0, currentRemaining - qty);
+      const priceStr = price != null ? String(price) : (existing.price || "0");
+      const totalPieces = Math.max(1, Number(existing.pieces ?? 1));
+      const lastPrice = priceStr;
+      const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
+      const updatePayload = {
+        remainingPieces: newRemaining,
+        lastPrice,
+        marketCap,
+        ...(tokenId != null && { tokenId: String(tokenId) }),
+      };
+      const nft = await nftModel.findOneAndUpdate(
+        { network: net, itemId: String(itemId) },
+        { $set: updatePayload },
+        { new: true }
+      );
+      if (nft) {
+        // Add piece holding for buyer (creator/owner of token unchanged)
+        const holding = await pieceHoldingModel.findOneAndUpdate(
+          { network: net, itemId: String(itemId), wallet: buyerNorm },
+          { $inc: { pieces: qty } },
+          { new: true, upsert: true }
+        );
+        // Record trade for transaction history & price movement (blockchain-style)
+        const sellerNorm = (seller || existing.owner || existing.creator).toLowerCase();
+        const totalAmount = (parseFloat(priceStr) * qty).toFixed(18);
+        await nftTradeModel.create({
+          network: net,
+          itemId: String(itemId),
+          transactionType: "primary_buy",
+          seller: sellerNorm,
+          buyer: buyerNorm,
+          quantity: qty,
+          pricePerPiece: priceStr,
+          totalAmount,
+          transactionHash: transactionHash || null,
+        });
+        return res.json({
+          success: true,
+          updated: "nft",
+          nftId: nft._id,
+          buyer: buyerNorm,
+          remainingPieces: nft.remainingPieces,
+          holdingPieces: holding?.pieces ?? qty,
+          lastPrice: nft.lastPrice,
+          marketCap: nft.marketCap,
+        });
+      }
+    }
+
+    // 1b. Legacy: if no pieces/remainingPieces, still allow owner update for 1:1 NFTs
+    const nftLegacy = await nftModel.findOneAndUpdate(
+      { network: net, itemId: String(itemId) },
+      { $set: { owner: buyerNorm, currentlyListed: listed !== undefined && listed !== null ? !!listed : true, ...(tokenId != null && { tokenId: String(tokenId) }) } },
+      { new: true }
+    );
+    if (nftLegacy) {
+      return res.json({ success: true, updated: "nft", nftId: nftLegacy._id, owner: buyerNorm, listed: !!listed });
+    }
+
+    // 2. If itemId looks like MongoDB ObjectId (24 hex), try LazyNFT (e.g. after redeem sync)
+    if (/^[a-fA-F0-9]{24}$/.test(String(itemId))) {
+      const mongoose = await import("mongoose");
+      if (mongoose.default.Types.ObjectId.isValid(itemId)) {
+        const lazy = await LazyNFT.findByIdAndUpdate(
+          itemId,
+          { $set: { buyer: ownerNorm, status: "redeemed", ...(tokenId != null && { tokenId: String(tokenId) }) } },
+          { new: true }
+        );
+        if (lazy) {
+          return res.json({ success: true, updated: "lazy", lazyId: lazy._id, owner: ownerNorm });
+        }
+      }
+    }
+
+    return res.status(404).json({ error: "NFT not found for this network and itemId" });
+  } catch (error) {
+    console.error("Error updating NFT owner:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** POST /pending-transfers — Store pending transfer record (buyer/seller/txHash) */
+export const createPendingTransfer = async (req, res) => {
+  try {
+    const { network, itemId, nftContract, buyerAddress, sellerAddress, transactionHash } = req.body;
+    if (!network || itemId == null || !buyerAddress) {
+      return res.status(400).json({ error: "network, itemId, and buyerAddress are required" });
+    }
+    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
+    pendingTransfersStore.set(key, {
+      network: String(network).toLowerCase(),
+      itemId: String(itemId),
+      nftContract: nftContract || null,
+      buyerAddress: String(buyerAddress).toLowerCase(),
+      sellerAddress: sellerAddress ? String(sellerAddress).toLowerCase() : null,
+      transactionHash: transactionHash || null,
+      createdAt: new Date().toISOString(),
+    });
+    return res.status(201).json({ success: true, message: "Pending transfer recorded" });
+  } catch (error) {
+    console.error("Error creating pending transfer:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// ——— Piece sell orders (collectors sell pieces back into liquidity) ———
+
+/** POST /nfts/piece-sell-orders — Collector lists pieces for sale (sell back liquidity). */
+export const createPieceSellOrder = async (req, res) => {
+  try {
+    const { network, itemId, seller, quantity, pricePerPiece } = req.body;
+    if (!network || !itemId || !seller || quantity == null || quantity < 1 || !pricePerPiece) {
+      return res.status(400).json({ error: "network, itemId, seller, quantity (>=1), and pricePerPiece are required" });
+    }
+    const net = String(network).toLowerCase();
+    const sellerNorm = String(seller).toLowerCase();
+    const qty = Math.max(1, parseInt(quantity, 10));
+
+    const holding = await pieceHoldingModel.findOne({ network: net, itemId: String(itemId), wallet: sellerNorm });
+    const available = holding ? Number(holding.pieces) : 0;
+    if (available < qty) {
+      return res.status(400).json({ error: `Insufficient pieces. You have ${available}, requested ${qty}.` });
+    }
+
+    const order = await pieceSellOrderModel.create({
+      network: net,
+      itemId: String(itemId),
+      seller: sellerNorm,
+      quantity: qty,
+      pricePerPiece: String(pricePerPiece),
+      status: "active",
+    });
+    return res.status(201).json({ success: true, order: order.toObject() });
+  } catch (error) {
+    console.error("Error creating piece sell order:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /nfts/piece-sell-orders/:network/:itemId — Active sell orders for an NFT (liquidity pool). */
+export const getPieceSellOrdersByNft = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const net = String(network).toLowerCase();
+    const orders = await pieceSellOrderModel
+      .find({ network: net, itemId: String(itemId), status: "active" })
+      .sort({ pricePerPiece: 1, createdAt: 1 })
+      .lean();
+    return res.json({ orders });
+  } catch (error) {
+    console.error("Error fetching piece sell orders:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /nfts/piece-holdings/:wallet — Holdings by wallet (for My NFTs). */
+export const getPieceHoldingsByWallet = async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    const holdings = await pieceHoldingModel
+      .find({ wallet: String(wallet).toLowerCase(), pieces: { $gt: 0 } })
+      .lean();
+    return res.json({ holdings });
+  } catch (error) {
+    console.error("Error fetching piece holdings:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** POST /nfts/piece-sell-orders/:orderId/fill — Buy from a collector's sell order (fill order). */
+export const fillPieceSellOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { buyer, quantity } = req.body;
+    if (!buyer) {
+      return res.status(400).json({ error: "buyer is required" });
+    }
+    const buyQty = Math.max(1, parseInt(quantity, 10) || 1);
+    const buyerNorm = String(buyer).toLowerCase();
+
+    const order = await pieceSellOrderModel.findById(orderId);
+    if (!order || order.status !== "active") {
+      return res.status(404).json({ error: "Order not found or not active" });
+    }
+    const remaining = order.quantity - (order.filledQuantity || 0);
+    if (buyQty > remaining) {
+      return res.status(400).json({ error: `Only ${remaining} pieces available in this order.` });
+    }
+
+    const sellerHolding = await pieceHoldingModel.findOne({
+      network: order.network,
+      itemId: order.itemId,
+      wallet: order.seller,
+    });
+    if (!sellerHolding || Number(sellerHolding.pieces) < buyQty) {
+      return res.status(400).json({ error: "Seller no longer has enough pieces." });
+    }
+
+    await pieceHoldingModel.findOneAndUpdate(
+      { network: order.network, itemId: order.itemId, wallet: order.seller },
+      { $inc: { pieces: -buyQty } },
+      { new: true }
+    );
+    await pieceHoldingModel.findOneAndUpdate(
+      { network: order.network, itemId: order.itemId, wallet: buyerNorm },
+      { $inc: { pieces: buyQty } },
+      { new: true, upsert: true }
+    );
+
+    const newFilled = (order.filledQuantity || 0) + buyQty;
+    const newStatus = newFilled >= order.quantity ? "filled" : "partially_filled";
+    await pieceSellOrderModel.findByIdAndUpdate(orderId, {
+      filledQuantity: newFilled,
+      status: newStatus,
+    });
+
+    const pricePerPiece = order.pricePerPiece;
+    const totalAmount = (parseFloat(pricePerPiece) * buyQty).toFixed(18);
+    await nftTradeModel.create({
+      network: order.network,
+      itemId: order.itemId,
+      transactionType: "secondary_buy",
+      seller: order.seller,
+      buyer: buyerNorm,
+      quantity: buyQty,
+      pricePerPiece: String(pricePerPiece),
+      totalAmount,
+      transactionHash: null,
+    });
+    const nft = await nftModel.findOne({ network: order.network, itemId: order.itemId });
+    if (nft) {
+      const totalPieces = Math.max(1, Number(nft.pieces ?? 1));
+      const marketCap = (parseFloat(pricePerPiece) * totalPieces).toFixed(18);
+      await nftModel.updateOne(
+        { network: order.network, itemId: order.itemId },
+        { $set: { lastPrice: String(pricePerPiece), marketCap } }
+      );
+    }
+
+    return res.json({
+      success: true,
+      filled: buyQty,
+      orderId,
+      status: newStatus,
+      message: "Order filled. Payment (minus fee/royalty) should be sent to seller off-chain or via contract.",
+    });
+  } catch (error) {
+    console.error("Error filling piece sell order:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /nfts/:network/:itemId/trades — Transaction history for NFT (buy/sell — liquidity in/out). */
+export const getNftTrades = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const limit = Math.min(100, parseInt(req.query.limit, 10) || 50);
+    const net = String(network).toLowerCase();
+    const trades = await nftTradeModel
+      .find({ network: net, itemId: String(itemId) })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    return res.json({ trades });
+  } catch (error) {
+    console.error("Error fetching NFT trades:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /nfts/:network/:itemId/analytics — Price history, volume, market cap, price movement from trades. */
+export const getNftAnalytics = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const period = (req.query.period || "7d").toLowerCase();
+    const net = String(network).toLowerCase();
+    const itemIdStr = String(itemId);
+
+    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    if (!nft) {
+      return res.status(404).json({ error: "NFT not found" });
+    }
+
+    const now = new Date();
+    let since = new Date(now);
+    if (period === "24h") since.setHours(now.getHours() - 24);
+    else if (period === "7d") since.setDate(now.getDate() - 7);
+    else if (period === "30d") since.setDate(now.getDate() - 30);
+    else since.setDate(now.getDate() - 7);
+
+    const trades = await nftTradeModel
+      .find({ network: net, itemId: itemIdStr, createdAt: { $gte: since } })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const priceHistory = trades.map((t) => ({
+      date: t.createdAt,
+      time: t.createdAt,
+      price: parseFloat(t.pricePerPiece),
+      volume: parseFloat(t.totalAmount),
+    }));
+    if (priceHistory.length === 0 && nft.lastPrice) {
+      priceHistory.push({
+        date: nft.updatedAt || nft.createdAt,
+        time: nft.updatedAt || nft.createdAt,
+        price: parseFloat(nft.lastPrice),
+        volume: 0,
+      });
+    }
+
+    const totalVolume = trades.reduce((sum, t) => sum + parseFloat(t.totalAmount), 0);
+    const volume24h = trades.filter((t) => new Date(t.createdAt) >= new Date(now.getTime() - 24 * 60 * 60 * 1000))
+      .reduce((sum, t) => sum + parseFloat(t.totalAmount), 0);
+    const lastPrice = nft.lastPrice ? parseFloat(nft.lastPrice) : (nft.price ? parseFloat(nft.price) : 0);
+    const marketCap = nft.marketCap ? parseFloat(nft.marketCap) : (lastPrice * Math.max(1, nft.pieces || 1));
+    const firstPriceInPeriod = priceHistory.length > 0 ? priceHistory[0].price : lastPrice;
+    const priceChangePercent = firstPriceInPeriod > 0
+      ? (((lastPrice - firstPriceInPeriod) / firstPriceInPeriod) * 100).toFixed(2)
+      : "0";
+
+    return res.json({
+      network: net,
+      itemId: itemIdStr,
+      lastPrice,
+      marketCap,
+      volume24h: volume24h.toFixed(6),
+      volumeTotal: totalVolume.toFixed(6),
+      priceChangePercent: String(priceChangePercent),
+      priceHistory,
+      tradesCount: trades.length,
+    });
+  } catch (error) {
+    console.error("Error fetching NFT analytics:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /pending-transfers/:network/:itemId */
+export const getPendingTransfer = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
+    const record = pendingTransfersStore.get(key);
+    if (!record) return res.status(404).json({ error: "Pending transfer not found" });
+    return res.json(record);
+  } catch (error) {
+    console.error("Error fetching pending transfer:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** DELETE /pending-transfers/:network/:itemId */
+export const deletePendingTransfer = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
+    if (!pendingTransfersStore.has(key)) return res.status(404).json({ error: "Pending transfer not found" });
+    pendingTransfersStore.delete(key);
+    return res.json({ success: true, message: "Pending transfer removed" });
+  } catch (error) {
+    console.error("Error deleting pending transfer:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 export const createNft = async (req, res) => {
   const nftData = req.body;
   const { deployContract = false, network = 'sepolia', metadataURI } = req.body;
@@ -453,6 +842,8 @@ export const createNft = async (req, res) => {
       }
     }
 
+    // Canonical owner/creator of the token (never overwritten by piece sales)
+    if (!nftData.creator) nftData.creator = nftData.owner || nftData.seller;
     const nft = new nftModel(nftData);
     await nft.save();
 
@@ -822,6 +1213,21 @@ export const fetchUserNFTs = async (req, res) => {
     const formattedLazyNFTs = allLazyNFTs.map(lazyNFT => 
       formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
     );
+
+    // Include NFTs where user has piece holdings (collector owns pieces)
+    const holdings = await pieceHoldingModel.find({
+      wallet: normalizedAddress,
+      pieces: { $gt: 0 },
+    }).lean();
+    const seen = new Set(regularNFTs.map((n) => `${n.network}:${n.itemId}`));
+    for (const h of holdings) {
+      if (seen.has(`${h.network}:${h.itemId}`)) continue;
+      const nft = await nftModel.findOne({ network: h.network, itemId: h.itemId }).lean();
+      if (nft) {
+        seen.add(`${h.network}:${h.itemId}`);
+        regularNFTs.push({ ...nft, userPieces: h.pieces });
+      }
+    }
 
     // Combine both types
     const allNFTs = [...regularNFTs, ...formattedLazyNFTs];

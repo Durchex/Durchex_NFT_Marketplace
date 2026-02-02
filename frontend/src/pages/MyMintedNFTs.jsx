@@ -65,6 +65,11 @@ function MyMintedNFTs() {
   const [cartItems, setCartItems] = useState(new Set());
   const [likedItems, setLikedItems] = useState(new Set());
   const [sellModalNft, setSellModalNft] = useState(null);
+  const [sellPiecesModal, setSellPiecesModal] = useState(null); // { nft, myPieces }
+  const [sellPiecesQty, setSellPiecesQty] = useState(1);
+  const [sellPiecesPrice, setSellPiecesPrice] = useState("");
+  const [sellPiecesSubmitting, setSellPiecesSubmitting] = useState(false);
+  const [pieceHoldings, setPieceHoldings] = useState([]); // { network, itemId, wallet, pieces }
   const { address: userWalletAddress } = useContext(ICOContent) || {};
 
   // User is the initial creator (can edit/delete). Non-creator owners see Sell only.
@@ -75,31 +80,36 @@ function MyMintedNFTs() {
 
   useEffect(() => {
     const fetchMyNFTs = async () => {
-      console.log("MyNFTs: Current wallet address:", address);
-      
       if (!address) {
-        console.log("MyNFTs: No wallet address, setting loading to false");
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-        console.log("MyNFTs: Fetching all NFTs for address:", address);
-        const nfts = await nftAPI.getUserNFTs(address);
-        console.log("MyNFTs: API response:", nfts);
+        const [nfts, holdings] = await Promise.all([
+          nftAPI.getUserNFTs(address),
+          nftAPI.getPieceHoldingsByWallet(address).catch(() => []),
+        ]);
         setMyNFTs(nfts);
+        setPieceHoldings(holdings);
         setError(null);
-      } catch (error) {
-        console.error("Error fetching NFTs:", error);
+      } catch (err) {
+        console.error("Error fetching NFTs:", err);
         setError("Error fetching NFTs");
       } finally {
         setLoading(false);
       }
     };
-
     fetchMyNFTs();
   }, [address]);
+
+  const getMyPieces = (nft) => {
+    if (nft.userPieces != null && nft.userPieces > 0) return Number(nft.userPieces);
+    const h = pieceHoldings.find(
+      (x) => x.network === (nft.network || "").toLowerCase() && String(x.itemId) === String(nft.itemId)
+    );
+    return h ? Number(h.pieces) : 0;
+  };
 
   const handleEditNFT = async (nft) => {
     setEditingNFT(nft.itemId);
@@ -134,6 +144,42 @@ function MyMintedNFTs() {
   const handleCancelEdit = () => {
     setEditingNFT(null);
     setEditForm({ name: '', description: '', price: '' });
+  };
+
+  const handleSellPieces = async () => {
+    if (!sellPiecesModal?.nft || !address) return;
+    const nft = sellPiecesModal.nft;
+    const qty = Math.max(1, parseInt(sellPiecesQty, 10));
+    const price = sellPiecesPrice?.trim();
+    if (!price || parseFloat(price) <= 0) {
+      ErrorToast("Enter a valid price per piece");
+      return;
+    }
+    if (qty > (sellPiecesModal.myPieces || 0)) {
+      ErrorToast("Quantity exceeds your pieces");
+      return;
+    }
+    try {
+      setSellPiecesSubmitting(true);
+      await nftAPI.createPieceSellOrder({
+        network: nft.network,
+        itemId: nft.itemId,
+        seller: address,
+        quantity: qty,
+        pricePerPiece: price,
+      });
+      SuccessToast("Pieces listed for sale. They are now in the NFT liquidity.");
+      setSellPiecesModal(null);
+      setSellPiecesQty(1);
+      setSellPiecesPrice("");
+      const holdings = await nftAPI.getPieceHoldingsByWallet(address);
+      setPieceHoldings(holdings);
+    } catch (err) {
+      console.error("Sell pieces error:", err);
+      ErrorToast(err?.message || "Failed to list pieces");
+    } finally {
+      setSellPiecesSubmitting(false);
+    }
   };
 
   const handleDeleteNFT = async (nft) => {
@@ -569,7 +615,7 @@ function MyMintedNFTs() {
                             )}
                           </div>
                           
-                          <div className="flex gap-2 mb-3">
+                          <div className="flex gap-2 mb-3 flex-wrap">
                             {isCreator(nft) ? (
                               <>
                                 <button
@@ -588,9 +634,17 @@ function MyMintedNFTs() {
                             ) : (
                               <button
                                 onClick={() => setSellModalNft(nft)}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
                               >
                                 Sell
+                              </button>
+                            )}
+                            {getMyPieces(nft) > 0 && (
+                              <button
+                                onClick={() => setSellPiecesModal({ nft, myPieces: getMyPieces(nft) })}
+                                className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
+                              >
+                                Sell pieces
                               </button>
                             )}
                           </div>
@@ -623,6 +677,55 @@ function MyMintedNFTs() {
         onClose={() => setSellModalNft(null)}
         nft={sellModalNft}
       />
+
+      {/* Sell pieces: list pieces back into NFT liquidity (no relist/approval) */}
+      {sellPiecesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !sellPiecesSubmitting && setSellPiecesModal(null)}>
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-2">Sell pieces back to liquidity</h3>
+            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. List them for sale so others can buy; you get paid (minus fee and royalty to creator).</p>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={sellPiecesModal.myPieces || 1}
+                  value={sellPiecesQty}
+                  onChange={(e) => setSellPiecesQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Price per piece (ETH)</label>
+                <input
+                  type="text"
+                  placeholder="0.01"
+                  value={sellPiecesPrice}
+                  onChange={(e) => setSellPiecesPrice(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setSellPiecesModal(null); setSellPiecesQty(1); setSellPiecesPrice(""); }}
+                disabled={sellPiecesSubmitting}
+                className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSellPieces}
+                disabled={sellPiecesSubmitting}
+                className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
+              >
+                {sellPiecesSubmitting ? "Listing…" : "List for sale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

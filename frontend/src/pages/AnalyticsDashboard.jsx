@@ -1,45 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Volume2, Users, Eye } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Volume2, Users } from 'lucide-react';
+import Header from '../components/Header';
+import { analyticsAPI } from '../services/api';
+
+const FALLBACK_DAILY = [
+  { date: 'Jan 12', volume: 245000, sales: 45, avgPrice: 5444 },
+  { date: 'Jan 13', volume: 310000, sales: 62, avgPrice: 5000 },
+  { date: 'Jan 14', volume: 280000, sales: 58, avgPrice: 4828 },
+  { date: 'Jan 15', volume: 345000, sales: 72, avgPrice: 4792 },
+  { date: 'Jan 16', volume: 420000, sales: 89, avgPrice: 4719 },
+  { date: 'Jan 17', volume: 380000, sales: 76, avgPrice: 5000 },
+  { date: 'Jan 18', volume: 510000, sales: 98, avgPrice: 5204 },
+];
+
+const FALLBACK_COLLECTIONS = [
+  { name: 'Cyber Punks', volume: 1250, floor: 45.5, owners: 2341, items: 10000 },
+  { name: 'Digital Canvas', volume: 890, floor: 12.3, owners: 5621, items: 50000 },
+  { name: 'Genesis NFTs', volume: 750, floor: 32.8, owners: 1234, items: 5000 },
+  { name: 'Virtual Worlds', volume: 620, floor: 8.5, owners: 8901, items: 100000 },
+  { name: 'Art Blocks', volume: 510, floor: 2.1, owners: 12334, items: 250000 },
+];
+
+const FALLBACK_NETWORKS = [
+  { network: 'Ethereum', volume: 3250, sales: 289, avgPrice: 11.2 },
+  { network: 'Polygon', volume: 1890, sales: 456, avgPrice: 4.1 },
+  { network: 'Arbitrum', volume: 1240, sales: 198, avgPrice: 6.3 },
+  { network: 'Base', volume: 560, sales: 87, avgPrice: 6.4 },
+];
 
 /**
- * AnalyticsDashboard - Marketplace analytics and trading metrics
- * Shows volume, sales trends, and market insights
+ * AnalyticsDashboard - Marketplace analytics (live API + fallback mock)
  */
 const AnalyticsDashboard = () => {
   const [timeframe, setTimeframe] = useState('7d');
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalVolume: 2890, totalSales: 500, avgPrice: 5780, activeUsers: 2341 });
+  const [dailyData, setDailyData] = useState(FALLBACK_DAILY);
+  const [topCollections, setTopCollections] = useState(FALLBACK_COLLECTIONS);
+  const [networkMetrics, setNetworkMetrics] = useState(FALLBACK_NETWORKS);
 
-  const dailyData = [
-    { date: 'Jan 12', volume: 245000, sales: 45, avgPrice: 5444 },
-    { date: 'Jan 13', volume: 310000, sales: 62, avgPrice: 5000 },
-    { date: 'Jan 14', volume: 280000, sales: 58, avgPrice: 4828 },
-    { date: 'Jan 15', volume: 345000, sales: 72, avgPrice: 4792 },
-    { date: 'Jan 16', volume: 420000, sales: 89, avgPrice: 4719 },
-    { date: 'Jan 17', volume: 380000, sales: 76, avgPrice: 5000 },
-    { date: 'Jan 18', volume: 510000, sales: 98, avgPrice: 5204 },
-  ];
+  const apiTimeframe = timeframe === '90d' || timeframe === 'all' ? '30d' : timeframe === '24h' ? '24h' : timeframe;
 
-  const topCollections = [
-    { name: 'Cyber Punks', volume: 1250, floor: 45.5, owners: 2341, items: 10000 },
-    { name: 'Digital Canvas', volume: 890, floor: 12.3, owners: 5621, items: 50000 },
-    { name: 'Genesis NFTs', volume: 750, floor: 32.8, owners: 1234, items: 5000 },
-    { name: 'Virtual Worlds', volume: 620, floor: 8.5, owners: 8901, items: 100000 },
-    { name: 'Art Blocks', volume: 510, floor: 2.1, owners: 12334, items: 250000 },
-  ];
-
-  const networkMetrics = [
-    { network: 'Ethereum', volume: 3250, sales: 289, avgPrice: 11.2 },
-    { network: 'Polygon', volume: 1890, sales: 456, avgPrice: 4.1 },
-    { network: 'Arbitrum', volume: 1240, sales: 198, avgPrice: 6.3 },
-    { network: 'Base', volume: 560, sales: 87, avgPrice: 6.4 },
-  ];
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      analyticsAPI.getMarketplaceStats(apiTimeframe).catch(() => ({})),
+      analyticsAPI.getVolumeTrends(apiTimeframe, 'daily').catch(() => []),
+      analyticsAPI.getTrendingCollections(5, apiTimeframe).catch(() => []),
+    ])
+      .then(([s, trends, collections]) => {
+        if (s && (s.totalVolume != null || s.totalSales != null)) {
+          setStats((prev) => ({
+            totalVolume: s.totalVolume ?? prev.totalVolume,
+            totalSales: s.totalSales ?? prev.totalSales,
+            avgPrice: s.avgPrice ?? s.averagePrice ?? prev.avgPrice,
+            activeUsers: s.activeUsers ?? s.uniqueBuyers ?? prev.activeUsers,
+          }));
+        }
+        if (Array.isArray(trends) && trends.length > 0) {
+          setDailyData(trends.map((t) => ({
+            date: t.date ?? t.label ?? t.period ?? '',
+            volume: t.volume ?? t.totalVolume ?? 0,
+            sales: t.sales ?? t.transactionCount ?? 0,
+            avgPrice: t.avgPrice ?? t.averagePrice ?? 0,
+          })));
+        }
+        if (Array.isArray(collections) && collections.length > 0) {
+          setTopCollections(collections.map((c) => ({
+            name: c.name ?? c.collectionName ?? '—',
+            volume: c.volume ?? c.totalVolume ?? 0,
+            floor: c.floor ?? c.floorPrice ?? 0,
+            owners: c.owners ?? c.ownerCount ?? 0,
+            items: c.items ?? c.totalSupply ?? 0,
+          })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [apiTimeframe]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Header */}
+      <Header />
       <section className="py-8 px-4 sm:px-6 lg:px-8 border-b border-gray-700">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl font-bold mb-4">Analytics Dashboard</h1>
@@ -67,13 +113,16 @@ const AnalyticsDashboard = () => {
       {/* Key Metrics */}
       <section className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-7xl mx-auto">
+          {loading ? (
+            <p className="text-gray-400 mb-8">Loading analytics…</p>
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-400">Total Volume (7d)</span>
+                <span className="text-gray-400">Total Volume ({timeframe})</span>
                 <DollarSign size={20} className="text-green-400" />
               </div>
-              <p className="text-3xl font-bold mb-2">2,890 ETH</p>
+              <p className="text-3xl font-bold mb-2">{Number(stats.totalVolume).toLocaleString()} ETH</p>
               <p className="text-sm text-green-400 flex items-center">
                 <TrendingUp size={16} className="mr-1" />
                 +24.5% from previous period
@@ -82,10 +131,10 @@ const AnalyticsDashboard = () => {
 
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-400">Total Sales (7d)</span>
+                <span className="text-gray-400">Total Sales ({timeframe})</span>
                 <Volume2 size={20} className="text-blue-400" />
               </div>
-              <p className="text-3xl font-bold mb-2">500</p>
+              <p className="text-3xl font-bold mb-2">{Number(stats.totalSales).toLocaleString()}</p>
               <p className="text-sm text-green-400 flex items-center">
                 <TrendingUp size={16} className="mr-1" />
                 +18.2% from previous period
@@ -94,10 +143,10 @@ const AnalyticsDashboard = () => {
 
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-400">Avg. Price (7d)</span>
+                <span className="text-gray-400">Avg. Price ({timeframe})</span>
                 <TrendingUp size={20} className="text-purple-400" />
               </div>
-              <p className="text-3xl font-bold mb-2">5,780 USD</p>
+              <p className="text-3xl font-bold mb-2">{Number(stats.avgPrice).toLocaleString()} USD</p>
               <p className="text-sm text-red-400 flex items-center">
                 <TrendingDown size={16} className="mr-1" />
                 -3.2% from previous period
@@ -106,10 +155,10 @@ const AnalyticsDashboard = () => {
 
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-gray-400">Active Users (7d)</span>
+                <span className="text-gray-400">Active Users ({timeframe})</span>
                 <Users size={20} className="text-cyan-400" />
               </div>
-              <p className="text-3xl font-bold mb-2">2,341</p>
+              <p className="text-3xl font-bold mb-2">{Number(stats.activeUsers).toLocaleString()}</p>
               <p className="text-sm text-green-400 flex items-center">
                 <TrendingUp size={16} className="mr-1" />
                 +12.8% from previous period

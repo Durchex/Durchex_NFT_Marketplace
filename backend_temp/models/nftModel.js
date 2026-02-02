@@ -65,6 +65,12 @@ const nftSchema = new Schema(
     owner: {
       type: String,
       required: true,
+      description: "Canonical owner of the token (creator). Never overwritten by piece sales.",
+    },
+    creator: {
+      type: String,
+      required: false,
+      description: "Creator wallet; used for royalty. If unset, owner is treated as creator.",
     },
     seller: {
       type: String,
@@ -81,6 +87,31 @@ const nftSchema = new Schema(
       required: false,
       default: null,
       description: "Floor price for this NFT (if different from current listing price)",
+    },
+    // Market data (updated by buy/sell — liquidity in/out)
+    lastPrice: {
+      type: String,
+      required: false,
+      default: null,
+      description: "Last trade price per piece (drives price movement)",
+    },
+    marketCap: {
+      type: String,
+      required: false,
+      default: null,
+      description: "lastPrice × pieces (or circulating); updated on trade",
+    },
+    volume24h: {
+      type: String,
+      required: false,
+      default: "0",
+      description: "Total volume (ETH) in last 24h from trades",
+    },
+    volume7d: {
+      type: String,
+      required: false,
+      default: "0",
+      description: "Total volume (ETH) in last 7 days from trades",
     },
     currentlyListed: {
       type: Boolean,

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { nftAPI, userAPI } from '../../services/api';
+import { nftAPI, userAPI, auctionAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 /**
- * LiveAuctions - Grid of active auctions with countdown timers
- * Using mock auction data with real collection information
+ * LiveAuctions - Grid of active auctions (live API first, fallback to collections/mock)
  */
 const LiveAuctions = () => {
   const [auctions, setAuctions] = useState([]);
@@ -22,80 +21,60 @@ const LiveAuctions = () => {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      console.log('[LiveAuctions] Fetching collections for auction data...');
-      
-      // ✅ Fetch real collections to display
-      const collectionsData = await nftAPI.getCollections();
-      console.log('[LiveAuctions] Collections:', collectionsData);
-      
-      if (Array.isArray(collectionsData) && collectionsData.length > 0) {
-        // Create mock auctions using real collection data
-        const mockAuctions = collectionsData.slice(0, 6).map((collection, idx) => ({
-          _id: `auction-${idx}`,
-          name: collection.name || `Collection Auction ${idx + 1}`,
-          image: collection.image || `https://via.placeholder.com/300x350?text=Auction%20${idx + 1}`,
-          currentBid: (Math.random() * 3 + 0.5).toFixed(2),
-          bidCount: Math.floor(Math.random() * 50) + 5,
-          creatorName: collection.creatorName || `Creator ${idx + 1}`,
-          creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${collection.creatorWallet || `creator${idx}`}`,
-          endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-          backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx]
+      const liveList = await auctionAPI.list();
+      if (Array.isArray(liveList) && liveList.length > 0) {
+        const normalized = liveList.map((a, idx) => ({
+          _id: a.id || a._id || `auction-${idx}`,
+          name: a.nftName || `NFT #${a.tokenId || a.id}`,
+          image: a.nftImage || `https://via.placeholder.com/300x350?text=Auction%20${a.tokenId || idx + 1}`,
+          currentBid: String(a.currentBid ?? a.reservePrice ?? 0),
+          bidCount: a.bidCount ?? 0,
+          creatorName: a.seller ? `${a.seller.slice(0, 6)}...${a.seller.slice(-4)}` : '—',
+          creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.seller || idx}`,
+          creatorWallet: a.seller,
+          endTime: a.endTime,
+          backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx % 6]
         }));
-        
-        setAuctions(mockAuctions);
-        
-        // Fetch creator profiles for all auctions with rate limiting
+        setAuctions(normalized);
+        const wallets = [...new Set(normalized.map((a) => a.creatorWallet).filter(Boolean))];
         const profilesMap = new Map();
-        const uniqueWallets = [...new Set(mockAuctions.map(auction => 
-          auction.creatorWallet || auction.owner || auction.walletAddress
-        ).filter(Boolean))];
-        
-        // Fetch profiles with a small delay between requests to avoid overwhelming the API
-        for (let i = 0; i < uniqueWallets.length; i++) {
-          const walletAddress = uniqueWallets[i];
-          if (!profilesMap.has(walletAddress)) {
-            try {
-              // Add small delay between requests (except first one)
-              if (i > 0) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-              }
-              
-              const profile = await userAPI.getUserProfile(walletAddress);
-              const auction = mockAuctions.find(a => 
-                (a.creatorWallet || a.owner || a.walletAddress) === walletAddress
-              );
-              
-              if (profile) {
-                profilesMap.set(walletAddress, {
-                  username: profile.username || auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: profile.image || profile.avatar || auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              } else {
-                profilesMap.set(walletAddress, {
-                  username: auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                  avatar: auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-                });
-              }
-            } catch (error) {
-              console.warn(`[LiveAuctions] Error fetching profile for ${walletAddress}:`, error);
-              const auction = mockAuctions.find(a => 
-                (a.creatorWallet || a.owner || a.walletAddress) === walletAddress
-              );
-              profilesMap.set(walletAddress, {
-                username: auction?.creatorName || `User ${walletAddress.substring(0, 6)}`,
-                avatar: auction?.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`
-              });
-            }
+        for (let i = 0; i < wallets.length; i++) {
+          const w = wallets[i];
+          try {
+            if (i > 0) await new Promise((r) => setTimeout(r, 100));
+            const profile = await userAPI.getUserProfile(w);
+            const a = normalized.find((x) => x.creatorWallet === w);
+            profilesMap.set(w, {
+              username: profile?.username || a?.creatorName || `${w.slice(0, 6)}...`,
+              avatar: profile?.image || profile?.avatar || a?.creatorAvatar
+            });
+          } catch {
+            const a = normalized.find((x) => x.creatorWallet === w);
+            profilesMap.set(w, { username: a?.creatorName || `${w.slice(0, 6)}...`, avatar: a?.creatorAvatar });
           }
         }
         setCreatorProfiles(profilesMap);
       } else {
-        // Fallback to completely mock data if no collections
-        setAuctions(generateMockAuctions());
+        const collectionsData = await nftAPI.getCollections();
+        if (Array.isArray(collectionsData) && collectionsData.length > 0) {
+          const mockAuctions = collectionsData.slice(0, 6).map((c, idx) => ({
+            _id: `auction-${idx}`,
+            name: c.name || `Collection Auction ${idx + 1}`,
+            image: c.image || `https://via.placeholder.com/300x350?text=Auction%20${idx + 1}`,
+            currentBid: (Math.random() * 3 + 0.5).toFixed(2),
+            bidCount: Math.floor(Math.random() * 50) + 5,
+            creatorName: c.creatorName || `Creator ${idx + 1}`,
+            creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.creatorWallet || idx}`,
+            endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+            backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx]
+          }));
+          setAuctions(mockAuctions);
+        } else {
+          setAuctions(generateMockAuctions());
+        }
       }
     } catch (error) {
-      console.error('[LiveAuctions] Error fetching data:', error);
-      // Fallback to mock data
+      console.warn('[LiveAuctions] Error:', error);
       setAuctions(generateMockAuctions());
     } finally {
       setLoading(false);

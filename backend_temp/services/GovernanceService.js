@@ -156,6 +156,21 @@ class GovernanceService {
   }
 
   /**
+   * Alias for route: get all proposals (status, sortBy)
+   */
+  async getAllProposals(status = 'active', sortBy = 'newest') {
+    const state = status === 'active' ? 'PENDING' : status === 'passed' ? 'EXECUTED' : status;
+    return this.getProposals(state, null, 50);
+  }
+
+  /**
+   * Alias for route: get proposal details
+   */
+  getProposalDetails(proposalId) {
+    return this.getProposal(proposalId);
+  }
+
+  /**
    * Get all proposals with optional filtering
    */
   getProposals(state = null, category = null, limit = 50) {

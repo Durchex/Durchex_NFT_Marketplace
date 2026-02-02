@@ -53,7 +53,7 @@ const SellModal = ({ isOpen, onClose, nft }) => {
     try {
       await handleSwitchNetwork(network);
       if (setSelectedChain) setSelectedChain(network);
-      const receipt = await listNFT(nftContract, tokenId, String(priceNum));
+      const receipt = await listNFT(nftContract, tokenId, String(priceNum), network);
       const success = receipt && (receipt.status === 1 || receipt.transactionHash);
       if (success) {
         toast.success('Listed for sale successfully!');

@@ -1,14 +1,34 @@
-import React, { useState } from 'react';
-import { DollarSign, TrendingUp, Users, Settings } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import { DollarSign, TrendingUp } from 'lucide-react';
+import Header from '../components/Header';
+import { ICOContent } from '../Context';
+import { monetizationAPI } from '../services/api';
 
 /**
- * MonetizationHub - Creator monetization and revenue management
+ * MonetizationHub - Creator monetization and revenue (live API + same layout)
  */
 const MonetizationHub = () => {
+  const { address } = useContext(ICOContent) || {};
   const [tab, setTab] = useState('dashboard');
+  const [stats, setStats] = useState({ totalEarned: 0, royaltyRate: 0, collections: 0, totalSales: 0 });
+  const [payouts, setPayouts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!address) return;
+    setLoading(true);
+    Promise.all([monetizationAPI.getStats(address), monetizationAPI.getPayoutHistory(address)])
+      .then(([s, p]) => {
+        setStats(s || { totalEarned: 0, royaltyRate: 0, collections: 0, totalSales: 0 });
+        setPayouts(Array.isArray(p) ? p : []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [address, tab]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
+      <Header />
       <section className="py-8 px-4 sm:px-6 lg:px-8 border-b border-gray-700">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-4xl font-bold mb-2">Creator Monetization</h1>
@@ -33,55 +53,63 @@ const MonetizationHub = () => {
       {tab === 'dashboard' && (
         <section className="px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm">Total Earned</p>
-                <p className="text-3xl font-bold text-green-400">15.34 ETH</p>
-                <p className="text-xs text-green-400 mt-1">+2.5 ETH this month</p>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm">Royalty Rate</p>
-                <p className="text-3xl font-bold">10%</p>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm">Collections</p>
-                <p className="text-3xl font-bold">5</p>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <p className="text-gray-400 text-sm">Total Sales</p>
-                <p className="text-3xl font-bold">234</p>
-              </div>
-            </div>
+            {loading && (
+              <p className="text-gray-400">Loading…</p>
+            )}
 
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-auto">
-              <table className="w-full">
-                <thead className="border-b border-gray-700 bg-gray-700/30">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Collection</th>
-                    <th className="px-6 py-3 text-left">Royalty Rate</th>
-                    <th className="px-6 py-3 text-left">Total Earned</th>
-                    <th className="px-6 py-3 text-left">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { collection: 'Cyber Punks', rate: '10%', earned: '5.2 ETH' },
-                    { collection: 'Digital Canvas', rate: '12%', earned: '4.8 ETH' },
-                    { collection: 'Virtual Land', rate: '8%', earned: '3.5 ETH' },
-                    { collection: 'Genesis NFTs', rate: '15%', earned: '1.94 ETH' },
-                  ].map((row, idx) => (
-                    <tr key={idx} className="border-b border-gray-700">
-                      <td className="px-6 py-3">{row.collection}</td>
-                      <td className="px-6 py-3 text-yellow-400">{row.rate}</td>
-                      <td className="px-6 py-3 text-green-400">{row.earned}</td>
-                      <td className="px-6 py-3">
-                        <button className="text-purple-400 hover:text-purple-300">Manage</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {!loading && (
+              <React.Fragment>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <p className="text-gray-400 text-sm">Total Earned</p>
+                    <p className="text-3xl font-bold text-green-400">{stats.totalEarned ?? 0} ETH</p>
+                    <p className="text-xs text-gray-400 mt-1">From royalties & sales</p>
+                  </div>
+                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <p className="text-gray-400 text-sm">Royalty Rate</p>
+                    <p className="text-3xl font-bold">{stats.royaltyRate ?? 0}%</p>
+                  </div>
+                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <p className="text-gray-400 text-sm">Collections</p>
+                    <p className="text-3xl font-bold">{stats.collections ?? 0}</p>
+                  </div>
+                  <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <p className="text-gray-400 text-sm">Total Sales</p>
+                    <p className="text-3xl font-bold">{stats.totalSales ?? 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-gray-700 bg-gray-700/30">
+                      <tr>
+                        <th className="px-6 py-3 text-left">Collection</th>
+                        <th className="px-6 py-3 text-left">Royalty Rate</th>
+                        <th className="px-6 py-3 text-left">Total Earned</th>
+                        <th className="px-6 py-3 text-left">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { collection: 'Cyber Punks', rate: '10%', earned: '5.2 ETH' },
+                        { collection: 'Digital Canvas', rate: '12%', earned: '4.8 ETH' },
+                        { collection: 'Virtual Land', rate: '8%', earned: '3.5 ETH' },
+                        { collection: 'Genesis NFTs', rate: '15%', earned: '1.94 ETH' },
+                      ].map((row, idx) => (
+                        <tr key={idx} className="border-b border-gray-700">
+                          <td className="px-6 py-3">{row.collection}</td>
+                          <td className="px-6 py-3 text-yellow-400">{row.rate}</td>
+                          <td className="px-6 py-3 text-green-400">{row.earned}</td>
+                          <td className="px-6 py-3">
+                            <button className="text-purple-400 hover:text-purple-300">Manage</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </React.Fragment>
+            )}
           </div>
         </section>
       )}

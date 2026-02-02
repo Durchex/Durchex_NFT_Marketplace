@@ -1,29 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Lock, Calendar, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
+import Header from '../components/Header';
+import { ICOContent } from '../Context';
+import { rentalAPI } from '../services/api';
+import toast from 'react-hot-toast';
+
+const FALLBACK_LISTINGS = [
+  { id: 1, name: 'Cyber Punk #123', owner: 'Collector42', pricePerDay: 0.5, minDays: 7, maxDays: 30 },
+  { id: 2, name: 'Digital Canvas #456', owner: 'ArtLab', pricePerDay: 0.2, minDays: 1, maxDays: 7 },
+  { id: 3, name: 'Genesis #001', owner: 'Creator99', pricePerDay: 1.5, minDays: 30, maxDays: 90 },
+  { id: 4, name: 'Moon NFT #789', owner: 'SpaceArt', pricePerDay: 0.8, minDays: 7, maxDays: 14 },
+];
+
+const FALLBACK_MY_RENTALS = [
+  { id: 1, name: 'Virtual Land #001', renter: 'User123', endDate: 'Jan 25, 2026', earned: 0.32 },
+  { id: 2, name: 'Metaverse Plot #045', renter: 'User456', endDate: 'Jan 20, 2026', earned: 0.15 },
+];
 
 /**
- * RentalNFT - NFT rental and leasing feature
- * Allows users to rent NFTs or list them for rental
+ * RentalNFT - NFT rental and leasing feature (live API + same layout as site)
  */
 const RentalNFT = () => {
+  const { address, connectWallet } = useContext(ICOContent) || {};
   const [tab, setTab] = useState('browse');
   const [filter, setFilter] = useState('all');
+  const [rentalListings, setRentalListings] = useState(FALLBACK_LISTINGS);
+  const [myRentals, setMyRentals] = useState(FALLBACK_MY_RENTALS);
+  const [loading, setLoading] = useState(false);
+  const [listForm, setListForm] = useState({ nftAddress: '', tokenId: '', pricePerDay: '', minDays: '', maxDays: '' });
+  const [listSubmitting, setListSubmitting] = useState(false);
 
-  const rentalListings = [
-    { id: 1, name: 'Cyber Punk #123', owner: 'Collector42', price: 0.5, duration: '30 days', roi: '18% APY', listed: '2 hours ago' },
-    { id: 2, name: 'Digital Canvas #456', owner: 'ArtLab', price: 0.2, duration: '7 days', roi: '24% APY', listed: '5 hours ago' },
-    { id: 3, name: 'Genesis #001', owner: 'Creator99', price: 1.5, duration: '90 days', roi: '15% APY', listed: '1 day ago' },
-    { id: 4, name: 'Moon NFT #789', owner: 'SpaceArt', price: 0.8, duration: '14 days', roi: '20% APY', listed: '2 days ago' },
-  ];
+  useEffect(() => {
+    if (tab === 'browse') {
+      setLoading(true);
+      rentalAPI.getAvailableListings(0, 20, 'recent')
+        .then((list) => setRentalListings(Array.isArray(list) && list.length > 0 ? list : FALLBACK_LISTINGS))
+        .catch(() => setRentalListings(FALLBACK_LISTINGS))
+        .finally(() => setLoading(false));
+    } else if (tab === 'my' && address) {
+      setLoading(true);
+      rentalAPI.getMyRentals(address)
+        .then((list) => setMyRentals(Array.isArray(list) && list.length > 0 ? list : FALLBACK_MY_RENTALS))
+        .catch(() => setMyRentals(FALLBACK_MY_RENTALS))
+        .finally(() => setLoading(false));
+    }
+  }, [tab, address]);
 
-  const myRentals = [
-    { id: 1, name: 'Virtual Land #001', renter: 'User123', endDate: 'Jan 25, 2026', earned: 0.32 },
-    { id: 2, name: 'Metaverse Plot #045', renter: 'User456', endDate: 'Jan 20, 2026', earned: 0.15 },
-  ];
+  const handleListSubmit = async (e) => {
+    e.preventDefault();
+    if (!address) {
+      toast.error('Connect your wallet first');
+      return;
+    }
+    const { nftAddress, tokenId, pricePerDay, minDays, maxDays } = listForm;
+    if (!nftAddress?.trim() || !tokenId?.trim() || !pricePerDay || !minDays || !maxDays) {
+      toast.error('Fill all required fields');
+      return;
+    }
+    setListSubmitting(true);
+    try {
+      await rentalAPI.createListing(address, {
+        nftAddress: nftAddress.trim(),
+        tokenId: tokenId.trim(),
+        pricePerDay: parseFloat(pricePerDay),
+        minDays: parseInt(minDays, 10),
+        maxDays: parseInt(maxDays, 10),
+      });
+      toast.success('Listing created');
+      setListForm({ nftAddress: '', tokenId: '', pricePerDay: '', minDays: '', maxDays: '' });
+      setTab('browse');
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.message || 'Create listing failed');
+    } finally {
+      setListSubmitting(false);
+    }
+  };
+
+  const displayListings = rentalListings.map((r) => ({
+    id: r.id ?? r.listingId ?? r._id,
+    name: r.name ?? `NFT #${r.tokenId ?? r.id ?? ''}`,
+    owner: r.owner ?? r.lister ? `${r.lister.slice(0, 6)}...${r.lister.slice(-4)}` : '—',
+    price: r.price ?? r.pricePerDay ?? 0,
+    duration: r.duration ?? (r.minDays && r.maxDays ? `${r.minDays}-${r.maxDays} days` : '—'),
+    roi: r.roi ?? '—',
+  }));
+
+  const displayMyRentals = myRentals.map((r) => ({
+    id: r.id ?? r.rentalId ?? r._id,
+    name: r.name ?? `Rental #${r.rentalId ?? r.id}`,
+    renter: r.renter ?? (r.renterAddress ? `${r.renterAddress.slice(0, 6)}...${r.renterAddress.slice(-4)}` : '—'),
+    endDate: r.endDate ?? r.endTime ? new Date(r.endTime).toLocaleDateString() : '—',
+    earned: r.earned ?? r.earnedAmount ?? 0,
+  }));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Header */}
+      <Header />
       <section className="py-8 px-4 sm:px-6 lg:px-8 border-b border-gray-700">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-4xl font-bold mb-2">NFT Rental</h1>
@@ -87,34 +159,40 @@ const RentalNFT = () => {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {rentalListings.map(rental => (
-                <div key={rental.id} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-purple-500 transition">
-                  <div className="h-40 bg-gradient-to-br from-purple-600 to-pink-600"></div>
-                  <div className="p-4">
-                    <p className="text-sm text-gray-400">{rental.owner}</p>
-                    <h3 className="font-bold mb-2">{rental.name}</h3>
-                    <div className="space-y-2 mb-4 text-sm">
-                      <div className="flex items-center">
-                        <DollarSign size={16} className="mr-2 text-green-400" />
-                        <span>{rental.price} ETH</span>
+            {loading ? (
+              <p className="text-gray-400">Loading listings…</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {displayListings.map(rental => (
+                  <div key={rental.id} className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-purple-500 transition">
+                    <div className="h-40 bg-gradient-to-br from-purple-600 to-pink-600"></div>
+                    <div className="p-4">
+                      <p className="text-sm text-gray-400">{rental.owner}</p>
+                      <h3 className="font-bold mb-2">{rental.name}</h3>
+                      <div className="space-y-2 mb-4 text-sm">
+                        <div className="flex items-center">
+                          <DollarSign size={16} className="mr-2 text-green-400" />
+                          <span>{rental.price} ETH</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar size={16} className="mr-2 text-blue-400" />
+                          <span>{rental.duration}</span>
+                        </div>
+                        {rental.roi !== '—' && (
+                          <div className="flex items-center">
+                            <TrendingUp size={16} className="mr-2 text-yellow-400" />
+                            <span className="text-yellow-400 font-semibold">{rental.roi}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center">
-                        <Calendar size={16} className="mr-2 text-blue-400" />
-                        <span>{rental.duration}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <TrendingUp size={16} className="mr-2 text-yellow-400" />
-                        <span className="text-yellow-400 font-semibold">{rental.roi}</span>
-                      </div>
+                      <button className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded transition">
+                        Rent Now
+                      </button>
                     </div>
-                    <button className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded transition">
-                      Rent Now
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -150,7 +228,7 @@ const RentalNFT = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {myRentals.map(rental => (
+                  {displayMyRentals.map(rental => (
                     <tr key={rental.id} className="border-b border-gray-700">
                       <td className="px-6 py-3">{rental.name}</td>
                       <td className="px-6 py-3">{rental.renter}</td>
@@ -172,41 +250,82 @@ const RentalNFT = () => {
       {tab === 'list' && (
         <section className="px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-8">
-              <h2 className="text-2xl font-bold mb-6">List Your NFT for Rental</h2>
-              <form className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Select NFT</label>
-                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white">
-                    <option>Choose an NFT from your collection</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Daily Rental Price (ETH)</label>
-                    <input type="number" placeholder="0.5" className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Max Rental Period (days)</label>
-                    <input type="number" placeholder="30" className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Description</label>
-                  <textarea
-                    placeholder="Describe your rental offer..."
-                    rows="4"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
-                  />
-                </div>
-
-                <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded font-semibold transition">
-                  List for Rental
+            {!address ? (
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-8 text-center">
+                <p className="text-gray-400 mb-4">Connect your wallet to list an NFT for rental.</p>
+                <button type="button" onClick={connectWallet} className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded font-semibold">
+                  Connect Wallet
                 </button>
-              </form>
-            </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg border border-gray-700 p-8">
+                <h2 className="text-2xl font-bold mb-6">List Your NFT for Rental</h2>
+                <form onSubmit={handleListSubmit} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">NFT Contract Address *</label>
+                    <input
+                      value={listForm.nftAddress}
+                      onChange={(e) => setListForm((f) => ({ ...f, nftAddress: e.target.value }))}
+                      placeholder="0x..."
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Token ID *</label>
+                    <input
+                      value={listForm.tokenId}
+                      onChange={(e) => setListForm((f) => ({ ...f, tokenId: e.target.value }))}
+                      placeholder="1"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Daily Rental Price (ETH) *</label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={listForm.pricePerDay}
+                      onChange={(e) => setListForm((f) => ({ ...f, pricePerDay: e.target.value }))}
+                      placeholder="0.5"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Min Days *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={listForm.minDays}
+                        onChange={(e) => setListForm((f) => ({ ...f, minDays: e.target.value }))}
+                        placeholder="7"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Max Days *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={listForm.maxDays}
+                        onChange={(e) => setListForm((f) => ({ ...f, maxDays: e.target.value }))}
+                        placeholder="30"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={listSubmitting} className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded font-semibold transition disabled:opacity-50">
+                    {listSubmitting ? 'Creating…' : 'List for Rental'}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </section>
       )}

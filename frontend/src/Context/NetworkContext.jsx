@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { SUPPORTED_NETWORKS, getNetworkById } from './constants';
+import { ICOContent } from './index';
 
 const NetworkContext = createContext();
 
@@ -11,25 +13,25 @@ export const useNetwork = () => {
   return context;
 };
 
+// Networks list for dropdown – single source of truth (id used for contractAddresses / selectedChain)
+const networks = SUPPORTED_NETWORKS;
+
 export const NetworkProvider = ({ children }) => {
-  // Load selected network from localStorage or default to Ethereum
+  const defaultNetwork = getNetworkById('ethereum') || networks[0];
   const [_selectedNetwork, _setSelectedNetwork] = useState(() => {
     const saved = localStorage.getItem('selectedNetwork');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const byId = parsed.id && getNetworkById(parsed.id);
+        if (byId) return byId;
+        const byName = networks.find((n) => n.name === parsed.name);
+        if (byName) return byName;
       } catch (error) {
         console.error('Error parsing saved network:', error);
       }
     }
-    return {
-      name: "Ethereum",
-      symbol: "ETH",
-      icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IjYyNzVFQSIvPgo8cGF0aCBkPSJNMTYuNDk4IDRWMjAuOTk0TDI0LjQ5IDE2LjQ5OEwxNi40OTggNFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggNEw4LjUgMTYuNDk4TDE2LjQ5OCAyMC45OTRWNCIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2LjQ5OCAyNC45OTlMMjQuNDk5IDE4LjQ5OUwxNi40OTggMjcuOTk5VjI0Ljk5OVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNi40OTggMjcuOTk5TDguNSAxOC40OTlMMTYuNDk4IDI0Ljk5OVYyNy45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K",
-      chainId: 1,
-      rpcUrl: "https://rpc.ankr.com/eth",
-      blockExplorerUrl: "https://etherscan.io"
-    };
+    return defaultNetwork;
   });
 
   const setSelectedNetwork = (network) => {
@@ -37,115 +39,20 @@ export const NetworkProvider = ({ children }) => {
     localStorage.setItem('selectedNetwork', JSON.stringify(network));
   };
 
-  const networks = [
-    { 
-      name: "Ethereum", 
-      symbol: "ETH", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png",
-      chainId: 1,
-      rpcUrl: "https://rpc.ankr.com/eth",
-      blockExplorerUrl: "https://etherscan.io",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Polygon", 
-      symbol: "MATIC", 
-      icon: "https://wallet-asset.matic.network/img/tokens/pol.svg",
-      chainId: 137,
-      rpcUrl: "https://rpc.ankr.com/polygon",
-      blockExplorerUrl: "https://polygonscan.com",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "BSC", 
-      symbol: "BNB", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png",
-      chainId: 56,
-      rpcUrl: "https://rpc.ankr.com/bsc",
-      blockExplorerUrl: "https://bscscan.com",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Arbitrum", 
-      symbol: "ARB", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png",
-      chainId: 42161,
-      rpcUrl: "https://rpc.ankr.com/arbitrum",
-      blockExplorerUrl: "https://arbiscan.io",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Optimism", 
-      symbol: "OP", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/optimism/info/logo.png",
-      chainId: 10,
-      rpcUrl: "https://rpc.ankr.com/optimism",
-      blockExplorerUrl: "https://optimistic.etherscan.io",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Avalanche", 
-      symbol: "AVAX", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png",
-      chainId: 43114,
-      rpcUrl: "https://rpc.ankr.com/avalanche",
-      blockExplorerUrl: "https://snowtrace.io",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Tezos", 
-      symbol: "XTZ", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tezos/info/logo.png",
-      chainId: 1729, // Tezos Mainnet chain ID
-      rpcUrl: "https://mainnet.api.tezos.com",
-      blockExplorerUrl: "https://tzstats.com",
-      isEVM: false, // Tezos is not EVM-compatible
-      walletType: "tezos" // Requires Temple Wallet or similar
-    },
-    { 
-      name: "Hyperliquid", 
-      symbol: "HYPE", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png",
-      chainId: 999,
-      rpcUrl: "https://rpc.hyperliquid.xyz/evm",
-      blockExplorerUrl: "https://hypurrscan.io",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Base",
-      symbol: "ETH",
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png",
-      chainId: 8453,
-      rpcUrl: "https://mainnet.base.org",
-      blockExplorerUrl: "https://basescan.org",
-      isEVM: true,
-      walletType: "evm"
-    },
-    { 
-      name: "Solana", 
-      symbol: "SOL", 
-      icon: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png",
-      chainId: 101,
-      rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
-      blockExplorerUrl: import.meta.env.VITE_SOLANA_BLOCK_EXPLORER || "https://solscan.io",
-      isEVM: false,
-      walletType: "solana"
-    },
-  ];
+  const icoContext = useContext(ICOContent);
+  const setSelectedChainFromICO = icoContext?.setSelectedChain;
+
+  // Sync ICOContent selectedChain on load (from localStorage) so contracts/API use same network as dropdown
+  useEffect(() => {
+    if (_selectedNetwork?.id && setSelectedChainFromICO) setSelectedChainFromICO(_selectedNetwork.id);
+  }, [_selectedNetwork?.id, setSelectedChainFromICO]);
 
   const switchNetwork = async (network) => {
     try {
-      // Handle case where network is passed as string (name) instead of object
+      // Handle case where network is passed as string (name or id) instead of object
       let networkObj = network;
       if (typeof network === 'string') {
-        networkObj = networks.find(n => n.name === network);
+        networkObj = networks.find(n => n.name === network) || getNetworkById(network);
         if (!networkObj) {
           toast.error(`Network "${network}" not found`);
           return false;
@@ -158,8 +65,9 @@ export const NetworkProvider = ({ children }) => {
         return true;
       }
 
-      // First, update the site's selected network
+      // First, update the site's selected network and sync to ICOContent (contracts, API)
       setSelectedNetwork(networkObj);
+      if (networkObj.id && setSelectedChainFromICO) setSelectedChainFromICO(networkObj.id);
 
       // Check if wallet is connected
       const isWalletConnected = window.ethereum && window.ethereum.selectedAddress;
@@ -288,13 +196,14 @@ export const NetworkProvider = ({ children }) => {
     return _selectedNetwork;
   };
 
-  // Listen for network changes
+  // Listen for network changes (wallet switch) – sync to selectedNetwork and ICOContent selectedChain
   useEffect(() => {
     if (window.ethereum) {
       const handleChainChanged = (chainId) => {
         const newChainId = parseInt(chainId, 16);
         const network = getNetworkByChainId(newChainId);
         setSelectedNetwork(network);
+        if (network.id && setSelectedChainFromICO) setSelectedChainFromICO(network.id);
         toast.success(`Network changed to ${network.name}`);
       };
 
@@ -304,7 +213,7 @@ export const NetworkProvider = ({ children }) => {
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       };
     }
-  }, []);
+  }, [setSelectedChainFromICO]);
 
   const value = {
     selectedNetwork: _selectedNetwork,

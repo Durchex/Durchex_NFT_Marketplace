@@ -37,14 +37,14 @@ router.post('/proposals/create', auth, tryCatch(async (req, res) => {
   }
   
   try {
+    const actions = targetAddress ? [{ target: targetAddress, calldata: String(targetAmount || 0) }] : [];
     const result = await governanceService.createProposal(
       req.user.address,
       title,
       description,
       proposalType,
-      targetAmount,
-      targetAddress,
-      duration
+      actions,
+      duration || 259200
     );
     
     res.status(201).json({
@@ -126,7 +126,7 @@ router.get('/proposals/user/created', auth, tryCatch(async (req, res) => {
  * Cast vote on proposal
  */
 router.post('/votes/cast', auth, tryCatch(async (req, res) => {
-  const { proposalId, support, reason } = req.body;
+  const { proposalId, support, votes = 1, reason } = req.body;
   
   if (!proposalId || support === undefined) {
     return res.status(400).json({ error: 'Missing proposalId or support' });
@@ -137,7 +137,8 @@ router.post('/votes/cast', auth, tryCatch(async (req, res) => {
       proposalId,
       req.user.address,
       support,
-      reason
+      Number(votes) || 1,
+      reason || ''
     );
     
     res.status(201).json({

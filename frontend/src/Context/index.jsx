@@ -25,6 +25,18 @@ import {
   contractAddresses,
   getCurrencySymbol,
 } from "./constants";
+import {
+  getAuctionContract,
+  getOfferContract,
+  getRentalContract,
+  getFinancingContract,
+  getStakingContract,
+  hasAuctionContract,
+  hasOfferContract,
+  hasRentalContract,
+  hasFinancingContract,
+  hasStakingContract,
+} from "./auxiliaryContracts";
 
 export const ICOContent = createContext();
 
@@ -1099,7 +1111,7 @@ export const Index = ({ children }) => {
   };
 
   //*  WRITE FUNCTIONS for MarketPlace
-  const listNFT = async (nftContractAddress, tokenIds, prices) => {
+  const listNFT = async (nftContractAddress, tokenIds, prices, nftNetwork = null) => {
     console.log("🚀 ~ listNFT ~ prices:", prices);
     try {
       const listingFe = await getListingFee();
@@ -1122,7 +1134,7 @@ export const Index = ({ children }) => {
         uint256Value
       );
 
-      const networkName = selectedChain.toLowerCase();
+      const networkName = (nftNetwork || selectedChain).toLowerCase();
       const MarketContractInstance = await getNFTMarketplaceContracts(
         networkName
       );
@@ -1242,6 +1254,13 @@ export const Index = ({ children }) => {
       );
     }
 
+    // Callers pass price in ETH (human-readable). Reject if price looks like MongoDB _id (would cause invalid BigNumber).
+    const priceStr = String(prices ?? '').trim();
+    if (/^[a-fA-F0-9]{24}$/.test(priceStr)) {
+      throw new Error("Invalid price. If this is a lazy-minted NFT, use Buy & Mint on the NFT page.");
+    }
+    const priceEth = priceStr && !Number.isNaN(parseFloat(priceStr)) ? priceStr : "0";
+
     try {
       // Determine the network to use - prioritize NFT's listing network
       const targetNetwork = (nftNetwork || selectedChain).toLowerCase();
@@ -1261,7 +1280,6 @@ export const Index = ({ children }) => {
       }
 
       const itemId = ethers.BigNumber.from(itemIds);
-      const price = ethers.utils.formatEther(prices);
 
       // Get marketplace contract for the NFT's network
       const MarketContractInstance = await getNFTMarketplaceContracts(
@@ -1274,7 +1292,7 @@ export const Index = ({ children }) => {
 
       console.log("🚀 ~ buyNFT ~ Calling smart contract on network:", targetNetwork);
       console.log("🚀 ~ buyNFT ~ Contract address:", MarketContractInstance.address);
-      console.log("🚀 ~ buyNFT ~ Purchase amount:", price, "ETH");
+      console.log("🚀 ~ buyNFT ~ Purchase amount:", priceEth, "ETH");
 
       // Get buyer address from the signer (current user making the purchase)
       const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -1283,9 +1301,10 @@ export const Index = ({ children }) => {
 
       console.log("🚀 ~ buyNFT ~ Buyer address:", buyerAddress);
 
-      // Get transaction options with gas fee regulations applied
+      // Amount to send: callers pass ETH; use parseEther so wallet shows correct native token amount
+      const valueWei = ethers.utils.parseEther(priceEth);
       const txOptions = await gasService.getTransactionOptions(targetNetwork, {
-        value: ethers.utils.parseEther(price.toString()), // Amount to send in ETH
+        value: valueWei,
         gasLimit: 360000,
       });
 
@@ -1304,24 +1323,35 @@ export const Index = ({ children }) => {
       console.log("🚀 ~ buyNFT ~ Transaction confirmed:", receipt);
       console.log("🚀 ~ buyNFT ~ Gas used:", receipt.gasUsed.toString());
 
-      // Store purchase record with buyer address for seller verification
+      // Store purchase record and sync backend (owner + delist) so Explore/Details stay correct
       try {
-        // Import API to store purchase
         const { nftAPI } = await import("../services/api");
         await nftAPI.createPendingTransfer({
           network: targetNetwork,
           itemId: itemId.toString(),
           nftContract: nftContractAddress,
           buyerAddress: buyerAddress.toLowerCase(),
-          sellerAddress: receipt.from?.toLowerCase() || null, // From transaction if available
+          sellerAddress: receipt.from?.toLowerCase() || null,
           transactionHash: receipt.transactionHash,
         });
-        console.log("🚀 ~ buyNFT ~ Purchase record stored for seller verification");
+        // Post-buy DB sync: update owner, record trade (price/market cap), and delist so all buy paths keep DB in sync
+        await nftAPI.updateNftOwner({
+          network: targetNetwork,
+          itemId: itemId.toString(),
+          tokenId: itemId.toString(),
+          newOwner: buyerAddress.toLowerCase(),
+          listed: false,
+          quantity: 1,
+          price: priceEth,
+          transactionHash: receipt.transactionHash,
+          seller: receipt.from?.toLowerCase() || undefined,
+        });
+        console.log("🚀 ~ buyNFT ~ Purchase record and owner sync completed");
       } catch (apiError) {
-        console.error("Failed to store purchase record:", apiError);
+        console.error("Failed to store purchase record or sync owner:", apiError);
         // Don't fail the purchase if API call fails
       }
-      
+
       return receipt;
     } catch (error) {
       console.error("Buy NFT error:", error);
@@ -1842,6 +1872,131 @@ export const Index = ({ children }) => {
     }
   };
 
+  // ——— On-chain: Auction ———
+  const placeAuctionBid = async (network, auctionId, bidAmountEth) => {
+    const contract = await getAuctionContract(network || selectedChain);
+    if (!contract) throw new Error("Auction contract not configured for this network");
+    const tx = await contract.placeBid(
+      ethers.BigNumber.from(auctionId),
+      ethers.utils.parseEther(String(bidAmountEth)),
+      { value: ethers.utils.parseEther(String(bidAmountEth)) }
+    );
+    return tx.wait();
+  };
+
+  const settleAuction = async (network, auctionId) => {
+    const contract = await getAuctionContract(network || selectedChain);
+    if (!contract) throw new Error("Auction contract not configured for this network");
+    const tx = await contract.settleAuction(ethers.BigNumber.from(auctionId));
+    return tx.wait();
+  };
+
+  // ——— On-chain: Offer.sol (create / accept / cancel) ———
+  const createOfferOnChain = async (network, { nftContract, tokenId, seller, amountWei, durationDays = 7 }) => {
+    const contract = await getOfferContract(network || selectedChain);
+    if (!contract) throw new Error("Offer contract not configured for this network");
+    const paymentToken = ethers.constants.AddressZero; // ETH
+    const tx = await contract.createOffer(
+      nftContract,
+      ethers.BigNumber.from(tokenId),
+      seller,
+      amountWei,
+      paymentToken,
+      durationDays,
+      { value: amountWei }
+    );
+    const receipt = await tx.wait();
+    const event = receipt.events?.find((e) => e.event === "OfferCreated");
+    const offerId = event?.args?.offerId != null ? event.args.offerId.toString() : null;
+    return { receipt, offerId };
+  };
+
+  const acceptOfferOnChain = async (network, offerId) => {
+    const contract = await getOfferContract(network || selectedChain);
+    if (!contract) throw new Error("Offer contract not configured for this network");
+    const tx = await contract.acceptOffer(ethers.BigNumber.from(offerId));
+    return tx.wait();
+  };
+
+  const cancelOfferOnChain = async (network, offerId) => {
+    const contract = await getOfferContract(network || selectedChain);
+    if (!contract) throw new Error("Offer contract not configured for this network");
+    const tx = await contract.cancelOffer(ethers.BigNumber.from(offerId));
+    return tx.wait();
+  };
+
+  // ——— On-chain: Rental (createBid: totalPrice = dailyPrice * rentalDays, send as msg.value) ———
+  const placeRentalBidOnChain = async (network, listingId, rentalDays, totalPriceEth) => {
+    const contract = await getRentalContract(network || selectedChain);
+    if (!contract) throw new Error("Rental contract not configured for this network");
+    const valueWei = ethers.utils.parseEther(String(totalPriceEth));
+    const tx = await contract.createBid(
+      ethers.BigNumber.from(listingId),
+      ethers.BigNumber.from(rentalDays),
+      ethers.constants.AddressZero,
+      { value: valueWei }
+    );
+    return tx.wait();
+  };
+
+  const acceptRentalBidOnChain = async (network, bidId) => {
+    const contract = await getRentalContract(network || selectedChain);
+    if (!contract) throw new Error("Rental contract not configured for this network");
+    const tx = await contract.acceptBid(ethers.BigNumber.from(bidId));
+    return tx.wait();
+  };
+
+  const returnRentalNftOnChain = async (network, rentalId) => {
+    const contract = await getRentalContract(network || selectedChain);
+    if (!contract) throw new Error("Rental contract not configured for this network");
+    const tx = await contract.returnNFT(ethers.BigNumber.from(rentalId));
+    return tx.wait();
+  };
+
+  // ——— On-chain: Financing ———
+  const createLoanOnChain = async (network, nftContract, nftTokenId, amountEth, durationDays) => {
+    const contract = await getFinancingContract(network || selectedChain);
+    if (!contract) throw new Error("Financing contract not configured for this network");
+    const tx = await contract.createLoan(
+      nftContract,
+      ethers.BigNumber.from(nftTokenId),
+      ethers.utils.parseEther(String(amountEth)),
+      ethers.BigNumber.from(durationDays)
+    );
+    return tx.wait();
+  };
+
+  const repayLoanOnChain = async (network, loanId) => {
+    const contract = await getFinancingContract(network || selectedChain);
+    if (!contract) throw new Error("Financing contract not configured for this network");
+    const tx = await contract.repayFullLoan(ethers.BigNumber.from(loanId));
+    return tx.wait();
+  };
+
+  // ——— On-chain: Staking (NFTStaking.sol) ———
+  const stakeTokensOnChain = async (network, tokenIds) => {
+    const contract = await getStakingContract(network || selectedChain);
+    if (!contract) throw new Error("Staking contract not configured for this network");
+    const ids = Array.isArray(tokenIds) ? tokenIds.map((id) => ethers.BigNumber.from(id)) : [ethers.BigNumber.from(tokenIds)];
+    const tx = await contract.stakeTokens(ids);
+    return tx.wait();
+  };
+
+  const unstakeTokensOnChain = async (network, tokenIds) => {
+    const contract = await getStakingContract(network || selectedChain);
+    if (!contract) throw new Error("Staking contract not configured for this network");
+    const ids = Array.isArray(tokenIds) ? tokenIds.map((id) => ethers.BigNumber.from(id)) : [ethers.BigNumber.from(tokenIds)];
+    const tx = await contract.unstakeTokens(ids);
+    return tx.wait();
+  };
+
+  const claimRewardsOnChain = async (network) => {
+    const contract = await getStakingContract(network || selectedChain);
+    if (!contract) throw new Error("Staking contract not configured for this network");
+    const tx = await contract.claimRewards();
+    return tx.wait();
+  };
+
   return (
     <ICOContent.Provider
       value={{
@@ -1900,6 +2055,25 @@ export const Index = ({ children }) => {
         cartItems,
         setSelectedChain,
         fetchMetadata,
+        placeAuctionBid,
+        settleAuction,
+        createOfferOnChain,
+        acceptOfferOnChain,
+        cancelOfferOnChain,
+        placeRentalBidOnChain,
+        acceptRentalBidOnChain,
+        returnRentalNftOnChain,
+        createLoanOnChain,
+        repayLoanOnChain,
+        hasAuctionContract,
+        hasOfferContract,
+        hasRentalContract,
+        hasFinancingContract,
+        hasStakingContract,
+        getStakingContract,
+        stakeTokensOnChain,
+        unstakeTokensOnChain,
+        claimRewardsOnChain,
       }}
     >
       {children}

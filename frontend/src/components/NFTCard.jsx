@@ -17,7 +17,12 @@ const NFTCard = ({ collectionName, currentlyListed,
   seller,
   tokenId, 
   name,
-  network }) => {
+  network,
+  pieces = 1,
+  remainingPieces }) => {
+  const totalPieces = Math.max(1, Number(pieces) || 1);
+  const remaining = remainingPieces != null ? Number(remainingPieces) : totalPieces;
+  const isSoldOut = remaining <= 0;
 
      const contexts = useContext(ICOContent);
      const { addToCart, isInCart, removeFromCart } = useCart();
@@ -70,6 +75,10 @@ const NFTCard = ({ collectionName, currentlyListed,
 
       if(!currentlyListed) {
         ErrorToast("This NFT is not listed for sale");
+        return;
+      }
+      if (isSoldOut) {
+        ErrorToast("This NFT is sold out");
         return;
       }
 
@@ -127,14 +136,23 @@ const NFTCard = ({ collectionName, currentlyListed,
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
         {/* Status Badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            currentlyListed 
-              ? 'bg-green-500/90 text-white' 
-              : 'bg-gray-500/90 text-gray-200'
-          }`}>
-            {currentlyListed ? 'Listed' : 'Not Listed'}
-          </span>
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+          {isSoldOut ? (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/90 text-white">
+              Sold Out
+            </span>
+          ) : (
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              currentlyListed ? 'bg-green-500/90 text-white' : 'bg-gray-500/90 text-gray-200'
+            }`}>
+              {currentlyListed ? 'Listed' : 'Not Listed'}
+            </span>
+          )}
+          {network && nftContract && (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-500/70 text-white" title={`On-chain • ${network}`}>
+              {String(network).slice(0, 6)}
+            </span>
+          )}
         </div>
 
         {/* Cart Button */}
@@ -180,15 +198,26 @@ const NFTCard = ({ collectionName, currentlyListed,
             <p className="text-green-400 font-display font-bold text-lg">{prices} ETH</p>
             <p className="text-gray-500 text-xs">Current Price</p>
           </div>
+          {totalPieces > 1 && (
+            <div className="text-right">
+              <p className="text-gray-300 font-medium text-sm">{remaining}/{totalPieces}</p>
+              <p className="text-gray-500 text-xs">pieces left</p>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
         <div className="space-y-2">
           <button 
             onClick={handleBuy}
-            className="w-full bg-white border-2 border-purple-600 hover:bg-purple-50 text-purple-600 font-medium py-2.5 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={isSoldOut}
+            className={`w-full font-medium py-2.5 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
+              isSoldOut
+                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                : 'bg-white border-2 border-purple-600 hover:bg-purple-50 text-purple-600'
+            }`}
           >
-            Buy Now
+            {isSoldOut ? 'Sold Out' : 'Buy Now'}
           </button>
           
           <Link to={`nft/${tokenId}`} className="block">

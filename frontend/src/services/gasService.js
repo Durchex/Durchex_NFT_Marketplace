@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { gasFeeAPI } from './gasFeeAPI';
+import { rpcUrls } from '../Context/constants';
 
 class GasService {
   constructor() {
@@ -11,10 +12,16 @@ class GasService {
     };
   }
 
+  _getRpcUrl(network) {
+    const net = (network || 'ethereum').toLowerCase();
+    return rpcUrls[net] || this.providers[net] || rpcUrls.ethereum;
+  }
+
   // Get current gas price for a network with gas fee regulations applied
   async getGasPrice(network = 'ethereum', applyRegulations = true) {
     try {
-      const provider = new ethers.providers.JsonRpcProvider(this.providers[network]);
+      const rpcUrl = this._getRpcUrl(network);
+      const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
       const currentGasPrice = await provider.getGasPrice();
       
       // Apply gas fee regulations if enabled

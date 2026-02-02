@@ -4,12 +4,15 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './PortfolioView.css';
 import PortfolioStats from './PortfolioStats';
 import ActivityHistory from './ActivityHistory';
+import SellModal from '../SellModal';
 
 const PortfolioView = ({ userAddress, isOwnProfile = false }) => {
+    const navigate = useNavigate();
     const [portfolio, setPortfolio] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,6 +22,8 @@ const PortfolioView = ({ userAddress, isOwnProfile = false }) => {
     const [itemsPerPage] = useState(12);
     const [sortBy, setSortBy] = useState('recent');
     const [filterRarity, setFilterRarity] = useState('all');
+    const [sellModalOpen, setSellModalOpen] = useState(false);
+    const [selectedNftForSell, setSelectedNftForSell] = useState(null);
 
     useEffect(() => {
         fetchPortfolio();
@@ -132,6 +137,7 @@ const PortfolioView = ({ userAddress, isOwnProfile = false }) => {
     const totalPages = getTotalPages();
 
     return (
+        <>
         <div className="portfolio-view">
             {/* Header */}
             <div className="portfolio-header">
@@ -287,6 +293,14 @@ const PortfolioView = ({ userAddress, isOwnProfile = false }) => {
                 )}
             </div>
         </div>
+        {selectedNftForSell && (
+            <SellModal
+                isOpen={sellModalOpen}
+                onClose={() => { setSellModalOpen(false); setSelectedNftForSell(null); }}
+                nft={selectedNftForSell}
+            />
+        )}
+    </>
     );
 };
 

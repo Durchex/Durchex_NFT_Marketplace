@@ -55,6 +55,8 @@ const offerSchema = new mongoose.Schema({
     default: 'active'
   },
   message: String,
+  contractOfferId: { type: String, description: 'On-chain offer ID from Offer.sol' },
+  onChainOfferId: { type: String, description: 'Alias for contractOfferId' },
   expiresAt: {
     type: Date,
     description: "When the offer expires (7 days from creation by default)"

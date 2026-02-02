@@ -347,6 +347,379 @@ export const casinoAPI = {
   },
 };
 
+// Auctions API (live – backend at /api/v1/auctions)
+export const auctionAPI = {
+  list: async () => {
+    const response = await api.get('/auctions');
+    return response.data?.data ?? [];
+  },
+  create: async (body, authWallet) => {
+    const response = await api.post('/auctions/create', body, {
+      headers: { Authorization: authWallet || '' },
+    });
+    return response.data;
+  },
+  get: async (auctionId) => {
+    const response = await api.get(`/auctions/${auctionId}`);
+    return response.data?.data ?? null;
+  },
+};
+
+// Offers API (backend at /api/v1/offers) – single export used by AdvancedTrading & CreatorProfile
+export const offerAPI = {
+  getForNft: async (contractAddress, nftId) => {
+    const response = await api.get(`/offers/nft/${contractAddress}/${nftId}`);
+    return response.data ?? { offers: [] };
+  },
+  getByUser: async (walletAddress) => {
+    const response = await api.get(`/offers/user/${walletAddress}`);
+    return response.data ?? { offers: [] };
+  },
+  getReceived: async (walletAddress) => {
+    const response = await api.get(`/offers/received/${walletAddress}`);
+    return response.data ?? { offers: [] };
+  },
+  create: async (body) => {
+    const response = await api.post('/offers', body);
+    return response.data;
+  },
+  accept: async (offerId) => {
+    const response = await api.post(`/offers/${offerId}/accept`);
+    return response.data;
+  },
+  reject: async (offerId, reason) => {
+    const response = await api.post(`/offers/${offerId}/reject`, reason != null ? { reason } : {});
+    return response.data;
+  },
+  getById: async (offerId) => {
+    const response = await api.get(`/offers/${offerId}`);
+    return response.data;
+  },
+  // Aliases for CreatorProfile and other consumers
+  getNFTOffers: async (contractAddress, nftId) => {
+    const data = await offerAPI.getForNft(contractAddress, nftId);
+    return Array.isArray(data) ? data : data?.offers ?? [];
+  },
+  getUserOffers: async (walletAddress) => {
+    const data = await offerAPI.getByUser(walletAddress);
+    return Array.isArray(data) ? data : data?.offers ?? [];
+  },
+  getReceivedOffers: async (walletAddress) => {
+    const data = await offerAPI.getReceived(walletAddress);
+    return Array.isArray(data) ? data : data?.offers ?? [];
+  },
+  acceptOffer: async (offerId) => offerAPI.accept(offerId),
+  rejectOffer: async (offerId, reason) => offerAPI.reject(offerId, reason),
+  createOffer: async (offerData) => offerAPI.create(offerData),
+  getOfferById: async (offerId) => offerAPI.getById(offerId),
+  cancelOffer: async (offerId) => {
+    const response = await api.post(`/offers/${offerId}/cancel`);
+    return response.data;
+  },
+  updateOfferPrice: async (offerId, newPrice, newAmount) => {
+    const response = await api.patch(`/offers/${offerId}/update-price`, { newPrice, newAmount });
+    return response.data;
+  },
+};
+
+// Rental API (backend at /api/v1/rental) – auth: pass wallet in Authorization
+export const rentalAPI = {
+  getAvailableListings: async (skip = 0, limit = 20, sortBy = 'recent') => {
+    const response = await api.get(`/rental/available-listings?skip=${skip}&limit=${limit}&sortBy=${sortBy}`);
+    return response.data?.listings ?? [];
+  },
+  getMyListings: async (walletAddress) => {
+    const response = await api.get('/rental/my-listings', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.listings ?? [];
+  },
+  getMyRentals: async (walletAddress) => {
+    const response = await api.get('/rental/my-rentals', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.rentals ?? [];
+  },
+  createListing: async (walletAddress, body) => {
+    const response = await api.post('/rental/create-listing', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  placeBid: async (walletAddress, body) => {
+    const response = await api.post('/rental/place-bid', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  acceptBid: async (walletAddress, bidId) => {
+    const response = await api.post('/rental/accept-bid', { bidId }, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  returnNft: async (walletAddress, rentalId) => {
+    const response = await api.post('/rental/return-nft', { rentalId }, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  getStats: async () => {
+    const response = await api.get('/rental/stats');
+    return response.data;
+  },
+};
+
+// Financing API (backend at /api/v1/financing) – auth: pass wallet in Authorization
+export const financingAPI = {
+  getUserLoans: async (walletAddress) => {
+    const response = await api.get('/financing/user/loans', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.data ?? [];
+  },
+  createLoan: async (walletAddress, body) => {
+    const response = await api.post('/financing/loan/create', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  repayLoan: async (walletAddress, loanId) => {
+    const response = await api.post(`/financing/loan/${loanId}/repay`, {}, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  getLoanAnalytics: async (loanId) => {
+    const response = await api.get(`/financing/loan/${loanId}`);
+    return response.data?.data ?? null;
+  },
+  getMarketOverview: async () => {
+    const response = await api.get('/financing/market/overview');
+    return response.data?.data ?? {};
+  },
+  getRates: async () => {
+    const response = await api.get('/financing/rates');
+    return response.data?.data ?? {};
+  },
+};
+
+// Bridge API (backend at /api/v1/bridge) – auth: wallet in Authorization
+export const bridgeAPI = {
+  initiate: async (walletAddress, body) => {
+    const response = await api.post('/bridge/initiate', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  getStatus: async (sourceChain, bridgeAddress, transferId) => {
+    const response = await api.get(`/bridge/status/${sourceChain}/${bridgeAddress}/${transferId}`);
+    return response.data;
+  },
+  getHistory: async (walletAddress, sourceChain = 'ethereum', bridgeAddress) => {
+    const response = await api.get(`/bridge/history/${walletAddress}`, {
+      params: { sourceChain, bridgeAddress },
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.transfers ?? [];
+  },
+  estimateCost: async (body) => {
+    const response = await api.post('/bridge/estimate-cost', body);
+    return response.data;
+  },
+  getSupportedChains: async () => {
+    const response = await api.get('/bridge/supported-chains');
+    return response.data ?? [];
+  },
+};
+
+// Staking API (backend at /api/v1/staking) – auth: wallet in Authorization
+export const stakingAPI = {
+  stake: async (walletAddress, body) => {
+    const response = await api.post('/staking/stake', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  unstake: async (walletAddress, body) => {
+    const response = await api.post('/staking/unstake', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  getMyStakes: async (walletAddress) => {
+    const response = await api.get('/staking/my-stakes', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.data ?? [];
+  },
+  getRewards: async (walletAddress) => {
+    const response = await api.get('/staking/rewards', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.data ?? { pending: '0', claimed: '0' };
+  },
+  claimRewards: async (walletAddress) => {
+    const response = await api.post('/staking/claim-rewards', {}, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+};
+
+// Governance API (backend at /api/v1/governance) – auth: wallet in Authorization
+export const governanceAPI = {
+  getProposals: async (status = 'active', sortBy = 'newest') => {
+    const response = await api.get('/governance/proposals', { params: { status, sortBy } });
+    return response.data?.data ?? [];
+  },
+  getProposalDetails: async (proposalId) => {
+    const response = await api.get(`/governance/proposals/${proposalId}`);
+    return response.data?.data ?? null;
+  },
+  createProposal: async (walletAddress, body) => {
+    const response = await api.post('/governance/proposals/create', body, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  castVote: async (walletAddress, proposalId, support, reason) => {
+    const response = await api.post('/governance/votes/cast', { proposalId, support, reason }, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  getStats: async () => {
+    const response = await api.get('/governance/stats');
+    return response.data?.data ?? {};
+  },
+};
+
+// Monetization API (backend at /api/v1/monetization) – auth: wallet in Authorization
+export const monetizationAPI = {
+  getEarnings: async (walletAddress) => {
+    const response = await api.get('/monetization/earnings', { headers: { Authorization: walletAddress || '' } });
+    return response.data?.data ?? {};
+  },
+  getStats: async (walletAddress) => {
+    const response = await api.get('/monetization/stats', { headers: { Authorization: walletAddress || '' } });
+    return response.data?.data ?? {};
+  },
+  getPayoutHistory: async (walletAddress) => {
+    const response = await api.get('/monetization/payouts/history', { headers: { Authorization: walletAddress || '' } });
+    return response.data?.data ?? [];
+  },
+  requestPayout: async (walletAddress, body) => {
+    const response = await api.post('/monetization/payouts/request', body, { headers: { Authorization: walletAddress || '' } });
+    return response.data;
+  },
+  getTrends: async (walletAddress, days = 30) => {
+    const response = await api.get('/monetization/trends', { params: { days }, headers: { Authorization: walletAddress || '' } });
+    return response.data?.data ?? [];
+  },
+};
+
+// Analytics API (backend at /api/v1/analytics)
+export const analyticsAPI = {
+  getMarketplaceStats: async (timeframe = '7d') => {
+    const response = await api.get('/analytics/marketplace-stats', { params: { timeframe } });
+    return response.data?.data ?? {};
+  },
+  getVolumeTrends: async (timeframe = '7d', interval = 'daily') => {
+    const response = await api.get('/analytics/volume-trends', { params: { timeframe, interval } });
+    return response.data?.data ?? [];
+  },
+  getTrendingCollections: async (limit = 10, timeframe = '7d') => {
+    const response = await api.get('/analytics/trending-collections', { params: { limit, timeframe } });
+    return response.data?.data ?? [];
+  },
+  getTrendingNfts: async (limit = 10, timeframe = '7d') => {
+    const response = await api.get('/analytics/trending-nfts', { params: { limit, timeframe } });
+    return response.data?.data ?? [];
+  },
+  getTopCreators: async (limit = 10, timeframe = '7d') => {
+    const response = await api.get('/analytics/top-creators', { params: { limit, timeframe } });
+    return response.data?.data ?? [];
+  },
+  getTopCollectors: async (limit = 10, timeframe = '7d') => {
+    const response = await api.get('/analytics/top-collectors', { params: { limit, timeframe } });
+    return response.data?.data ?? [];
+  },
+  getPlatformAnalytics: async (period = '7d') => {
+    const response = await api.get(`/admin/analytics?period=${period}`);
+    return response.data ?? {};
+  },
+  getNftAnalytics: async (network, itemId, tokenId, period = '7d') => {
+    try {
+      const response = await api.get(`/nft/analytics/${network}/${itemId}/${tokenId}`, { params: { period } });
+      return response.data?.data ?? response.data ?? {};
+    } catch {
+      return {
+        priceHistory: [],
+        volumeHistory: [],
+        viewsHistory: [],
+        stats: { totalViews: 0, totalLikes: 0, floorPrice: '0', totalVolume: '0', uniqueOwners: 0 },
+      };
+    }
+  },
+  getTopPerformingNFTs: async (period = '7d', limit = 10) => {
+    try {
+      const response = await api.get(`/nfts`, { params: { limit } });
+      const nfts = response.data?.data ?? response.data ?? [];
+      return nfts.slice(0, limit).map((nft, index) => ({
+        id: nft._id ?? nft.id ?? `nft_${index}`,
+        name: nft.name ?? `NFT #${index + 1}`,
+        image: nft.image ?? nft.imageURL ?? null,
+        price: parseFloat(nft.price ?? 0).toFixed(2),
+        change24h: '0',
+        volume24h: '0',
+        views: nft.views ?? 0,
+        likes: nft.likes ?? 0,
+        floorPrice: parseFloat(nft.price ?? 0).toFixed(2),
+        collection: nft.collection ?? '',
+        network: nft.network ?? 'ethereum',
+      }));
+    } catch {
+      return [];
+    }
+  },
+};
+
+// Notifications API (backend at /api/v1/notifications) – auth: wallet in Authorization
+export const notificationsAPI = {
+  getList: async (walletAddress, params = {}) => {
+    const response = await api.get('/notifications', {
+      headers: { Authorization: walletAddress || '' },
+      params: { limit: params.limit ?? 20, skip: params.skip ?? 0, type: params.type },
+    });
+    return response.data?.data ?? response.data ?? { notifications: [], total: 0 };
+  },
+  getUnreadCount: async (walletAddress) => {
+    const response = await api.get('/notifications/unread', {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data?.data?.count ?? response.data?.count ?? 0;
+  },
+  markAsRead: async (walletAddress, notificationId) => {
+    const response = await api.put(`/notifications/${notificationId}/read`, {}, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  markAllAsRead: async (walletAddress) => {
+    const response = await api.put('/notifications/read-all', {}, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+  deleteOne: async (walletAddress, notificationId) => {
+    const response = await api.delete(`/notifications/${notificationId}`, {
+      headers: { Authorization: walletAddress || '' },
+    });
+    return response.data;
+  },
+};
+
 // NFT API functions
 export const nftAPI = {
   // Check if NFT exists
@@ -607,6 +980,43 @@ export const nftAPI = {
     }
   },
 
+  // ——— Piece sell orders (sell back liquidity; no relist/approval) ———
+  createPieceSellOrder: async ({ network, itemId, seller, quantity, pricePerPiece }) => {
+    const response = await api.post('/nft/nfts/piece-sell-orders', {
+      network,
+      itemId,
+      seller,
+      quantity,
+      pricePerPiece,
+    });
+    return response.data;
+  },
+  getPieceSellOrdersByNft: async (network, itemId) => {
+    const response = await api.get(`/nft/nfts/piece-sell-orders/${network}/${itemId}`);
+    return response.data.orders || [];
+  },
+  getPieceHoldingsByWallet: async (wallet) => {
+    const response = await api.get(`/nft/nfts/piece-holdings/${wallet}`);
+    return response.data.holdings || [];
+  },
+  fillPieceSellOrder: async (orderId, { buyer, quantity }) => {
+    const response = await api.post(`/nft/nfts/piece-sell-orders/${orderId}/fill`, {
+      buyer,
+      quantity,
+    });
+    return response.data;
+  },
+
+  // ——— NFT trades & analytics (transaction history, price movement, market cap) ———
+  getNftTrades: async (network, itemId, limit = 50) => {
+    const response = await api.get(`/nft/nfts/${network}/${itemId}/trades`, { params: { limit } });
+    return response.data.trades || [];
+  },
+  getNftAnalyticsByTrades: async (network, itemId, period = '7d') => {
+    const response = await api.get(`/nft/nfts/${network}/${itemId}/analytics`, { params: { period } });
+    return response.data;
+  },
+
   // ============ COLLECTION METHODS ============
   
   // Create a new collection
@@ -730,192 +1140,38 @@ export const cartAPI = {
   },
 };
 
-// Analytics API functions
-export const analyticsAPI = {
-  // Get top creators
-  getTopCreators: async (limit = 10, timeframe = '7d') => {
-    try {
-      const response = await api.get(`/analytics/top-creators?limit=${limit}&timeframe=${timeframe}`);
-      console.log('Top creators data received:', response.data);
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error('Failed to fetch top creators:', error);
-      throw error;
-    }
-  },
-
-  // Get trending NFTs
-  getTrendingNFTs: async (limit = 12, timeframe = '7d') => {
-    try {
-      const response = await api.get(`/analytics/trending-nfts?limit=${limit}&timeframe=${timeframe}`);
-      console.log('Trending NFTs data received:', response.data);
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error('Failed to fetch trending NFTs:', error);
-      throw error;
-    }
-  },
-
-  // Get trending collections
-  getTrendingCollections: async (limit = 10, timeframe = '7d') => {
-    try {
-      const response = await api.get(`/analytics/trending-collections?limit=${limit}&timeframe=${timeframe}`);
-      console.log('Trending collections data received:', response.data);
-      return response.data?.data || response.data || [];
-    } catch (error) {
-      console.error('Failed to fetch trending collections:', error);
-      throw error;
-    }
-  },
-
-  // Get platform analytics
-  getPlatformAnalytics: async (period = '7d') => {
-    try {
-      const response = await api.get(`/admin/analytics?period=${period}`);
-      console.log('Platform analytics data received:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch platform analytics:', error);
-      throw error;
-    }
-  },
-
-  // Get NFT analytics (price history, volume, views, etc.)
-  getNftAnalytics: async (network, itemId, tokenId, period = '7d') => {
-    try {
-      // For now, we'll use mock data since backend doesn't have this endpoint
-      // In production, this would be: /nft/analytics/${network}/${itemId}/${tokenId}?period=${period}
-      console.log(`Fetching analytics for NFT ${network}/${itemId}/${tokenId} with period ${period}`);
-
-      // Mock analytics data structure
-      const mockData = {
-        priceHistory: [],
-        volumeHistory: [],
-        viewsHistory: [],
-        stats: {
-          totalViews: Math.floor(Math.random() * 1000) + 100,
-          totalLikes: Math.floor(Math.random() * 100) + 10,
-          floorPrice: (Math.random() * 5).toFixed(2),
-          highestBid: (Math.random() * 10).toFixed(2),
-          totalVolume: (Math.random() * 50).toFixed(2),
-          uniqueOwners: Math.floor(Math.random() * 50) + 5,
-          averagePrice: (Math.random() * 3).toFixed(2),
-          priceChange24h: (Math.random() * 20 - 10).toFixed(2),
-          volumeChange24h: (Math.random() * 15 - 5).toFixed(2)
-        }
-      };
-
-      // Generate mock historical data based on period
-      const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-      const basePrice = parseFloat(mockData.stats.floorPrice);
-
-      for (let i = days; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-
-        const priceVariation = (Math.random() - 0.5) * 2; // -1 to 1
-        const price = Math.max(0.01, basePrice + priceVariation);
-        const volume = Math.random() * 10;
-        const views = Math.floor(Math.random() * 200) + 50;
-
-        mockData.priceHistory.push({
-          date: date.toISOString().split('T')[0],
-          price: price.toFixed(2)
-        });
-
-        mockData.volumeHistory.push({
-          date: date.toISOString().split('T')[0],
-          volume: volume.toFixed(2)
-        });
-
-        mockData.viewsHistory.push({
-          date: date.toISOString().split('T')[0],
-          views: views
-        });
-      }
-
-      return mockData;
-    } catch (error) {
-      console.error('Failed to fetch NFT analytics:', error);
-      throw error;
-    }
-  },
-
-  // Get top performing NFTs
-  getTopPerformingNFTs: async (period = '7d', limit = 10) => {
-    try {
-      // Fetch real NFTs from the database, sorted by engagement metrics
-      const response = await api.get(`/nfts?limit=${limit}`);
-      const nfts = response.data?.data || response.data || [];
-      
-      // Transform NFT data for analytics display
-      const topNFTs = nfts.slice(0, limit).map((nft, index) => ({
-        id: nft._id || nft.id || `nft_${index}`,
-        name: nft.name || `NFT #${index + 1}`,
-        image: nft.image || nft.imageURL || null, // No placeholder - show gray background on missing image
-        price: parseFloat(nft.price || 0).toFixed(2),
-        change24h: (Math.random() * 40 - 20).toFixed(2), // Will be updated with real price history
-        volume24h: (Math.random() * 20 + 5).toFixed(2), // Will be updated with real transaction data
-        views: nft.views || Math.floor(Math.random() * 2000) + 500,
-        likes: nft.likes || Math.floor(Math.random() * 200) + 20,
-        floorPrice: parseFloat(nft.price || 0).toFixed(2),
-        collection: nft.collection || `Collection ${Math.floor(index / 3) + 1}`,
-        network: nft.network || 'ethereum'
-      }));
-      
-      console.log('Top performing NFTs:', topNFTs);
-      return topNFTs;
-    } catch (error) {
-      console.error('Failed to fetch top performing NFTs:', error);
-      // Return empty array on error instead of mock data with generated images
-      return [];
-    }
-  }
-};
-
-// Auction API functions
-export const auctionAPI = {
-  // Get active auctions
+// Legacy auction API (different backend shape: /auction/active, /auction/:id, etc.)
+export const auctionLegacyAPI = {
   getActiveAuctions: async (limit = 6) => {
     try {
       const response = await api.get(`/auction/active?limit=${limit}`);
-      console.log('Active auctions data received:', response.data);
       return response.data?.data || response.data || [];
     } catch (error) {
       console.error('Failed to fetch active auctions:', error);
       throw error;
     }
   },
-
-  // Get auction by ID
   getAuctionById: async (auctionId) => {
     try {
       const response = await api.get(`/auction/${auctionId}`);
-      console.log('Auction details received:', response.data);
       return response.data?.data || response.data;
     } catch (error) {
       console.error('Failed to fetch auction:', error);
       throw error;
     }
   },
-
-  // Get auction bid history
   getBidHistory: async (auctionId) => {
     try {
       const response = await api.get(`/auction/${auctionId}/bids`);
-      console.log('Auction bid history received:', response.data);
       return response.data?.data || response.data || [];
     } catch (error) {
       console.error('Failed to fetch bid history:', error);
       throw error;
     }
   },
-
-  // Place a bid on auction
   placeBid: async (auctionId, bidData) => {
     try {
       const response = await api.post(`/auction/${auctionId}/bid`, bidData);
-      console.log('Bid placed successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to place bid:', error);
@@ -1020,111 +1276,6 @@ export const orderAPI = {
       return response.data;
     } catch (error) {
       console.error('Failed to cancel order:', error);
-      throw error;
-    }
-  }
-};
-
-// Offer API functions
-export const offerAPI = {
-  // Create a new offer
-  createOffer: async (offerData) => {
-    try {
-      const response = await api.post('/offers', offerData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to create offer:', error);
-      throw error;
-    }
-  },
-
-  // Get offer by ID
-  getOfferById: async (offerId) => {
-    try {
-      const response = await api.get(`/offers/${offerId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch offer:', error);
-      throw error;
-    }
-  },
-
-  // Get all offers for a specific NFT
-  getNFTOffers: async (contractAddress, nftId) => {
-    try {
-      const response = await api.get(`/offers/nft/${contractAddress}/${nftId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch NFT offers:', error);
-      return [];
-    }
-  },
-
-  // Get user's offers (made by user)
-  getUserOffers: async (walletAddress) => {
-    try {
-      const response = await api.get(`/offers/user/${walletAddress}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch user offers:', error);
-      return [];
-    }
-  },
-
-  // Get offers received by user (offers on NFTs they own)
-  getReceivedOffers: async (walletAddress) => {
-    try {
-      const response = await api.get(`/offers/received/${walletAddress}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch received offers:', error);
-      return [];
-    }
-  },
-
-  // Accept an offer
-  acceptOffer: async (offerId) => {
-    try {
-      const response = await api.post(`/offers/${offerId}/accept`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to accept offer:', error);
-      throw error;
-    }
-  },
-
-  // Reject an offer
-  rejectOffer: async (offerId, reason = '') => {
-    try {
-      const response = await api.post(`/offers/${offerId}/reject`, { reason });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to reject offer:', error);
-      throw error;
-    }
-  },
-
-  // Cancel an offer (by maker)
-  cancelOffer: async (offerId) => {
-    try {
-      const response = await api.post(`/offers/${offerId}/cancel`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to cancel offer:', error);
-      throw error;
-    }
-  },
-
-  // Update offer price
-  updateOfferPrice: async (offerId, newPrice, newAmount) => {
-    try {
-      const response = await api.patch(`/offers/${offerId}/update-price`, {
-        newPrice,
-        newAmount
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to update offer price:', error);
       throw error;
     }
   }

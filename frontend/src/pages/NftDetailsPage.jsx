@@ -26,17 +26,18 @@ const NftDetailsPage = () => {
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [views, setViews] = useState(0);
   const [likes, setLikes] = useState(0);
+  const [analytics, setAnalytics] = useState(null);
 
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
 
-  // Generate simulated price movement data
-  const generatePriceData = (basePrice = 1.5) => {
+  // Fallback price chart data when no trades yet
+  const generateFallbackPriceData = (basePrice = 1.5) => {
     const data = [];
     let currentPrice = parseFloat(basePrice);
     for (let i = 0; i < 24; i++) {
-      const change = (Math.random() - 0.48) * 0.15; // Slight upward bias
+      const change = (Math.random() - 0.48) * 0.15;
       currentPrice = Math.max(currentPrice + change, currentPrice * 0.85);
       data.push({
         time: `${i}:00`,
@@ -45,24 +46,6 @@ const NftDetailsPage = () => {
       });
     }
     return data;
-  };
-
-  // Generate simulated trading activity
-  const generateTradeData = () => {
-    const traders = ['0x742d...', '0x8a5f...', '0x3c2b...', '0x9e1f...', '0x4d8c...'];
-    const trades = [];
-    for (let i = 0; i < 8; i++) {
-      const isBuy = Math.random() > 0.5;
-      trades.push({
-        id: i,
-        trader: traders[Math.floor(Math.random() * traders.length)],
-        type: isBuy ? 'Buy' : 'Sell',
-        price: (Math.random() * 0.5 + 1.2).toFixed(4),
-        quantity: Math.floor(Math.random() * 3 + 1),
-        time: `${Math.floor(Math.random() * 60)}m ago`
-      });
-    }
-    return trades;
   };
 
   const fetchNftDetails = async () => {
@@ -111,9 +94,29 @@ const NftDetailsPage = () => {
       setNft(nftData);
       setViews(nftData.views || 0);
       setLikes(nftData.likes || 0);
-      // Generate simulated trading data
-      setPriceData(generatePriceData(parseFloat(nftData.price) || 1.5));
-      setTradeData(generateTradeData());
+
+      const net = (nftData.network || 'ethereum').toLowerCase();
+      const itemIdStr = String(nftData.itemId || nftData.tokenId || id);
+      try {
+        const [trades, analyticsRes] = await Promise.all([
+          nftAPI.getNftTrades(net, itemIdStr),
+          nftAPI.getNftAnalyticsByTrades(net, itemIdStr, '7d').catch(() => null),
+        ]);
+        setTradeData(Array.isArray(trades) ? trades : []);
+        setAnalytics(analyticsRes || null);
+        if (analyticsRes?.priceHistory?.length) {
+          setPriceData(analyticsRes.priceHistory.map((p, i) => ({
+            time: p.date ? new Date(p.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : `${i}`,
+            price: Number(p.price),
+            volume: Number(p.volume) || 0,
+          })));
+        } else {
+          setPriceData(generateFallbackPriceData(parseFloat(nftData.lastPrice || nftData.price) || 1.5));
+        }
+      } catch (_) {
+        setPriceData(generateFallbackPriceData(parseFloat(nftData.price) || 1.5));
+        setTradeData([]);
+      }
 
       // Track NFT view (best-effort)
       try {
@@ -327,6 +330,20 @@ const NftDetailsPage = () => {
                     <span className="font-semibold capitalize">{nft.network}</span>
                   </div>
                 )}
+                {nft.metadataURI && (
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-gray-400 shrink-0">Metadata (EIP-721)</span>
+                    <a
+                      href={nft.metadataURI.startsWith("http") ? nft.metadataURI : `https://ipfs.io/ipfs/${nft.metadataURI.replace(/^ipfs:\/\//, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm text-blue-400 hover:underline truncate max-w-[180px]"
+                      title={nft.metadataURI}
+                    >
+                      {nft.metadataURI.slice(0, 24)}…
+                    </a>
+                  </div>
+                )}
                 {nft.creator && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">Creator</span>
@@ -348,6 +365,17 @@ const NftDetailsPage = () => {
                     </span>
                   </div>
                 )}
+                {((nft.pieces != null && nft.pieces > 1) || (nft.remainingPieces != null)) && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Stock</span>
+                    <span className="font-semibold">
+                      {Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)} pieces
+                      {(nft.remainingPieces === 0 || (nft.remainingPieces != null && nft.remainingPieces <= 0)) && (
+                        <span className="ml-2 text-red-400 text-sm">Sold Out</span>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -366,7 +394,7 @@ const NftDetailsPage = () => {
               </div>
             )}
 
-            {/* Action Buttons: Buy/Make Offer when no pieces; Mint (dedicated page) when pieces left (non-owner); Sell when pieces left (owner); Add to cart */}
+            {/* Action Buttons: Sold Out when no pieces; Sell when owner; Buy/Mint when non-owner and pieces left */}
             <div className="space-y-3">
               {(() => {
                 const remainingPieces = nft.remainingPieces ?? nft.pieces ?? 0;
@@ -375,9 +403,14 @@ const NftDetailsPage = () => {
                 const mintId = nft.itemId ?? nft._id ?? id;
                 if (!hasPieces) {
                   return (
-                    <button onClick={() => setOfferModalOpen(true)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                      <FiDollarSign /> Buy Now / Make Offer
-                    </button>
+                    <>
+                      <button disabled className="w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
+                        Sold Out
+                      </button>
+                      <button onClick={() => setOfferModalOpen(true)} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <FiDollarSign /> Make Offer
+                      </button>
+                    </>
                   );
                 }
                 if (isOwner) {
@@ -389,7 +422,7 @@ const NftDetailsPage = () => {
                 }
                 return (
                   <button onClick={() => navigate(`/mint/${mintId}`)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <FiDollarSign /> Mint
+                    <FiDollarSign /> Buy Now / Mint
                   </button>
                 );
               })()}
@@ -427,24 +460,26 @@ const NftDetailsPage = () => {
                   Market Analytics
                 </h2>
 
-                {/* Floor Price */}
+                {/* Last Price & Price Movement */}
                 <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
-                  <div className="text-xs xs:text-sm text-gray-400 mb-1 xs:mb-2">Floor Price</div>
+                  <div className="text-xs xs:text-sm text-gray-400 mb-1 xs:mb-2">Last Price</div>
                   <div className="flex items-end gap-2">
                     <div className="text-xl xs:text-2xl font-bold text-green-400">
-                      {parseFloat(nft.floorPrice || nft.price || 1.5).toFixed(4)}{' '}
+                      {parseFloat(nft.lastPrice || nft.floorPrice || nft.price || 0).toFixed(4)}{' '}
                       {getCurrencySymbol(nft.network || 'ethereum')}
                     </div>
-                    <div className="flex items-center gap-1 text-green-400 text-xs xs:text-sm mb-1">
-                      <FiTrendingUp className="w-3 h-3 xs:w-4 xs:h-4" />
-                      +2.5%
-                    </div>
+                    {analytics?.priceChangePercent != null && (
+                      <div className={`flex items-center gap-1 text-xs xs:text-sm mb-1 ${parseFloat(analytics.priceChangePercent) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {parseFloat(analytics.priceChangePercent) >= 0 ? <FiTrendingUp className="w-3 h-3 xs:w-4 xs:h-4" /> : <FiTrendingDown className="w-3 h-3 xs:w-4 xs:h-4" />}
+                        {parseFloat(analytics.priceChangePercent) >= 0 ? '+' : ''}{analytics.priceChangePercent}%
+                      </div>
+                    )}
                   </div>
-                  {nft.price && (
+                  {(nft.lastPrice || nft.price) && (
                     <div className="mt-1 text-xs text-gray-400">
                       ≈ $
                       {getUsdValueFromCrypto(
-                        nft.price,
+                        nft.lastPrice || nft.price,
                         nft.network || 'ethereum'
                       ).toFixed(2)}{' '}
                       USD
@@ -452,25 +487,31 @@ const NftDetailsPage = () => {
                   )}
                 </div>
 
-                {/* Collection Stats */}
+                {/* Market Cap & Volume (from trades — liquidity in/out) */}
                 <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
-                  <div className="text-xs xs:text-sm text-gray-400 mb-2 xs:mb-3">Collection Stats</div>
+                  <div className="text-xs xs:text-sm text-gray-400 mb-2 xs:mb-3">Market Data</div>
                   <div className="space-y-2 xs:space-y-3">
                     <div className="flex justify-between items-center text-xs xs:text-sm">
+                      <span className="text-gray-400">Market Cap</span>
+                      <span className="font-semibold">
+                        {nft.marketCap ? parseFloat(nft.marketCap).toFixed(4) : '—'}{' '}
+                        {getCurrencySymbol(nft.network || 'ethereum')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs xs:text-sm">
                       <span className="text-gray-400">24h Volume</span>
-                      <span className="font-semibold">{(Math.random() * 50 + 20).toFixed(2)} ETH</span>
+                      <span className="font-semibold">
+                        {analytics?.volume24h != null ? parseFloat(analytics.volume24h).toFixed(4) : (nft.volume24h ? parseFloat(nft.volume24h).toFixed(4) : '0')}{' '}
+                        {getCurrencySymbol(nft.network || 'ethereum')}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">24h Sales</span>
-                      <span className="font-semibold">{Math.floor(Math.random() * 15 + 5)}</span>
+                      <span className="text-gray-400">Trades</span>
+                      <span className="font-semibold">{analytics?.tradesCount ?? tradeData.length}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">Collection Size</span>
-                      <span className="font-semibold">{Math.floor(Math.random() * 5000 + 1000)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">Owners</span>
-                      <span className="font-semibold">{Math.floor(Math.random() * 800 + 200)}</span>
+                      <span className="text-gray-400">Pieces</span>
+                      <span className="font-semibold">{Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)}</span>
                     </div>
                   </div>
                 </div>
@@ -519,39 +560,50 @@ const NftDetailsPage = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Trading Activity */}
+              {/* Transaction History (from blockchain-style trades — liquidity in/out) */}
               <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6">
                 <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
                   <FiUser className="text-green-400 w-4 h-4 xs:w-5 xs:h-5" />
-                  Recent Trading Activity
+                  Transaction History
                 </h2>
                 <div className="space-y-2 xs:space-y-3">
-                  {tradeData.map((trade) => (
-                    <div key={trade.id} className="flex items-center justify-between p-2 xs:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors gap-2">
-                      <div className="flex items-center gap-2 xs:gap-3 flex-1 min-w-0">
-                        <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 ${
-                          trade.type === 'Buy' 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-red-500/20 text-red-400'
-                        }`}>
-                          {trade.type}
+                  {tradeData.length === 0 ? (
+                    <p className="text-gray-500 text-sm py-4 text-center">No trades yet. Buy/sell activity will appear here.</p>
+                  ) : (
+                    tradeData.map((trade, i) => (
+                      <div key={trade._id || trade.transactionHash || i} className="flex items-center justify-between p-2 xs:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors gap-2">
+                        <div className="flex items-center gap-2 xs:gap-3 flex-1 min-w-0">
+                          <div className="px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 bg-green-500/20 text-green-400">
+                            Buy
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs xs:text-sm font-medium text-gray-300 truncate" title={trade.buyer}>
+                              {trade.buyer?.slice(0, 6)}...{trade.buyer?.slice(-4)}
+                            </div>
+                            <div className="text-[10px] xs:text-xs text-gray-500">
+                              {trade.createdAt ? new Date(trade.createdAt).toLocaleString() : ''}
+                              {trade.transactionHash && (
+                                <a
+                                  href={`https://${nft?.network === 'polygon' ? 'polygonscan' : 'etherscan'}.com/tx/${trade.transactionHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-1 text-purple-400 hover:underline"
+                                >
+                                  Tx
+                                </a>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs xs:text-sm font-medium text-gray-300 truncate">{trade.trader}</div>
-                          <div className="text-[10px] xs:text-xs text-gray-500">{trade.time}</div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-xs xs:text-sm font-semibold text-white">
+                            {parseFloat(trade.pricePerPiece || 0).toFixed(4)} {getCurrencySymbol(nft?.network || 'ethereum')}
+                          </div>
+                          <div className="text-[10px] xs:text-xs text-gray-400">x{trade.quantity}</div>
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-xs xs:text-sm font-semibold text-white">{trade.price} ETH</div>
-                        <div className="text-[10px] xs:text-xs text-gray-400">x{trade.quantity}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 text-center">
-                  <button className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors">
-                    View All Transactions →
-                  </button>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
