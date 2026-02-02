@@ -848,17 +848,20 @@ export const nftAPI = {
   getAllNftsByNetwork: async (network) => {
     try {
       const response = await api.get(`/nft/nfts/${network}`, {
-        _maxRetries: 2 // Allow up to 2 retries for this endpoint
+        timeout: 45000,
+        _maxRetries: 2,
       });
       return response.data || [];
     } catch (error) {
-      // For 502 errors, return empty array instead of throwing (graceful degradation)
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn(`[getAllNftsByNetwork] Timeout for network ${network}. Returning empty array.`);
+        return [];
+      }
       if (error.response?.status === 502) {
         console.warn(`[getAllNftsByNetwork] 502 Bad Gateway for network ${network}. Returning empty array.`);
         return [];
       }
       console.error(`[getAllNftsByNetwork] Error fetching NFTs for network ${network}:`, error.message);
-      // Return empty array instead of throwing to prevent UI breakage
       return [];
     }
   },
@@ -867,17 +870,20 @@ export const nftAPI = {
   getAllNftsByNetworkForExplore: async (network) => {
     try {
       const response = await api.get(`/nft/nfts-explore/${network}`, {
-        _maxRetries: 2 // Allow up to 2 retries for this endpoint
+        timeout: 45000,
+        _maxRetries: 2,
       });
       return response.data || [];
     } catch (error) {
-      // For 502 errors, return empty array instead of throwing (graceful degradation)
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn(`[getAllNftsByNetworkForExplore] Timeout for network ${network}. Returning empty array.`);
+        return [];
+      }
       if (error.response?.status === 502) {
         console.warn(`[getAllNftsByNetworkForExplore] 502 Bad Gateway for network ${network}. Returning empty array.`);
         return [];
       }
       console.error(`[getAllNftsByNetworkForExplore] Error fetching NFTs for network ${network}:`, error.message);
-      // Return empty array instead of throwing to prevent UI breakage
       return [];
     }
   },
@@ -910,9 +916,18 @@ export const nftAPI = {
   // Get NFTs in a specific collection
   getCollectionNfts: async (network, collection) => {
     try {
-      const response = await api.get(`/nft/nfts/${network}/collection/${collection}`);
+      const encoded = encodeURIComponent(collection);
+      const response = await api.get(`/nft/nfts/${network}/collection/${encoded}`, { timeout: 45000 });
       return response.data;
     } catch (error) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('[getCollectionNfts] Timeout, returning empty array.');
+        return [];
+      }
+      if (error.response?.status === 500) {
+        console.warn('[getCollectionNfts] Server error (e.g. collection by name), returning empty array.');
+        return [];
+      }
       throw new Error(`Failed to get collection NFTs: ${error.message}`);
     }
   },

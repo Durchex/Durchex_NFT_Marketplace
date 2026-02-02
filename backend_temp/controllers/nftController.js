@@ -967,22 +967,22 @@ export const getNftByAnyId = async (req, res) => {
 // 2. Fetch all NFTs (collection or non-collection) filtered by network
 export const fetchAllNftsByNetwork = async (req, res) => {
   const { network } = req.params;
+  const net = String(network || '').toLowerCase().trim() || 'polygon';
   try {
     // Fetch regular NFTs that are currently listed
-    const regularNfts = await nftModel.find({ network, currentlyListed: true });
-    
-    // Fetch lazy NFTs that are pending and available for sale
-    // Note: Lazy NFTs might not have network field, so we fetch all pending ones
-    // and filter by network if needed, or include all if network matching is not critical
-    const lazyNfts = await LazyNFT.find({ 
+    const regularNfts = await nftModel.find({ network: net, currentlyListed: true });
+
+    // Fetch lazy NFTs from lazy_nfts table: pending, same network, available for sale
+    const lazyNfts = await LazyNFT.find({
+      network: net,
       status: 'pending',
       enableStraightBuy: true,
-      expiresAt: { $gt: new Date() } // Not expired
+      expiresAt: { $gt: new Date() },
     }).populate('collection');
-    
+
     // Convert lazy NFTs to regular NFT format
-    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
-    
+    const formattedLazyNfts = lazyNfts.map((lazyNFT) => formatLazyNFTAsNFT(lazyNFT, net));
+
     // Combine both types of NFTs
     const allNfts = [...regularNfts, ...formattedLazyNfts];
     
@@ -1003,22 +1003,24 @@ export const fetchAllNftsByNetwork = async (req, res) => {
 // 2b. Fetch ALL NFTs for Explore page (regardless of listing status)
 export const fetchAllNftsByNetworkForExplore = async (req, res) => {
   const { network } = req.params;
+  const net = String(network || '').toLowerCase().trim() || 'polygon';
   try {
     // Return ALL regular NFTs except delisted/flagged ones - admin can delist NFTs
-    const regularNfts = await nftModel.find({ 
-      network,
-      adminStatus: { $ne: 'delisted' } // Exclude delisted NFTs
+    const regularNfts = await nftModel.find({
+      network: net,
+      adminStatus: { $ne: 'delisted' },
     });
-    
-    // Fetch all lazy NFTs (pending, redeemed, etc.) for explore page
-    const lazyNfts = await LazyNFT.find({ 
-      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] }, // Include pending and redeemed
-      expiresAt: { $gt: new Date() } // Not expired
+
+    // Fetch lazy NFTs from lazy_nfts table: same network, any status (pending/redeemed/fully_redeemed)
+    const lazyNfts = await LazyNFT.find({
+      network: net,
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
+      expiresAt: { $gt: new Date() },
     }).populate('collection');
-    
+
     // Convert lazy NFTs to regular NFT format
-    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
-    
+    const formattedLazyNfts = lazyNfts.map((lazyNFT) => formatLazyNFTAsNFT(lazyNFT, net));
+
     // Combine both types of NFTs
     const allNfts = [...regularNfts, ...formattedLazyNfts];
     
@@ -1039,33 +1041,43 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
 // 3. Fetch all NFTs under a particular collection filtered by network and collection name
 export const fetchCollectionNfts = async (req, res) => {
   const { network, collection } = req.params;
+  const collectionParam = collection != null ? decodeURIComponent(String(collection).trim()) : '';
   try {
-    // Fetch regular NFTs in the collection
-    const regularNfts = await nftModel.find({ network, collection });
-    
-    // Find the collection to get its ID
-    const collectionDoc = await Collection.findOne({ 
-      $or: [
-        { _id: collection },
-        { collectionId: collection },
-        { name: collection, network }
-      ]
-    });
-    
-    // Fetch lazy NFTs in the same collection
+    // Fetch regular NFTs in the collection (collection param can be name or id string)
+    const regularNfts = await nftModel.find({ network, collection: collectionParam });
+
+    // Find the collection: accept _id (ObjectId) only when it's valid 24-char hex, else find by name or collectionId
+    const orConditions = [
+      { collectionId: collectionParam },
+      { name: collectionParam, network },
+    ];
+    if (/^[a-fA-F0-9]{24}$/.test(collectionParam)) {
+      try {
+        const mongoose = await import('mongoose');
+        if (mongoose.default.Types.ObjectId.isValid(collectionParam)) {
+          orConditions.unshift({ _id: new mongoose.default.Types.ObjectId(collectionParam) });
+        }
+      } catch (_) {}
+    }
+    const collectionDoc = await Collection.findOne({ $or: orConditions });
+
+    const net = String(network || '').toLowerCase().trim() || 'polygon';
+
+    // Fetch lazy NFTs from lazy_nfts table: same collection (by ref) and same network
     let lazyNfts = [];
     if (collectionDoc) {
-      lazyNfts = await LazyNFT.find({ 
+      lazyNfts = await LazyNFT.find({
         collection: collectionDoc._id,
+        network: net,
         status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       }).populate('collection');
     }
-    
+
     // Convert lazy NFTs to regular NFT format
-    const formattedLazyNfts = lazyNfts.map(lazyNFT => formatLazyNFTAsNFT(lazyNFT, network));
-    
-    // Combine both types of NFTs
+    const formattedLazyNfts = lazyNfts.map((lazyNFT) => formatLazyNFTAsNFT(lazyNFT, net));
+
+    // Combine both types of NFTs (regular + from lazy_nfts table)
     const allNfts = [...regularNfts, ...formattedLazyNfts];
     
     // Sort by creation date (newest first)
