@@ -332,7 +332,7 @@ function App() {
         </div>
       );
 
-      // Update backend owner record (skip for lazy-mint; those are updated only via confirm-redemption)
+      // Update backend owner record (skip for lazy-mint; redemption is on-chain only)
       try {
         const isLazyMint = nftDatas?.isLazyMint === true || /^[a-fA-F0-9]{24}$/.test(String(itemId ?? ''));
         if (!isLazyMint) {

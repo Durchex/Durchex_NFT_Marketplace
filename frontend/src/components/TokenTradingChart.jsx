@@ -443,7 +443,7 @@ const TokenTradingChart = ({ selectedMarket }) => {
       const result = await smartContractService.buyNFT(networkKey, modalTokenId, { value: priceWei });
       if (!result || !result.success) throw new Error(result?.error || 'Buy transaction failed');
 
-      // Update backend owner (skip for lazy-mint; those are updated only via confirm-redemption)
+      // Update backend owner (skip for lazy-mint; redemption is on-chain only)
       try {
         const isLazyMintId = /^[a-fA-F0-9]{24}$/.test(String(modalTokenId ?? ''));
         if (!isLazyMintId) {

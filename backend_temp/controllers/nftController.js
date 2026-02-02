@@ -468,10 +468,10 @@ export const updateNftOwner = async (req, res) => {
       return res.json({ success: true, updated: "nft", nftId: nftLegacy._id, owner: buyerNorm, listed: !!listed });
     }
 
-    // 2. Lazy-mint: itemId 24-char hex is LazyNFT _id; do NOT update LazyNFT here (only confirm-redemption updates it)
+    // 2. Lazy-mint: itemId 24-char hex is LazyNFT _id; redemption is on-chain only (LazyMintNFT contract)
     if (/^[a-fA-F0-9]{24}$/.test(String(itemId))) {
       return res.status(400).json({
-        error: "Lazy-mint listings are updated only via confirm-redemption. Do not call updateNftOwner for lazy-mint items.",
+        error: "Lazy-mint redemption is on-chain only. Do not call updateNftOwner for lazy-mint items.",
       });
     }
 

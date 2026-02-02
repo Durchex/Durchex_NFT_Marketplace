@@ -4,14 +4,15 @@ import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, lazyMintAPI } from '../services/api';
-import { getCurrencySymbol, getContractAddresses, LazyMintNFT_ABI, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
+import { getCurrencySymbol, getLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
 /**
  * Dedicated page for lazy-mint (Mint) vs listed NFT (Buy / Make Offer).
- * - Lazy-mint with pieces: "Mint" only — pay and receive NEW token(s); creator keeps the listing.
- * - Lazy-mint sold out: "Sold out" + "Make Offer" (go to NFT detail).
+ * Lazy-mint redemption is fully on-chain: voucher from backend, then LazyMintNFT.redeemNFT / redeemNFTWithQuantity.
+ * - Lazy-mint with pieces: "Mint" — on-chain redeem; creator keeps the listing.
+ * - Lazy-mint sold out: "Sold out" + "Make Offer".
  * - Non–lazy-mint (listed NFT): "Buy" (marketplace) + "Make Offer".
  */
 export default function BuyMintPage() {
@@ -29,20 +30,22 @@ export default function BuyMintPage() {
       try {
         setLoading(true);
         setError(null);
-        let nftData = null;
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-        for (const network of networks) {
-          try {
-            const nfts = await nftAPI.getAllNftsByNetwork(network);
-            const found = nfts?.find(n =>
-              n.itemId === id || n.tokenId === id || n._id === id
-            );
-            if (found) {
-              nftData = found;
-              break;
+        let nftData = await nftAPI.getNftByAnyId(id);
+        if (!nftData) {
+          const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+          for (const network of networks) {
+            try {
+              const nfts = await nftAPI.getAllNftsByNetwork(network);
+              const found = nfts?.find(n =>
+                n.itemId === id || n.tokenId === id || (n._id && String(n._id) === String(id))
+              );
+              if (found) {
+                nftData = found;
+                break;
+              }
+            } catch (_) {
+              continue;
             }
-          } catch (_) {
-            continue;
           }
         }
         if (!nftData) {
@@ -81,7 +84,7 @@ export default function BuyMintPage() {
     const currentNetwork = network;
     setMinting(true);
     try {
-      // Lazy-mint with pieces: only redeem (mint new token(s) to buyer; creator keeps the listing).
+      // Lazy-mint: fully on-chain redemption via LazyMintNFT contract (voucher from backend, no confirm-redemption).
       if (hasPiecesToMint) {
         const lazyNftId = (nft._id && nft._id.toString()) || id;
 
@@ -89,115 +92,52 @@ export default function BuyMintPage() {
           throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
         }
         await window.ethereum.request({ method: 'eth_requestAccounts' });
-
         await changeNetwork(network);
         await new Promise((r) => setTimeout(r, 500));
 
         const redemptionRes = await lazyMintAPI.redeem(lazyNftId, pricePerPiece, qty);
         const { redemptionData } = redemptionRes;
-        if (!redemptionData) throw new Error('No redemption data from server.');
-        const lazyMintAddress = getContractAddresses(network)?.lazyMint;
-        if (!lazyMintAddress || lazyMintAddress === '0x0') {
+        if (!redemptionData) throw new Error('No voucher data from server.');
+
+        const contract = await getLazyMintContractWithSigner(network);
+        if (!contract) {
           throw new Error(
-            'Lazy mint contract is not configured. Add VITE_APP_LAZY_MINT_CONTRACT_ADDRESS to your .env (or VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_' +
+            'Lazy mint contract not configured for this network. Add VITE_APP_LAZY_MINT_CONTRACT_ADDRESS (or _' +
               network.toUpperCase() +
-              ' for this network), then rebuild. Use the address from your LazyMintNFT deployment.'
+              ') and connect your wallet.'
           );
         }
-        const sig = redemptionData.signature?.startsWith('0x') ? redemptionData.signature : '0x' + redemptionData.signature;
-        const iface = new ethers.utils.Interface(LazyMintNFT_ABI);
 
-        let encodedData;
-        let valueWei;
+        const sig = redemptionData.signature?.startsWith('0x')
+          ? redemptionData.signature
+          : '0x' + (redemptionData.signature || '');
         const useMulti = qty > 1 && redemptionData.pricePerPiece != null && redemptionData.maxQuantity != null;
+
         if (useMulti) {
           const pricePerPieceWei = ethers.utils.parseEther(String(redemptionData.pricePerPiece));
-          encodedData = iface.encodeFunctionData('redeemNFTWithQuantity', [
+          const tx = await contract.redeemNFTWithQuantity(
             redemptionData.creator,
             redemptionData.ipfsURI,
-            redemptionData.royaltyPercentage,
+            redemptionData.royaltyPercentage ?? 0,
             pricePerPieceWei,
             qty,
             redemptionData.maxQuantity,
             sig,
-          ]);
-          valueWei = totalPriceWei;
+            { value: totalPriceWei }
+          );
+          await tx.wait();
         } else {
-          const singlePrice = qty === 1 ? totalPriceWei : ethers.utils.parseEther(totalPriceEth);
-          encodedData = iface.encodeFunctionData('redeemNFT', [
+          const tx = await contract.redeemNFT(
             redemptionData.creator,
             redemptionData.ipfsURI,
-            redemptionData.royaltyPercentage,
-            singlePrice,
+            redemptionData.royaltyPercentage ?? 0,
+            totalPriceWei,
             sig,
-          ]);
-          valueWei = singlePrice;
+            { value: totalPriceWei }
+          );
+          await tx.wait();
         }
 
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const valueHex = ethers.BigNumber.isBigNumber(valueWei) ? valueWei.toHexString() : ethers.utils.hexValue(valueWei);
-
-        const sendRawTx = async () => {
-          return window.ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: address,
-              to: lazyMintAddress,
-              value: valueHex,
-              data: encodedData,
-              gasLimit: useMulti ? '0x989680' : '0x493E0',
-            }],
-          });
-        };
-
-        let txHash;
-        try {
-          txHash = await sendRawTx();
-        } catch (txErr) {
-          const txCode = txErr?.code ?? txErr?.error?.code;
-          const txMsg = (txErr?.message || txErr?.error?.message || '').toLowerCase();
-          const isInsufficientFunds = txCode === -32003 || txMsg.includes('insufficient funds');
-          const isNoResponse =
-            txCode === -32603 ||
-            txMsg.includes('response has no error or result') ||
-            txMsg.includes('jsonrpcengine');
-          if (isInsufficientFunds) {
-            throw txErr;
-          }
-          if (isNoResponse) {
-            await new Promise((r) => setTimeout(r, 1000));
-            txHash = await sendRawTx();
-          } else {
-            throw txErr;
-          }
-        }
-
-        if (!txHash || typeof txHash !== 'string') {
-          throw new Error('No transaction hash returned from wallet.');
-        }
-        const receipt = await provider.waitForTransaction(txHash);
-        let firstTokenId = null;
-        const redeemedEvents = receipt.logs?.length
-          ? receipt.logs
-              .map((log) => {
-                try {
-                  return iface.parseLog(log);
-                } catch (_) {
-                  return null;
-                }
-              })
-              .filter((p) => p?.name === 'NFTRedeemed' && p.args?.tokenId != null)
-          : [];
-        if (redeemedEvents.length > 0) {
-          firstTokenId = redeemedEvents[0].args.tokenId.toString();
-        }
-        await lazyMintAPI.confirmRedemption(lazyNftId, {
-          tokenId: qty === 1 ? firstTokenId || '0' : undefined,
-          firstTokenId: qty > 1 ? firstTokenId : undefined,
-          quantity: qty,
-          transactionHash: receipt.transactionHash,
-          salePrice: totalPriceEth,
-        });
         toast.success(qty > 1 ? `${qty} pieces minted to your wallet.` : 'Piece minted to your wallet.');
         navigate(`/nft/${id}`);
         return;

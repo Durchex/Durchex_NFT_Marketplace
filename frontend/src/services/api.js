@@ -1947,30 +1947,13 @@ export const lazyMintAPI = {
     }
   },
 
-  // Get redemption data for buy & mint (requires wallet connected – auth). quantity = pieces to buy.
+  // Get voucher data for on-chain redeem (requires auth). Backend returns creator, uri, signature, etc.; redemption is done on-chain only.
   redeem: async (lazyNftId, salePrice, quantity = 1) => {
     try {
       const response = await api.post(`/lazy-mint/${lazyNftId}/redeem`, { salePrice, quantity });
       return response.data;
     } catch (error) {
-      console.error('Failed to get lazy mint redemption data:', error);
-      throw error;
-    }
-  },
-
-  // Confirm redemption after on-chain mint (requires wallet connected – auth). For multi-piece pass firstTokenId + quantity.
-  confirmRedemption: async (lazyNftId, { tokenId, firstTokenId, quantity, transactionHash, salePrice }) => {
-    try {
-      const response = await api.post(`/lazy-mint/${lazyNftId}/confirm-redemption`, {
-        tokenId,
-        firstTokenId,
-        quantity,
-        transactionHash,
-        salePrice,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to confirm lazy mint redemption:', error);
+      console.error('Failed to get lazy mint voucher:', error);
       throw error;
     }
   },
