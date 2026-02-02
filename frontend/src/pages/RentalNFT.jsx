@@ -76,22 +76,36 @@ const RentalNFT = () => {
     }
   };
 
-  const displayListings = rentalListings.map((r) => ({
-    id: r.id ?? r.listingId ?? r._id,
-    name: r.name ?? `NFT #${r.tokenId ?? r.id ?? ''}`,
-    owner: r.owner ?? r.lister ? `${r.lister.slice(0, 6)}...${r.lister.slice(-4)}` : '—',
-    price: r.price ?? r.pricePerDay ?? 0,
-    duration: r.duration ?? (r.minDays && r.maxDays ? `${r.minDays}-${r.maxDays} days` : '—'),
-    roi: r.roi ?? '—',
-  }));
+  const displayListings = rentalListings.map((r) => {
+    const id = r.id ?? r.listingId ?? r._id;
+    const name = r.name ?? `NFT #${r.tokenId ?? r.id ?? ''}`;
+    const owner =
+      r.owner ||
+      (r.lister ? `${r.lister.slice(0, 6)}...${r.lister.slice(-4)}` : '—');
+    const price = r.price ?? r.pricePerDay ?? 0;
+    const duration =
+      r.duration ||
+      (r.minDays && r.maxDays ? `${r.minDays}-${r.maxDays} days` : '—');
+    const roi = r.roi ?? '—';
 
-  const displayMyRentals = myRentals.map((r) => ({
-    id: r.id ?? r.rentalId ?? r._id,
-    name: r.name ?? `Rental #${r.rentalId ?? r.id}`,
-    renter: r.renter ?? (r.renterAddress ? `${r.renterAddress.slice(0, 6)}...${r.renterAddress.slice(-4)}` : '—'),
-    endDate: r.endDate ?? r.endTime ? new Date(r.endTime).toLocaleDateString() : '—',
-    earned: r.earned ?? r.earnedAmount ?? 0,
-  }));
+    return { id, name, owner, price, duration, roi };
+  });
+
+  const displayMyRentals = myRentals.map((r) => {
+    const id = r.id ?? r.rentalId ?? r._id;
+    const name = r.name ?? `Rental #${r.rentalId ?? r.id}`;
+    const renter =
+      r.renter ||
+      (r.renterAddress
+        ? `${r.renterAddress.slice(0, 6)}...${r.renterAddress.slice(-4)}`
+        : '—');
+    const endDate =
+      r.endDate ||
+      (r.endTime ? new Date(r.endTime).toLocaleDateString() : '—');
+    const earned = r.earned ?? r.earnedAmount ?? 0;
+
+    return { id, name, renter, endDate, earned };
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white">

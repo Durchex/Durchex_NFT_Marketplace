@@ -685,7 +685,17 @@ export const getNftAnalytics = async (req, res) => {
 
     const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
     if (!nft) {
-      return res.status(404).json({ error: "NFT not found" });
+      return res.status(200).json({
+        network: net,
+        itemId: itemIdStr,
+        lastPrice: 0,
+        marketCap: 0,
+        volume24h: "0",
+        volumeTotal: "0",
+        priceChangePercent: "0",
+        priceHistory: [],
+        tradesCount: 0,
+      });
     }
 
     const now = new Date();

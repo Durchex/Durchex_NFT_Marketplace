@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Eye, Activity } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
 import { getCurrencySymbol } from '../../Context/constants';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 
+const EXPLORE_REFRESH_MS = 60000; // Refresh grid every 60s
+
 /**
- * ExploreNFTsGrid - Grid view of all NFTs from database
+ * ExploreNFTsGrid - Live grid view of all NFTs from database (refreshes every 60s)
  */
 const ExploreNFTsGrid = () => {
   const [nfts, setNfts] = useState([]);
@@ -18,10 +20,18 @@ const ExploreNFTsGrid = () => {
   const [allNfts, setAllNfts] = useState([]); // Store all NFTs for pagination
   const [filter, setFilter] = useState('Latest');
   const [creatorProfiles, setCreatorProfiles] = useState(new Map());
+  const [lastUpdated, setLastUpdated] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchNFTs();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNFTs(true); // silent refresh
+    }, EXPLORE_REFRESH_MS);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -40,10 +50,10 @@ const ExploreNFTsGrid = () => {
     setTotalPages(Math.ceil(allNfts.length / itemsPerPage));
   };
 
-  const fetchNFTs = async () => {
+  const fetchNFTs = async (silent = false) => {
     try {
-      setLoading(true);
-      console.log('[ExploreNFTsGrid] Fetching NFTs from all networks...');
+      if (!silent) setLoading(true);
+      if (!silent) console.log('[ExploreNFTsGrid] Fetching NFTs from all networks...');
       
       // ✅ Fetch real NFTs from all networks
       let nftsData = [];
@@ -82,12 +92,19 @@ const ExploreNFTsGrid = () => {
           return dateB - dateA;
         });
         
-        console.log(`[ExploreNFTsGrid] Total NFTs fetched (raw): ${nftsData.length}`);
-        console.log(`[ExploreNFTsGrid] Total NFTs after de-duplication: ${uniqueNfts.length}`);
+        if (!silent) {
+          console.log(`[ExploreNFTsGrid] Total NFTs fetched (raw): ${nftsData.length}`);
+          console.log(`[ExploreNFTsGrid] Total NFTs after de-duplication: ${uniqueNfts.length}`);
+        }
         setAllNfts(uniqueNfts);
+        setLastUpdated(new Date());
         paginateNFTs();
-        
-        // Fetch creator profiles for all NFTs
+
+        // Fetch creator profiles for all NFTs (skip on silent refresh to avoid extra calls)
+        if (silent) {
+          setLoading(false);
+          return;
+        }
         const profilesMap = new Map();
         await Promise.all(
           nftsData.slice(0, 50).map(async (nft) => { // Limit to first 50 to avoid too many API calls
@@ -161,8 +178,17 @@ const ExploreNFTsGrid = () => {
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full max-w-full">
       {/* Header */}
       <div className="mb-3 xs:mb-4 sm:mb-6 w-full">
-        <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white mb-2 xs:mb-3 sm:mb-4">Explore NFTs</h2>
-        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Browse through all the NFTs on Durchex</p>
+        <div className="flex flex-wrap items-center gap-2 mb-2 xs:mb-3 sm:mb-4">
+          <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-white">Explore NFTs</h2>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-900/40 border border-green-600/50 text-green-400 text-xs font-medium">
+            <Activity size={12} className="animate-pulse" />
+            Live
+          </span>
+          {lastUpdated && (
+            <span className="text-gray-500 text-xs">Updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+        </div>
+        <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">Browse through all the NFTs on Durchex • Refreshes every 60s</p>
         
         {/* Filter Tabs */}
         <div className="flex gap-2 sm:gap-3 border-b border-gray-700">

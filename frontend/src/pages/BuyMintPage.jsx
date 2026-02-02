@@ -73,6 +73,7 @@ export default function BuyMintPage() {
     const totalPriceEth = (parseFloat(pricePerPiece) * qty).toFixed(18);
     const totalPriceWei = ethers.utils.parseEther(totalPriceEth);
     const network = (nft.network || 'polygon').toLowerCase().trim();
+    const currentNetwork = network;
     setMinting(true);
     try {
       if (isLazyMint) {
@@ -198,26 +199,30 @@ export default function BuyMintPage() {
       const contractAddress =
         nft.contractAddress ||
         nft.nftContract ||
-        getContractAddresses(network)?.vendor;
+        getContractAddresses(currentNetwork)?.vendor;
       if (!contractAddress) {
         toast.error('NFT contract not found for this network.');
         return;
       }
-      const itemId = nft.itemId ?? nft.tokenId ?? nft._id;
-      const qty = Math.max(1, Math.min(maxQuantity, quantity));
-      const totalEth = (parseFloat(priceInDecimalForBuy(nft.price)) * qty).toFixed(18);
-      // buyNFT expects price in ETH (it uses parseEther internally); do not pass wei or the wallet will show an impossible figure
-      await buyNFT(contractAddress, itemId, totalEth, network);
+      const itemIdStr = nft.itemId ?? nft.tokenId ?? nft._id;
+      const qtyNum = Math.max(1, Math.min(maxQuantity, quantity));
+      const totalEth = (parseFloat(priceInDecimalForBuy(nft.price)) * qtyNum).toFixed(18);
+      if (typeof buyNFT !== 'function') {
+        toast.error('Wallet purchase is not available. Please try again.');
+        return;
+      }
+      await buyNFT(contractAddress, itemIdStr, totalEth, currentNetwork);
       toast.success('Minted successfully!');
       navigate(`/nft/${id}`);
     } catch (err) {
       console.error('Mint error:', err);
       const code = err?.code ?? err?.error?.code;
       const msg = String(err?.message || err?.error?.message || '');
-      const token = getCurrencySymbol(network || 'ethereum');
+      const errNetwork = nft?.network || 'ethereum';
+      const token = getCurrencySymbol(errNetwork);
       if (code === -32003 || msg.toLowerCase().includes('insufficient funds')) {
         toast.error(
-          `Insufficient funds on ${network || 'this network'}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
+          `Insufficient funds on ${errNetwork}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
         );
       } else if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
         toast.error(

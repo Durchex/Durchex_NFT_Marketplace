@@ -795,6 +795,34 @@ export const nftAPI = {
     }
   },
 
+  // Minting Hub: get mintable NFTs
+  getMintable: async (walletAddress, page = 1, limit = 12) => {
+    const response = await api.get('/minting/mintable', {
+      params: { walletAddress, page, limit },
+    });
+    return response.data;
+  },
+
+  // Minting Hub: get minted NFTs
+  getMinted: async (walletAddress, page = 1, limit = 12) => {
+    const response = await api.get('/minting/minted', {
+      params: { walletAddress, page, limit },
+    });
+    return response.data;
+  },
+
+  // Minting Hub: mint single NFT
+  mint: async (body) => {
+    const response = await api.post('/minting/mint', body);
+    return response.data;
+  },
+
+  // Minting Hub: batch mint NFTs
+  batchMint: async (body) => {
+    const response = await api.post('/minting/batch-mint', body);
+    return response.data;
+  },
+
   // Get collections grouped by network
   getCollectionsByNetwork: async (network) => {
     try {

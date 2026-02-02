@@ -1,112 +1,120 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { nftAPI } from '../../services/api';
+import { nftAPI, analyticsAPI } from '../../services/api';
 import { getCurrencySymbol } from '../../Context/constants';
+import { Activity } from 'lucide-react';
+
+const REFRESH_TABLE_MS = 45000;  // Refetch table from API every 45s
+const REFRESH_TREND_MS = 30000;  // Refresh market trend stats/chart every 30s
+
+/** Map UI time filter to API timeframe */
+const timeFilterToApi = (t) => {
+  const map = { '1H': '1h', '6h': '24h', '24h': '24h', '7D': '7d', '1M': '30d', '6M': '90d', '1Y': '1y' };
+  return map[t] || '24h';
+};
 
 /**
- * RealTimeDataTable - Shows 8 actual NFTs from database (newest to oldest) with real floor prices
- * Other data (price24h, change, volume, trending) is simulated
+ * RealTimeDataTable - Live table of NFTs + live Market Trend (stats + volume chart)
  */
 const RealTimeDataTable = () => {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trendData, setTrendData] = useState([]);
+  const [marketStats, setMarketStats] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [timeFilter, setTimeFilter] = useState('24h');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchMarketData();
-    // Simulate price updates every 5 seconds
-    const interval = setInterval(() => {
-      setTableData(prevData => 
-        prevData.map(item => ({
-          ...item,
-          price24h: (Math.random() * 2.5 + 0.3).toFixed(2),
-          change: (Math.random() * 20 - 10).toFixed(1),
-          volume24h: Math.floor(Math.random() * 500) + 50,
-          trending: generateSparklineData()
-        }))
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchMarketData = async () => {
+  const fetchMarketData = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[RealTimeDataTable] Fetching NFTs from all networks...');
-      
-      // ✅ Fetch all NFTs from all networks
       let allNFTs = [];
       const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
       for (const network of networks) {
         try {
-          console.log(`[RealTimeDataTable] Fetching NFTs from ${network}...`);
           const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts)) {
-            allNFTs = [...allNFTs, ...networkNfts];
-          }
+          if (Array.isArray(networkNfts)) allNFTs = [...allNFTs, ...networkNfts];
         } catch (err) {
-          console.warn(`[RealTimeDataTable] Error fetching from ${network}:`, err.message);
+          console.warn(`[RealTimeDataTable] ${network}:`, err.message);
         }
       }
-      
-      // ✅ De-duplicate NFTs so the same NFT across networks only appears once
       const uniqueMap = new Map();
       allNFTs.forEach((nft) => {
-        const key =
-          nft._id ||
-          `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, nft);
-        }
+        const key = nft._id || `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
+        if (!uniqueMap.has(key)) uniqueMap.set(key, nft);
       });
       const uniqueNFTs = Array.from(uniqueMap.values());
-
-      // Sort by creation date (newest to oldest)
       uniqueNFTs.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : (a._id ? new Date(a._id.toString().substring(0, 8)) : new Date(0));
         const dateB = b.createdAt ? new Date(b.createdAt) : (b._id ? new Date(b._id.toString().substring(0, 8)) : new Date(0));
         return dateB - dateA;
       });
-      
-      // Get first 8 NFTs (newest to oldest)
       const nftList = uniqueNFTs.slice(0, 8);
-      
-      if (nftList.length === 0) {
-        throw new Error('No NFTs found');
-      }
-      
-      console.log(`[RealTimeDataTable] Loaded ${nftList.length} NFTs`);
-      
-      // Enrich with simulated market data, but keep real floor price
+      if (nftList.length === 0) throw new Error('No NFTs found');
       const enrichedData = nftList.map(nft => ({
         ...nft,
-        // Use real floor price if available, otherwise use price
         floorPrice: nft.floorPrice || nft.price || (Math.random() * 2 + 0.5).toFixed(2),
-        // Simulated data
         price24h: (Math.random() * 2.5 + 0.3).toFixed(2),
         change: (Math.random() * 20 - 10).toFixed(1),
         volume7d: Math.floor(Math.random() * 1000) + 100,
         volume24h: Math.floor(Math.random() * 500) + 50,
         trending: generateSparklineData()
       }));
-      
       setTableData(enrichedData);
-      
-      // Generate trend data for the right-side chart (simulated market trend)
-      generateTrendData();
+      setLastUpdated(new Date());
+      await fetchTrendAndStats();
     } catch (error) {
-      console.error('[RealTimeDataTable] Error fetching market data:', error);
+      console.error('[RealTimeDataTable]', error);
       setTableData(generateMockData());
-      generateTrendData();
+      setLastUpdated(new Date());
+      await fetchTrendAndStats();
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchTrendAndStats = useCallback(async () => {
+    const timeframe = timeFilterToApi(timeFilter);
+    const interval = timeframe === '1h' ? 'hourly' : timeframe === '24h' ? 'hourly' : 'daily';
+    try {
+      const [stats, trends] = await Promise.all([
+        analyticsAPI.getMarketplaceStats(timeframe),
+        analyticsAPI.getVolumeTrends(timeframe, interval)
+      ]);
+      setMarketStats(stats || {});
+      if (Array.isArray(trends) && trends.length > 0) {
+        setTrendData(trends.map(t => ({
+          hour: t.timestamp || t.date,
+          price: Number(t.volume) || 0,
+          volume: Number(t.volume) || 0,
+          sales: t.sales ?? 0
+        })));
+      } else {
+        generateTrendData();
+      }
+    } catch (e) {
+      console.warn('[RealTimeDataTable] analytics fallback', e);
+      setMarketStats({});
+      generateTrendData();
+    }
+  }, [timeFilter]);
+
+  useEffect(() => {
+    fetchMarketData();
+  }, [fetchMarketData]);
+
+  useEffect(() => {
+    const tableInterval = setInterval(fetchMarketData, REFRESH_TABLE_MS);
+    return () => clearInterval(tableInterval);
+  }, [fetchMarketData]);
+
+  useEffect(() => {
+    fetchTrendAndStats();
+    const trendInterval = setInterval(fetchTrendAndStats, REFRESH_TREND_MS);
+    return () => clearInterval(trendInterval);
+  }, [timeFilter, fetchTrendAndStats]);
 
   const generateMockData = () => {
     return Array(8).fill(0).map((_, idx) => ({
@@ -157,8 +165,19 @@ const RealTimeDataTable = () => {
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
       {/* Header */}
       <div className="mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Real-Time Data</h2>
-        
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Real-Time Data</h2>
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-900/40 border border-green-600/50 text-green-400 text-xs font-medium">
+            <Activity size={12} className="animate-pulse" />
+            Live
+          </span>
+          {lastUpdated && (
+            <span className="text-gray-500 text-xs">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
           {/* Category Filters */}
@@ -282,42 +301,81 @@ const RealTimeDataTable = () => {
           </div>
         </div>
 
-        {/* Large Trend Chart - Mobile: Full width below, Desktop: Right side */}
+        {/* Market Trend - Stats + Volume Chart (live) */}
         <div className="w-full min-w-0 lg:w-auto bg-gray-800/50 rounded-lg border border-gray-700 p-4 sm:p-6">
-          <h3 className="text-white font-semibold mb-4 text-base sm:text-lg">Market Trend</h3>
-          <div className="w-full" style={{ height: '250px' }}>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h3 className="text-white font-semibold text-base sm:text-lg">Market Trend</h3>
+            <span className="inline-flex items-center gap-1 text-green-400 text-xs">
+              <Activity size={12} className="animate-pulse" />
+              Live • {timeFilter}
+            </span>
+          </div>
+
+          {/* Stats row - live from analytics API */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3 mb-4">
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-3">
+              <p className="text-gray-400 text-xs truncate">Volume</p>
+              <p className="text-white font-semibold text-sm sm:text-base truncate">
+                {(marketStats?.totalVolume ?? 0) > 0 ? `${Number(marketStats.totalVolume).toFixed(2)} ETH` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-3">
+              <p className="text-gray-400 text-xs truncate">Sales</p>
+              <p className="text-white font-semibold text-sm sm:text-base">{marketStats?.totalSales ?? '—'}</p>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-3">
+              <p className="text-gray-400 text-xs truncate">Avg Price</p>
+              <p className="text-white font-semibold text-sm sm:text-base truncate">
+                {(marketStats?.averagePrice ?? 0) > 0 ? `${Number(marketStats.averagePrice).toFixed(4)} ETH` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-3">
+              <p className="text-gray-400 text-xs truncate">Floor</p>
+              <p className="text-white font-semibold text-sm sm:text-base truncate">
+                {(marketStats?.floorPrice ?? 0) > 0 ? `${Number(marketStats.floorPrice).toFixed(2)} ETH` : '—'}
+              </p>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-2 sm:p-3 col-span-2 sm:col-span-1">
+              <p className="text-gray-400 text-xs truncate">Unique Traders</p>
+              <p className="text-white font-semibold text-sm sm:text-base">{marketStats?.uniqueTraders ?? '—'}</p>
+            </div>
+          </div>
+
+          <div className="w-full" style={{ height: '220px' }}>
             <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendData}>
-              <XAxis
-                dataKey="hour"
-                stroke="#666"
-                style={{ fontSize: '10px' }}
-                tick={{ fill: '#888' }}
-              />
-              <YAxis
-                stroke="#666"
-                style={{ fontSize: '10px' }}
-                tick={{ fill: '#888' }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '12px'
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="price"
-                stroke="#a78bfa"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              <LineChart data={trendData}>
+                <XAxis
+                  dataKey="hour"
+                  stroke="#666"
+                  style={{ fontSize: '10px' }}
+                  tick={{ fill: '#888' }}
+                />
+                <YAxis
+                  stroke="#666"
+                  style={{ fontSize: '10px' }}
+                  tick={{ fill: '#888' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value) => [Array.isArray(value) ? value[0] : value, 'Volume (ETH)']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke="#a78bfa"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                  name="Volume"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

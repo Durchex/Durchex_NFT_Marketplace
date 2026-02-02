@@ -367,9 +367,9 @@ export const trackNFTView = async (req, res) => {
     const view = new NFTView({
       nftId,
       itemId,
-      contractAddress: contractAddress.toLowerCase(),
-      network,
-      userWallet: userWallet ? userWallet.toLowerCase() : null,
+      contractAddress: contractAddress != null ? String(contractAddress).toLowerCase() : null,
+      network: network != null ? String(network).toLowerCase() : null,
+      userWallet: userWallet ? String(userWallet).toLowerCase() : null,
       ipAddress: ipAddress || req.ip || null,
       userAgent: userAgent || req.headers['user-agent'] || null
     });
@@ -431,9 +431,9 @@ export const trackNFTShare = async (req, res) => {
     const share = new NFTShare({
       nftId,
       itemId,
-      contractAddress: contractAddress.toLowerCase(),
-      network,
-      userWallet: userWallet ? userWallet.toLowerCase() : null,
+      contractAddress: contractAddress != null ? String(contractAddress).toLowerCase() : null,
+      network: network != null ? String(network).toLowerCase() : null,
+      userWallet: userWallet ? String(userWallet).toLowerCase() : null,
       shareMethod: shareMethod || 'other'
     });
 

@@ -33,18 +33,11 @@ function MintingHub() {
     
     try {
       setLoading(true);
-      const response = await nftAPI.get(`/minting/mintable`, {
-        params: {
-          walletAddress: address,
-          page,
-          limit: 12
-        }
-      });
-      
-      setMintableNFTs(response.data.nfts);
-      setTotalPages(response.data.totalPages || 1);
-      
-      if (response.data.nfts.length === 0) {
+      const data = await nftAPI.getMintable(address, page, 12);
+      setMintableNFTs(data.nfts ?? []);
+      setTotalPages(data.totalPages ?? 1);
+
+      if (!data.nfts?.length) {
         toast("No mintable NFTs found", { icon: "ℹ️" });
       }
     } catch (error) {
@@ -64,16 +57,9 @@ function MintingHub() {
     
     try {
       setLoading(true);
-      const response = await nftAPI.get(`/minting/minted`, {
-        params: {
-          walletAddress: address,
-          page,
-          limit: 12
-        }
-      });
-      
-      setMintedNFTs(response.data.nfts);
-      setTotalPages(response.data.totalPages || 1);
+      const data = await nftAPI.getMinted(address, page, 12);
+      setMintedNFTs(data.nfts ?? []);
+      setTotalPages(data.totalPages ?? 1);
     } catch (error) {
       ErrorToast("Failed to fetch minted NFTs");
       console.error(error);
@@ -171,10 +157,10 @@ function MintingHub() {
       nftIds.forEach(id => progress[id] = 0);
       setMintingProgress(progress);
 
-      const response = await nftAPI.post(`/minting/batch-mint`, {
+      const data = await nftAPI.batchMint({
         nftIds,
         walletAddress: address,
-        collectionAddress: selectedNFTObjects[0]?.collectionAddress
+        collectionAddress: selectedNFTObjects[0]?.collectionAddress,
       });
 
       // Update progress
@@ -182,7 +168,7 @@ function MintingHub() {
         setMintingProgress(prev => ({ ...prev, [id]: 100 }));
       });
 
-      SuccessToast(`${response.data.mintedNFTs.length} NFTs minted successfully!`);
+      SuccessToast(`${(data.mintedNFTs ?? []).length} NFTs minted successfully!`);
       
       // Update display
       setMintableNFTs(prev => prev.filter(n => !selectedNFTs.has(n._id)));
