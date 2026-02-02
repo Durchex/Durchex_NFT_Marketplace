@@ -9,8 +9,10 @@ import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
 /**
- * Dedicated Buy & Mint page – user pays the exact NFT price and mints (no offer modal).
- * For lazy-minted NFTs: buy and mint in one flow via LazyMint contract redeem.
+ * Dedicated page for lazy-mint (Mint) vs listed NFT (Buy / Make Offer).
+ * - Lazy-mint with pieces: "Mint" only — pay and receive NEW token(s); creator keeps the listing.
+ * - Lazy-mint sold out: "Sold out" + "Make Offer" (go to NFT detail).
+ * - Non–lazy-mint (listed NFT): "Buy" (marketplace) + "Make Offer".
  */
 export default function BuyMintPage() {
   const { id } = useParams();
@@ -62,8 +64,11 @@ export default function BuyMintPage() {
   const isLazyMint = nft?.isLazyMint === true;
   const remainingPieces = Number(nft?.remainingPieces ?? nft?.pieces ?? 0);
   const maxQuantity = Math.max(1, remainingPieces);
+  const hasPiecesToMint = isLazyMint && remainingPieces > 0;
+  const lazyMintSoldOut = isLazyMint && remainingPieces <= 0;
+  const isListedNft = !isLazyMint;
 
-  const handleBuyAndMint = async () => {
+  const handlePrimaryAction = async () => {
     if (!nft || !address) {
       toast.error('Connect your wallet first.');
       return;
@@ -76,7 +81,8 @@ export default function BuyMintPage() {
     const currentNetwork = network;
     setMinting(true);
     try {
-      if (isLazyMint) {
+      // Lazy-mint with pieces: only redeem (mint new token(s) to buyer; creator keeps the listing).
+      if (hasPiecesToMint) {
         const lazyNftId = (nft._id && nft._id.toString()) || id;
 
         if (!window.ethereum) {
@@ -192,8 +198,13 @@ export default function BuyMintPage() {
           transactionHash: receipt.transactionHash,
           salePrice: totalPriceEth,
         });
-        toast.success(qty > 1 ? `${qty} NFTs bought and minted successfully!` : 'NFT bought and minted successfully!');
+        toast.success(qty > 1 ? `${qty} pieces minted to your wallet.` : 'Piece minted to your wallet.');
         navigate(`/nft/${id}`);
+        return;
+      }
+      // Listed NFT (not lazy-mint): marketplace buy — transfer from seller to buyer.
+      if (!isListedNft) {
+        toast.error('This item is not available to buy here. Use Make Offer on the NFT page.');
         return;
       }
       const contractAddress =
@@ -212,7 +223,7 @@ export default function BuyMintPage() {
         return;
       }
       await buyNFT(contractAddress, itemIdStr, totalEth, currentNetwork);
-      toast.success('Minted successfully!');
+      toast.success('Purchase complete.');
       navigate(`/nft/${id}`);
     } catch (err) {
       console.error('Mint error:', err);
@@ -271,7 +282,8 @@ export default function BuyMintPage() {
   const priceDisplay = pricePerPiece.toFixed(4);
   const totalDisplay = (pricePerPiece * Math.max(1, Math.min(maxQuantity, quantity))).toFixed(4);
   const currency = getCurrencySymbol(nft.network || 'ethereum');
-  const hasPieces = remainingPieces > 0;
+  const canMint = hasPiecesToMint && address;
+  const canBuy = isListedNft && address;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -307,14 +319,14 @@ export default function BuyMintPage() {
               )}
             </p>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400">Price per piece</span>
+              <span className="text-gray-400">{hasPiecesToMint ? 'Price per piece' : 'Price'}</span>
               <span className="text-lg font-bold text-purple-400">
                 {priceDisplay} {currency}
               </span>
             </div>
-            {hasPieces && (
+            {hasPiecesToMint && (
               <div className="mb-4">
-                <label className="text-gray-400 text-sm block mb-1">Pieces to buy</label>
+                <label className="text-gray-400 text-sm block mb-1">Pieces to mint</label>
                 <input
                   type="number"
                   min={1}
@@ -326,29 +338,75 @@ export default function BuyMintPage() {
                 <span className="text-gray-500 text-sm ml-2">of {maxQuantity} available</span>
               </div>
             )}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <span className="text-gray-400">Total</span>
               <span className="text-xl font-bold text-purple-400">
                 {totalDisplay} {currency}
               </span>
             </div>
+
+            {/* Copy: Mint = new token(s), creator keeps listing. Buy = transfer from seller. */}
+            {hasPiecesToMint && (
+              <p className="text-gray-500 text-xs mb-4">
+                Minting gives you new token(s) on-chain. The creator keeps the listing; you are not buying the whole NFT from them.
+              </p>
+            )}
+            {isListedNft && (
+              <p className="text-gray-500 text-xs mb-4">
+                Buying transfers this listed NFT from the current owner to you.
+              </p>
+            )}
+
             {!address ? (
-              <p className="text-amber-400 text-sm mb-4">
-                Connect your wallet to buy and mint.
-              </p>
-            ) : !hasPieces ? (
-              <p className="text-amber-400 text-sm mb-4">
-                No pieces available to mint.
-              </p>
+              <p className="text-amber-400 text-sm mb-4">Connect your wallet to continue.</p>
             ) : null}
-            <button
-              onClick={handleBuyAndMint}
-              disabled={!address || !hasPieces || minting}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <FiDollarSign />
-              {minting ? 'Minting…' : `Buy & Mint ${quantity} piece(s) — ${totalDisplay} ${currency}`}
-            </button>
+
+            {/* Lazy-mint sold out: Sold out + Make Offer */}
+            {lazyMintSoldOut && (
+              <div className="space-y-3">
+                <button disabled className="w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg cursor-not-allowed">
+                  Sold out
+                </button>
+                <button
+                  onClick={() => navigate(`/nft/${id}`)}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FiDollarSign /> Make Offer
+                </button>
+              </div>
+            )}
+
+            {/* Lazy-mint with pieces: Mint only (redeem); no "Buy" that would transfer from creator */}
+            {hasPiecesToMint && (
+              <button
+                onClick={handlePrimaryAction}
+                disabled={!canMint || minting}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <FiDollarSign />
+                {minting ? 'Minting…' : `Mint ${quantity} piece(s) — ${totalDisplay} ${currency}`}
+              </button>
+            )}
+
+            {/* Listed NFT (not lazy-mint): Buy + Make Offer */}
+            {isListedNft && (
+              <div className="space-y-3">
+                <button
+                  onClick={handlePrimaryAction}
+                  disabled={!canBuy || minting}
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FiDollarSign />
+                  {minting ? 'Buying…' : `Buy — ${totalDisplay} ${currency}`}
+                </button>
+                <button
+                  onClick={() => navigate(`/nft/${id}`)}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FiDollarSign /> Make Offer
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

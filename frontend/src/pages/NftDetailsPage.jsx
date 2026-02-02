@@ -422,7 +422,7 @@ const NftDetailsPage = () => {
                 }
                 return (
                   <button onClick={() => navigate(`/mint/${mintId}`)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <FiDollarSign /> Buy Now / Mint
+                    <FiDollarSign /> Mint
                   </button>
                 );
               })()}
