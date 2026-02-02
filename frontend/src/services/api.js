@@ -83,7 +83,7 @@ if (typeof window !== 'undefined') {
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: resolvedBase,
-  timeout: 30000, // Increased timeout for slow connections
+  timeout: 45000, // 45s for slow connections / high-latency API
   headers: {
     'Content-Type': 'application/json',
   },
@@ -225,7 +225,7 @@ export const userAPI = {
   getUserProfile: async (walletAddress) => {
     try {
       const response = await api.get(`/user/users/${walletAddress}`, {
-        timeout: 10000, // 10 second timeout for profile requests
+        timeout: 25000, // 25s for profile (API may be slow)
       });
       return response.data;
     } catch (error) {
@@ -1127,9 +1127,15 @@ export const nftAPI = {
   // Get all collections (for Collections page)
   getCollections: async () => {
     try {
-      const response = await api.get(`/nft/collections`);
+      const response = await api.get(`/nft/collections`, {
+        timeout: 45000, // 45s for collections (can be slow)
+      });
       return response.data || [];
     } catch (error) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('Timeout fetching all collections, returning empty array');
+        return [];
+      }
       console.error('Failed to fetch all collections:', error);
       return [];
     }
