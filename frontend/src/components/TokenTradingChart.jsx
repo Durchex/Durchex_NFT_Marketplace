@@ -443,9 +443,12 @@ const TokenTradingChart = ({ selectedMarket }) => {
       const result = await smartContractService.buyNFT(networkKey, modalTokenId, { value: priceWei });
       if (!result || !result.success) throw new Error(result?.error || 'Buy transaction failed');
 
-      // Update backend owner
+      // Update backend owner (skip for lazy-mint; those are updated only via confirm-redemption)
       try {
-        await nftAPI.updateNftOwner({ network: networkKey, itemId: modalTokenId, tokenId: modalTokenId, newOwner: address, listed: false });
+        const isLazyMintId = /^[a-fA-F0-9]{24}$/.test(String(modalTokenId ?? ''));
+        if (!isLazyMintId) {
+          await nftAPI.updateNftOwner({ network: networkKey, itemId: modalTokenId, tokenId: modalTokenId, newOwner: address, listed: false });
+        }
       } catch (err) {
         console.warn('Failed to update backend after purchase:', err.message || err);
       }

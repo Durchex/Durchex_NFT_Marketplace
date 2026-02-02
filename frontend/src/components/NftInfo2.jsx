@@ -332,15 +332,18 @@ function App() {
         </div>
       );
 
-      // Update backend owner record
+      // Update backend owner record (skip for lazy-mint; those are updated only via confirm-redemption)
       try {
-        await nftAPI.updateNftOwner({
-          network: nftDatas?.network || selectedChain?.toLowerCase(),
-          itemId,
-          tokenId,
-          newOwner,
-          listed: false,
-        });
+        const isLazyMint = nftDatas?.isLazyMint === true || /^[a-fA-F0-9]{24}$/.test(String(itemId ?? ''));
+        if (!isLazyMint) {
+          await nftAPI.updateNftOwner({
+            network: nftDatas?.network || selectedChain?.toLowerCase(),
+            itemId,
+            tokenId,
+            newOwner,
+            listed: false,
+          });
+        }
 
         // Delete pending transfer record after successful transfer
         try {

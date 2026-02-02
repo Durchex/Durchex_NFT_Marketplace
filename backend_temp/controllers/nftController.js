@@ -28,10 +28,8 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
     }
   }
 
-  // Determine owner: if redeemed, buyer owns it; otherwise creator owns it
-  const owner = lazyNFT.status === 'redeemed' && lazyNFT.buyer 
-    ? lazyNFT.buyer 
-    : lazyNFT.creator;
+  // Listing/template owner is always the creator; minted pieces go to buyers but the listing stays with creator
+  const owner = lazyNFT.creator;
 
   // Get collection ID (could be ObjectId or string)
   let collectionId = null;
@@ -81,6 +79,12 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
     // Mint status
     isMinted: lazyNFT.status === 'redeemed' && !!lazyNFT.tokenId,
     mintedAt: lazyNFT.redeemedAt || null,
+    // Who bought (for display); listing owner is always creator
+    ...(lazyNFT.redemptions?.length
+      ? { lastBuyer: lazyNFT.redemptions[lazyNFT.redemptions.length - 1].buyer }
+      : lazyNFT.buyer
+        ? { lastBuyer: lazyNFT.buyer }
+        : {}),
   };
 }
 
@@ -454,7 +458,7 @@ export const updateNftOwner = async (req, res) => {
       }
     }
 
-    // 1b. Legacy: if no pieces/remainingPieces, still allow owner update for 1:1 NFTs
+    // 1b. Legacy: if no pieces/remainingPieces, still allow owner update for 1:1 NFTs (not lazy-mint)
     const nftLegacy = await nftModel.findOneAndUpdate(
       { network: net, itemId: String(itemId) },
       { $set: { owner: buyerNorm, currentlyListed: listed !== undefined && listed !== null ? !!listed : true, ...(tokenId != null && { tokenId: String(tokenId) }) } },
@@ -464,19 +468,11 @@ export const updateNftOwner = async (req, res) => {
       return res.json({ success: true, updated: "nft", nftId: nftLegacy._id, owner: buyerNorm, listed: !!listed });
     }
 
-    // 2. If itemId looks like MongoDB ObjectId (24 hex), try LazyNFT (e.g. after redeem sync)
+    // 2. Lazy-mint: itemId 24-char hex is LazyNFT _id; do NOT update LazyNFT here (only confirm-redemption updates it)
     if (/^[a-fA-F0-9]{24}$/.test(String(itemId))) {
-      const mongoose = await import("mongoose");
-      if (mongoose.default.Types.ObjectId.isValid(itemId)) {
-        const lazy = await LazyNFT.findByIdAndUpdate(
-          itemId,
-          { $set: { buyer: ownerNorm, status: "redeemed", ...(tokenId != null && { tokenId: String(tokenId) }) } },
-          { new: true }
-        );
-        if (lazy) {
-          return res.json({ success: true, updated: "lazy", lazyId: lazy._id, owner: ownerNorm });
-        }
-      }
+      return res.status(400).json({
+        error: "Lazy-mint listings are updated only via confirm-redemption. Do not call updateNftOwner for lazy-mint items.",
+      });
     }
 
     return res.status(404).json({ error: "NFT not found for this network and itemId" });
