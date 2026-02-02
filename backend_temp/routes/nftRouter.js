@@ -1,6 +1,7 @@
 import express from "express";
 import {
   fetchCollectionsGroupedByNetwork,
+  getNftByAnyId,
   fetchAllNftsByNetwork,
   fetchAllNftsByNetworkForExplore,
   fetchCollectionNfts,
@@ -82,6 +83,9 @@ router.delete("/collections/:collectionId", deleteCollection);
 // NFT trades & analytics (transaction history, price movement, market cap) — MUST be before /nfts/:network
 router.get("/nfts/:network/:itemId/trades", getNftTrades);
 router.get("/nfts/:network/:itemId/analytics", getNftAnalytics);
+
+// Get single NFT by id (lazy-mint _id or regular itemId); sold-out lazy mints still findable — MUST be before /nfts/:network
+router.get("/nfts/by-id/:id", getNftByAnyId);
 
 // Get all NFTs on a network (for marketplace - only listed)
 router.get("/nfts/:network", fetchAllNftsByNetwork);

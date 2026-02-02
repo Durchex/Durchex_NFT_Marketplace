@@ -833,6 +833,17 @@ export const nftAPI = {
     }
   },
 
+  // Get single NFT by id (lazy-mint _id or regular itemId); sold-out lazy mints still findable
+  getNftByAnyId: async (id) => {
+    try {
+      const response = await api.get(`/nft/nfts/by-id/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) return null;
+      throw new Error(`Failed to get NFT by id: ${error.message}`);
+    }
+  },
+
   // Get all NFTs by network
   getAllNftsByNetwork: async (network) => {
     try {

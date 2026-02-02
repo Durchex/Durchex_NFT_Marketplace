@@ -921,6 +921,49 @@ export const fetchCollectionsGroupedByNetwork = async (req, res) => {
   }
 };
 
+/** GET /nfts/by-id/:id — Get a single NFT by id (works for lazy-mint _id or regular itemId). Sold-out lazy mints still findable. */
+export const getNftByAnyId = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!id) return res.status(400).json({ error: "id is required" });
+    const idStr = String(id).trim();
+
+    // 1. If id looks like MongoDB ObjectId (24 hex), try LazyNFT first (includes redeemed/fully_redeemed)
+    if (/^[a-fA-F0-9]{24}$/.test(idStr)) {
+      const mongoose = await import("mongoose");
+      if (mongoose.default.Types.ObjectId.isValid(idStr)) {
+        const lazyNFT = await LazyNFT.findById(idStr).populate("collection");
+        if (lazyNFT) {
+          const formatted = formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || "polygon");
+          return res.json(formatted);
+        }
+      }
+    }
+
+    // 2. Try regular nftModel by itemId or _id across networks
+    const networks = ["polygon", "ethereum", "bsc", "arbitrum", "base", "solana"];
+    for (const network of networks) {
+      const nft = await nftModel.findOne({
+        network,
+        $or: [{ itemId: idStr }, { tokenId: idStr }],
+      });
+      if (nft) return res.json(nft);
+    }
+    if (/^[a-fA-F0-9]{24}$/.test(idStr)) {
+      const mongoose = await import("mongoose");
+      if (mongoose.default.Types.ObjectId.isValid(idStr)) {
+        const nft = await nftModel.findById(idStr);
+        if (nft) return res.json(nft);
+      }
+    }
+
+    return res.status(404).json({ error: "NFT not found for this id" });
+  } catch (error) {
+    console.error("Error in getNftByAnyId:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 2. Fetch all NFTs (collection or non-collection) filtered by network
 export const fetchAllNftsByNetwork = async (req, res) => {
   const { network } = req.params;
