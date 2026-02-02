@@ -113,21 +113,43 @@ export default function BuyMintPage() {
           : '0x' + (redemptionData.signature || '');
         // Creator always signs with getMessageHashWithQuantity(uri, royaltyPercentage, nonce, maxQuantity) in Create.jsx,
         // so we must always call redeemNFTWithQuantity (never redeemNFT) or signature verification fails.
-        const maxQuantity = redemptionData.maxQuantity ?? nft.pieces ?? 1;
+        const maxQuantity = Number(redemptionData.maxQuantity ?? nft.pieces ?? 1) || 1;
+        const totalPriceFromBackend = redemptionData.totalPrice != null ? String(redemptionData.totalPrice) : totalPriceEth;
+        const valueWei = ethers.utils.parseEther(totalPriceFromBackend);
         const pricePerPieceWei =
-          redemptionData.pricePerPiece != null
+          redemptionData.pricePerPiece != null && redemptionData.pricePerPiece !== ''
             ? ethers.utils.parseEther(String(redemptionData.pricePerPiece))
-            : totalPriceWei;
+            : valueWei;
+
+        const creatorAddress = redemptionData.creator && ethers.utils.isAddress(redemptionData.creator)
+          ? ethers.utils.getAddress(redemptionData.creator)
+          : redemptionData.creator;
+
+        if (redemptionData.nonce != null && typeof contract.nonces === 'function') {
+          try {
+            const onChainNonce = await contract.nonces(creatorAddress);
+            const voucherNonce = Number(redemptionData.nonce);
+            if (onChainNonce.gt(voucherNonce)) {
+              toast.error(
+                'This listing was already redeemed on-chain or is no longer valid. Please refresh and try another listing.'
+              );
+              setMinting(false);
+              return;
+            }
+          } catch (_) {
+            // ignore nonce check errors
+          }
+        }
 
         const tx = await contract.redeemNFTWithQuantity(
-          redemptionData.creator,
+          creatorAddress,
           redemptionData.ipfsURI,
-          redemptionData.royaltyPercentage ?? 0,
+          Number(redemptionData.royaltyPercentage ?? 0) || 0,
           pricePerPieceWei,
           qty,
           maxQuantity,
           sig,
-          { value: totalPriceWei }
+          { value: valueWei, gasLimit: 500000 }
         );
         await tx.wait();
 

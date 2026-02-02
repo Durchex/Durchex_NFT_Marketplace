@@ -203,6 +203,7 @@ export const LazyMintNFT_ABI = [
   },
   { inputs: [], name: 'platformFeeBps', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'platformFeeReceiver', outputs: [{ type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: '', type: 'address' }], name: 'nonces', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' },
   {
     inputs: [
       { name: '_feeBps', type: 'uint256' },
