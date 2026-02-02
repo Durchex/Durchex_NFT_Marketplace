@@ -495,7 +495,7 @@ contract Offer is Ownable, ReentrancyGuard {
     /**
      * Internal: Refund offer amount to buyer
      */
-    function _refundOffer(uint256 _offerId, OfferDetails storage offer)
+    function _refundOffer(uint256 /* _offerId */, OfferDetails storage offer)
         internal
     {
         escrowBalances[offer.buyer] -= offer.offerAmount;

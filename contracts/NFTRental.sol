@@ -203,7 +203,7 @@ contract NFTRental is ReentrancyGuard, Ownable {
     function createBid(
         uint256 _listingId,
         uint256 _rentalDays,
-        address paymentToken
+        address /* paymentToken */
     ) external payable nonReentrant returns (uint256) {
         require(!config.paused, "Marketplace paused");
         require(_rentalDays > 0, "Days must be > 0");

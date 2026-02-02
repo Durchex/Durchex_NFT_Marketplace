@@ -233,7 +233,7 @@ contract NFTMarketplace is Ownable, ReentrancyGuard {
     }
 
     // Accept offer (simplified - would need more complex logic for specific offers)
-    function acceptOffer(address _nftContract, uint256 _offerId) external nonReentrant {
+    function acceptOffer(address /* _nftContract */, uint256 /* _offerId */) external nonReentrant {
         // This is a simplified implementation
         // In production, you'd want to accept specific offers
         revert("Offer acceptance not implemented yet");

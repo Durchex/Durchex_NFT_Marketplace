@@ -329,8 +329,6 @@ contract LiquidityPool is Ownable, ReentrancyGuard, Pausable {
      * @param poolId Pool identifier
      */
     function distributeRewards(bytes32 poolId) external onlyOwner poolExists(poolId) nonReentrant {
-        PoolInfo storage pool = pools[poolId];
-        
         // Calculate reward from accumulated fees
         uint256 totalRewards = (cumulativeFees[poolId] * rewardRate) / FEE_DENOMINATOR;
         

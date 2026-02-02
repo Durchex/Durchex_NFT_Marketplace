@@ -150,8 +150,7 @@ contract Royalties is Ownable, ReentrancyGuard {
 
         // Calculate royalty and platform fee
         uint256 royaltyAmount = (_saleAmount * royalty.percentage) / 100;
-        uint256 platformFee = (_saleAmount * platformFeePercentage) /
-            BASIS_POINTS;
+        // platformFee reserved for future use: (_saleAmount * platformFeePercentage) / BASIS_POINTS
 
         // Update creator earnings
         royalty.totalEarned += royaltyAmount;

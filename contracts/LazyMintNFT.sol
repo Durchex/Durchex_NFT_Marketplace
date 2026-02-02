@@ -199,7 +199,8 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
 
         // Refund excess
         if (msg.value > salePrice) {
-            payable(msg.sender).call{value: msg.value - salePrice}("");
+            (bool refundOk, ) = payable(msg.sender).call{value: msg.value - salePrice}("");
+            require(refundOk, "Refund failed");
         }
 
         emit NFTRedeemed(tokenId, creator, msg.sender, uri, salePrice);
@@ -261,7 +262,8 @@ contract LazyMintNFT is ERC721URIStorage, Ownable {
             require(creatorOk, "Creator payment failed");
         }
         if (msg.value > totalPrice) {
-            payable(msg.sender).call{value: msg.value - totalPrice}("");
+            (bool refundOk, ) = payable(msg.sender).call{value: msg.value - totalPrice}("");
+            require(refundOk, "Refund failed");
         }
         return firstTokenId;
     }

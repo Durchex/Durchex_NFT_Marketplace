@@ -202,7 +202,7 @@ contract StargateNFTBridge is Ownable, ReentrancyGuard, ERC721Holder {
      * @param tokenId Token ID
      * @return Fee amount in wei
      */
-    function calculateFee(address nftAddress, uint256 tokenId)
+    function calculateFee(address /* nftAddress */, uint256 /* tokenId */)
         public
         view
         returns (uint256)

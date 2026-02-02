@@ -79,7 +79,7 @@ contract VendorNFT is ERC721, Ownable {
     }
 
     // Public mint function - anyone can mint by paying fee
-    function publicMint(string memory _tokenURI, address _contractAddress) external payable returns (uint256) {
+    function publicMint(string memory /* _tokenURI */, address /* _contractAddress */) external payable returns (uint256) {
         require(msg.value >= mintingFee, "Insufficient payment for minting fee");
 
         _tokenIdCounter.increment();
@@ -94,7 +94,7 @@ contract VendorNFT is ERC721, Ownable {
     }
 
     // Vendor mint function - authorized vendors can mint NFTs
-    function vendorMint(string memory _tokenURI, address _contractAddress) external onlyAuthorizedVendor returns (uint256) {
+    function vendorMint(string memory /* _tokenURI */, address /* _contractAddress */) external onlyAuthorizedVendor returns (uint256) {
         _tokenIdCounter.increment();
         uint256 tokenId = _tokenIdCounter.current();
 
