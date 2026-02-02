@@ -1,12 +1,13 @@
 /**
  * scripts/deploy-sepolia.js
- * Deployment script for Sepolia testnet
+ * Deployment script for Sepolia testnet (ES module)
  */
 
-const hre = require('hardhat');
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEPLOYMENTS_DIR = path.join(__dirname, '../deployments/sepolia');
 
 // Ensure deployments directory exists
@@ -15,6 +16,7 @@ if (!fs.existsSync(DEPLOYMENTS_DIR)) {
 }
 
 async function main() {
+    const hre = (await import('hardhat')).default;
     console.log('🚀 Starting Sepolia testnet deployment...\n');
 
     const [deployer] = await hre.ethers.getSigners();
