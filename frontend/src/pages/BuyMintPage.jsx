@@ -164,6 +164,37 @@ export default function BuyMintPage() {
           }
         }
 
+        // Pre-flight: simulate call to get revert reason without sending tx
+        try {
+          await contract.callStatic.redeemNFTWithQuantity(
+            creatorAddress,
+            redemptionData.ipfsURI,
+            Number(redemptionData.royaltyPercentage ?? 0) || 0,
+            pricePerPieceWei,
+            qty,
+            maxQuantity,
+            sig,
+            { value: valueWei }
+          );
+        } catch (simErr) {
+          const reason =
+            simErr.reason ||
+            simErr.error?.reason ||
+            (typeof simErr.data === 'string' && simErr.data.length < 200 ? simErr.data : null);
+          const msg = reason || simErr.message || '';
+          if (msg.includes('Signature already used')) {
+            toast.error('This listing was already redeemed. This voucher cannot be used again.');
+          } else if (msg.includes('Invalid signature')) {
+            toast.error('Voucher is invalid or expired. The creator may have already sold this item.');
+          } else if (msg.includes('Insufficient value')) {
+            toast.error('Payment amount is too low. Please refresh the page and try again.');
+          } else if (reason || msg.includes('revert')) {
+            toast.error(reason || 'Transaction would fail. This listing may already have been redeemed.');
+          }
+          setMinting(false);
+          return;
+        }
+
         const tx = await contract.redeemNFTWithQuantity(
           creatorAddress,
           redemptionData.ipfsURI,
