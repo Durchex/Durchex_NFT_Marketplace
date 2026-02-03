@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, lazyMintAPI } from '../services/api';
-import { getCurrencySymbol, getLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
+import { getCurrencySymbol, getLazyMintContract, getLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
@@ -99,6 +99,9 @@ export default function BuyMintPage() {
         const { redemptionData } = redemptionRes;
         if (!redemptionData) throw new Error('No voucher data from server.');
 
+        // Use a public RPC provider for pre-flight reads/callStatic so MetaMask doesn't spam inpage.js
+        const readContract = await getLazyMintContract(network);
+
         const contract = await getLazyMintContractWithSigner(network);
         if (!contract) {
           throw new Error(
@@ -126,9 +129,9 @@ export default function BuyMintPage() {
           : redemptionData.creator;
 
         let onChainNonce = null;
-        if (typeof contract.nonces === 'function') {
+        if (readContract && typeof readContract.nonces === 'function') {
           try {
-            onChainNonce = await contract.nonces(creatorAddress);
+            onChainNonce = await readContract.nonces(creatorAddress);
             const voucherNonce = Number(redemptionData.nonce);
             if (redemptionData.nonce != null && onChainNonce.gt(voucherNonce)) {
               toast.error(
@@ -148,9 +151,9 @@ export default function BuyMintPage() {
           }
         }
 
-        if (onChainNonce != null && typeof contract.verifySignatureWithQuantity === 'function') {
+        if (readContract && onChainNonce != null && typeof readContract.verifySignatureWithQuantity === 'function') {
           try {
-            const valid = await contract.verifySignatureWithQuantity(
+            const valid = await readContract.verifySignatureWithQuantity(
               creatorAddress,
               redemptionData.ipfsURI,
               Number(redemptionData.royaltyPercentage ?? 0) || 0,
@@ -175,40 +178,42 @@ export default function BuyMintPage() {
           }
         }
 
-        // Pre-flight: simulate call to get revert reason without sending tx
-        try {
-          await contract.callStatic.redeemNFTWithQuantity(
-            creatorAddress,
-            redemptionData.ipfsURI,
-            Number(redemptionData.royaltyPercentage ?? 0) || 0,
-            pricePerPieceWei,
-            qty,
-            maxQuantity,
-            sig,
-            { value: valueWei }
-          );
-        } catch (simErr) {
-          const rpcCode = simErr.code ?? simErr.error?.code;
-          const reason =
-            simErr.reason ||
-            simErr.error?.reason ||
-            (typeof simErr.data === 'string' && simErr.data.length < 200 ? simErr.data : null);
-          const msg = reason || simErr.message || '';
-          if (rpcCode === -32603 || msg.includes('Internal JSON-RPC')) {
-            toast.error(
-              'Network error. This listing may already have been redeemed or the RPC failed. Try another listing or try again in a moment.'
+        // Pre-flight: simulate call to get revert reason without sending tx (use public RPC provider)
+        if (readContract) {
+          try {
+            await readContract.callStatic.redeemNFTWithQuantity(
+              creatorAddress,
+              redemptionData.ipfsURI,
+              Number(redemptionData.royaltyPercentage ?? 0) || 0,
+              pricePerPieceWei,
+              qty,
+              maxQuantity,
+              sig,
+              { value: valueWei }
             );
-          } else if (msg.includes('Signature already used')) {
-            toast.error('This listing was already redeemed. This voucher cannot be used again.');
-          } else if (msg.includes('Invalid signature')) {
-            toast.error('Voucher is invalid or expired. The creator may have already sold this item.');
-          } else if (msg.includes('Insufficient value')) {
-            toast.error('Payment amount is too low. Please refresh the page and try again.');
-          } else {
-            toast.error(reason || 'Transaction would fail. This listing may already have been redeemed.');
+          } catch (simErr) {
+            const rpcCode = simErr.code ?? simErr.error?.code;
+            const reason =
+              simErr.reason ||
+              simErr.error?.reason ||
+              (typeof simErr.data === 'string' && simErr.data.length < 200 ? simErr.data : null);
+            const msg = reason || simErr.message || '';
+            if (rpcCode === -32603 || msg.includes('Internal JSON-RPC')) {
+              toast.error(
+                'Network error. This listing may already have been redeemed or the RPC failed. Try another listing or try again in a moment.'
+              );
+            } else if (msg.includes('Signature already used')) {
+              toast.error('This listing was already redeemed. This voucher cannot be used again.');
+            } else if (msg.includes('Invalid signature')) {
+              toast.error('Voucher is invalid or expired. The creator may have already sold this item.');
+            } else if (msg.includes('Insufficient value')) {
+              toast.error('Payment amount is too low. Please refresh the page and try again.');
+            } else {
+              toast.error(reason || 'Transaction would fail. This listing may already have been redeemed.');
+            }
+            setMinting(false);
+            return;
           }
-          setMinting(false);
-          return;
         }
 
         const tx = await contract.redeemNFTWithQuantity(
