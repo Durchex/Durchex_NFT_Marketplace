@@ -137,8 +137,14 @@ export default function BuyMintPage() {
               setMinting(false);
               return;
             }
-          } catch (_) {
-            // ignore nonce check errors
+          } catch (nonceErr) {
+            const c = nonceErr?.code ?? nonceErr?.error?.code;
+            if (c === -32603) {
+              toast.error('Network RPC error. Try again in a moment or try another listing.');
+              setMinting(false);
+              return;
+            }
+            // else ignore other nonce check errors
           }
         }
 
@@ -159,8 +165,13 @@ export default function BuyMintPage() {
               setMinting(false);
               return;
             }
-          } catch (_) {
-            // ignore; will try tx and get revert if invalid
+          } catch (verifyErr) {
+            const c = verifyErr?.code ?? verifyErr?.error?.code;
+            if (c === -32603) {
+              toast.error('Network RPC error. Try again in a moment or try another listing.');
+              setMinting(false);
+              return;
+            }
           }
         }
 
@@ -177,18 +188,23 @@ export default function BuyMintPage() {
             { value: valueWei }
           );
         } catch (simErr) {
+          const rpcCode = simErr.code ?? simErr.error?.code;
           const reason =
             simErr.reason ||
             simErr.error?.reason ||
             (typeof simErr.data === 'string' && simErr.data.length < 200 ? simErr.data : null);
           const msg = reason || simErr.message || '';
-          if (msg.includes('Signature already used')) {
+          if (rpcCode === -32603 || msg.includes('Internal JSON-RPC')) {
+            toast.error(
+              'Network error. This listing may already have been redeemed or the RPC failed. Try another listing or try again in a moment.'
+            );
+          } else if (msg.includes('Signature already used')) {
             toast.error('This listing was already redeemed. This voucher cannot be used again.');
           } else if (msg.includes('Invalid signature')) {
             toast.error('Voucher is invalid or expired. The creator may have already sold this item.');
           } else if (msg.includes('Insufficient value')) {
             toast.error('Payment amount is too low. Please refresh the page and try again.');
-          } else if (reason || msg.includes('revert')) {
+          } else {
             toast.error(reason || 'Transaction would fail. This listing may already have been redeemed.');
           }
           setMinting(false);
@@ -243,7 +259,11 @@ export default function BuyMintPage() {
       const receipt = err?.receipt ?? err?.transaction?.receipt;
       const txFailed = code === 'CALL_EXCEPTION' || receipt?.status === 0;
 
-      if (txFailed || msg.includes('CALL_EXCEPTION') || msg.includes('transaction failed')) {
+      if (code === -32603 || msg.includes('Internal JSON-RPC')) {
+        toast.error(
+          'Network RPC error. The listing may already have been redeemed, or the network is busy. Try again in a moment or try another listing.'
+        );
+      } else if (txFailed || msg.includes('CALL_EXCEPTION') || msg.includes('transaction failed')) {
         toast.error(
           'Transaction failed. This listing may already have been redeemed, or the voucher may have expired. Try another listing or refresh the page.'
         );
