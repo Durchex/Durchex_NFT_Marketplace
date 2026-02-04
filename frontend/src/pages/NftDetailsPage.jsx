@@ -626,15 +626,18 @@ const NftDetailsPage = () => {
                   {tradeData.length === 0 ? (
                     <p className="text-gray-500 text-sm py-4 text-center">No trades yet. Buy/sell activity will appear here.</p>
                   ) : (
-                    tradeData.map((trade, i) => (
+                    tradeData.map((trade, i) => {
+                      const isSell = trade.transactionType === 'secondary_sell_to_liquidity';
+                      const actor = isSell ? trade.seller : trade.buyer;
+                      return (
                       <div key={trade._id || trade.transactionHash || i} className="flex items-center justify-between p-2 xs:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors gap-2">
                         <div className="flex items-center gap-2 xs:gap-3 flex-1 min-w-0">
-                          <div className="px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 bg-green-500/20 text-green-400">
-                            Buy
+                          <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 ${isSell ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'}`}>
+                            {isSell ? 'Sell' : 'Buy'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs xs:text-sm font-medium text-gray-300 truncate" title={trade.buyer}>
-                              {trade.buyer?.slice(0, 6)}...{trade.buyer?.slice(-4)}
+                            <div className="text-xs xs:text-sm font-medium text-gray-300 truncate" title={actor}>
+                              {actor ? `${actor.slice(0, 6)}...${actor.slice(-4)}` : (isSell ? 'Liquidity' : '—')}
                             </div>
                             <div className="text-[10px] xs:text-xs text-gray-500">
                               {trade.createdAt ? new Date(trade.createdAt).toLocaleString() : ''}
@@ -658,7 +661,7 @@ const NftDetailsPage = () => {
                           <div className="text-[10px] xs:text-xs text-gray-400">x{trade.quantity}</div>
                         </div>
                       </div>
-                    ))
+                    ); })
                   )}
                 </div>
               </div>
