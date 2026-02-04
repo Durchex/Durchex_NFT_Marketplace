@@ -1072,6 +1072,26 @@ export const nftAPI = {
     return response.data;
   },
 
+  // ——— Direct liquidity sell-back helpers ———
+  quoteSellToLiquidity: async ({ network, itemId, quantity }) => {
+    const response = await api.get('/nft/liquidity/quote-sell', {
+      params: { network, itemId, quantity },
+    });
+    return response.data;
+  },
+  pieceSellBackToLiquidity: async ({ network, itemId, seller, quantity, pricePerPiece, totalAmount, transactionHash }) => {
+    const response = await api.post('/nft/nfts/piece-sell-back', {
+      network,
+      itemId,
+      seller,
+      quantity,
+      pricePerPiece,
+      totalAmount,
+      transactionHash,
+    });
+    return response.data;
+  },
+
   // ——— NFT trades & analytics (transaction history, price movement, market cap) ———
   getNftTrades: async (network, itemId, limit = 50) => {
     const response = await api.get(`/nft/nfts/${network}/${itemId}/trades`, { params: { limit } });
@@ -1080,6 +1100,14 @@ export const nftAPI = {
   getNftAnalyticsByTrades: async (network, itemId, period = '7d') => {
     const response = await api.get(`/nft/nfts/${network}/${itemId}/analytics`, { params: { period } });
     return response.data;
+  },
+  getNftRarityRank: async (network, itemId) => {
+    try {
+      const response = await api.get(`/nft/nfts/${network}/${itemId}/rarity`);
+      return response.data;
+    } catch {
+      return { rarityScore: null, rarityRank: null, totalInCollection: 0, rankingScore: null };
+    }
   },
 
   // ============ COLLECTION METHODS ============

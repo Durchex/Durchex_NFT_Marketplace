@@ -117,6 +117,12 @@ const lazyNFTSchema = new mongoose.Schema(
             default: null,
         },
 
+        // Last traded price per piece (updated on each buy/sell so market price moves with trading)
+        lastPrice: {
+            type: String,
+            default: null,
+        },
+
         category: {
             type: String,
             default: '',
@@ -132,6 +138,18 @@ const lazyNFTSchema = new mongoose.Schema(
 
         // Optional: listingId for multi-piece lazy minting (matches on-chain listing hash)
         listingId: {
+            type: String,
+            default: null,
+            index: true,
+        },
+
+        // Optional: on-chain liquidity pool (NftLiquidity) for selling pieces back
+        liquidityContract: {
+            type: String,
+            default: null,
+            index: true,
+        },
+        liquidityPieceId: {
             type: String,
             default: null,
             index: true,

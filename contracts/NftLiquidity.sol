@@ -20,6 +20,11 @@ contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
     address payable public platformFeeReceiver;
     uint256 public reserveRetentionBps = 1000; // 10% of (sale - fee - royalty) retained as reserve to pay sellers
 
+    /// @dev Price moves with trading (marketplace-style): each piece bought increases next price, each piece sold decreases it.
+    uint256 public priceIncreaseBpsPerPiece = 50;  // 0.5% per piece when buying (e.g. 50 = 0.5%)
+    uint256 public priceDecreaseBpsPerPiece = 50;   // 0.5% per piece when selling
+    uint256 public constant MIN_PRICE_WEI = 1;
+
     mapping(uint256 => PoolInfo) private _pools;
     uint256[] private _activePieceIds;
 
@@ -47,6 +52,14 @@ contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
     function setReserveRetentionBps(uint256 bps) external onlyOwner {
         require(bps <= 5000, "Retention too high"); // max 50%
         reserveRetentionBps = bps;
+    }
+
+    /// @dev Set how much the pool price moves per piece traded (marketplace-style price discovery). Max 5% per piece.
+    function setPriceMovementBps(uint256 increasePerPiece, uint256 decreasePerPiece) external onlyOwner {
+        require(increasePerPiece <= 500, "Increase too high"); // max 5% per piece
+        require(decreasePerPiece <= 500, "Decrease too high");
+        priceIncreaseBpsPerPiece = increasePerPiece;
+        priceDecreaseBpsPerPiece = decreasePerPiece;
     }
 
     function pause() external onlyOwner {
@@ -138,6 +151,14 @@ contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
             require(ok, "Refund failed");
         }
 
+        // Marketplace-style: price increases after buys (next buyer pays more)
+        uint256 bpsUp = BPS + priceIncreaseBpsPerPiece * quantity;
+        pool.buyPricePerPiece = (pool.buyPricePerPiece * bpsUp) / BPS;
+        pool.sellPricePerPiece = (pool.sellPricePerPiece * bpsUp) / BPS;
+        if (pool.sellPricePerPiece > pool.buyPricePerPiece) {
+            pool.sellPricePerPiece = pool.buyPricePerPiece;
+        }
+
         emit Trade(
             pieceId,
             msg.sender,
@@ -174,6 +195,7 @@ contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
         uint256 sellerAmount = totalProceeds - platformFee - royaltyAmount;
 
         require(address(this).balance >= totalProceeds, "Insufficient reserve");
+        uint256 executedSellPrice = pool.sellPricePerPiece; // price at which this trade executed (before we update pool)
         pool.piecesInPool += quantity;
         pool.reserveBalance = pool.reserveBalance >= totalProceeds ? pool.reserveBalance - totalProceeds : 0;
 
@@ -193,12 +215,29 @@ contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
             require(ok, "Royalty transfer failed");
         }
 
+        // Marketplace-style: price decreases after sells (next seller gets less / next buy price lower)
+        uint256 bpsDown = priceDecreaseBpsPerPiece * quantity;
+        if (bpsDown >= BPS) {
+            bpsDown = BPS - 1;
+        }
+        pool.buyPricePerPiece = (pool.buyPricePerPiece * (BPS - bpsDown)) / BPS;
+        pool.sellPricePerPiece = (pool.sellPricePerPiece * (BPS - bpsDown)) / BPS;
+        if (pool.buyPricePerPiece < MIN_PRICE_WEI) {
+            pool.buyPricePerPiece = MIN_PRICE_WEI;
+        }
+        if (pool.sellPricePerPiece < MIN_PRICE_WEI) {
+            pool.sellPricePerPiece = MIN_PRICE_WEI;
+        }
+        if (pool.sellPricePerPiece > pool.buyPricePerPiece) {
+            pool.sellPricePerPiece = pool.buyPricePerPiece;
+        }
+
         emit Trade(
             pieceId,
             address(0),
             msg.sender,
             quantity,
-            pool.sellPricePerPiece,
+            executedSellPrice,
             totalProceeds,
             platformFee,
             royaltyAmount,

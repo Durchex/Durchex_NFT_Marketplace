@@ -53,16 +53,40 @@ const RealTimeDataTable = () => {
       });
       const nftList = uniqueNFTs.slice(0, 8);
       if (nftList.length === 0) throw new Error('No NFTs found');
-      const enrichedData = nftList.map(nft => ({
+      const net = (nft) => (nft.network || nft.chain || 'ethereum').toLowerCase();
+      const itemId = (nft) => String(nft.itemId || nft.tokenId || nft._id || '');
+      const baseData = nftList.map(nft => ({
         ...nft,
-        floorPrice: nft.floorPrice || nft.price || (Math.random() * 2 + 0.5).toFixed(2),
-        price24h: (Math.random() * 2.5 + 0.3).toFixed(2),
-        change: (Math.random() * 20 - 10).toFixed(1),
-        volume7d: Math.floor(Math.random() * 1000) + 100,
-        volume24h: Math.floor(Math.random() * 500) + 50,
+        floorPrice: nft.lastPrice ?? nft.floorPrice ?? nft.price ?? '0',
+        price24h: nft.lastPrice ?? nft.price ?? '0',
+        change: '0',
+        volume7d: 0,
+        volume24h: '0',
         trending: generateSparklineData()
       }));
-      setTableData(enrichedData);
+      try {
+        const analytics = await Promise.all(
+          baseData.map(nft =>
+            nftAPI.getNftAnalyticsByTrades(net(nft), itemId(nft), '24h').catch(() => ({}))
+          )
+        );
+        const enrichedData = baseData.map((nft, i) => {
+          const a = analytics[i] || {};
+          const vol24 = a.volume24h != null ? parseFloat(a.volume24h) : 0;
+          const prev = parseFloat(nft.floorPrice) || 0;
+          const change = prev > 0 && a.lastPrice != null ? (((a.lastPrice - prev) / prev) * 100).toFixed(1) : '0';
+          return {
+            ...nft,
+            volume24h: vol24 > 0 ? vol24.toFixed(4) : '0',
+            volume7d: a.tradesCount ?? 0,
+            change,
+            trending: (a.priceHistory?.length ? a.priceHistory.map(p => ({ value: Number(p.price) || 0 })) : null) || nft.trending,
+          };
+        });
+        setTableData(enrichedData);
+      } catch (_) {
+        setTableData(baseData);
+      }
       setLastUpdated(new Date());
       await fetchTrendAndStats();
     } catch (error) {

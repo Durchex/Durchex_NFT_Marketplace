@@ -52,6 +52,7 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
     image: image,
     imageURL: image,
     price: lazyNFT.price || '0',
+    lastPrice: lazyNFT.lastPrice || null, // Last traded price (updates with buys/sells)
     floorPrice: lazyNFT.floorPrice || null,
     network: resolvedNetwork, // Use NFT's selected network for correct marketplace display
     collection: collectionId,
@@ -595,6 +596,9 @@ export const recordLazyMintPurchase = async (req, res) => {
     if (newRemaining <= 0 && lazy.status === "pending") {
       lazy.status = "fully_redeemed";
     }
+    // Update last traded price so displayed/quote price reflects market
+    const priceStr = pricePerPiece != null ? String(pricePerPiece) : lazy.price || "0";
+    lazy.lastPrice = priceStr;
     await lazy.save();
 
     const holding = await pieceHoldingModel.findOneAndUpdate(
@@ -603,7 +607,6 @@ export const recordLazyMintPurchase = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    const priceStr = pricePerPiece != null ? String(pricePerPiece) : lazy.price || "0";
     const totalAmount =
       totalPrice != null
         ? String(totalPrice)
@@ -716,6 +719,151 @@ export const fillPieceSellOrder = async (req, res) => {
   }
 };
 
+/** GET /liquidity/quote-sell — Quote net proceeds for selling pieces back to liquidity at current market price. Supports nftModel and LazyNFT (itemId = lazy _id). */
+export const quoteSellToLiquidity = async (req, res) => {
+  try {
+    const { network, itemId, quantity } = req.query;
+    if (!network || !itemId || !quantity) {
+      return res
+        .status(400)
+        .json({ error: "network, itemId, and quantity are required" });
+    }
+    const net = String(network).toLowerCase();
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    const itemIdStr = String(itemId);
+
+    let pricePerPiece = 0;
+    let liquidityContract = null;
+    let liquidityPieceId = null;
+
+    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    if (nft) {
+      pricePerPiece = parseFloat(nft.lastPrice || nft.price || "0");
+      liquidityContract = nft.liquidityContract || null;
+      liquidityPieceId = nft.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
+    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      const lazy = await LazyNFT.findById(itemIdStr).lean();
+      if (!lazy) {
+        return res.status(404).json({ error: "NFT not found" });
+      }
+      pricePerPiece = parseFloat(lazy.price || "0");
+      liquidityContract = lazy.liquidityContract || null;
+      liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
+    } else {
+      return res.status(404).json({ error: "NFT not found" });
+    }
+
+    const totalProceeds = (pricePerPiece * qty).toFixed(18);
+
+    const payload = {
+      success: true,
+      network: net,
+      itemId: itemIdStr,
+      quantity: qty,
+      pricePerPiece: String(pricePerPiece),
+      totalProceeds,
+    };
+    if (liquidityContract && liquidityPieceId != null) {
+      payload.liquidityContract = liquidityContract;
+      payload.liquidityPieceId = liquidityPieceId;
+    }
+    return res.json(payload);
+  } catch (error) {
+    console.error("Error quoting sell to liquidity:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** POST /nfts/piece-sell-back — Post-chain sync: seller sold pieces back to liquidity; update holdings and trades. Supports nftModel and LazyNFT (itemId = lazy _id). */
+export const pieceSellBackToLiquidity = async (req, res) => {
+  try {
+    const { network, itemId, seller, quantity, pricePerPiece, totalAmount, transactionHash } =
+      req.body || {};
+    if (!network || !itemId || !seller || !quantity || !pricePerPiece) {
+      return res.status(400).json({
+        error: "network, itemId, seller, quantity, and pricePerPiece are required",
+      });
+    }
+    const net = String(network).toLowerCase();
+    const sellerNorm = String(seller).toLowerCase();
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    const itemIdStr = String(itemId);
+
+    let creatorWallet = "";
+    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    if (nft) {
+      creatorWallet = (nft.creator || nft.owner || nft.seller || "").toLowerCase();
+    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      const lazy = await LazyNFT.findById(itemIdStr).lean();
+      if (!lazy) {
+        return res.status(404).json({ error: "NFT not found" });
+      }
+      creatorWallet = (lazy.creator || "").toLowerCase();
+    } else {
+      return res.status(404).json({ error: "NFT not found" });
+    }
+
+    // Decrease seller's piece holdings
+    const sellerHolding = await pieceHoldingModel.findOneAndUpdate(
+      { network: net, itemId: itemIdStr, wallet: sellerNorm },
+      { $inc: { pieces: -qty } },
+      { new: true }
+    );
+
+    // Increase creator/liquidity wallet's holdings. DO NOT change LazyNFT.remainingPieces (once sold out, stays sold out).
+    if (creatorWallet) {
+      await pieceHoldingModel.findOneAndUpdate(
+        { network: net, itemId: String(itemId), wallet: creatorWallet },
+        { $inc: { pieces: qty } },
+        { new: true, upsert: true }
+      );
+    }
+
+    const priceStr = String(pricePerPiece);
+    const totalStr =
+      totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
+
+    await nftTradeModel.create({
+      network: net,
+      itemId: String(itemId),
+      transactionType: "secondary_sell_to_liquidity",
+      seller: sellerNorm,
+      buyer: creatorWallet || null,
+      quantity: qty,
+      pricePerPiece: priceStr,
+      totalAmount: totalStr,
+      transactionHash: transactionHash || null,
+    });
+
+    // Update last traded price so market price moves with sell-backs
+    const nftDoc = await nftModel.findOne({ network: net, itemId: itemIdStr });
+    if (nftDoc) {
+      const totalPieces = Math.max(1, Number(nftDoc.pieces ?? 1));
+      const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
+      await nftModel.updateOne(
+        { network: net, itemId: itemIdStr },
+        { $set: { lastPrice: priceStr, marketCap } }
+      );
+    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      await LazyNFT.updateOne(
+        { _id: itemIdStr },
+        { $set: { lastPrice: priceStr } }
+      );
+    }
+
+    return res.json({
+      success: true,
+      network: net,
+      itemId: String(itemId),
+      seller: sellerNorm,
+      remainingPieces: sellerHolding?.pieces ?? 0,
+    });
+  } catch (error) {
+    console.error("Error in pieceSellBackToLiquidity:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 /** GET /nfts/:network/:itemId/trades — Transaction history for NFT (buy/sell — liquidity in/out). */
 export const getNftTrades = async (req, res) => {
   try {
@@ -734,7 +882,7 @@ export const getNftTrades = async (req, res) => {
   }
 };
 
-/** GET /nfts/:network/:itemId/analytics — Price history, volume, market cap, price movement from trades. */
+/** GET /nfts/:network/:itemId/analytics — Price history, volume, market cap, price movement from trades. Supports nftModel and LazyNFT (itemId = lazy _id). */
 export const getNftAnalytics = async (req, res) => {
   try {
     const { network, itemId } = req.params;
@@ -742,8 +890,12 @@ export const getNftAnalytics = async (req, res) => {
     const net = String(network).toLowerCase();
     const itemIdStr = String(itemId);
 
-    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
-    if (!nft) {
+    let nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    let lazy = null;
+    if (!nft && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      lazy = await LazyNFT.findById(itemIdStr).lean();
+    }
+    if (!nft && !lazy) {
       return res.status(200).json({
         network: net,
         itemId: itemIdStr,
@@ -775,11 +927,18 @@ export const getNftAnalytics = async (req, res) => {
       price: parseFloat(t.pricePerPiece),
       volume: parseFloat(t.totalAmount),
     }));
-    if (priceHistory.length === 0 && nft.lastPrice) {
+
+    const lastPriceNum = nft
+      ? (nft.lastPrice ? parseFloat(nft.lastPrice) : (nft.price ? parseFloat(nft.price) : 0))
+      : (lazy ? (lazy.lastPrice ? parseFloat(lazy.lastPrice) : (lazy.price ? parseFloat(lazy.price) : 0)) : 0);
+    const pieces = nft ? Math.max(1, nft.pieces || 1) : (lazy ? Math.max(1, lazy.pieces || 1) : 1);
+    const updatedAt = nft ? (nft.updatedAt || nft.createdAt) : (lazy ? (lazy.updatedAt || lazy.createdAt) : null);
+
+    if (priceHistory.length === 0 && (nft?.lastPrice || lazy?.lastPrice)) {
       priceHistory.push({
-        date: nft.updatedAt || nft.createdAt,
-        time: nft.updatedAt || nft.createdAt,
-        price: parseFloat(nft.lastPrice),
+        date: updatedAt,
+        time: updatedAt,
+        price: nft ? parseFloat(nft.lastPrice) : parseFloat(lazy.lastPrice),
         volume: 0,
       });
     }
@@ -787,17 +946,16 @@ export const getNftAnalytics = async (req, res) => {
     const totalVolume = trades.reduce((sum, t) => sum + parseFloat(t.totalAmount), 0);
     const volume24h = trades.filter((t) => new Date(t.createdAt) >= new Date(now.getTime() - 24 * 60 * 60 * 1000))
       .reduce((sum, t) => sum + parseFloat(t.totalAmount), 0);
-    const lastPrice = nft.lastPrice ? parseFloat(nft.lastPrice) : (nft.price ? parseFloat(nft.price) : 0);
-    const marketCap = nft.marketCap ? parseFloat(nft.marketCap) : (lastPrice * Math.max(1, nft.pieces || 1));
-    const firstPriceInPeriod = priceHistory.length > 0 ? priceHistory[0].price : lastPrice;
+    const marketCap = nft?.marketCap ? parseFloat(nft.marketCap) : (lastPriceNum * pieces);
+    const firstPriceInPeriod = priceHistory.length > 0 ? priceHistory[0].price : lastPriceNum;
     const priceChangePercent = firstPriceInPeriod > 0
-      ? (((lastPrice - firstPriceInPeriod) / firstPriceInPeriod) * 100).toFixed(2)
+      ? (((lastPriceNum - firstPriceInPeriod) / firstPriceInPeriod) * 100).toFixed(2)
       : "0";
 
     return res.json({
       network: net,
       itemId: itemIdStr,
-      lastPrice,
+      lastPrice: lastPriceNum,
       marketCap,
       volume24h: volume24h.toFixed(6),
       volumeTotal: totalVolume.toFixed(6),
@@ -807,6 +965,62 @@ export const getNftAnalytics = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching NFT analytics:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** GET /nfts/:network/:itemId/rarity — Rarity score and rank (live from attributes / collection). */
+export const getNftRarityRank = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const net = String(network).toLowerCase();
+    const itemIdStr = String(itemId);
+
+    let nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    let lazy = null;
+    if (!nft && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      lazy = await LazyNFT.findById(itemIdStr).lean();
+    }
+    const doc = nft || lazy;
+    if (!doc) {
+      return res.status(404).json({ error: "NFT not found" });
+    }
+
+    const attributes = doc.attributes || [];
+    const rarityScore = attributes.length === 0
+      ? 50
+      : Math.min(100, Math.round(attributes.reduce((sum, a) => sum + (Number(a.rarity) || 0), 0) / attributes.length) || 50);
+
+    let rarityRank = null;
+    let totalInCollection = 0;
+    const collectionId = doc.collection?._id || doc.collection;
+    if (collectionId) {
+      const nftsInCollection = await nftModel.find({ collection: collectionId }).select("itemId attributes").lean();
+      const lazyInCollection = await LazyNFT.find({ collection: collectionId }).select("_id attributes").lean();
+      const allItems = [
+        ...nftsInCollection.map((n) => ({ id: n.itemId, attrs: n.attributes || [] })),
+        ...lazyInCollection.map((n) => ({ id: String(n._id), attrs: n.attributes || [] })),
+      ];
+      totalInCollection = allItems.length;
+      const scores = allItems.map((item) => {
+        const a = item.attrs || [];
+        const s = a.length === 0 ? 50 : Math.min(100, Math.round(a.reduce((sum, x) => sum + (Number(x.rarity) || 0), 0) / a.length) || 50);
+        return { id: item.id, score: s };
+      });
+      scores.sort((a, b) => b.score - a.score);
+      const currentId = nft ? nft.itemId : String(lazy._id);
+      const rankIdx = scores.findIndex((s) => s.id === currentId);
+      rarityRank = rankIdx >= 0 ? rankIdx + 1 : null;
+    }
+
+    return res.json({
+      rarityScore,
+      rarityRank,
+      totalInCollection,
+      rankingScore: rarityScore,
+    });
+  } catch (error) {
+    console.error("Error fetching NFT rarity:", error);
     return res.status(500).json({ error: error.message });
   }
 };

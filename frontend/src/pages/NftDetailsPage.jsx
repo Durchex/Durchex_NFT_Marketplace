@@ -27,10 +27,40 @@ const NftDetailsPage = () => {
   const [views, setViews] = useState(0);
   const [likes, setLikes] = useState(0);
   const [analytics, setAnalytics] = useState(null);
+  const [rarity, setRarity] = useState(null);
 
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
+
+  // Live refresh: trades, analytics, rarity (for charts, market cap, trade count, rarity rank)
+  const REFRESH_MS = 25000;
+  useEffect(() => {
+    if (!nft) return;
+    const net = (nft.network || 'ethereum').toLowerCase();
+    const itemIdStr = String(nft.itemId || nft.tokenId || id);
+    const refresh = async () => {
+      try {
+        const [trades, analyticsRes, rarityRes] = await Promise.all([
+          nftAPI.getNftTrades(net, itemIdStr),
+          nftAPI.getNftAnalyticsByTrades(net, itemIdStr, '7d').catch(() => null),
+          nftAPI.getNftRarityRank(net, itemIdStr).catch(() => null),
+        ]);
+        setTradeData(Array.isArray(trades) ? trades : []);
+        setAnalytics(analyticsRes || null);
+        setRarity(rarityRes || null);
+        if (analyticsRes?.priceHistory?.length) {
+          setPriceData(analyticsRes.priceHistory.map((p, i) => ({
+            time: p.date ? new Date(p.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : `${i}`,
+            price: Number(p.price),
+            volume: Number(p.volume) || 0,
+          })));
+        }
+      } catch (_) {}
+    };
+    const interval = setInterval(refresh, REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [nft, id]);
 
   // Fallback price chart data when no trades yet
   const generateFallbackPriceData = (basePrice = 1.5) => {
@@ -100,12 +130,14 @@ const NftDetailsPage = () => {
       const net = (nftData.network || 'ethereum').toLowerCase();
       const itemIdStr = String(nftData.itemId || nftData.tokenId || id);
       try {
-        const [trades, analyticsRes] = await Promise.all([
+        const [trades, analyticsRes, rarityRes] = await Promise.all([
           nftAPI.getNftTrades(net, itemIdStr),
           nftAPI.getNftAnalyticsByTrades(net, itemIdStr, '7d').catch(() => null),
+          nftAPI.getNftRarityRank(net, itemIdStr).catch(() => null),
         ]);
         setTradeData(Array.isArray(trades) ? trades : []);
         setAnalytics(analyticsRes || null);
+        setRarity(rarityRes || null);
         if (analyticsRes?.priceHistory?.length) {
           setPriceData(analyticsRes.priceHistory.map((p, i) => ({
             time: p.date ? new Date(p.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : `${i}`,
@@ -489,14 +521,17 @@ const NftDetailsPage = () => {
                   )}
                 </div>
 
-                {/* Market Cap & Volume (from trades — liquidity in/out) */}
+                {/* Market Cap & Volume (from trades — live) */}
                 <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
                   <div className="text-xs xs:text-sm text-gray-400 mb-2 xs:mb-3">Market Data</div>
                   <div className="space-y-2 xs:space-y-3">
                     <div className="flex justify-between items-center text-xs xs:text-sm">
                       <span className="text-gray-400">Market Cap</span>
                       <span className="font-semibold">
-                        {nft.marketCap ? parseFloat(nft.marketCap).toFixed(4) : '—'}{' '}
+                        {(() => {
+                          const cap = nft.marketCap ? parseFloat(nft.marketCap) : (analytics?.marketCap ?? (analytics?.lastPrice != null && (nft.pieces ?? 1) ? analytics.lastPrice * (nft.pieces ?? 1) : null));
+                          return cap != null ? cap.toFixed(4) : '—';
+                        })()}{' '}
                         {getCurrencySymbol(nft.network || 'ethereum')}
                       </span>
                     </div>
@@ -518,15 +553,18 @@ const NftDetailsPage = () => {
                   </div>
                 </div>
 
-                {/* Durchex Rank */}
+                {/* Rarity Rank (live from API) */}
                 <div>
-                  <div className="text-sm text-gray-400 mb-3">Durchex Rank</div>
+                  <div className="text-sm text-gray-400 mb-3">Rarity Rank</div>
                   <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-lg p-4 border border-purple-500/30">
                     <div className="text-3xl font-bold text-purple-400 mb-1">
-                      #{Math.floor(Math.random() * 500 + 1)}
+                      #{rarity?.rarityRank ?? '—'}
+                      {rarity?.totalInCollection > 0 && (
+                        <span className="text-sm font-normal text-gray-400 ml-1">/ {rarity.totalInCollection}</span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-400">
-                      Ranking Score: {(Math.random() * 40 + 60).toFixed(1)}/100
+                      Ranking Score: {(rarity?.rarityScore ?? rarity?.rankingScore ?? '—')}/100
                     </div>
                   </div>
                 </div>
@@ -535,11 +573,14 @@ const NftDetailsPage = () => {
 
             {/* Right: Price Chart & Trading Activity */}
             <div className="lg:col-span-2">
-              {/* Price Movement Chart */}
+              {/* Price Movement Chart (live from trades) */}
               <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6 mb-4 xs:mb-5 sm:mb-6">
                 <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
                   <FiTrendingUp className="text-blue-400 w-4 h-4 xs:w-5 xs:h-5" />
-                  Price Movement (24h)
+                  Price Movement
+                  <span className="text-xs font-normal text-green-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Live
+                  </span>
                 </h2>
                 <ResponsiveContainer width="100%" height={200} className="!h-48 xs:!h-56 sm:!h-64 md:!h-72 lg:!h-80">
                   <LineChart data={priceData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>

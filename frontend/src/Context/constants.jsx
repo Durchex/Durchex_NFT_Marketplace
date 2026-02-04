@@ -277,6 +277,34 @@ export const MultiPieceLazyMintNFT_ABI = [
   },
 ];
 
+// Minimal ABI for NftLiquidity (sell pieces back to pool)
+export const NftLiquidity_ABI = [
+  {
+    inputs: [
+      { name: 'pieceId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+    ],
+    name: 'getSellQuote',
+    outputs: [
+      { name: 'netProceeds', type: 'uint256' },
+      { name: 'platformFee', type: 'uint256' },
+      { name: 'royaltyAmount', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'pieceId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+    ],
+    name: 'sellPieces',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+];
+
 // Default LazyMint address for local/dev (e.g. Hardhat). Set VITE_APP_LAZY_MINT_CONTRACT_ADDRESS for real deployments.
 const LAZY_MINT_DEV_FALLBACK = '0x5FbDB2315678afccb333f8a9c6122015ea74f6';
 
@@ -286,6 +314,10 @@ export const getContractAddresses = (network = 'polygon') => {
     import.meta.env[`VITE_APP_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] ||
     import.meta.env.VITE_APP_LAZY_MINT_CONTRACT_ADDRESS;
   const lazyMint = lazyMintEnv || (import.meta.env.DEV ? LAZY_MINT_DEV_FALLBACK : null);
+  const nftLiquidity =
+    import.meta.env[`VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS_${networkUpper}`] ||
+    import.meta.env.VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS ||
+    undefined;
   return {
     marketplace: import.meta.env[`VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_${networkUpper}`] || ContractAddress,
     vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress,
@@ -294,6 +326,7 @@ export const getContractAddresses = (network = 'polygon') => {
       import.meta.env[`VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] ||
       import.meta.env.VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS ||
       undefined,
+    nftLiquidity: nftLiquidity || undefined,
   };
 };
 
@@ -655,6 +688,21 @@ export const getMultiPieceLazyMintContractWithSigner = async (networkName) => {
     return new ethers.Contract(contractAddress, MultiPieceLazyMintNFT_ABI, signer);
   } catch (error) {
     console.error(`Error fetching MultiPieceLazyMint contract (signer) for ${networkName}:`, error);
+    return null;
+  }
+};
+
+/** NftLiquidity contract with signer (for sellPieces). Uses getContractAddresses(network).nftLiquidity or liquidityContract from quote. */
+export const getNftLiquidityContractWithSigner = async (networkName, contractAddressOverride = null) => {
+  try {
+    if (typeof window?.ethereum === "undefined") return null;
+    const address = contractAddressOverride || getContractAddresses(networkName)?.nftLiquidity;
+    if (!address) return null;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    return new ethers.Contract(address, NftLiquidity_ABI, signer);
+  } catch (error) {
+    console.error(`Error fetching NftLiquidity contract (signer) for ${networkName}:`, error);
     return null;
   }
 };

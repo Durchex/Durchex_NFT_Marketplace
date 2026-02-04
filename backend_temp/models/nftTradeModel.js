@@ -11,12 +11,12 @@ const nftTradeSchema = new Schema(
     itemId: { type: String, required: true, index: true },
     transactionType: {
       type: String,
-      enum: ["primary_buy", "secondary_buy"],
+      enum: ["primary_buy", "secondary_buy", "secondary_sell_to_liquidity"],
       required: true,
       index: true,
     },
     seller: { type: String, required: true, lowercase: true, index: true },
-    buyer: { type: String, required: true, lowercase: true, index: true },
+    buyer: { type: String, default: null, lowercase: true, index: true }, // null for sell-to-liquidity
     quantity: { type: Number, required: true, min: 1 },
     pricePerPiece: { type: String, required: true },
     totalAmount: { type: String, required: true },

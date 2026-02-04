@@ -4,7 +4,8 @@ pragma solidity ^0.8.19;
 /**
  * @title INftLiquidity
  * @dev On-chain liquidity for NFT pieces: buy/sell, fees, royalties, market cap.
- *     All trades and price movement live on-chain so creators can list from any marketplace or bridge.
+ *     Pool prices move with trading (marketplace-style): each buy increases next buy/sell price,
+ *     each sell decreases them, so the contract behaves like other NFT marketplaces.
  */
 interface INftLiquidity {
     struct PoolInfo {

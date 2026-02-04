@@ -44,10 +44,16 @@ ERC-1155 implementation:
 Implementation of `INftLiquidity`:
 
 - **createPool**: Calls `piecesContract.registerAndMint(...)` so pieces are minted to this contract; stores pool (creator, totalPieces, piecesInPool, reserveBalance, buyPricePerPiece, sellPricePerPiece).
-- **buyPieces**: Transfers pieces from this contract to buyer; splits payment: platform fee → `platformFeeReceiver`, royalty → EIP-2981 `royaltyInfo(nftContract, nftTokenId, salePrice)`, creator amount (minus reserve retention) → creator. Retains a % as reserve (configurable `reserveRetentionBps`) so sellers can be paid.
-- **sellPieces**: Transfers pieces from seller to this contract; pays seller from contract balance (reserve); pays platform fee and royalty from same payment.
+- **buyPieces**: Transfers pieces from this contract to buyer; splits payment: platform fee → `platformFeeReceiver`, royalty → EIP-2981 `royaltyInfo(nftContract, nftTokenId, salePrice)`, creator amount (minus reserve retention) → creator. Retains a % as reserve (configurable `reserveRetentionBps`) so sellers can be paid. **After each buy, pool buy/sell prices increase** (see Price movement below).
+- **sellPieces**: Transfers pieces from seller to this contract; pays seller from contract balance (reserve); pays platform fee and royalty from same payment. **After each sell, pool buy/sell prices decrease** (see Price movement below).
 - **Royalty**: Uses `royaltyInfo(uint256 tokenId, uint256 salePrice)` on the underlying NFT contract (EIP-2981). No revert if not supported.
 - **Pausable**, **ReentrancyGuard**, **Ownable** (fee/receiver/retention config).
+
+**Price movement (marketplace-style):** Pool prices move on-chain with trading so the contract behaves like other NFT marketplaces:
+
+- **On buy:** After a buy, `buyPricePerPiece` and `sellPricePerPiece` are increased by `priceIncreaseBpsPerPiece` per piece (default 0.5%, max 5% configurable). The next buyer pays more; the next seller receives more.
+- **On sell:** After a sell, both prices are decreased by `priceDecreaseBpsPerPiece` per piece (default 0.5%). Prices never go below 1 wei.
+- **Config:** Owner can call `setPriceMovementBps(increasePerPiece, decreasePerPiece)` (each max 500 = 5% per piece). Defaults: 50 (0.5%) per piece.
 
 ## Deployment
 

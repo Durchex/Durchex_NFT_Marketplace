@@ -4,6 +4,8 @@ import { useContext, useEffect, useState } from "react";
 // import LOGO from "../assets/logo.png"; // Removed - no longer needed
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
+import { ethers } from "ethers";
+import { getNftLiquidityContractWithSigner, changeNetwork } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
@@ -151,24 +153,65 @@ function MyMintedNFTs() {
     const nft = sellPiecesModal.nft;
     const qty = Math.max(1, parseInt(sellPiecesQty, 10));
     const price = sellPiecesPrice?.trim();
-    if (!price || parseFloat(price) <= 0) {
-      ErrorToast("Enter a valid price per piece");
-      return;
-    }
     if (qty > (sellPiecesModal.myPieces || 0)) {
       ErrorToast("Quantity exceeds your pieces");
       return;
     }
     try {
       setSellPiecesSubmitting(true);
-      await nftAPI.createPieceSellOrder({
+
+      // 1. Get quote (price + optional liquidity pool info)
+      const quote = await nftAPI.quoteSellToLiquidity({
+        network: nft.network,
+        itemId: nft.itemId,
+        quantity: qty,
+      });
+
+      const hasLiquidityPool = quote.liquidityContract && quote.liquidityPieceId != null;
+      if (!hasLiquidityPool) {
+        // No on-chain pool: require price for backend-only record
+        if (!price || parseFloat(price) <= 0) {
+          ErrorToast("Enter a valid price per piece");
+          setSellPiecesSubmitting(false);
+          return;
+        }
+      }
+
+      let transactionHash = null;
+      let pricePerPiece = quote.pricePerPiece;
+      let totalAmount = quote.totalProceeds;
+
+      if (hasLiquidityPool) {
+        // On-chain: ensure network, get NftLiquidity contract, getSellQuote then sellPieces
+        await changeNetwork(nft.network);
+        const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
+        if (!liquidityContract) {
+          ErrorToast("Liquidity contract not configured for this network");
+          setSellPiecesSubmitting(false);
+          return;
+        }
+        const pieceIdWei = quote.liquidityPieceId;
+        const quantityWei = String(qty);
+        const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
+        const netBn = ethers.BigNumber.from(netProceedsWei);
+        pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
+        totalAmount = ethers.utils.formatEther(netBn);
+        const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
+        const receipt = await tx.wait();
+        transactionHash = receipt?.transactionHash || receipt?.hash || null;
+      }
+
+      await nftAPI.pieceSellBackToLiquidity({
         network: nft.network,
         itemId: nft.itemId,
         seller: address,
         quantity: qty,
-        pricePerPiece: price,
+        pricePerPiece,
+        totalAmount,
+        transactionHash,
       });
-      SuccessToast("Pieces listed for sale. They are now in the NFT liquidity.");
+
+      SuccessToast(hasLiquidityPool ? "Pieces sold back to liquidity." : "Sell recorded.");
       setSellPiecesModal(null);
       setSellPiecesQty(1);
       setSellPiecesPrice("");
@@ -176,7 +219,7 @@ function MyMintedNFTs() {
       setPieceHoldings(holdings);
     } catch (err) {
       console.error("Sell pieces error:", err);
-      ErrorToast(err?.message || "Failed to list pieces");
+      ErrorToast(err?.message || err?.reason || "Failed to sell pieces");
     } finally {
       setSellPiecesSubmitting(false);
     }
@@ -712,12 +755,25 @@ function MyMintedNFTs() {
                                   </div>
 
                                   {pieces > 0 && (
-                                    <button
-                                      onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
-                                      className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
-                                    >
-                                      Sell
-                                    </button>
+                                    <div className="flex flex-col gap-2">
+                                      {/* If NFT is not sold out (still remainingPieces on listing), allow buying more via standard mint flow */}
+                                      {Number(nft.remainingPieces ?? 0) > 0 && (
+                                        <button
+                                          onClick={() => window.location.assign(`/mint/${nft._id || nft.itemId}`)}
+                                          className="w-full bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                                        >
+                                          Buy more pieces
+                                        </button>
+                                      )}
+
+                                      {/* Sell back to liquidity (pieces are not re-added to remainingPieces; once sold out stays sold out) */}
+                                      <button
+                                        onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Sell to liquidity
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               );

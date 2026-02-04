@@ -33,6 +33,9 @@ import {
   fillPieceSellOrder,
   getNftTrades,
   getNftAnalytics,
+  getNftRarityRank,
+  quoteSellToLiquidity,
+  pieceSellBackToLiquidity,
 } from "../controllers/nftController.js"; // Adjust path & file accordingly
 // import { createNft } from "../models/nftModel.js";
 
@@ -47,6 +50,10 @@ router.post("/nfts/piece-sell-orders", createPieceSellOrder);
 router.get("/nfts/piece-sell-orders/:network/:itemId", getPieceSellOrdersByNft);
 router.get("/nfts/piece-holdings/:wallet", getPieceHoldingsByWallet);
 router.post("/nfts/piece-sell-orders/:orderId/fill", fillPieceSellOrder);
+
+// Direct liquidity sell-back (quote + post-chain sync)
+router.get("/liquidity/quote-sell", quoteSellToLiquidity);
+router.post("/nfts/piece-sell-back", pieceSellBackToLiquidity);
 
 // Pending transfers (post-buy sync)
 router.post("/pending-transfers", createPendingTransfer);
@@ -83,6 +90,7 @@ router.delete("/collections/:collectionId", deleteCollection);
 // NFT trades & analytics (transaction history, price movement, market cap) — MUST be before /nfts/:network
 router.get("/nfts/:network/:itemId/trades", getNftTrades);
 router.get("/nfts/:network/:itemId/analytics", getNftAnalytics);
+router.get("/nfts/:network/:itemId/rarity", getNftRarityRank);
 
 // Get single NFT by id (lazy-mint _id or regular itemId); sold-out lazy mints still findable — MUST be before /nfts/:network
 router.get("/nfts/by-id/:id", getNftByAnyId);
