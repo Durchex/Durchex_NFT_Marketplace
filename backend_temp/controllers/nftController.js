@@ -1334,27 +1334,61 @@ export const fetchUserNFTs = async (req, res) => {
     });
 
     // Convert lazy NFTs to regular NFT format
-    const formattedLazyNFTs = allLazyNFTs.map(lazyNFT => 
-      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
+    const formattedLazyNFTs = allLazyNFTs.map((lazyNFT) =>
+      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || "polygon")
     );
 
-    // Include NFTs where user has piece holdings (collector owns pieces)
-    const holdings = await pieceHoldingModel.find({
-      wallet: normalizedAddress,
-      pieces: { $gt: 0 },
-    }).lean();
-    const seen = new Set(regularNFTs.map((n) => `${n.network}:${n.itemId}`));
+    // Include NFTs where user has piece holdings (collector owns pieces).
+    const holdings = await pieceHoldingModel
+      .find({ wallet: normalizedAddress, pieces: { $gt: 0 } })
+      .lean();
+
+    // Start with regular + lazy NFTs
+    const allNFTs = [...regularNFTs, ...formattedLazyNFTs];
+
+    // Map holdings by (network,itemId) so we can attach userPieces
+    const holdingsByKey = new Map();
     for (const h of holdings) {
-      if (seen.has(`${h.network}:${h.itemId}`)) continue;
-      const nft = await nftModel.findOne({ network: h.network, itemId: h.itemId }).lean();
-      if (nft) {
-        seen.add(`${h.network}:${h.itemId}`);
-        regularNFTs.push({ ...nft, userPieces: h.pieces });
+      const key = `${String(h.network || "").toLowerCase()}:${String(h.itemId)}`;
+      holdingsByKey.set(key, h);
+    }
+
+    const seen = new Set(
+      allNFTs.map((n) => `${String(n.network || "").toLowerCase()}:${String(n.itemId)}`)
+    );
+
+    // Attach userPieces to any existing NFT cards
+    for (const nft of allNFTs) {
+      const key = `${String(nft.network || "").toLowerCase()}:${String(nft.itemId)}`;
+      const h = holdingsByKey.get(key);
+      if (h) {
+        nft.userPieces = h.pieces;
       }
     }
 
-    // Combine both types
-    const allNFTs = [...regularNFTs, ...formattedLazyNFTs];
+    // For holdings that don't yet have an NFT card, create one from nftModel or LazyNFT
+    for (const h of holdings) {
+      const key = `${String(h.network || "").toLowerCase()}:${String(h.itemId)}`;
+      if (seen.has(key)) continue;
+
+      // Try regular NFT first
+      const nftDoc = await nftModel
+        .findOne({ network: String(h.network).toLowerCase(), itemId: String(h.itemId) })
+        .lean();
+      if (nftDoc) {
+        allNFTs.push({ ...nftDoc, userPieces: h.pieces });
+        seen.add(key);
+        continue;
+      }
+
+      // Fallback: lazy-mint by _id (multi-piece listings)
+      const lazy = await LazyNFT.findById(h.itemId);
+      if (lazy) {
+        const formatted = formatLazyNFTAsNFT(lazy, lazy.network || String(h.network || "polygon"));
+        allNFTs.push({ ...formatted, userPieces: h.pieces });
+        seen.add(key);
+      }
+    }
 
     // Sort by creation/mint date (newest first)
     allNFTs.sort((a, b) => {
@@ -1412,12 +1446,62 @@ export const fetchUserNFTsByNetwork = async (req, res) => {
     });
 
     // Convert lazy NFTs to regular NFT format
-    const formattedLazyNFTs = allLazyNFTs.map(lazyNFT => 
+    const formattedLazyNFTs = allLazyNFTs.map((lazyNFT) =>
       formatLazyNFTAsNFT(lazyNFT, network)
     );
 
     // Combine both types
     const allNFTs = [...regularNFTs, ...formattedLazyNFTs];
+
+    // Include NFTs where user has piece holdings on this network
+    const holdings = await pieceHoldingModel
+      .find({
+        wallet: normalizedAddress,
+        network: String(network).toLowerCase(),
+        pieces: { $gt: 0 },
+      })
+      .lean();
+
+    const holdingsByKey = new Map();
+    for (const h of holdings) {
+      const key = `${String(h.network || "").toLowerCase()}:${String(h.itemId)}`;
+      holdingsByKey.set(key, h);
+    }
+
+    const seen = new Set(
+      allNFTs.map((n) => `${String(n.network || "").toLowerCase()}:${String(n.itemId)}`)
+    );
+
+    // Attach userPieces to any existing NFT cards
+    for (const nft of allNFTs) {
+      const key = `${String(nft.network || "").toLowerCase()}:${String(nft.itemId)}`;
+      const h = holdingsByKey.get(key);
+      if (h) {
+        nft.userPieces = h.pieces;
+      }
+    }
+
+    // For holdings not yet represented, create NFT cards (regular or lazy)
+    for (const h of holdings) {
+      const key = `${String(h.network || "").toLowerCase()}:${String(h.itemId)}`;
+      if (seen.has(key)) continue;
+
+      const nftDoc = await nftModel
+        .findOne({ network: String(h.network).toLowerCase(), itemId: String(h.itemId) })
+        .lean();
+      if (nftDoc) {
+        allNFTs.push({ ...nftDoc, userPieces: h.pieces });
+        seen.add(key);
+        continue;
+      }
+
+      const lazy = await LazyNFT.findById(h.itemId);
+      if (lazy) {
+        const formatted = formatLazyNFTAsNFT(lazy, network);
+        allNFTs.push({ ...formatted, userPieces: h.pieces });
+        seen.add(key);
+      }
+    }
 
     // Sort by creation/mint date (newest first)
     allNFTs.sort((a, b) => {
