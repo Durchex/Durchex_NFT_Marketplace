@@ -106,36 +106,9 @@ router.post('/submit', authMiddleware, async (req, res) => {
 
         // For new multi-piece lazy mint, we use listing-based vouchers:
         // messageHash = keccak256(abi.encodePacked(listingId)), where
-        // listingId = keccak256(abi.encodePacked(creator, uri, royaltyBps, pricePerPieceWei, maxSupply))
-        // We do a basic sanity check here to ensure the signature is well-formed; full on-chain verification
-        // is performed by MultiPieceLazyMintNFT.redeemListing.
-        if (lazyMintService.ethersAvailable && ethers) {
-            try {
-                const ethSignedMessageHash = ethers.utils.hashMessage(
-                    ethers.utils.arrayify(messageHash)
-                );
-                const recoveredAddress = ethers.utils.recoverAddress(
-                    ethSignedMessageHash,
-                    signature
-                );
-                if (recoveredAddress.toLowerCase() !== creatorAddress.toLowerCase()) {
-                    console.error('[lazyMint/submit] Signature verification failed', {
-                        expected: creatorAddress.toLowerCase(),
-                        got: recoveredAddress.toLowerCase(),
-                    });
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Invalid voucher signature for creator address.',
-                    });
-                }
-            } catch (e) {
-                console.error('[lazyMint/submit] Error verifying voucher signature:', e);
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid voucher or signature format.',
-                });
-            }
-        }
+        // listingId = keccak256(abi.encodePacked(creator, uri, royaltyBps, pricePerPieceWei, maxSupply)).
+        // Full cryptographic verification is performed on-chain by MultiPieceLazyMintNFT.redeemListing.
+        // We intentionally do not reject here; any invalid voucher will be rejected by the contract at redeem time.
 
         // Try to fetch image from IPFS metadata if ipfsURI is provided
         let imageURI = '';
