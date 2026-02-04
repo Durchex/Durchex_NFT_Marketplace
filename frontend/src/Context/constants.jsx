@@ -325,7 +325,8 @@ export const rpcUrls = {
   arbitrum: import.meta.env.VITE_RPC_URL_ARBITRUM || "https://arb1.arbitrum.io/rpc",
   ethereum: import.meta.env.VITE_RPC_URL_ETHEREUM || "https://eth.llamarpc.com",
   bsc: import.meta.env.VITE_RPC_URL_BSC || "https://bsc-dataseed.binance.org/",
-  base: import.meta.env.VITE_RPC_URL_BASE || "https://mainnet.base.org",
+  // Dedicated Base mainnet RPC (Infura). Can be overridden via VITE_RPC_URL_BASE if needed.
+  base: import.meta.env.VITE_RPC_URL_BASE || "https://base-mainnet.infura.io/v3/e33401d91c1840f08c317a8e143663dc",
   avalanche: import.meta.env.VITE_RPC_URL_AVALANCHE || "https://api.avax.network/ext/bc/C/rpc",
   optimism: import.meta.env.VITE_RPC_URL_OPTIMISM || "https://mainnet.optimism.io",
   monad: import.meta.env.VITE_RPC_URL_MONAD || "https://mainnet-rpc.monad.xyz",
