@@ -112,13 +112,13 @@ export default function App() {
           <div className="flex-1 md:ml-20 flex flex-col min-h-screen">
             {/* Global Header: connects visually with sidebar and stays fixed while scrolling */}
             <header className="sticky top-0 z-40">
-              <Loading /> {/* Placeholder; real Header is used inside pages */}
+              {/* You can render a global Header component here if desired */}
             </header>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-y-auto">
-          <Suspense fallback={<Loading />}>
-            <Routes>
+            <main className="flex-1 overflow-y-auto">
+              <Suspense fallback={<Loading />}>
+                <Routes>
           <Route
             path="/"
             element={<Explore />}
@@ -221,15 +221,16 @@ export default function App() {
           <Route path="/games/limbo" element={<Limbo />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          
-          {/* FOOTER ROUTES SECTION */}
-          <Route path="/aboutus" element={<AboutUs />} />
-          <Route path="/faq" element={<FAQ />} />
-            </Routes>
-          </Suspense>
+                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  
+                  {/* FOOTER ROUTES SECTION */}
+                  <Route path="/aboutus" element={<AboutUs />} />
+                  <Route path="/faq" element={<FAQ />} />
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
         </div>
-      </div>
       </SidebarProvider>
     </BrowserRouter>
   );
