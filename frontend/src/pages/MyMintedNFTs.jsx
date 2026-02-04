@@ -167,7 +167,6 @@ function MyMintedNFTs() {
     if (!sellPiecesModal?.nft || !address) return;
     const nft = sellPiecesModal.nft;
     const qty = Math.max(1, parseInt(sellPiecesQty, 10));
-    const price = sellPiecesPrice?.trim();
     if (qty > (sellPiecesModal.myPieces || 0)) {
       ErrorToast("Quantity exceeds your pieces");
       return;
@@ -183,14 +182,6 @@ function MyMintedNFTs() {
       });
 
       const hasLiquidityPool = quote.liquidityContract && quote.liquidityPieceId != null;
-      if (!hasLiquidityPool) {
-        // No on-chain pool: require price for backend-only record
-        if (!price || parseFloat(price) <= 0) {
-          ErrorToast("Enter a valid price per piece");
-          setSellPiecesSubmitting(false);
-          return;
-        }
-      }
 
       let transactionHash = null;
       let pricePerPiece = quote.pricePerPiece;
