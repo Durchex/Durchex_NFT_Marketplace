@@ -5,8 +5,8 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
 import SellModal from '../components/SellModal';
-import { nftAPI, engagementAPI } from '../services/api';
-import { getCurrencySymbol, getUsdValueFromCrypto } from '../Context/constants';
+import { nftAPI, engagementAPI, userAPI } from '../services/api';
+import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress } from '../Context/constants';
 import { ICOContent } from '../Context';
 import { useCart } from '../Context/CartContext';
 import toast from 'react-hot-toast';
@@ -28,10 +28,23 @@ const NftDetailsPage = () => {
   const [likes, setLikes] = useState(0);
   const [analytics, setAnalytics] = useState(null);
   const [rarity, setRarity] = useState(null);
+  const [creatorDisplayName, setCreatorDisplayName] = useState(null);
 
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
+
+  // Resolve creator wallet to display name (no address shown)
+  useEffect(() => {
+    const wallet = nft?.creator || nft?.creatorWallet;
+    if (!wallet) {
+      setCreatorDisplayName(null);
+      return;
+    }
+    userAPI.getUserProfile(wallet)
+      .then((p) => setCreatorDisplayName(p?.userName || p?.creatorName || p?.username || 'Creator'))
+      .catch(() => setCreatorDisplayName('Creator'));
+  }, [nft?.creator, nft?.creatorWallet]);
 
   // Live refresh: trades, analytics, rarity (for charts, market cap, trade count, rarity rank)
   const REFRESH_MS = 25000;
@@ -378,10 +391,10 @@ const NftDetailsPage = () => {
                     </a>
                   </div>
                 )}
-                {nft.creator && (
+                {(nft.creator || nft.creatorWallet) && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">Creator</span>
-                    <span className="font-semibold">{nft.creator}</span>
+                    <span className="font-semibold">{creatorDisplayName ?? '…'}</span>
                   </div>
                 )}
                 {nft.category && (

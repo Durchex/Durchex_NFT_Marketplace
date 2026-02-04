@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { ICOContent } from "../Context";
-import { nftAPI } from "../services/api";
+import { nftAPI, userAPI } from "../services/api";
 import {
   Heart,
   Share2,
@@ -416,7 +416,7 @@ function App() {
                     {metadata?.collection || nftDatas?.collection || "Collection"}
                   </h1>
                   <p className="text-xs md:text-sm text-gray-400 mt-1">
-                    by {metadata?.creator || nftDatas?.creator || "Unknown"}
+                    by {creatorDisplayName ?? (creatorWallet?.startsWith?.("0x") ? "Creator" : creatorWallet) ?? "Unknown"}
                   </p>
                 </div>
               </div>

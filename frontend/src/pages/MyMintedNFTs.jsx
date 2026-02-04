@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 import { ethers } from "ethers";
-import { getNftLiquidityContractWithSigner, changeNetwork } from "../Context/constants";
+import { getNftLiquidityContractWithSigner, changeNetwork, getCurrencySymbol } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
@@ -69,7 +69,7 @@ function MyMintedNFTs() {
   const [sellModalNft, setSellModalNft] = useState(null);
   const [sellPiecesModal, setSellPiecesModal] = useState(null); // { nft, myPieces }
   const [sellPiecesQty, setSellPiecesQty] = useState(1);
-  const [sellPiecesPrice, setSellPiecesPrice] = useState("");
+  const [sellPiecesQuote, setSellPiecesQuote] = useState(null); // { pricePerPiece, totalProceeds } from API — auto-populated, no user input
   const [sellPiecesSubmitting, setSellPiecesSubmitting] = useState(false);
   const [pieceHoldings, setPieceHoldings] = useState([]); // { network, itemId, wallet, pieces }
   const { address: userWalletAddress } = useContext(ICOContent) || {};
@@ -112,6 +112,21 @@ function MyMintedNFTs() {
     );
     return h ? Number(h.pieces) : 0;
   };
+
+  // Auto-fetch sell-to-liquidity quote when modal is open so price is populated (user only picks quantity)
+  useEffect(() => {
+    if (!sellPiecesModal?.nft || !sellPiecesQty) {
+      setSellPiecesQuote(null);
+      return;
+    }
+    const nft = sellPiecesModal.nft;
+    const qty = Math.max(1, parseInt(sellPiecesQty, 10));
+    let cancelled = false;
+    nftAPI.quoteSellToLiquidity({ network: nft.network, itemId: nft.itemId, quantity: qty })
+      .then((quote) => { if (!cancelled) setSellPiecesQuote({ pricePerPiece: quote.pricePerPiece, totalProceeds: quote.totalProceeds }); })
+      .catch(() => { if (!cancelled) setSellPiecesQuote(null); });
+    return () => { cancelled = true; };
+  }, [sellPiecesModal?.nft?.network, sellPiecesModal?.nft?.itemId, sellPiecesQty]);
 
   const handleEditNFT = async (nft) => {
     setEditingNFT(nft.itemId);
@@ -214,7 +229,7 @@ function MyMintedNFTs() {
       SuccessToast(hasLiquidityPool ? "Pieces sold back to liquidity." : "Sell recorded.");
       setSellPiecesModal(null);
       setSellPiecesQty(1);
-      setSellPiecesPrice("");
+      setSellPiecesQuote(null);
       const holdings = await nftAPI.getPieceHoldingsByWallet(address);
       setPieceHoldings(holdings);
     } catch (err) {
@@ -795,12 +810,12 @@ function MyMintedNFTs() {
         nft={sellModalNft}
       />
 
-      {/* Sell pieces: list pieces back into NFT liquidity (no relist/approval) */}
+      {/* Sell pieces: only quantity; price auto from market (no form field) */}
       {sellPiecesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !sellPiecesSubmitting && setSellPiecesModal(null)}>
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-2">Sell pieces back to liquidity</h3>
-            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. List them for sale so others can buy; you get paid (minus fee and royalty to creator).</p>
+            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. Choose how many to sell at current market price.</p>
             <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Quantity</label>
@@ -813,20 +828,16 @@ function MyMintedNFTs() {
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
                 />
               </div>
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Price per piece (ETH)</label>
-                <input
-                  type="text"
-                  placeholder="0.01"
-                  value={sellPiecesPrice}
-                  onChange={(e) => setSellPiecesPrice(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                />
-              </div>
+              {sellPiecesQuote && (
+                <p className="text-sm text-gray-300">
+                  You will receive ~<span className="font-semibold text-white">{Number(sellPiecesQuote.totalProceeds).toFixed(4)}</span> {getCurrencySymbol(sellPiecesModal.nft?.network || "ethereum")}
+                  <span className="text-gray-500 text-xs ml-1">(at {Number(sellPiecesQuote.pricePerPiece).toFixed(4)} per piece)</span>
+                </p>
+              )}
             </div>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => { setSellPiecesModal(null); setSellPiecesQty(1); setSellPiecesPrice(""); }}
+                onClick={() => { setSellPiecesModal(null); setSellPiecesQty(1); setSellPiecesQuote(null); }}
                 disabled={sellPiecesSubmitting}
                 className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm"
               >
@@ -837,7 +848,7 @@ function MyMintedNFTs() {
                 disabled={sellPiecesSubmitting}
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
               >
-                {sellPiecesSubmitting ? "Listing…" : "List for sale"}
+                {sellPiecesSubmitting ? "Selling…" : "Sell to liquidity"}
               </button>
             </div>
           </div>
