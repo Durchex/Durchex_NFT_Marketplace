@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 import lazyMintService from '../services/lazyMintService.js';
 import LazyNFT from '../models/lazyNFTModel.js';
 import authMiddleware from '../middleware/auth.js';
+import { recordLazyMintPurchase } from '../controllers/nftController.js';
 
 const router = express.Router();
 
@@ -482,6 +483,12 @@ router.post('/:id/redeem', authMiddleware, async (req, res) => {
         });
     }
 });
+
+/**
+ * POST /api/lazy-mint/:id/record-purchase
+ * Post-mint sync after MultiPieceLazyMintNFT.redeemListing: update remainingPieces, piece holdings, trade history.
+ */
+router.post('/:id/record-purchase', authMiddleware, recordLazyMintPurchase);
 
 /**
  * GET /api/lazy-mint/stats/overview

@@ -570,6 +570,69 @@ export const getPieceHoldingsByWallet = async (req, res) => {
   }
 };
 
+/** POST /nfts/lazy/:id/record-purchase — Post-mint sync for lazy-mint (MultiPieceLazyMintNFT): decrement remainingPieces, add piece holding, record trade. */
+export const recordLazyMintPurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { buyer, quantity = 1, totalPrice, pricePerPiece, transactionHash } = req.body;
+    if (!id || !buyer) {
+      return res.status(400).json({ error: "id and buyer are required" });
+    }
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    const buyerNorm = String(buyer).toLowerCase();
+
+    const lazy = await LazyNFT.findById(id);
+    if (!lazy) {
+      return res.status(404).json({ error: "Lazy NFT not found" });
+    }
+
+    const net = String(lazy.network || "polygon").toLowerCase();
+    const sellerNorm = String(lazy.creator || "").toLowerCase();
+
+    const currentRemaining = Math.max(0, Number(lazy.remainingPieces ?? lazy.pieces ?? 1));
+    const newRemaining = Math.max(0, currentRemaining - qty);
+    lazy.remainingPieces = newRemaining;
+    if (newRemaining <= 0 && lazy.status === "pending") {
+      lazy.status = "fully_redeemed";
+    }
+    await lazy.save();
+
+    const holding = await pieceHoldingModel.findOneAndUpdate(
+      { network: net, itemId: String(lazy._id), wallet: buyerNorm },
+      { $inc: { pieces: qty } },
+      { new: true, upsert: true }
+    );
+
+    const priceStr = pricePerPiece != null ? String(pricePerPiece) : lazy.price || "0";
+    const totalAmount =
+      totalPrice != null
+        ? String(totalPrice)
+        : (parseFloat(priceStr) * qty).toFixed(18);
+
+    await nftTradeModel.create({
+      network: net,
+      itemId: String(lazy._id),
+      transactionType: "primary_buy",
+      seller: sellerNorm,
+      buyer: buyerNorm,
+      quantity: qty,
+      pricePerPiece: priceStr,
+      totalAmount,
+      transactionHash: transactionHash || null,
+    });
+
+    return res.json({
+      success: true,
+      lazyId: lazy._id,
+      remainingPieces: newRemaining,
+      holdingPieces: holding?.pieces ?? qty,
+    });
+  } catch (error) {
+    console.error("Error recording lazy-mint purchase:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 /** POST /nfts/piece-sell-orders/:orderId/fill — Buy from a collector's sell order (fill order). */
 export const fillPieceSellOrder = async (req, res) => {
   try {
