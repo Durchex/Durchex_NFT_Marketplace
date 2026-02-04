@@ -394,8 +394,15 @@ function MyMintedNFTs() {
                 );
               }
 
-              const unmintedNFTs = filteredNFTs.filter(nft => !nft.isMinted);
-              const mintedNFTs = filteredNFTs.filter(nft => nft.isMinted);
+              // Unminted: NFTs you created that are not yet on-chain and you don't hold pieces of
+              const unmintedNFTs = filteredNFTs.filter(
+                (nft) => isCreator(nft) && !nft.isMinted && getMyPieces(nft) <= 0
+              );
+
+              // Minted / owned: either minted on-chain or you have pieces recorded
+              const mintedNFTs = filteredNFTs.filter(
+                (nft) => nft.isMinted || getMyPieces(nft) > 0
+              );
 
               const mintedCreatedNFTs = mintedNFTs.filter((nft) => isCreator(nft));
               const mintedOwnedNFTs = mintedNFTs.filter((nft) => !isCreator(nft));
