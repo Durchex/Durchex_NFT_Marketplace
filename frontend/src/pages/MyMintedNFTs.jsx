@@ -174,39 +174,37 @@ function MyMintedNFTs() {
     try {
       setSellPiecesSubmitting(true);
 
-      // 1. Get quote (price + liquidity pool info). Sell-to-liquidity requires a pool so the user gets paid on-chain (wallet opens).
+      // 1. Get quote (creator = liquidity pool; optional on-chain NftLiquidity contract for instant on-chain payment)
       const quote = await nftAPI.quoteSellToLiquidity({
         network: nft.network,
         itemId: nft.itemId,
         quantity: qty,
       });
 
-      const hasLiquidityPool = quote.liquidityContract && quote.liquidityPieceId != null;
-      if (!hasLiquidityPool) {
-        ErrorToast("Sell to liquidity is only available when this NFT has a liquidity pool. Your wallet will open to confirm and you will receive the payment from the pool.");
-        setSellPiecesSubmitting(false);
-        return;
-      }
+      const hasOnChainPool = quote.liquidityContract && quote.liquidityPieceId != null;
+      let transactionHash = null;
+      let pricePerPiece = quote.pricePerPiece;
+      let totalAmount = quote.totalProceeds;
 
-      // 2. On-chain: switch network, then sellPieces so the user gets paid (wallet opens for confirmation)
-      await changeNetwork(nft.network);
-      const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
-      if (!liquidityContract) {
-        ErrorToast("Liquidity contract not configured for this network");
-        setSellPiecesSubmitting(false);
-        return;
+      if (hasOnChainPool) {
+        // 2a. On-chain pool: wallet opens, user gets paid by contract
+        await changeNetwork(nft.network);
+        const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
+        if (liquidityContract) {
+          const pieceIdWei = quote.liquidityPieceId;
+          const quantityWei = String(qty);
+          const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
+          const netBn = ethers.BigNumber.from(netProceedsWei);
+          pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
+          totalAmount = ethers.utils.formatEther(netBn);
+          const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
+          const receipt = await tx.wait();
+          transactionHash = receipt?.transactionHash || receipt?.hash || null;
+        }
       }
-      const pieceIdWei = quote.liquidityPieceId;
-      const quantityWei = String(qty);
-      const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
-      const netBn = ethers.BigNumber.from(netProceedsWei);
-      const pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
-      const totalAmount = ethers.utils.formatEther(netBn);
-      const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
-      const receipt = await tx.wait();
-      const transactionHash = receipt?.transactionHash || receipt?.hash || null;
+      // 2b. No on-chain pool: creator's wallet is the liquidity pool — record sell; creator pays seller (handled by creator/platform)
 
-      // 3. Sync backend (record sell so history and analytics show correctly)
+      // 3. Sync backend (record sell: pieces deducted from seller, returned to creator pool; trade history updated)
       await nftAPI.pieceSellBackToLiquidity({
         network: nft.network,
         itemId: nft.itemId,
@@ -217,7 +215,9 @@ function MyMintedNFTs() {
         transactionHash,
       });
 
-      SuccessToast("Pieces sold. You received payment from the liquidity pool.");
+      SuccessToast(hasOnChainPool && transactionHash
+        ? "Pieces sold. You received payment from the liquidity pool."
+        : "Sell recorded. Your pieces are returned to the creator (liquidity pool); payment is from the creator.");
       setSellPiecesModal(null);
       setSellPiecesQty(1);
       setSellPiecesQuote(null);

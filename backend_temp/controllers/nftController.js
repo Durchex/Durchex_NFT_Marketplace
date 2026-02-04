@@ -746,7 +746,8 @@ export const quoteSellToLiquidity = async (req, res) => {
       if (!lazy) {
         return res.status(404).json({ error: "NFT not found" });
       }
-      pricePerPiece = parseFloat(lazy.price || "0");
+      // Creator is the liquidity pool; use last traded or listing price
+      pricePerPiece = parseFloat(lazy.lastPrice || lazy.price || lazy.floorPrice || "0");
       liquidityContract = lazy.liquidityContract || null;
       liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
     } else {
