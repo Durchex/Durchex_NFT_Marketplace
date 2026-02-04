@@ -1,5 +1,6 @@
 // backend_temp/routes/lazyMint.js
 import express from 'express';
+import { ethers } from 'ethers';
 import lazyMintService from '../services/lazyMintService.js';
 import LazyNFT from '../models/lazyNFTModel.js';
 import authMiddleware from '../middleware/auth.js';
