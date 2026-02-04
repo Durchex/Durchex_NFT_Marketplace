@@ -1978,6 +1978,24 @@ export const lazyMintAPI = {
       throw error;
     }
   },
+
+  // Record a successful lazy-mint purchase (post-chain): update remainingPieces, piece holdings, trades
+  recordPurchase: async (lazyNftId, { buyer, quantity = 1, totalPrice, pricePerPiece, network, transactionHash }) => {
+    try {
+      const response = await api.post(`/lazy-mint/${lazyNftId}/record-purchase`, {
+        buyer,
+        quantity,
+        totalPrice,
+        pricePerPiece,
+        network,
+        transactionHash,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to record lazy mint purchase:', error);
+      throw error;
+    }
+  },
 };
 
 // Batch Mint API functions
