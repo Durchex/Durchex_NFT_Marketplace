@@ -334,7 +334,9 @@ class LazyMintService {
     }
 
     /**
-     * Validate lazy mint voucher before buyer purchase
+     * Validate lazy mint voucher before buyer purchase (legacy flow).
+     * New multi-piece listings use listingId/messageHash validation in the route.
+     * Kept for backward compatibility.
      * @param {Object} voucher - Lazy mint voucher
      * @returns {boolean} Is valid
      */

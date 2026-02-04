@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, lazyMintAPI } from '../services/api';
-import { getCurrencySymbol, getLazyMintContract, getLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
+import { getCurrencySymbol, getMultiPieceLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
@@ -99,10 +99,10 @@ export default function BuyMintPage() {
         const { redemptionData } = redemptionRes;
         if (!redemptionData) throw new Error('No voucher data from server.');
 
-        const contract = await getLazyMintContractWithSigner(network);
+        const contract = await getMultiPieceLazyMintContractWithSigner(network);
         if (!contract) {
           throw new Error(
-            'Lazy mint contract not configured for this network. Add VITE_APP_LAZY_MINT_CONTRACT_ADDRESS (or _' +
+            'Lazy mint contract not configured for this network. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS (or _' +
               network.toUpperCase() +
               ') and connect your wallet.'
           );
@@ -111,27 +111,23 @@ export default function BuyMintPage() {
         const sig = redemptionData.signature?.startsWith('0x')
           ? redemptionData.signature
           : '0x' + (redemptionData.signature || '');
-        // Creator always signs with getMessageHashWithQuantity(uri, royaltyPercentage, nonce, maxQuantity) in Create.jsx,
-        // so we must always call redeemNFTWithQuantity (never redeemNFT) or signature verification fails.
-        const maxQuantity = Number(redemptionData.maxQuantity ?? nft.pieces ?? 1) || 1;
-        const totalPriceFromBackend = redemptionData.totalPrice != null ? String(redemptionData.totalPrice) : totalPriceEth;
-        const valueWei = ethers.utils.parseEther(totalPriceFromBackend);
-        const pricePerPieceWei =
-          redemptionData.pricePerPiece != null && redemptionData.pricePerPiece !== ''
-            ? ethers.utils.parseEther(String(redemptionData.pricePerPiece))
-            : valueWei;
+
+        const maxSupply = Number(redemptionData.maxSupply ?? redemptionData.pieces ?? nft.pieces ?? 1) || 1;
+        const pricePerPieceEth = String(redemptionData.pricePerPieceEth ?? redemptionData.price ?? nft.price ?? '0');
+        const pricePerPieceWei = ethers.utils.parseEther(pricePerPieceEth);
+        const valueWei = pricePerPieceWei.mul(ethers.BigNumber.from(qty));
 
         const creatorAddress = redemptionData.creator && ethers.utils.isAddress(redemptionData.creator)
           ? ethers.utils.getAddress(redemptionData.creator)
           : redemptionData.creator;
 
-        const tx = await contract.redeemNFTWithQuantity(
+        const tx = await contract.redeemListing(
           creatorAddress,
           redemptionData.ipfsURI,
-          Number(redemptionData.royaltyPercentage ?? 0) || 0,
+          Number(redemptionData.royaltyBps ?? redemptionData.royaltyPercentage ?? 0) || 0,
           pricePerPieceWei,
+          maxSupply,
           qty,
-          maxQuantity,
           sig,
           { value: valueWei, gasLimit: 500000 }
         );

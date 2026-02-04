@@ -130,6 +130,13 @@ const lazyNFTSchema = new mongoose.Schema(
             index: true,
         },
 
+        // Optional: listingId for multi-piece lazy minting (matches on-chain listing hash)
+        listingId: {
+            type: String,
+            default: null,
+            index: true,
+        },
+
         collection: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Collection',

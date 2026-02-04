@@ -135,17 +135,18 @@ export default function LazyMintNFT() {
             const signer = provider.getSigner();
             const address = await signer.getAddress();
 
-            // Get current nonce
-            const nonceResponse = await lazyMintAPI.getCreatorNonce(address);
-            const currentNonce = nonceResponse.nonce || 0;
-            setNonce(currentNonce);
-
-            // Create message to sign (include pieces for multi-piece redeem)
+            // Multi-piece lazy mint: build listing parameters for MultiPieceLazyMintNFT (no contract nonce)
             const piecesForHash = Math.max(1, parseInt(formData.pieces, 10) || 1);
-            const messageHash = ethers.utils.solidityKeccak256(
-                ['string', 'uint256', 'uint256', 'uint256'],
-                [ipfsURI, formData.royaltyPercentage, currentNonce, piecesForHash]
+            const pricePerPieceWei = ethers.utils.parseEther(String(formData.price || '0'));
+
+            // listingId must match MultiPieceLazyMintNFT.getListingId
+            const listingId = ethers.utils.solidityKeccak256(
+                ['address', 'string', 'uint256', 'uint256', 'uint256'],
+                [address, ipfsURI, Number(formData.royaltyPercentage || 0), pricePerPieceWei, piecesForHash]
             );
+
+            // Message hash to sign must match MultiPieceLazyMintNFT.getListingMessageHash (hash over listingId)
+            const messageHash = ethers.utils.solidityKeccak256(['bytes32'], [listingId]);
 
             // Open wallet again right before signing – same as Connect Wallet so popup always opens
             await (connectWallet?.('metamask') || connectWallet?.());
@@ -158,6 +159,7 @@ export default function LazyMintNFT() {
 
             setSignature(sig);
             setMessageHash(messageHash);
+            setNonce(0);
 
             setSuccess('Signature created! Your NFT is ready to sell.');
             setStep(3);

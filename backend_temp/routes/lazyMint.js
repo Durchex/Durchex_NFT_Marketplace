@@ -82,6 +82,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             royaltyPercentage,
             signature,
             messageHash,
+            // For legacy vouchers, nonce was required; for multi-piece listings we use listingId-based vouchers.
             nonce,
             pieces,
             price,
@@ -95,38 +96,44 @@ router.post('/submit', authMiddleware, async (req, res) => {
         // Read network explicitly from body (creation form dropdown) so it's always used
         const networkFromBody = req.body?.network ?? req.body?.Network;
 
-        if (!signature || !ipfsURI || !messageHash || nonce === undefined) {
+        if (!signature || !ipfsURI || !messageHash) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing required fields: signature, ipfsURI, messageHash, nonce',
+                error: 'Missing required fields: signature, ipfsURI, messageHash',
             });
         }
 
-        // Validate voucher (include pieces for 4-param hash used by multi-piece redeem)
-        const isValid = await lazyMintService.validateVoucher({
-            creator: creatorAddress,
-            ipfsURI,
-            royaltyPercentage,
-            signature,
-            messageHash,
-            nonce,
-            pieces: pieces || 1,
-            maxQuantity: pieces || 1,
-        });
-
-        if (!isValid) {
-            console.error('[lazyMint/submit] Voucher validation failed:', {
-                creator: creatorAddress,
-                ipfsURI,
-                royaltyPercentage,
-                hasSignature: !!signature,
-                hasMessageHash: !!messageHash,
-                nonce
-            });
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid voucher or signature. Please check: signature format, message hash, nonce, and that this voucher hasn\'t been submitted before.',
-            });
+        // For new multi-piece lazy mint, we use listing-based vouchers:
+        // messageHash = keccak256(abi.encodePacked(listingId)), where
+        // listingId = keccak256(abi.encodePacked(creator, uri, royaltyBps, pricePerPieceWei, maxSupply))
+        // We do a basic sanity check here to ensure the signature is well-formed; full on-chain verification
+        // is performed by MultiPieceLazyMintNFT.redeemListing.
+        if (lazyMintService.ethersAvailable && ethers) {
+            try {
+                const ethSignedMessageHash = ethers.utils.hashMessage(
+                    ethers.utils.arrayify(messageHash)
+                );
+                const recoveredAddress = ethers.utils.recoverAddress(
+                    ethSignedMessageHash,
+                    signature
+                );
+                if (recoveredAddress.toLowerCase() !== creatorAddress.toLowerCase()) {
+                    console.error('[lazyMint/submit] Signature verification failed', {
+                        expected: creatorAddress.toLowerCase(),
+                        got: recoveredAddress.toLowerCase(),
+                    });
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid voucher signature for creator address.',
+                    });
+                }
+            } catch (e) {
+                console.error('[lazyMint/submit] Error verifying voucher signature:', e);
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid voucher or signature format.',
+                });
+            }
         }
 
         // Try to fetch image from IPFS metadata if ipfsURI is provided

@@ -230,6 +230,53 @@ export const LazyMintNFT_ABI = [
   },
 ];
 
+// ABI for new MultiPieceLazyMintNFT (multi-buyer, multi-piece listings)
+export const MultiPieceLazyMintNFT_ABI = [
+  {
+    inputs: [
+      { name: 'creator', type: 'address' },
+      { name: 'uri', type: 'string' },
+      { name: 'royaltyBps', type: 'uint256' },
+      { name: 'pricePerPieceWei', type: 'uint256' },
+      { name: 'maxSupply', type: 'uint256' },
+      { name: 'quantity', type: 'uint96' },
+      { name: 'signature', type: 'bytes' },
+    ],
+    name: 'redeemListing',
+    outputs: [{ name: 'firstTokenId', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'listingId', type: 'bytes32' },
+      { indexed: true, name: 'creator', type: 'address' },
+      { indexed: true, name: 'buyer', type: 'address' },
+      { indexed: false, name: 'firstTokenId', type: 'uint256' },
+      { indexed: false, name: 'quantity', type: 'uint96' },
+      { indexed: false, name: 'uri', type: 'string' },
+      { indexed: false, name: 'pricePerPiece', type: 'uint96' },
+    ],
+    name: 'ListingMinted',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'platformFeeBps',
+    outputs: [{ type: 'uint96' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'platformFeeReceiver',
+    outputs: [{ type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+];
+
 // Default LazyMint address for local/dev (e.g. Hardhat). Set VITE_APP_LAZY_MINT_CONTRACT_ADDRESS for real deployments.
 const LAZY_MINT_DEV_FALLBACK = '0x5FbDB2315678afccb333f8a9c6122015ea74f6';
 
@@ -243,6 +290,10 @@ export const getContractAddresses = (network = 'polygon') => {
     marketplace: import.meta.env[`VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_${networkUpper}`] || ContractAddress,
     vendor: import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] || VendorContractAddress,
     lazyMint: lazyMint || undefined,
+    multiPieceLazyMint:
+      import.meta.env[`VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] ||
+      import.meta.env.VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS ||
+      undefined,
   };
 };
 
@@ -573,6 +624,37 @@ export const getLazyMintContractWithSigner = async (networkName) => {
     return new ethers.Contract(contractAddress, LazyMintNFT_ABI, signer);
   } catch (error) {
     console.error(`Error fetching LazyMint contract (signer) for ${networkName}:`, error);
+    return null;
+  }
+};
+
+/** MultiPieceLazyMintNFT contract (read-only). */
+export const getMultiPieceLazyMintContract = async (networkName) => {
+  try {
+    if (!networkName) return null;
+    const net = String(networkName).toLowerCase();
+    const rpcUrl = rpcUrls[net];
+    const contractAddress = getContractAddresses(networkName)?.multiPieceLazyMint;
+    if (!rpcUrl || !contractAddress) return null;
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+    return new ethers.Contract(contractAddress, MultiPieceLazyMintNFT_ABI, provider);
+  } catch (error) {
+    console.error(`Error fetching MultiPieceLazyMint contract for ${networkName}:`, error);
+    return null;
+  }
+};
+
+/** MultiPieceLazyMintNFT contract with signer (for redeemListing). */
+export const getMultiPieceLazyMintContractWithSigner = async (networkName) => {
+  try {
+    if (!networkName || typeof window?.ethereum === "undefined") return null;
+    const contractAddress = getContractAddresses(networkName)?.multiPieceLazyMint;
+    if (!contractAddress) return null;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    return new ethers.Contract(contractAddress, MultiPieceLazyMintNFT_ABI, signer);
+  } catch (error) {
+    console.error(`Error fetching MultiPieceLazyMint contract (signer) for ${networkName}:`, error);
     return null;
   }
 };
