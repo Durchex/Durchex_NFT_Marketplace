@@ -17,10 +17,8 @@ async function main() {
 
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log("Balance:", ethers.utils.formatEther(balance), "ETH");
-  if (balance.lt(ethers.utils.parseEther("0.02"))) {
-    console.error("❌ Not enough ETH on Base (need at least ~0.02 ETH for deployment)");
-    process.exit(1);
-  }
+  // NOTE: We no longer hard-stop on a minimum balance.
+  // If gas is insufficient, the network will reject the tx and Hardhat will surface the error.
 
   const platformFeeReceiver =
     process.env.PLATFORM_FEE_RECEIVER || deployer.address; // your treasury or deployer
