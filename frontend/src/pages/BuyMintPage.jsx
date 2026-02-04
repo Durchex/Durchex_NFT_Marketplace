@@ -131,7 +131,24 @@ export default function BuyMintPage() {
           sig,
           { value: valueWei, gasLimit: 500000 }
         );
-        await tx.wait();
+        const receipt = await tx.wait();
+
+        // Post-mint sync: update remainingPieces + piece holdings in backend
+        try {
+          await lazyMintAPI.recordPurchase(lazyNftId, {
+            buyer: address,
+            quantity: qty,
+            totalPrice: totalPriceEth,
+            pricePerPiece: pricePerPieceEth,
+            network,
+            transactionHash: tx.hash,
+          });
+        } catch (syncErr) {
+          console.warn(
+            'Post-mint sync failed; on-chain mint succeeded but DB not updated yet:',
+            syncErr?.message || syncErr
+          );
+        }
 
         toast.success(qty > 1 ? `${qty} pieces minted to your wallet.` : 'Piece minted to your wallet.');
         navigate(`/nft/${id}`);
