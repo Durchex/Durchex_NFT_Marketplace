@@ -397,6 +397,9 @@ function MyMintedNFTs() {
               const unmintedNFTs = filteredNFTs.filter(nft => !nft.isMinted);
               const mintedNFTs = filteredNFTs.filter(nft => nft.isMinted);
 
+              const mintedCreatedNFTs = mintedNFTs.filter((nft) => isCreator(nft));
+              const mintedOwnedNFTs = mintedNFTs.filter((nft) => !isCreator(nft));
+
               return (
                 <>
                   {/* Unminted NFTs Section */}
@@ -496,8 +499,238 @@ function MyMintedNFTs() {
                     <div>
                       <h3 className="text-2xl font-bold mb-4 text-green-400">Minted NFTs</h3>
                       <p className="text-gray-400 mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        {mintedNFTs.map((nft, index) => (
+                      
+                      {/* Created NFTs (you are the creator) */}
+                      {mintedCreatedNFTs.length > 0 && (
+                        <>
+                          <h4 className="text-xl font-semibold mb-2 text-white">Created by you</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            {mintedCreatedNFTs.map((nft, index) => (
+                              <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
+                                <div className="mb-4 relative group overflow-hidden rounded-lg">
+                                  <img
+                                    src={nft.image}
+                                    alt={nft.name}
+                                    className="w-full h-48 object-cover rounded-lg"
+                                  />
+                                  {/* Hover Overlay */}
+                                  <NFTImageHoverOverlay
+                                    nft={{
+                                      itemId: nft.itemId || nft._id,
+                                      name: nft.name,
+                                      collection: nft.collection || 'Personal Collection',
+                                      price: nft.price || '0',
+                                      currency: 'ETH',
+                                      image: nft.image
+                                    }}
+                                    isInCart={cartItems.has(nft.itemId || nft._id)}
+                                    isLiked={likedItems.has(nft.itemId || nft._id)}
+                                    onAddToCart={() => {
+                                      setCartItems(prev => {
+                                        const newSet = new Set(prev);
+                                        if (newSet.has(nft.itemId || nft._id)) {
+                                          newSet.delete(nft.itemId || nft._id);
+                                        } else {
+                                          newSet.add(nft.itemId || nft._id);
+                                        }
+                                        return newSet;
+                                      });
+                                    }}
+                                    onLike={async () => {
+                                      if (!userWalletAddress) {
+                                        toast.error("Please connect your wallet");
+                                        return;
+                                      }
+                                      try {
+                                        const nftId = nft.itemId || nft._id;
+                                        if (likedItems.has(nftId)) {
+                                          await engagementAPI.unlikeNFT(userWalletAddress, nftId);
+                                          setLikedItems(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.delete(nftId);
+                                            return newSet;
+                                          });
+                                          toast.success("Removed from likes");
+                                        } else {
+                                          await engagementAPI.likeNFT(userWalletAddress, nftId);
+                                          setLikedItems(prev => new Set(prev).add(nftId));
+                                          toast.success("Added to likes");
+                                        }
+                                      } catch (error) {
+                                        toast.error("Failed to update like");
+                                      }
+                                    }}
+                                  />
+                                </div>
+
+                                {editingNFT === nft.itemId ? (
+                                  <div className="space-y-3">
+                                    <input
+                                      type="text"
+                                      value={editForm.name}
+                                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                                      placeholder="NFT Name"
+                                    />
+                                    <textarea
+                                      value={editForm.description}
+                                      onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white h-20"
+                                      placeholder="Description"
+                                    />
+                                    <input
+                                      type="number"
+                                      value={editForm.price}
+                                      onChange={(e) => setEditForm({...editForm, price: e.target.value})}
+                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                                      placeholder="Price"
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleSaveEdit(nft)}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={handleCancelEdit}
+                                        className="flex-1 bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
+                                    <div className="space-y-2 text-sm mb-4">
+                                      <p><span className="text-gray-400">Status:</span> <span className="text-green-400">Minted</span></p>
+                                      <p><span className="text-gray-400">Token ID:</span> {nft.tokenId}</p>
+                                      <p><span className="text-gray-400">Network:</span> {nft.network}</p>
+                                      <p><span className="text-gray-400">Minted:</span> {new Date(nft.mintedAt).toLocaleDateString()}</p>
+                                      {nft.mintTxHash && (
+                                        <p>
+                                          <span className="text-gray-400">Tx Hash:</span>{" "}
+                                          <a
+                                            href={`https://${nft.network === 'polygon' ? 'polygonscan' : 'etherscan'}.com/tx/${nft.mintTxHash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-400 hover:text-blue-300 underline"
+                                          >
+                                            {nft.mintTxHash.substring(0, 10)}...
+                                          </a>
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="flex gap-2 mb-3 flex-wrap">
+                                      <button
+                                        onClick={() => handleEditNFT(nft)}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteNFT(nft)}
+                                        className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Delete
+                                      </button>
+                                      {getMyPieces(nft) > 0 && (
+                                        <button
+                                          onClick={() => setSellPiecesModal({ nft, myPieces: getMyPieces(nft) })}
+                                          className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
+                                        >
+                                          Sell pieces
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    <div className="mt-4 pt-4 border-t border-gray-700">
+                                      <p className="text-xs text-gray-400 mb-2">
+                                        Use this token ID to request admin listing:
+                                      </p>
+                                      <div className="bg-gray-900 p-2 rounded text-xs font-mono">
+                                        Token ID: {nft.tokenId}
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Owned NFTs (you are a collector, not creator) */}
+                      {mintedOwnedNFTs.length > 0 && (
+                        <>
+                          <h4 className="text-xl font-semibold mb-2 text-white">Owned NFTs</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            {mintedOwnedNFTs.map((nft, index) => {
+                              const pieces = getMyPieces(nft);
+                              const mintedDate = new Date(
+                                nft.mintedAt || nft.redeemedAt || nft.createdAt || Date.now()
+                              ).toLocaleDateString();
+                              return (
+                                <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
+                                  <div className="mb-4 relative group overflow-hidden rounded-lg">
+                                    <img
+                                      src={nft.image}
+                                      alt={nft.name}
+                                      className="w-full h-48 object-cover rounded-lg"
+                                    />
+                                  </div>
+
+                                  <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
+                                  <div className="space-y-2 text-sm mb-4">
+                                    <p>
+                                      <span className="text-gray-400">Pieces:</span>{" "}
+                                      <span className="text-white">{pieces || 0}</span>
+                                    </p>
+                                    <p>
+                                      <span className="text-gray-400">Minted At:</span>{" "}
+                                      <span className="text-white">{mintedDate}</span>
+                                    </p>
+                                    <p>
+                                      <span className="text-gray-400">Network:</span>{" "}
+                                      <span className="text-white">{nft.network || "—"}</span>
+                                    </p>
+                                    <p>
+                                      <span className="text-gray-400">Collection:</span>{" "}
+                                      <span className="text-white">
+                                        {nft.collectionName || nft.collection || "—"}
+                                      </span>
+                                    </p>
+                                  </div>
+
+                                  {pieces > 0 && (
+                                    <button
+                                      onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
+                                      className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                                    >
+                                      Sell
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+          </>
+              );
+            })()}
+          </div>
+        )}
+      </main>
+      <SellModal
+        isOpen={!!sellModalNft}
+        onClose={() => setSellModalNft(null)}
+        nft={sellModalNft}
+      />
                     <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
                       <div className="mb-4 relative group overflow-hidden rounded-lg">
                         <img

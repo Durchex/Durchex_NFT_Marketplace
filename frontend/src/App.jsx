@@ -107,9 +107,16 @@ export default function App() {
         <div className="flex min-h-screen bg-black">
           {/* Fixed Sidebar */}
           <Sidebar />
-          
-          {/* Main Content Area - Responsive margin for desktop only */}
-          <div className="flex-1 md:ml-20">
+
+          {/* Main Column: Header (sticky) + Scrollable Content */}
+          <div className="flex-1 md:ml-20 flex flex-col min-h-screen">
+            {/* Global Header: connects visually with sidebar and stays fixed while scrolling */}
+            <header className="sticky top-0 z-40">
+              <Loading /> {/* Placeholder; real Header is used inside pages */}
+            </header>
+
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-y-auto">
           <Suspense fallback={<Loading />}>
             <Routes>
           <Route

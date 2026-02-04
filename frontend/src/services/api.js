@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Simple in-memory cache for heavy read endpoints (per-session)
+const allNftsByNetworkCache = new Map(); // key: network, value: { data, fetchedAt }
+
 // Helper function to normalize URL by removing non-standard ports
 function normalizeURL(url) {
   if (!url || typeof url !== 'string') return url;
@@ -846,12 +849,20 @@ export const nftAPI = {
 
   // Get all NFTs by network
   getAllNftsByNetwork: async (network) => {
+    const key = String(network || '').toLowerCase();
+    const cached = allNftsByNetworkCache.get(key);
+    // Reuse data for 60 seconds to avoid duplicate heavy fetches across components
+    if (cached && Date.now() - cached.fetchedAt < 60_000) {
+      return cached.data;
+    }
     try {
       const response = await api.get(`/nft/nfts/${network}`, {
         timeout: 45000,
         _maxRetries: 2,
       });
-      return response.data || [];
+      const data = response.data || [];
+      allNftsByNetworkCache.set(key, { data, fetchedAt: Date.now() });
+      return data;
     } catch (error) {
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         console.warn(`[getAllNftsByNetwork] Timeout for network ${network}. Returning empty array.`);
