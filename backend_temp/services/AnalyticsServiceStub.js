@@ -3,7 +3,6 @@
  */
 import { nftTradeModel } from '../models/nftTradeModel.js';
 import { nftModel } from '../models/nftModel.js';
-import { LazyNFT } from '../models/lazyNFTModel.js';
 
 function getTimeframeCutoff(timeframe) {
   const now = new Date();
