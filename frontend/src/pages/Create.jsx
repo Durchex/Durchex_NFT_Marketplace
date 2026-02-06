@@ -5,7 +5,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 import { nftAPI, lazyMintAPI, batchMintAPI } from "../services/api";
-import { getCurrencySymbol, getUsdValueFromCrypto, changeNetwork, SUPPORTED_NETWORKS } from "../Context/constants";
+import { getCurrencySymbol, getUsdValueFromCrypto, changeNetwork, SUPPORTED_NETWORKS, getContractAddresses, getNftLiquidityContractWithSigner } from "../Context/constants";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { TiUpload } from "react-icons/ti";
 import { FiArrowLeft } from "react-icons/fi";
@@ -270,8 +270,50 @@ export default function Create() {
       });
 
       if (response.success) {
-        toast.success(`✅ NFT "${lazyMintForm.name}" is now available for sale!`);
-        // Reset form
+        const newItemId = response.lazyNFT?.id;
+        const addrs = getContractAddresses(selectedNetwork);
+        const hasLiquidityContracts = addrs?.nftLiquidity && addrs?.multiPieceLazyMint && creatorAddress;
+
+        if (hasLiquidityContracts) {
+          try {
+            toast.loading('Creating liquidity pool…', { id: 'create-pool' });
+            await changeNetwork?.(selectedNetwork);
+            const piecesNum = Math.max(1, parseInt(lazyMintForm.pieces, 10) || 1);
+            const priceWei = ethers.utils.parseEther(String(lazyMintForm.price || '0'));
+            const listingIdBytes32 = ethers.utils.solidityKeccak256(
+              ['address', 'string', 'uint256', 'uint256', 'uint256'],
+              [creatorAddress, lazyMintIpfsURI, Number(lazyMintForm.royaltyPercentage || 0), priceWei, piecesNum]
+            );
+            const nftTokenIdUint = ethers.BigNumber.from(listingIdBytes32);
+            const liquidityContract = await getNftLiquidityContractWithSigner(selectedNetwork);
+            if (!liquidityContract) throw new Error('Could not connect to liquidity contract');
+            const tx = await liquidityContract.createPool(
+              addrs.multiPieceLazyMint,
+              nftTokenIdUint,
+              piecesNum,
+              priceWei,
+              priceWei,
+              0,
+              { value: 0 }
+            );
+            const receipt = await tx.wait();
+            const poolCreated = receipt.events?.find(e => e.event === 'PoolCreated');
+            const pieceId = poolCreated?.args?.pieceId != null ? (typeof poolCreated.args.pieceId === 'object' && poolCreated.args.pieceId.toString ? poolCreated.args.pieceId.toString() : String(poolCreated.args.pieceId)) : null;
+            if (pieceId != null) {
+              await nftAPI.attachLiquidityPool(selectedNetwork, newItemId, {
+                liquidityContract: addrs.nftLiquidity,
+                liquidityPieceId: pieceId,
+              });
+            }
+            toast.success(`✅ NFT "${lazyMintForm.name}" is live with a liquidity pool!`, { id: 'create-pool' });
+          } catch (poolErr) {
+            console.error('Liquidity pool creation failed:', poolErr);
+            toast.success(`✅ NFT "${lazyMintForm.name}" is available for sale. (Pool creation skipped: ${poolErr.message || 'see console'})`, { id: 'create-pool' });
+          }
+        } else {
+          toast.success(`✅ NFT "${lazyMintForm.name}" is now available for sale!`);
+        }
+
         setTimeout(() => {
           setLazyMintStep(1);
           setLazyMintForm({ name: '', description: '', royaltyPercentage: 10, pieces: 1, price: '', floorPrice: '', category: '', network: selectedChain || "polygon", enableStraightBuy: true });

@@ -367,6 +367,34 @@ export const NftLiquidity_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'nftContract', type: 'address' },
+      { name: 'nftTokenId', type: 'uint256' },
+      { name: 'totalPieces', type: 'uint256' },
+      { name: 'buyPricePerPiece', type: 'uint256' },
+      { name: 'sellPricePerPiece', type: 'uint256' },
+      { name: 'initialReserve', type: 'uint256' },
+    ],
+    name: 'createPool',
+    outputs: [{ name: 'pieceId', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: 'pieceId', type: 'uint256' },
+      { indexed: true, name: 'nftContract', type: 'address' },
+      { indexed: true, name: 'nftTokenId', type: 'uint256' },
+      { indexed: false, name: 'creator', type: 'address' },
+      { indexed: false, name: 'totalPieces', type: 'uint256' },
+      { indexed: false, name: 'buyPricePerPiece', type: 'uint256' },
+      { indexed: false, name: 'sellPricePerPiece', type: 'uint256' },
+    ],
+    name: 'PoolCreated',
+    type: 'event',
+  },
 ];
 
 // Default LazyMint address for local/dev (e.g. Hardhat). Set VITE_APP_LAZY_MINT_CONTRACT_ADDRESS for real deployments.

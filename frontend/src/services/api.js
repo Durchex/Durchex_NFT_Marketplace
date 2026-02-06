@@ -1072,6 +1072,15 @@ export const nftAPI = {
     return response.data;
   },
 
+  // ——— Attach on-chain liquidity pool to an NFT (after createPool)
+  attachLiquidityPool: async (network, itemId, { liquidityContract, liquidityPieceId }) => {
+    const response = await api.post(`/nft/nfts/${network}/${itemId}/liquidity`, {
+      liquidityContract,
+      liquidityPieceId: String(liquidityPieceId),
+    });
+    return response.data;
+  },
+
   // ——— Direct liquidity sell-back helpers ———
   quoteSellToLiquidity: async ({ network, itemId, quantity }) => {
     const response = await api.get('/nft/liquidity/quote-sell', {
