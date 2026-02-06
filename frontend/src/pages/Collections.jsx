@@ -29,29 +29,38 @@ const Collections = () => {
       const allCollectionsData = await nftAPI.getCollections();
       
       if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Fetch NFTs to calculate stats
+        // Fetch NFTs to calculate stats across networks IN PARALLEL (faster)
         const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
         let allNFTs = [];
-        
-        for (const network of networks) {
-          try {
-            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-            if (Array.isArray(networkNfts)) {
-              console.log(`[Collections] Fetched ${networkNfts.length} NFTs from ${network}`);
-              if (networkNfts.length > 0) {
-                console.log(`[Collections] Sample NFT from ${network}:`, {
-                  name: networkNfts[0].name,
-                  price: networkNfts[0].price,
-                  floorPrice: networkNfts[0].floorPrice,
-                  collection: networkNfts[0].collection
-                });
+
+        const results = await Promise.allSettled(
+          networks.map(async (network) => {
+            try {
+              const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+              if (Array.isArray(networkNfts)) {
+                console.log(`[Collections] Fetched ${networkNfts.length} NFTs from ${network}`);
+                if (networkNfts.length > 0) {
+                  console.log(`[Collections] Sample NFT from ${network}:`, {
+                    name: networkNfts[0].name,
+                    price: networkNfts[0].price,
+                    floorPrice: networkNfts[0].floorPrice,
+                    collection: networkNfts[0].collection
+                  });
+                }
+                return networkNfts;
               }
-              allNFTs = [...allNFTs, ...networkNfts];
+            } catch (err) {
+              console.warn(`Error fetching ${network} NFTs:`, err.message);
             }
-          } catch (err) {
-            console.warn(`Error fetching ${network} NFTs:`, err.message);
+            return [];
+          })
+        );
+
+        results.forEach((res) => {
+          if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+            allNFTs = allNFTs.concat(res.value);
           }
-        }
+        });
         
         // ✅ De-duplicate NFTs that may be returned for multiple networks
         const uniqueMap = new Map();

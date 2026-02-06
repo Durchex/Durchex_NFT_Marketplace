@@ -36,6 +36,51 @@ export const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || import.meta.env.VIT
 export const shortenAddress = (address) =>
   `${address?.slice(0, 4)}...${address?.slice(-4)}`;
 
+// Canonical network metadata, including official token symbols and icon URLs.
+// Icon URLs use widely adopted public logo CDNs (e.g. cryptologos).
+export const NETWORK_META = {
+  ethereum: {
+    name: "Ethereum",
+    symbol: "ETH",
+    icon: "https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=035",
+  },
+  polygon: {
+    name: "Polygon",
+    symbol: "MATIC",
+    icon: "https://cryptologos.cc/logos/polygon-matic-logo.svg?v=035",
+  },
+  bsc: {
+    name: "Binance Smart Chain",
+    symbol: "BNB",
+    icon: "https://cryptologos.cc/logos/binance-coin-bnb-logo.svg?v=035",
+  },
+  arbitrum: {
+    name: "Arbitrum One",
+    symbol: "ETH",
+    icon: "https://cryptologos.cc/logos/arbitrum-arb-logo.svg?v=035",
+  },
+  base: {
+    name: "Base",
+    symbol: "ETH",
+    icon: "https://cryptologos.cc/logos/base-base-logo.svg?v=035",
+  },
+  avalanche: {
+    name: "Avalanche",
+    symbol: "AVAX",
+    icon: "https://cryptologos.cc/logos/avalanche-avax-logo.svg?v=035",
+  },
+  solana: {
+    name: "Solana",
+    symbol: "SOL",
+    icon: "https://cryptologos.cc/logos/solana-sol-logo.svg?v=035",
+  },
+  tezos: {
+    name: "Tezos",
+    symbol: "XTZ",
+    icon: "https://cryptologos.cc/logos/tezos-xtz-logo.svg?v=035",
+  },
+};
+
 export const getCurrencySymbol = (chainOrNetwork) => {
   if (!chainOrNetwork) return 'ETH';
 
@@ -78,6 +123,7 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   // Fallback: normalize typical network keys (polygon, ethereum, bsc, arbitrum, base, solana)
   const lower = value.toLowerCase();
+  if (lower in NETWORK_META) return NETWORK_META[lower].symbol;
   if (lower.includes('polygon') || lower === 'matic') return 'MATIC';
   if (lower.includes('ethereum') || lower === 'eth') return 'ETH';
   if (lower.includes('arbitrum') || lower === 'arb') return 'ETH';
@@ -92,6 +138,24 @@ export const getCurrencySymbol = (chainOrNetwork) => {
 
   // Default
   return 'ETH';
+};
+
+// Return a normalized network meta object (name, symbol, icon) for any input
+export const getNetworkMeta = (chainOrNetwork) => {
+  if (!chainOrNetwork) return NETWORK_META.ethereum;
+  const value = chainOrNetwork.toString();
+  const lower = value.toLowerCase();
+  if (NETWORK_META[lower]) return NETWORK_META[lower];
+  if (lower.includes('polygon')) return NETWORK_META.polygon;
+  if (lower.includes('ethereum') || lower === 'eth') return NETWORK_META.ethereum;
+  if (lower.includes('arbitrum') || lower === 'arb') return NETWORK_META.arbitrum;
+  if (lower === 'bsc' || lower.includes('binance')) return NETWORK_META.bsc;
+  if (lower.includes('avalanche') || lower === 'avax') return NETWORK_META.avalanche;
+  if (lower.includes('base')) return NETWORK_META.base;
+  if (lower.includes('solana') || lower === 'sol') return NETWORK_META.solana;
+  if (lower.includes('tezos') || lower === 'xtz') return NETWORK_META.tezos;
+  // Fallback to Ethereum meta
+  return NETWORK_META.ethereum;
 };
 
 // Simple helper to approximate USD value for a token amount on a given network/token symbol.

@@ -55,22 +55,30 @@ const ExploreNFTsGrid = () => {
       if (!silent) setLoading(true);
       if (!silent) console.log('[ExploreNFTsGrid] Fetching NFTs from all networks...');
       
-      // ✅ Fetch real NFTs from all networks
-      let nftsData = [];
+      // ✅ Fetch real NFTs from all networks IN PARALLEL (faster first paint)
       const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
-      for (const network of networks) {
-        try {
-          console.log(`[ExploreNFTsGrid] Fetching NFTs from ${network}...`);
-          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts)) {
-            console.log(`[ExploreNFTsGrid] Found ${networkNfts.length} NFTs on ${network}`);
-            nftsData = [...nftsData, ...networkNfts];
+      const results = await Promise.allSettled(
+        networks.map(async (network) => {
+          try {
+            console.log(`[ExploreNFTsGrid] Fetching NFTs from ${network}...`);
+            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+            if (Array.isArray(networkNfts)) {
+              console.log(`[ExploreNFTsGrid] Found ${networkNfts.length} NFTs on ${network}`);
+              return networkNfts;
+            }
+          } catch (err) {
+            console.warn(`[ExploreNFTsGrid] Error fetching from ${network}:`, err.message);
           }
-        } catch (err) {
-          console.warn(`[ExploreNFTsGrid] Error fetching from ${network}:`, err.message);
+          return [];
+        })
+      );
+
+      let nftsData = [];
+      results.forEach((res) => {
+        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          nftsData = nftsData.concat(res.value);
         }
-      }
+      });
 
       if (nftsData && nftsData.length > 0) {
         // ✅ De-duplicate NFTs that may appear under multiple networks

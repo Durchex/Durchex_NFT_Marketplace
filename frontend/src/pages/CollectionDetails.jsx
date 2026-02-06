@@ -117,21 +117,28 @@ export default function CollectionDetails() {
           setIsOwner(true);
         }
 
-        // 3. Fetch NFTs from all networks
+        // 3. Fetch NFTs from all networks IN PARALLEL
         console.log('📥 Fetching NFTs for collection:', collectionId);
         const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
         let allNFTs = [];
 
-        for (const network of networks) {
-          try {
-            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-            if (networkNfts && Array.isArray(networkNfts)) {
-              allNFTs = [...allNFTs, ...networkNfts];
+        const results = await Promise.allSettled(
+          networks.map(async (network) => {
+            try {
+              const networkNfts = await nftAPI.getAllNftsByNetwork(network);
+              return networkNfts && Array.isArray(networkNfts) ? networkNfts : [];
+            } catch (err) {
+              console.warn(`⚠️ Error fetching ${network}:`, err.message);
+              return [];
             }
-          } catch (err) {
-            console.warn(`⚠️ Error fetching ${network}:`, err.message);
+          })
+        );
+
+        results.forEach((res) => {
+          if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+            allNFTs = allNFTs.concat(res.value);
           }
-        }
+        });
 
         // ✅ De-duplicate NFTs that may appear under multiple networks
         const uniqueMap = new Map();
