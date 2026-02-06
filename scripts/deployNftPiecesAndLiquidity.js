@@ -14,7 +14,7 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "ETH");
+  console.log("Account balance:", hre.ethers.utils.formatEther(balance), "ETH");
 
   const baseUri = process.env.NFT_PIECES_BASE_URI || "https://api.durchex.com/metadata/pieces/";
   const platformFeeReceiver = process.env.PLATFORM_FEE_RECEIVER || deployer.address;

@@ -17,7 +17,7 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying CreatorLiquidity with account:", deployer.address);
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Deployer balance:", hre.ethers.formatEther(balance), "ETH");
+  console.log("Deployer balance:", hre.ethers.utils.formatEther(balance), "ETH");
 
   const piecesAddress = process.env.NFT_PIECES_ADDRESS;
   if (!piecesAddress) {
