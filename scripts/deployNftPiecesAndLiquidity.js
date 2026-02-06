@@ -22,7 +22,8 @@ async function main() {
   // 1. Deploy NftPieces (liquidity contract not yet deployed, pass zero)
   console.log("\n1. Deploying NftPieces (ERC-1155)...");
   const NftPieces = await hre.ethers.getContractFactory("NftPieces");
-  const pieces = await NftPieces.deploy(baseUri, hre.ethers.ZeroAddress);
+  // Use AddressZero from ethers v5 constants (ZeroAddress is v6-only)
+  const pieces = await NftPieces.deploy(baseUri, hre.ethers.constants.AddressZero);
   await pieces.waitForDeployment();
   const piecesAddress = await pieces.getAddress();
   console.log("NftPieces deployed to:", piecesAddress);
