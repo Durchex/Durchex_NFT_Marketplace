@@ -182,41 +182,45 @@ function MyMintedNFTs() {
       });
 
       const hasOnChainPool = quote.liquidityContract && quote.liquidityPieceId != null;
+      if (!hasOnChainPool) {
+        ErrorToast("Sell requires an on-chain liquidity pool. This NFT has no pool; connect your wallet to sell when a pool is available.");
+        setSellPiecesSubmitting(false);
+        return;
+      }
+
+      // Sell always goes through the wallet (on-chain): approve then sellPieces
       let transactionHash = null;
       let pricePerPiece = quote.pricePerPiece;
       let totalAmount = quote.totalProceeds;
 
-      if (hasOnChainPool) {
-        // 2a. On-chain pool: approve liquidity to move pieces, then sell (transfer out of seller + credit)
-        await changeNetwork(nft.network);
-        const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
-        const liquidityAddress = quote.liquidityContract || getContractAddresses(nft.network)?.nftLiquidity;
-        if (liquidityContract && liquidityAddress) {
-          const pieceIdWei = quote.liquidityPieceId;
-          const quantityWei = String(qty);
-          const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
-          const netBn = ethers.BigNumber.from(netProceedsWei);
-          pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
-          totalAmount = ethers.utils.formatEther(netBn);
-          // Ensure NftPieces allows liquidity contract to transfer seller's pieces (required for sellPieces)
-          const piecesContract = await getNftPiecesContractWithSigner(nft.network, liquidityAddress);
-          if (piecesContract) {
-            const approved = await piecesContract.isApprovedForAll(address, liquidityAddress);
-            if (!approved) {
-              toast.loading("Approving pieces for sell…", { id: "approve-pieces" });
-              const approveTx = await piecesContract.setApprovalForAll(liquidityAddress, true);
-              await approveTx.wait();
-              toast.success("Approval confirmed. Selling…", { id: "approve-pieces" });
-            }
-          }
-          const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
-          const receipt = await tx.wait();
-          transactionHash = receipt?.transactionHash || receipt?.hash || null;
-        }
+      await changeNetwork(nft.network);
+      const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
+      const liquidityAddress = quote.liquidityContract || getContractAddresses(nft.network)?.nftLiquidity;
+      if (!liquidityContract || !liquidityAddress) {
+        ErrorToast("Could not connect to liquidity contract. Check network and try again.");
+        setSellPiecesSubmitting(false);
+        return;
       }
-      // 2b. No on-chain pool: creator's wallet is the liquidity pool — record sell; creator pays seller (handled by creator/platform)
 
-      // 3. Sync backend (record sell: pieces deducted from seller, returned to creator pool; trade history updated)
+      const pieceIdWei = quote.liquidityPieceId;
+      const quantityWei = String(qty);
+      const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
+      const netBn = ethers.BigNumber.from(netProceedsWei);
+      pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
+      totalAmount = ethers.utils.formatEther(netBn);
+
+      // Enforced: always ensure approval before sell (required for transfer + payment)
+      await ensurePiecesApprovalForLiquidity(nft.network, address, liquidityAddress, {
+        onApproving: () => toast.loading("Approving pieces for sell…", { id: "approve-pieces" }),
+        onApproved: () => toast.success("Approval confirmed. Selling…", { id: "approve-pieces" }),
+      });
+
+      // Sell pieces (wallet prompt — transfers pieces out, credits seller)
+      const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
+      const receipt = await tx.wait();
+      transactionHash = receipt?.transactionHash || receipt?.hash || null;
+
+      // Sync backend after on-chain sell
       await nftAPI.pieceSellBackToLiquidity({
         network: nft.network,
         itemId: nft.itemId,
@@ -227,9 +231,7 @@ function MyMintedNFTs() {
         transactionHash,
       });
 
-      SuccessToast(hasOnChainPool && transactionHash
-        ? "Pieces sold. You received payment from the liquidity pool."
-        : "Sell recorded. Your pieces are returned to the creator (liquidity pool); payment is from the creator.");
+      SuccessToast("Pieces sold. You received payment from the liquidity pool.");
       setSellPiecesModal(null);
       setSellPiecesQty(1);
       setSellPiecesQuote(null);

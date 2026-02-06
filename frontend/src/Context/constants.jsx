@@ -858,6 +858,35 @@ export const getNftPiecesContractWithSigner = async (networkName, liquidityContr
   }
 };
 
+/**
+ * Enforce approval before sell: ensure the liquidity contract is approved to transfer
+ * the user's pieces (NftPieces). Must be called before every sellPieces() so the transfer
+ * and payment succeed. Throws if approval cannot be ensured.
+ * @param {string} networkName
+ * @param {string} userAddress - seller (msg.sender for the upcoming sell)
+ * @param {string} liquidityContractAddress
+ * @param {{ onApproving?: () => void, onApproved?: () => void }} [callbacks] - optional toasts/UI
+ * @returns {Promise<void>}
+ */
+export const ensurePiecesApprovalForLiquidity = async (
+  networkName,
+  userAddress,
+  liquidityContractAddress,
+  callbacks = {}
+) => {
+  const piecesContract = await getNftPiecesContractWithSigner(networkName, liquidityContractAddress);
+  if (!piecesContract) {
+    throw new Error("Could not connect to pieces contract. Approval is required before selling.");
+  }
+  const approved = await piecesContract.isApprovedForAll(userAddress, liquidityContractAddress);
+  if (!approved) {
+    callbacks.onApproving?.();
+    const approveTx = await piecesContract.setApprovalForAll(liquidityContractAddress, true);
+    await approveTx.wait();
+    callbacks.onApproved?.();
+  }
+};
+
 export const getVendorNFTContracts = async (networkName) => {
   try {
     const rpcUrl = rpcUrls[networkName];
