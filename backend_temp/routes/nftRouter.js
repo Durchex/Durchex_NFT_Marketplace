@@ -34,6 +34,7 @@ import {
   getNftTrades,
   getNftAnalytics,
   getNftRarityRank,
+  attachLiquidityPool,
   quoteSellToLiquidity,
   pieceSellBackToLiquidity,
 } from "../controllers/nftController.js"; // Adjust path & file accordingly
@@ -54,6 +55,8 @@ router.post("/nfts/piece-sell-orders/:orderId/fill", fillPieceSellOrder);
 // Direct liquidity sell-back (quote + post-chain sync)
 router.get("/liquidity/quote-sell", quoteSellToLiquidity);
 router.post("/nfts/piece-sell-back", pieceSellBackToLiquidity);
+// Attach on-chain liquidity pool (CreatorLiquidity / NftLiquidity) to an NFT
+router.post("/nfts/:network/:itemId/liquidity", attachLiquidityPool);
 
 // Pending transfers (post-buy sync)
 router.post("/pending-transfers", createPendingTransfer);

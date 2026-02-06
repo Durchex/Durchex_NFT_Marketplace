@@ -186,6 +186,60 @@ export const createCollection = async (req, res) => {
   }
 };
 
+/**
+ * POST /nfts/:network/:itemId/liquidity
+ * Attach or update on-chain liquidity pool info for an NFT (regular or LazyNFT).
+ * Body: { liquidityContract: string, liquidityPieceId: string | number }
+ */
+export const attachLiquidityPool = async (req, res) => {
+  try {
+    const { network, itemId } = req.params;
+    const { liquidityContract, liquidityPieceId } = req.body || {};
+
+    if (!network || !itemId || !liquidityContract || liquidityPieceId === undefined || liquidityPieceId === null) {
+      return res.status(400).json({
+        error: "network, itemId, liquidityContract, and liquidityPieceId are required",
+      });
+    }
+
+    const net = String(network).toLowerCase();
+    const itemIdStr = String(itemId);
+    const pieceIdStr = String(liquidityPieceId);
+
+    // Try regular nftModel first
+    let updated = await nftModel.findOneAndUpdate(
+      { network: net, itemId: itemIdStr },
+      { $set: { liquidityContract, liquidityPieceId: pieceIdStr } },
+      { new: true }
+    ).lean();
+
+    if (!updated && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      // Fallback to LazyNFT by Mongo _id
+      updated = await LazyNFT.findByIdAndUpdate(
+        itemIdStr,
+        { $set: { liquidityContract, liquidityPieceId: pieceIdStr } },
+        { new: true }
+      ).lean();
+    }
+
+    if (!updated) {
+      return res.status(404).json({ error: "NFT not found for attaching liquidity" });
+    }
+
+    return res.json({
+      success: true,
+      network: net,
+      itemId: itemIdStr,
+      liquidityContract,
+      liquidityPieceId: pieceIdStr,
+      nft: updated,
+    });
+  } catch (error) {
+    console.error("Error attaching liquidity pool:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 export const getCollection = async (req, res) => {
   try {
     const { collectionId } = req.params;
