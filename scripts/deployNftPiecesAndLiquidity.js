@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 /**
  * Deploy NftPieces (ERC-1155) and NftLiquidity (on-chain buy/sell pieces, fees, royalties).
- * Run: npx hardhat run scripts/deployNftPiecesAndLiquidity.js --network <network>
- * Requires: PRIVATE_KEY, and for sepolia: SEPOLIA_RPC_URL.
+ *
+ * Usage (ESM project):
+ *   npx hardhat run scripts/deployNftPiecesAndLiquidity.js --network <network>
+ *
+ * Requires: PRIVATE_KEY and appropriate RPC URL in Hardhat config.
  */
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -45,9 +48,7 @@ async function main() {
   console.log("\nNext: Set VITE_APP_NFT_PIECES_CONTRACT_ADDRESS and VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS (and _POLYGON, _ETHEREUM, etc.) in frontend .env");
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
