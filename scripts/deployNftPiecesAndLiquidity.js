@@ -24,16 +24,16 @@ async function main() {
   const NftPieces = await hre.ethers.getContractFactory("NftPieces");
   // Use AddressZero from ethers v5 constants (ZeroAddress is v6-only)
   const pieces = await NftPieces.deploy(baseUri, hre.ethers.constants.AddressZero);
-  await pieces.waitForDeployment();
-  const piecesAddress = await pieces.getAddress();
+  await pieces.deployed(); // ethers v5 style
+  const piecesAddress = pieces.address;
   console.log("NftPieces deployed to:", piecesAddress);
 
   // 2. Deploy NftLiquidity
   console.log("\n2. Deploying NftLiquidity...");
   const NftLiquidity = await hre.ethers.getContractFactory("NftLiquidity");
   const liquidity = await NftLiquidity.deploy(piecesAddress, deployer.address);
-  await liquidity.waitForDeployment();
-  const liquidityAddress = await liquidity.getAddress();
+  await liquidity.deployed(); // ethers v5 style
+  const liquidityAddress = liquidity.address;
   console.log("NftLiquidity deployed to:", liquidityAddress);
 
   // 3. Set liquidity contract on NftPieces so it can call registerAndMint
