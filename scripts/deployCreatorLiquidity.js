@@ -4,14 +4,14 @@
  * NftPieces ERC-1155 contract.
  *
  * Usage:
- *   PRIVATE_KEY=... SEPOLIA_RPC_URL=... NFT_PIECES_ADDRESS=0x... npx hardhat run scripts/deployCreatorLiquidity.js --network sepolia
+ *   NFT_PIECES_ADDRESS=0x... PLATFORM_FEE_RECEIVER=0x... npx hardhat run scripts/deployCreatorLiquidity.js --network base
  *
  * Env:
  *   - NFT_PIECES_ADDRESS: address of an already-deployed NftPieces contract
  *   - PLATFORM_FEE_RECEIVER (optional): address to receive platform fees
  */
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
@@ -35,9 +35,7 @@ async function main() {
   console.log("CreatorLiquidity deployed to:", liquidityAddress);
 
   console.log("\n3. (Optional) Point NftPieces.liquidityContract to CreatorLiquidity if you want it as the default pool:");
-  console.log("   - From a Hardhat task or script, call:");
-  console.log("       const pieces = await hre.ethers.getContractAt('NftPieces', '" + piecesAddress + "');");
-  console.log("       await pieces.setLiquidityContract('" + liquidityAddress + "');");
+  console.log(`   - Call: pieces.setLiquidityContract("${liquidityAddress}") on NftPieces at ${piecesAddress}`);
 
   console.log("\n--- Summary ---");
   console.log("NftPieces:", piecesAddress);
@@ -49,10 +47,8 @@ async function main() {
   console.log(" 3) Store { liquidityContract, liquidityPieceId } for that NFT in your backend (nftModel / LazyNFT)");
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
 
