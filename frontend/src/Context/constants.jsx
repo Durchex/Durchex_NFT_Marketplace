@@ -341,8 +341,49 @@ export const MultiPieceLazyMintNFT_ABI = [
   },
 ];
 
+// Minimal ABI for NftPieces (ERC-1155) — approval for sell-back to liquidity
+export const NftPieces_ABI = [
+  {
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'id', type: 'uint256' },
+    ],
+    name: 'balanceOf',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'operator', type: 'address' },
+    ],
+    name: 'isApprovedForAll',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'operator', type: 'address' },
+      { name: 'approved', type: 'bool' },
+    ],
+    name: 'setApprovalForAll',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+];
+
 // Minimal ABI for NftLiquidity (sell pieces back to pool)
 export const NftLiquidity_ABI = [
+  {
+    inputs: [],
+    name: 'piecesContract',
+    outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
   {
     inputs: [
       { name: 'pieceId', type: 'uint256' },
@@ -795,6 +836,24 @@ export const getNftLiquidityContractWithSigner = async (networkName, contractAdd
     return new ethers.Contract(address, NftLiquidity_ABI, signer);
   } catch (error) {
     console.error(`Error fetching NftLiquidity contract (signer) for ${networkName}:`, error);
+    return null;
+  }
+};
+
+/** NftPieces contract with signer (for setApprovalForAll before sell-back). Gets pieces address from liquidity contract if not provided. */
+export const getNftPiecesContractWithSigner = async (networkName, liquidityContractAddressOverride = null) => {
+  try {
+    if (typeof window?.ethereum === "undefined") return null;
+    const liquidityAddress = liquidityContractAddressOverride || getContractAddresses(networkName)?.nftLiquidity;
+    if (!liquidityAddress) return null;
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    const liquidity = new ethers.Contract(liquidityAddress, NftLiquidity_ABI, signer);
+    const piecesAddress = await liquidity.piecesContract();
+    if (!piecesAddress || piecesAddress === ethers.constants.AddressZero) return null;
+    return new ethers.Contract(piecesAddress, NftPieces_ABI, signer);
+  } catch (error) {
+    console.error(`Error fetching NftPieces contract (signer) for ${networkName}:`, error);
     return null;
   }
 };

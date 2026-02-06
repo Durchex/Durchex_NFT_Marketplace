@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 import { ethers } from "ethers";
-import { getNftLiquidityContractWithSigner, changeNetwork, getCurrencySymbol } from "../Context/constants";
+import { getNftLiquidityContractWithSigner, getNftPiecesContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
@@ -187,16 +187,28 @@ function MyMintedNFTs() {
       let totalAmount = quote.totalProceeds;
 
       if (hasOnChainPool) {
-        // 2a. On-chain pool: wallet opens, user gets paid by contract
+        // 2a. On-chain pool: approve liquidity to move pieces, then sell (transfer out of seller + credit)
         await changeNetwork(nft.network);
         const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
-        if (liquidityContract) {
+        const liquidityAddress = quote.liquidityContract || getContractAddresses(nft.network)?.nftLiquidity;
+        if (liquidityContract && liquidityAddress) {
           const pieceIdWei = quote.liquidityPieceId;
           const quantityWei = String(qty);
           const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
           const netBn = ethers.BigNumber.from(netProceedsWei);
           pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
           totalAmount = ethers.utils.formatEther(netBn);
+          // Ensure NftPieces allows liquidity contract to transfer seller's pieces (required for sellPieces)
+          const piecesContract = await getNftPiecesContractWithSigner(nft.network, liquidityAddress);
+          if (piecesContract) {
+            const approved = await piecesContract.isApprovedForAll(address, liquidityAddress);
+            if (!approved) {
+              toast.loading("Approving pieces for sell…", { id: "approve-pieces" });
+              const approveTx = await piecesContract.setApprovalForAll(liquidityAddress, true);
+              await approveTx.wait();
+              toast.success("Approval confirmed. Selling…", { id: "approve-pieces" });
+            }
+          }
           const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
           const receipt = await tx.wait();
           transactionHash = receipt?.transactionHash || receipt?.hash || null;
