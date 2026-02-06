@@ -1250,11 +1250,13 @@ export const fetchAllNftsByNetwork = async (req, res) => {
     // Fetch regular NFTs that are currently listed
     const regularNfts = await nftModel.find({ network: net, currentlyListed: true });
 
-    // Fetch lazy NFTs from lazy_nfts table: pending, same network, available for sale
+    // Fetch lazy NFTs from lazy_nfts table on this network.
+    // IMPORTANT: We include both actively selling AND sold-out lazy mints so they
+    // remain visible on the marketplace (sold-out == "no pieces left" but still discoverable).
+    // Actual "can mint/buy more pieces" logic is handled on the frontend using remainingPieces.
     const lazyNfts = await LazyNFT.find({
       network: net,
-      status: 'pending',
-      enableStraightBuy: true,
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
       expiresAt: { $gt: new Date() },
     }).populate('collection');
 
