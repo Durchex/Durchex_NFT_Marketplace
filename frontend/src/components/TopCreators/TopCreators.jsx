@@ -184,7 +184,7 @@ const TopCreators = () => {
           <div
             key={creator.address}
             className="group bg-gray-800/30 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-purple-600/50 transition cursor-pointer"
-            onClick={() => navigate(`/profile/${creator.address}`)}
+            onClick={() => navigate(`/creator/${creator.address}`)}
           >
             <div className="flex flex-col items-center text-center">
               {/* Rank Number */}
@@ -192,12 +192,12 @@ const TopCreators = () => {
                 {idx + 1}
               </div>
               
-              {/* Avatar - Clickable */}
+              {/* Avatar - Clickable (go to creator profile page) */}
               <div 
                 className="mb-2 sm:mb-3 cursor-pointer relative"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/profile/${creator.address}`);
+                  navigate(`/creator/${creator.address}`);
                 }}
               >
                 <img
