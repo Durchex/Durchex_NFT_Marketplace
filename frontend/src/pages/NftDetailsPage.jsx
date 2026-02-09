@@ -5,8 +5,9 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
 import SellModal from '../components/SellModal';
+import { ethers } from 'ethers';
 import { nftAPI, engagementAPI, userAPI } from '../services/api';
-import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress } from '../Context/constants';
+import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress, getNftLiquidityContractWithSigner, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
 import { useCart } from '../Context/CartContext';
 import toast from 'react-hot-toast';
@@ -29,6 +30,8 @@ const NftDetailsPage = () => {
   const [analytics, setAnalytics] = useState(null);
   const [rarity, setRarity] = useState(null);
   const [creatorDisplayName, setCreatorDisplayName] = useState(null);
+  const [marketBuyQuantity, setMarketBuyQuantity] = useState(1);
+  const [marketBuyLoading, setMarketBuyLoading] = useState(false);
 
   useEffect(() => {
     fetchNftDetails();
@@ -225,6 +228,53 @@ const NftDetailsPage = () => {
       setLiked((prev) => !prev);
     } catch (err) {
       console.error('Failed to toggle like:', err);
+    }
+  };
+
+  const hasLiquidityPool = !!(nft?.liquidityContract && nft?.liquidityPieceId != null);
+  const handleBuyAtMarket = async () => {
+    if (!nft || !address || !hasLiquidityPool) return;
+    const qty = Math.max(1, parseInt(marketBuyQuantity, 10) || 1);
+    const network = (nft.network || 'polygon').toLowerCase().trim();
+    setMarketBuyLoading(true);
+    try {
+      await window.ethereum?.request({ method: 'eth_requestAccounts' });
+      await changeNetwork(network);
+      const liquidityContract = await getNftLiquidityContractWithSigner(network, nft.liquidityContract);
+      if (!liquidityContract) {
+        toast.error('Could not connect to liquidity contract. Check network.');
+        return;
+      }
+      const pieceIdWei = nft.liquidityPieceId;
+      const [totalCostWei] = await liquidityContract.getBuyQuote(pieceIdWei, String(qty));
+      const totalCost = ethers.BigNumber.from(totalCostWei);
+      const tx = await liquidityContract.buyPieces(pieceIdWei, qty, { value: totalCost });
+      const receipt = await tx.wait();
+      const pricePerPiece = totalCost.div(qty);
+      await nftAPI.recordPoolPurchase({
+        network,
+        itemId: nft.itemId || nft._id?.toString() || id,
+        buyer: address,
+        quantity: qty,
+        pricePerPiece: ethers.utils.formatEther(pricePerPiece),
+        totalAmount: ethers.utils.formatEther(totalCost),
+        transactionHash: receipt?.transactionHash || receipt?.hash || null,
+      });
+      toast.success(qty > 1 ? `${qty} pieces bought at market price.` : 'Bought at market price.');
+      fetchNftDetails();
+    } catch (err) {
+      console.error('Buy at market error:', err);
+      const code = err?.code ?? err?.error?.code;
+      const msg = String(err?.message || err?.error?.message || '');
+      if (code === 4001 || msg.toLowerCase().includes('rejected')) {
+        toast.error('Transaction rejected.');
+      } else if (msg.includes('Insufficient payment') || msg.includes('pieces')) {
+        toast.error('Insufficient liquidity or wrong amount. Try a smaller quantity.');
+      } else {
+        toast.error(msg || 'Buy at market failed.');
+      }
+    } finally {
+      setMarketBuyLoading(false);
     }
   };
 
@@ -449,11 +499,35 @@ const NftDetailsPage = () => {
                 const isOwner = address && nft.owner && (address.toLowerCase() === nft.owner.toLowerCase());
                 const mintId = nft.itemId ?? nft._id ?? id;
                 if (!hasPieces) {
+                  const soldOutHasPool = !!(nft.liquidityContract && nft.liquidityPieceId != null);
                   return (
                     <>
                       <button disabled className="w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
                         Sold Out
                       </button>
+                      {soldOutHasPool && address && (
+                        <div className="space-y-2">
+                          <p className="text-gray-400 text-sm">Buy at current market price (from liquidity pool)</p>
+                          <div className="flex items-center gap-3">
+                            <label className="text-gray-400 text-sm">Pieces</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={marketBuyQuantity}
+                              onChange={(e) => setMarketBuyQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                              className="w-24 bg-black/50 border border-purple-500/40 rounded-lg px-3 py-2 text-white text-center focus:ring-2 focus:ring-purple-500/50"
+                            />
+                          </div>
+                          <button
+                            onClick={handleBuyAtMarket}
+                            disabled={marketBuyLoading}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <FiDollarSign />
+                            {marketBuyLoading ? 'Opening wallet…' : 'Buy at market price'}
+                          </button>
+                        </div>
+                      )}
                       <button onClick={() => setOfferModalOpen(true)} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                         <FiDollarSign /> Make Offer
                       </button>

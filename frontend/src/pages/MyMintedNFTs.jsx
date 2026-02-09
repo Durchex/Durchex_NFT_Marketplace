@@ -933,14 +933,17 @@ function MyMintedNFTs() {
                                         </button>
                                       )}
 
-                                      {/* Sell back to liquidity (instant at market price) – only if an on-chain pool exists */}
+                                      {/* Sell at market price — pieces leave wallet, payment to your wallet (no sell order needed) */}
                                       {nft.liquidityContract && nft.liquidityPieceId != null && (
-                                        <button
-                                          onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
-                                          className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
-                                        >
-                                          Sell to liquidity
-                                        </button>
+                                        <div>
+                                          <button
+                                            onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
+                                            className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                                          >
+                                            Sell to liquidity
+                                          </button>
+                                          <p className="text-xs text-gray-400 mt-1">Sell at market price — payment to your wallet</p>
+                                        </div>
                                       )}
                                       {/* Place order to sell (list at your price for others to buy) */}
                                       <button
@@ -980,8 +983,8 @@ function MyMintedNFTs() {
       {sellPiecesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !sellPiecesSubmitting && setSellPiecesModal(null)}>
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-2">Sell pieces back to liquidity</h3>
-            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. Choose how many to sell at current market price.</p>
+            <h3 className="text-lg font-bold mb-2">Sell to liquidity</h3>
+            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. Sell at current market price; pieces leave your wallet and payment goes to your wallet.</p>
             <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Quantity</label>
