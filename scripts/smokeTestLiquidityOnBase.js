@@ -30,9 +30,11 @@ async function main() {
   const piecesAddress =
     process.env.NFT_PIECES_ADDRESS_BASE ||
     process.env.NFT_PIECES_ADDRESS ||
-    ""; // TODO: fill in if empty
+    process.env.VITE_APP_NFT_PIECES_CONTRACT_ADDRESS_BASE ||
+    process.env.VITE_APP_NFT_PIECES_CONTRACT_ADDRESS ||
+    ""; // TODO: fill in if still empty
+
   const liquidityAddress =
-    process.env.NFT_LIQUIDITY_ADDRESS_BASE ||
     process.env.NFT_LIQUIDITY_ADDRESS_BASE ||
     process.env.VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS_BASE ||
     process.env.VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS ||
@@ -40,7 +42,7 @@ async function main() {
 
   if (!piecesAddress || !liquidityAddress) {
     throw new Error(
-      "NFT_PIECES_ADDRESS_BASE and NFT_LIQUIDITY_ADDRESS_BASE (or VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS_BASE) must be set in the environment."
+      "Could not find NftPieces / NftLiquidity addresses. Set VITE_APP_NFT_PIECES_CONTRACT_ADDRESS[_BASE] and VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS[_BASE] (or matching NFT_PIECES_ADDRESS_BASE / NFT_LIQUIDITY_ADDRESS_BASE) in the environment Hardhat is using."
     );
   }
 
