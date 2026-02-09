@@ -837,13 +837,15 @@ function MyMintedNFTs() {
                                         </button>
                                       )}
 
-                                      {/* Sell back to liquidity (instant at market price) */}
-                                      <button
-                                        onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
-                                        className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
-                                      >
-                                        Sell to liquidity
-                                      </button>
+                                      {/* Sell back to liquidity (instant at market price) – only if an on-chain pool exists */}
+                                      {nft.liquidityContract && nft.liquidityPieceId != null && (
+                                        <button
+                                          onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
+                                          className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
+                                        >
+                                          Sell to liquidity
+                                        </button>
+                                      )}
                                       {/* Place order to sell (list at your price for others to buy) */}
                                       <button
                                         onClick={() => setPlaceOrderModal({ nft, myPieces: pieces })}
@@ -851,6 +853,11 @@ function MyMintedNFTs() {
                                       >
                                         Place sell order
                                       </button>
+                                      {!nft.liquidityContract && (
+                                        <p className="text-xs text-gray-400">
+                                          No on-chain liquidity pool yet. Use a sell order, or create a pool for this NFT.
+                                        </p>
+                                      )}
                                     </div>
                                   )}
                                 </div>
