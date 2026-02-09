@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "./interfaces/INftPieces.sol";
 import "./interfaces/INftLiquidity.sol";
 
@@ -11,8 +12,9 @@ import "./interfaces/INftLiquidity.sol";
  * @title NftLiquidity
  * @dev On-chain liquidity for NFT pieces: buy/sell, platform fee, EIP-2981 royalty.
  *     All trades and price movement on-chain so creators can list from any marketplace or bridge.
+ *     Implements ERC1155Holder so it can safely receive/mint ERC-1155 pieces from NftPieces.
  */
-contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable {
+contract NftLiquidity is INftLiquidity, Ownable, ReentrancyGuard, Pausable, ERC1155Holder {
     INftPieces public immutable piecesContract;
 
     uint256 public constant BPS = 10000;
