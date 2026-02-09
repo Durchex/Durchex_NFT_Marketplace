@@ -67,6 +67,12 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 999,
     },
+    // Asset Chain mainnet
+    assetchain: {
+      url: process.env.ASSETCHAIN_RPC_URL || "https://mainnet-rpc.assetchain.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 42420,
+    },
     // Testnets (for testing)
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
