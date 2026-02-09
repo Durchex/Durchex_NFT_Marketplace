@@ -389,6 +389,31 @@ export const NftLiquidity_ABI = [
       { name: 'pieceId', type: 'uint256' },
       { name: 'quantity', type: 'uint256' },
     ],
+    name: 'getBuyQuote',
+    outputs: [
+      { name: 'totalCost', type: 'uint256' },
+      { name: 'platformFee', type: 'uint256' },
+      { name: 'royaltyAmount', type: 'uint256' },
+      { name: 'royaltyRecipient', type: 'address' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'pieceId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+    ],
+    name: 'buyPieces',
+    outputs: [],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'pieceId', type: 'uint256' },
+      { name: 'quantity', type: 'uint256' },
+    ],
     name: 'getSellQuote',
     outputs: [
       { name: 'netProceeds', type: 'uint256' },
@@ -860,8 +885,8 @@ export const getNftPiecesContractWithSigner = async (networkName, liquidityContr
 
 /**
  * Enforce approval before sell: ensure the liquidity contract is approved to transfer
- * the user's pieces (NftPieces). Must be called before every sellPieces() so the transfer
- * and payment succeed. Throws if approval cannot be ensured.
+ * the user's pieces (NftPieces). Opens the wallet for the user to sign approval.
+ * Must be called before every sellPieces(); if the user rejects, throws so caller can show "Sale failed."
  * @param {string} networkName
  * @param {string} userAddress - seller (msg.sender for the upcoming sell)
  * @param {string} liquidityContractAddress
@@ -874,6 +899,9 @@ export const ensurePiecesApprovalForLiquidity = async (
   liquidityContractAddress,
   callbacks = {}
 ) => {
+  if (typeof window?.ethereum === "undefined") {
+    throw new Error("No wallet. Approval is required before selling.");
+  }
   const piecesContract = await getNftPiecesContractWithSigner(networkName, liquidityContractAddress);
   if (!piecesContract) {
     throw new Error("Could not connect to pieces contract. Approval is required before selling.");
@@ -881,9 +909,18 @@ export const ensurePiecesApprovalForLiquidity = async (
   const approved = await piecesContract.isApprovedForAll(userAddress, liquidityContractAddress);
   if (!approved) {
     callbacks.onApproving?.();
-    const approveTx = await piecesContract.setApprovalForAll(liquidityContractAddress, true);
-    await approveTx.wait();
-    callbacks.onApproved?.();
+    try {
+      const approveTx = await piecesContract.setApprovalForAll(liquidityContractAddress, true);
+      await approveTx.wait();
+      callbacks.onApproved?.();
+    } catch (err) {
+      const code = err?.code ?? err?.error?.code;
+      const msg = String(err?.message || err?.error?.message || "").toLowerCase();
+      if (code === 4001 || code === "ACTION_REJECTED" || msg.includes("rejected") || msg.includes("denied")) {
+        throw new Error("APPROVAL_REJECTED");
+      }
+      throw err;
+    }
   }
 };
 

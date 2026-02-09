@@ -1072,6 +1072,20 @@ export const nftAPI = {
     return response.data;
   },
 
+  // ——— Post-chain sync: buyer bought pieces from liquidity pool
+  recordPoolPurchase: async ({ network, itemId, buyer, quantity, pricePerPiece, totalAmount, transactionHash }) => {
+    const response = await api.post('/nft/nfts/piece-buy-from-pool', {
+      network,
+      itemId,
+      buyer,
+      quantity,
+      pricePerPiece,
+      totalAmount,
+      transactionHash,
+    });
+    return response.data;
+  },
+
   // ——— Attach on-chain liquidity pool to an NFT (after createPool)
   attachLiquidityPool: async (network, itemId, { liquidityContract, liquidityPieceId }) => {
     const response = await api.post(`/nft/nfts/${network}/${itemId}/liquidity`, {

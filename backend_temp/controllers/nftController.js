@@ -86,6 +86,8 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
       : lazyNFT.buyer
         ? { lastBuyer: lazyNFT.buyer }
         : {}),
+    liquidityContract: lazyNFT.liquidityContract || null,
+    liquidityPieceId: lazyNFT.liquidityPieceId != null ? String(lazyNFT.liquidityPieceId) : null,
   };
 }
 
@@ -825,6 +827,83 @@ export const quoteSellToLiquidity = async (req, res) => {
     return res.json(payload);
   } catch (error) {
     console.error("Error quoting sell to liquidity:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/** POST /nfts/piece-buy-from-pool — Post-chain sync: buyer bought pieces from liquidity pool; update holdings and trades. */
+export const recordPoolPurchase = async (req, res) => {
+  try {
+    const { network, itemId, buyer, quantity, pricePerPiece, totalAmount, transactionHash } =
+      req.body || {};
+    if (!network || !itemId || !buyer || !quantity || !pricePerPiece) {
+      return res.status(400).json({
+        error: "network, itemId, buyer, quantity, and pricePerPiece are required",
+      });
+    }
+    const net = String(network).toLowerCase();
+    const buyerNorm = String(buyer).toLowerCase();
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    const itemIdStr = String(itemId);
+
+    let creatorWallet = "";
+    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    if (nft) {
+      creatorWallet = (nft.creator || nft.owner || nft.seller || "").toLowerCase();
+    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      const lazy = await LazyNFT.findById(itemIdStr).lean();
+      if (!lazy) {
+        return res.status(404).json({ error: "NFT not found" });
+      }
+      creatorWallet = (lazy.creator || "").toLowerCase();
+    }
+
+    await pieceHoldingModel.findOneAndUpdate(
+      { network: net, itemId: itemIdStr, wallet: buyerNorm },
+      { $inc: { pieces: qty } },
+      { new: true, upsert: true }
+    );
+
+    const priceStr = String(pricePerPiece);
+    const totalStr =
+      totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
+
+    await nftTradeModel.create({
+      network: net,
+      itemId: itemIdStr,
+      transactionType: "primary_buy",
+      seller: creatorWallet || null,
+      buyer: buyerNorm,
+      quantity: qty,
+      pricePerPiece: priceStr,
+      totalAmount: totalStr,
+      transactionHash: transactionHash || null,
+    });
+
+    const nftDoc = await nftModel.findOne({ network: net, itemId: itemIdStr });
+    if (nftDoc) {
+      const totalPieces = Math.max(1, Number(nftDoc.pieces ?? 1));
+      const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
+      await nftModel.updateOne(
+        { network: net, itemId: itemIdStr },
+        { $set: { lastPrice: priceStr, marketCap } }
+      );
+    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      await LazyNFT.updateOne(
+        { _id: itemIdStr },
+        { $set: { lastPrice: priceStr } }
+      );
+    }
+
+    return res.json({
+      success: true,
+      network: net,
+      itemId: itemIdStr,
+      buyer: buyerNorm,
+      quantity: qty,
+    });
+  } catch (error) {
+    console.error("Error in recordPoolPurchase:", error);
     return res.status(500).json({ error: error.message });
   }
 };

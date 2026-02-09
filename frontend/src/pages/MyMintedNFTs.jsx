@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 import { ethers } from "ethers";
-import { getNftLiquidityContractWithSigner, getNftPiecesContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol } from "../Context/constants";
+import { getNftLiquidityContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol, ensurePiecesApprovalForLiquidity } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
@@ -71,6 +71,10 @@ function MyMintedNFTs() {
   const [sellPiecesQty, setSellPiecesQty] = useState(1);
   const [sellPiecesQuote, setSellPiecesQuote] = useState(null); // { pricePerPiece, totalProceeds } from API — auto-populated, no user input
   const [sellPiecesSubmitting, setSellPiecesSubmitting] = useState(false);
+  const [placeOrderModal, setPlaceOrderModal] = useState(null); // { nft, myPieces }
+  const [placeOrderQty, setPlaceOrderQty] = useState(1);
+  const [placeOrderPrice, setPlaceOrderPrice] = useState("");
+  const [placeOrderSubmitting, setPlaceOrderSubmitting] = useState(false);
   const [pieceHoldings, setPieceHoldings] = useState([]); // { network, itemId, wallet, pieces }
   const { address: userWalletAddress } = useContext(ICOContent) || {};
 
@@ -209,11 +213,23 @@ function MyMintedNFTs() {
       pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
       totalAmount = ethers.utils.formatEther(netBn);
 
-      // Enforced: always ensure approval before sell (required for transfer + payment)
-      await ensurePiecesApprovalForLiquidity(nft.network, address, liquidityAddress, {
-        onApproving: () => toast.loading("Approving pieces for sell…", { id: "approve-pieces" }),
-        onApproved: () => toast.success("Approval confirmed. Selling…", { id: "approve-pieces" }),
-      });
+      // Enforced: wallet must open for approval first; if user rejects, sale does not proceed
+      try {
+        if (window.ethereum) await window.ethereum.request({ method: "eth_requestAccounts" });
+        await ensurePiecesApprovalForLiquidity(nft.network, address, liquidityAddress, {
+          onApproving: () => toast.loading("Open your wallet and approve to allow the sale.", { id: "approve-pieces" }),
+          onApproved: () => toast.success("Approval confirmed. Selling…", { id: "approve-pieces" }),
+        });
+      } catch (approvalErr) {
+        toast.dismiss("approve-pieces");
+        if (approvalErr?.message === "APPROVAL_REJECTED") {
+          ErrorToast("Sale failed. Approval was required; none was given.");
+        } else {
+          ErrorToast(approvalErr?.message || "Sale failed. Approval is required to sell.");
+        }
+        setSellPiecesSubmitting(false);
+        return;
+      }
 
       // Sell pieces (wallet prompt — transfers pieces out, credits seller)
       const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
@@ -242,6 +258,40 @@ function MyMintedNFTs() {
       ErrorToast(err?.message || err?.reason || "Failed to sell pieces");
     } finally {
       setSellPiecesSubmitting(false);
+    }
+  };
+
+  const handlePlaceSellOrder = async () => {
+    if (!placeOrderModal?.nft || !address) return;
+    const nft = placeOrderModal.nft;
+    const qty = Math.max(1, parseInt(placeOrderQty, 10) || 1);
+    const pricePerPiece = String(placeOrderPrice || "0").trim();
+    if (!pricePerPiece || parseFloat(pricePerPiece) <= 0) {
+      ErrorToast("Enter a valid price per piece.");
+      return;
+    }
+    if (qty > (placeOrderModal.myPieces || 0)) {
+      ErrorToast("Quantity exceeds your pieces.");
+      return;
+    }
+    try {
+      setPlaceOrderSubmitting(true);
+      await nftAPI.createPieceSellOrder({
+        network: nft.network,
+        itemId: nft.itemId,
+        seller: address,
+        quantity: qty,
+        pricePerPiece,
+      });
+      SuccessToast("Sell order placed. Others can buy your pieces at your price.");
+      setPlaceOrderModal(null);
+      setPlaceOrderQty(1);
+      setPlaceOrderPrice("");
+    } catch (err) {
+      console.error("Place sell order error:", err);
+      ErrorToast(err?.response?.data?.error || err?.message || "Failed to place order");
+    } finally {
+      setPlaceOrderSubmitting(false);
     }
   };
 
@@ -787,12 +837,19 @@ function MyMintedNFTs() {
                                         </button>
                                       )}
 
-                                      {/* Sell back to liquidity (pieces are not re-added to remainingPieces; once sold out stays sold out) */}
+                                      {/* Sell back to liquidity (instant at market price) */}
                                       <button
                                         onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
                                         className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
                                       >
                                         Sell to liquidity
+                                      </button>
+                                      {/* Place order to sell (list at your price for others to buy) */}
+                                      <button
+                                        onClick={() => setPlaceOrderModal({ nft, myPieces: pieces })}
+                                        className="w-full bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded font-semibold text-sm"
+                                      >
+                                        Place sell order
                                       </button>
                                     </div>
                                   )}
@@ -855,6 +912,56 @@ function MyMintedNFTs() {
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
               >
                 {sellPiecesSubmitting ? "Selling…" : "Sell to liquidity"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Place sell order: list pieces at your price for others to buy */}
+      {placeOrderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !placeOrderSubmitting && setPlaceOrderModal(null)}>
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-2">Place sell order</h3>
+            <p className="text-gray-400 text-sm mb-4">&quot;{placeOrderModal.nft?.name}&quot; — You have {placeOrderModal.myPieces} piece{placeOrderModal.myPieces !== 1 ? "s" : ""}. Set quantity and price for buyers.</p>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={placeOrderModal.myPieces || 1}
+                  value={placeOrderQty}
+                  onChange={(e) => setPlaceOrderQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Price per piece ({getCurrencySymbol(placeOrderModal.nft?.network || "ethereum")})</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={placeOrderPrice}
+                  onChange={(e) => setPlaceOrderPrice(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setPlaceOrderModal(null); setPlaceOrderQty(1); setPlaceOrderPrice(""); }}
+                disabled={placeOrderSubmitting}
+                className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePlaceSellOrder}
+                disabled={placeOrderSubmitting}
+                className="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm disabled:opacity-50"
+              >
+                {placeOrderSubmitting ? "Placing…" : "Place order"}
               </button>
             </div>
           </div>
