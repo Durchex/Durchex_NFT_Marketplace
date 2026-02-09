@@ -75,6 +75,7 @@ function MyMintedNFTs() {
   const [placeOrderQty, setPlaceOrderQty] = useState(1);
   const [placeOrderPrice, setPlaceOrderPrice] = useState("");
   const [placeOrderSubmitting, setPlaceOrderSubmitting] = useState(false);
+  const [addLiquidityNFTId, setAddLiquidityNFTId] = useState(null);
   const [pieceHoldings, setPieceHoldings] = useState([]); // { network, itemId, wallet, pieces }
   const { address: userWalletAddress } = useContext(ICOContent) || {};
 
@@ -115,6 +116,90 @@ function MyMintedNFTs() {
       (x) => x.network === (nft.network || "").toLowerCase() && String(x.itemId) === String(nft.itemId)
     );
     return h ? Number(h.pieces) : 0;
+  };
+
+  const handleAddLiquidity = async (nft) => {
+    if (!address) {
+      ErrorToast("Please connect your wallet first");
+      return;
+    }
+    try {
+      setAddLiquidityNFTId(nft.itemId);
+      const network = (nft.network || "polygon").toLowerCase().trim();
+      const addrs = getContractAddresses(network);
+      if (!addrs?.nftLiquidity) {
+        ErrorToast("No liquidity contract configured for this network.");
+        return;
+      }
+
+      const nftContract =
+        nft.nftContract ||
+        nft.contractAddress ||
+        nft.collectionContractAddress ||
+        null;
+      if (!nftContract) {
+        ErrorToast("NFT contract address is missing; cannot create pool.");
+        return;
+      }
+      if (!nft.tokenId) {
+        ErrorToast("NFT tokenId is missing; mint the NFT first.");
+        return;
+      }
+
+      await changeNetwork(network);
+      const liquidityContract = await getNftLiquidityContractWithSigner(
+        network,
+        addrs.nftLiquidity
+      );
+      if (!liquidityContract) {
+        ErrorToast("Could not connect to liquidity contract.");
+        return;
+      }
+
+      const piecesNum = Math.max(1, parseInt(nft.pieces, 10) || 1);
+      const priceWei = ethers.utils.parseEther(String(nft.price || "0.001"));
+
+      toast.loading("Creating liquidity pool…", { id: "manual-create-pool" });
+      const tx = await liquidityContract.createPool(
+        nftContract,
+        ethers.BigNumber.from(nft.tokenId),
+        piecesNum,
+        priceWei,
+        priceWei,
+        0,
+        { value: 0 }
+      );
+      const receipt = await tx.wait();
+      const poolCreated = receipt.events?.find(
+        (e) => e.event === "PoolCreated"
+      );
+      const pieceId =
+        poolCreated?.args?.pieceId != null
+          ? poolCreated.args.pieceId.toString()
+          : null;
+      if (!pieceId) {
+        throw new Error("Could not read pieceId from PoolCreated event.");
+      }
+
+      await nftAPI.attachLiquidityPool(network, nft.itemId, {
+        liquidityContract: addrs.nftLiquidity,
+        liquidityPieceId: pieceId,
+      });
+
+      SuccessToast("Liquidity pool created and attached to this NFT.");
+      toast.dismiss("manual-create-pool");
+    } catch (err) {
+      console.error("Add liquidity error:", err);
+      toast.dismiss("manual-create-pool");
+      ErrorToast(
+        err?.response?.data?.error ||
+          err?.reason ||
+          err?.message ||
+          "Failed to create liquidity pool"
+      );
+    } finally {
+      setAddLiquidityNFTId(null);
+    }
   };
 
   // Auto-fetch sell-to-liquidity quote when modal is open so price is populated (user only picks quantity)
@@ -763,6 +848,17 @@ function MyMintedNFTs() {
                                           className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
                                         >
                                           Sell pieces
+                                        </button>
+                                      )}
+                                      {!nft.liquidityContract && (
+                                        <button
+                                          onClick={() => handleAddLiquidity(nft)}
+                                          disabled={addLiquidityNFTId === nft.itemId}
+                                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm disabled:opacity-50"
+                                        >
+                                          {addLiquidityNFTId === nft.itemId
+                                            ? "Creating pool…"
+                                            : "Add liquidity"}
                                         </button>
                                       )}
                                     </div>
