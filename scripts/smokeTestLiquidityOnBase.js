@@ -4,7 +4,7 @@
  *
  * What it does:
  *  - Attaches to deployed NftPieces + NftLiquidity on Base.
- *  - Calls createPool() with a fake NFT (uses creator address as nftContract).
+ * - Calls createPool() with a fake NFT (uses creator address as nftContract).
  *  - Confirms:
  *      - PoolCreated event emitted and pieceId returned.
  *      - Liquidity contract holds the minted pieces.
@@ -17,10 +17,10 @@
  *      NFT_LIQUIDITY_ADDRESS_BASE=0x...
  *
  * Run:
- *  npx hardhat run scripts/smokeTestLiquidityOnBase.js --network base
+ *   npx hardhat run scripts/smokeTestLiquidityOnBase.js --network base
  */
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function main() {
   const [creator] = await hre.ethers.getSigners();
@@ -32,6 +32,7 @@ async function main() {
     process.env.NFT_PIECES_ADDRESS ||
     ""; // TODO: fill in if empty
   const liquidityAddress =
+    process.env.NFT_LIQUIDITY_ADDRESS_BASE ||
     process.env.NFT_LIQUIDITY_ADDRESS_BASE ||
     process.env.VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS_BASE ||
     process.env.VITE_APP_NFT_LIQUIDITY_CONTRACT_ADDRESS ||
@@ -51,10 +52,10 @@ async function main() {
 
   // Attach to contracts
   const NftPieces = await hre.ethers.getContractFactory("NftPieces");
-  const pieces = NftPieces.attach(piecesAddress);
+  const pieces = await NftPieces.attach(piecesAddress);
 
   const NftLiquidity = await hre.ethers.getContractFactory("NftLiquidity");
-  const liquidity = NftLiquidity.attach(liquidityAddress).connect(creator);
+  const liquidity = await NftLiquidity.attach(liquidityAddress).connect(creator);
 
   // Test parameters
   const fakeNftContract = creator.address; // no royaltyInfo needed; _getRoyalty will just return (0,0)
@@ -102,10 +103,10 @@ async function main() {
     pieceId = poolCreated.args.pieceId.toString();
   } else {
     console.warn(
-      "PoolCreated event not decoded; trying to read pieceId via contract getPieceId..."
+      "PoolCreated event not decoded; trying to read pieceId via getPoolInfo..."
     );
-    const idFromPieces = await pieces.getPieceId(fakeNftContract, nftTokenId);
-    pieceId = idFromPieces.toString();
+    const info = await liquidity.getPoolInfo(1); // fallback guess
+    pieceId = info.pieceId.toString();
   }
 
   console.log("Pool created with pieceId:", pieceId);
