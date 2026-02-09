@@ -61,7 +61,8 @@ async function main() {
 
   // Test parameters
   const fakeNftContract = creator.address; // no royaltyInfo needed; _getRoyalty will just return (0,0)
-  const nftTokenId = 1;
+  // Use a unique tokenId per run so we don't hit "NFT pieces already registered"
+  const nftTokenId = Math.floor(Date.now() / 1000);
   const totalPieces = 10;
   const buyPricePerPiece = hre.ethers.utils.parseEther("0.001"); // 0.001 ETH per piece
   const sellPricePerPiece = buyPricePerPiece; // no spread for test
