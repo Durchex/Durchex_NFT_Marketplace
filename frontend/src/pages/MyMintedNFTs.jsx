@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 import { ethers } from "ethers";
-import { getNftLiquidityContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol, ensurePiecesApprovalForLiquidity } from "../Context/constants";
+import { getNftLiquidityContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol, ensurePiecesApprovalForLiquidity, getPiecesBalanceOnChain } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { adminAPI } from "../services/adminAPI";
@@ -71,6 +71,7 @@ function MyMintedNFTs() {
   const [sellPiecesQty, setSellPiecesQty] = useState(1);
   const [sellPiecesQuote, setSellPiecesQuote] = useState(null); // { pricePerPiece, totalProceeds } from API — auto-populated, no user input
   const [sellPiecesSubmitting, setSellPiecesSubmitting] = useState(false);
+  const [sellPiecesOnChainBalance, setSellPiecesOnChainBalance] = useState(null); // null = loading, number = from NftPieces.balanceOf
   const [placeOrderModal, setPlaceOrderModal] = useState(null); // { nft, myPieces }
   const [placeOrderQty, setPlaceOrderQty] = useState(1);
   const [placeOrderPrice, setPlaceOrderPrice] = useState("");
@@ -217,6 +218,33 @@ function MyMintedNFTs() {
     return () => { cancelled = true; };
   }, [sellPiecesModal?.nft?.network, sellPiecesModal?.nft?.itemId, sellPiecesQty]);
 
+  // Fetch on-chain piece balance when sell modal opens (sell requires wallet balance, not just DB)
+  useEffect(() => {
+    if (!sellPiecesModal?.nft || !address) {
+      setSellPiecesOnChainBalance(null);
+      return;
+    }
+    const nft = sellPiecesModal.nft;
+    if (!nft.liquidityContract || nft.liquidityPieceId == null) {
+      setSellPiecesOnChainBalance(0);
+      return;
+    }
+    setSellPiecesOnChainBalance(null);
+    let cancelled = false;
+    getPiecesBalanceOnChain(
+      (nft.network || "polygon").toLowerCase(),
+      address,
+      nft.liquidityContract,
+      nft.liquidityPieceId
+    ).then((bal) => {
+      if (!cancelled) {
+        setSellPiecesOnChainBalance(bal);
+        setSellPiecesQty((q) => Math.min(q, Math.max(1, bal)));
+      }
+    });
+    return () => { cancelled = true; };
+  }, [sellPiecesModal?.nft, address]);
+
   const handleEditNFT = async (nft) => {
     setEditingNFT(nft.itemId);
     setEditForm({
@@ -256,6 +284,11 @@ function MyMintedNFTs() {
     if (!sellPiecesModal?.nft || !address) return;
     const nft = sellPiecesModal.nft;
     const qty = Math.max(1, parseInt(sellPiecesQty, 10));
+    const onChain = sellPiecesOnChainBalance ?? 0;
+    if (qty > onChain && onChain !== null) {
+      ErrorToast("Quantity exceeds your on-chain balance. You have " + onChain + " piece(s) in your wallet for this pool.");
+      return;
+    }
     if (qty > (sellPiecesModal.myPieces || 0)) {
       ErrorToast("Quantity exceeds your pieces");
       return;
@@ -340,7 +373,12 @@ function MyMintedNFTs() {
       setPieceHoldings(holdings);
     } catch (err) {
       console.error("Sell pieces error:", err);
-      ErrorToast(err?.message || err?.reason || "Failed to sell pieces");
+      const msg = String(err?.message || err?.reason || "");
+      if (msg.includes("Insufficient pieces") || (err?.data?.message && String(err.data.message).includes("Insufficient pieces"))) {
+        ErrorToast("You don't have enough pieces in your wallet for this pool. Buy pieces from the market first.");
+      } else {
+        ErrorToast(msg || "Failed to sell pieces");
+      }
     } finally {
       setSellPiecesSubmitting(false);
     }
@@ -984,17 +1022,25 @@ function MyMintedNFTs() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !sellPiecesSubmitting && setSellPiecesModal(null)}>
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-2">Sell to liquidity</h3>
-            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — You have {sellPiecesModal.myPieces} piece{sellPiecesModal.myPieces !== 1 ? "s" : ""}. Sell at current market price; pieces leave your wallet and payment goes to your wallet.</p>
+            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — Sell at current market price; pieces leave your wallet and payment goes to your wallet.</p>
+            {sellPiecesOnChainBalance === null ? (
+              <p className="text-gray-500 text-sm mb-3">Loading wallet balance…</p>
+            ) : sellPiecesOnChainBalance === 0 ? (
+              <p className="text-amber-400 text-sm mb-3">You have 0 pieces in your wallet for this pool. Buy pieces from the market first, then you can sell here.</p>
+            ) : (
+              <p className="text-gray-400 text-sm mb-2">You have <span className="text-white font-medium">{sellPiecesOnChainBalance}</span> piece{sellPiecesOnChainBalance !== 1 ? "s" : ""} in your wallet (on-chain).</p>
+            )}
             <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Quantity</label>
                 <input
                   type="number"
                   min={1}
-                  max={sellPiecesModal.myPieces || 1}
+                  max={Math.max(1, sellPiecesOnChainBalance ?? sellPiecesModal.myPieces ?? 1)}
                   value={sellPiecesQty}
                   onChange={(e) => setSellPiecesQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  disabled={sellPiecesOnChainBalance === 0}
                 />
               </div>
               {sellPiecesQuote && (
@@ -1014,7 +1060,7 @@ function MyMintedNFTs() {
               </button>
               <button
                 onClick={handleSellPieces}
-                disabled={sellPiecesSubmitting}
+                disabled={sellPiecesSubmitting || sellPiecesOnChainBalance === null || sellPiecesOnChainBalance === 0}
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
               >
                 {sellPiecesSubmitting ? "Selling…" : "Sell to liquidity"}

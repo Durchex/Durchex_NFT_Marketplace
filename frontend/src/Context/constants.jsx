@@ -884,6 +884,28 @@ export const getNftPiecesContractWithSigner = async (networkName, liquidityContr
 };
 
 /**
+ * Read user's on-chain balance of NFT pieces for a pool (NftPieces.balanceOf).
+ * Use this to validate before sell; DB/API piece count can differ from on-chain.
+ * @param {string} networkName
+ * @param {string} userAddress
+ * @param {string} liquidityContractAddress
+ * @param {string|number|ethers.BigNumber} pieceId - pool piece id (liquidityPieceId)
+ * @returns {Promise<number>} balance (0 on error or if not connected)
+ */
+export const getPiecesBalanceOnChain = async (networkName, userAddress, liquidityContractAddress, pieceId) => {
+  try {
+    if (typeof window?.ethereum === "undefined") return 0;
+    const piecesContract = await getNftPiecesContractWithSigner(networkName, liquidityContractAddress);
+    if (!piecesContract) return 0;
+    const bn = await piecesContract.balanceOf(userAddress, pieceId);
+    return ethers.BigNumber.from(bn).toNumber();
+  } catch (e) {
+    console.warn("getPiecesBalanceOnChain:", e);
+    return 0;
+  }
+};
+
+/**
  * Enforce approval before sell: ensure the liquidity contract is approved to transfer
  * the user's pieces (NftPieces). Opens the wallet for the user to sign approval.
  * Must be called before every sellPieces(); if the user rejects, throws so caller can show "Sale failed."
