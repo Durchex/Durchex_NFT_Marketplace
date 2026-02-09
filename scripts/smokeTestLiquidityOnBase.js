@@ -65,7 +65,8 @@ async function main() {
   const totalPieces = 10;
   const buyPricePerPiece = hre.ethers.utils.parseEther("0.001"); // 0.001 ETH per piece
   const sellPricePerPiece = buyPricePerPiece; // no spread for test
-  const initialReserve = hre.ethers.utils.parseEther("0.05"); // enough to pay sellers
+  // Very small reserve so the test can run on low balances
+  const initialReserve = hre.ethers.utils.parseEther("0.000001"); // 0.000001 ETH
 
   console.log("\n=== Calling createPool on Base ===");
   console.log("fakeNftContract:", fakeNftContract);
