@@ -265,6 +265,17 @@ const nftSchema = new Schema(
   { timestamps: true }
 );
 
+// Performance-critical indexes
+// These directly support the hottest queries used by the marketplace:
+// - fetchAllNftsByNetwork:       { network, currentlyListed }
+// - fetchAllNftsByNetworkExplore:{ network, adminStatus }
+// - fetchCollectionNfts:         { network, collection }
+// - user/owner lookups:          { owner, network }
+nftSchema.index({ network: 1, currentlyListed: 1 });
+nftSchema.index({ network: 1, adminStatus: 1 });
+nftSchema.index({ network: 1, collection: 1 });
+nftSchema.index({ owner: 1, network: 1 });
+
 // Model
 export const nftModel = mongoose.model("NFT", nftSchema);
 

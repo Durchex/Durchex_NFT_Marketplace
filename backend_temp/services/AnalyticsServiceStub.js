@@ -60,26 +60,69 @@ class AnalyticsServiceStub {
     try {
       const now = new Date();
       const cutoff = getTimeframeCutoff(timeframe);
-      const duration = interval === 'hourly' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-      const maxIntervals = interval === 'hourly' ? (timeframe === '7d' ? 24 : 24) : (timeframe === '30d' ? 30 : 7);
-      const intervals = [];
-      let current = new Date(now);
-      for (let i = 0; i < maxIntervals; i++) {
-        const start = new Date(current.getTime() - duration);
-        const periodTrades = await nftTradeModel.find({
-          createdAt: { $gte: start, $lt: current },
-        }).lean();
-        const volume = periodTrades.reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
-        intervals.unshift({
-          timestamp: start.toISOString(),
-          date: start.toLocaleDateString(),
-          volume: parseFloat(volume.toFixed(6)),
-          sales: periodTrades.length,
-          avgPrice: periodTrades.length ? parseFloat((volume / periodTrades.length).toFixed(6)) : 0,
-        });
-        current = start;
+
+      // Fetch all trades for the timeframe ONCE, then bucket in-memory.
+      // This avoids N full-collection scans (one per interval), which
+      // were causing very slow responses and client-side timeouts.
+      const trades = await nftTradeModel
+        .find({ createdAt: { $gte: cutoff, $lte: now } })
+        .sort({ createdAt: 1 })
+        .lean();
+
+      const buckets = new Map(); // key -> { volume, sales }
+
+      for (const t of trades) {
+        const created = t.createdAt ? new Date(t.createdAt) : null;
+        if (!created) continue;
+
+        let bucketStart = new Date(created);
+        if (interval === 'hourly') {
+          bucketStart.setMinutes(0, 0, 0);
+        } else if (interval === 'weekly') {
+          // Normalize to the Monday of that ISO week
+          const day = bucketStart.getDay(); // 0 (Sun) - 6 (Sat)
+          const diff = (day === 0 ? -6 : 1) - day; // days to Monday
+          bucketStart.setDate(bucketStart.getDate() + diff);
+          bucketStart.setHours(0, 0, 0, 0);
+        } else {
+          // daily (default)
+          bucketStart.setHours(0, 0, 0, 0);
+        }
+
+        const key = bucketStart.toISOString();
+        const totalAmount = parseFloat(t.totalAmount || 0) || 0;
+        const existing = buckets.get(key) || { volume: 0, sales: 0 };
+        existing.volume += totalAmount;
+        existing.sales += 1;
+        buckets.set(key, existing);
       }
-      return intervals;
+
+      // Convert buckets to sorted array and compute avgPrice.
+      const entries = Array.from(buckets.entries()).sort(
+        ([a], [b]) => new Date(a).getTime() - new Date(b).getTime()
+      );
+
+      // Hard cap number of intervals returned to keep payload light.
+      const maxPoints =
+        interval === 'hourly'
+          ? timeframe === '7d'
+            ? 168
+            : 24
+          : timeframe === '30d'
+          ? 30
+          : 7;
+      const sliced = entries.slice(-maxPoints);
+
+      return sliced.map(([iso, { volume, sales }]) => {
+        const ts = new Date(iso);
+        return {
+          timestamp: iso,
+          date: ts.toLocaleDateString(),
+          volume: parseFloat(volume.toFixed(6)),
+          sales,
+          avgPrice: sales ? parseFloat((volume / sales).toFixed(6)) : 0,
+        };
+      });
     } catch (e) {
       console.warn('[AnalyticsServiceStub] getVolumeTrends', e?.message);
       return [];
