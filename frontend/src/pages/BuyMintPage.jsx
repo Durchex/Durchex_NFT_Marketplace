@@ -466,8 +466,8 @@ export default function BuyMintPage() {
               </div>
             )}
 
-            {/* Buy at market (exact current pool price, like trading crypto) — when NFT has liquidity pool */}
-            {hasLiquidityPool && address && (
+          {/* Buy at market (exact current pool price, like trading crypto) — only when NFT is sold out and has liquidity pool */}
+          {hasLiquidityPool && address && remainingPieces <= 0 && (
               <div className="mt-6 pt-4 border-t border-gray-700 space-y-3">
                 <p className="text-gray-400 text-sm">Buy at current market price (from liquidity pool)</p>
                 <div className="flex items-center gap-3">
