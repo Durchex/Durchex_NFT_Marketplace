@@ -29,38 +29,8 @@ const Collections = () => {
       const allCollectionsData = await nftAPI.getCollections();
       
       if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Fetch NFTs to calculate stats across networks IN PARALLEL (faster)
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-        let allNFTs = [];
-
-        const results = await Promise.allSettled(
-          networks.map(async (network) => {
-            try {
-              const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-              if (Array.isArray(networkNfts)) {
-                console.log(`[Collections] Fetched ${networkNfts.length} NFTs from ${network}`);
-                if (networkNfts.length > 0) {
-                  console.log(`[Collections] Sample NFT from ${network}:`, {
-                    name: networkNfts[0].name,
-                    price: networkNfts[0].price,
-                    floorPrice: networkNfts[0].floorPrice,
-                    collection: networkNfts[0].collection
-                  });
-                }
-                return networkNfts;
-              }
-            } catch (err) {
-              console.warn(`Error fetching ${network} NFTs:`, err.message);
-            }
-            return [];
-          })
-        );
-
-        results.forEach((res) => {
-          if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-            allNFTs = allNFTs.concat(res.value);
-          }
-        });
+        // Fetch ALL NFTs across all networks once to calculate stats.
+        const allNFTs = await nftAPI.getAllNftsAllNetworksForExplore(1000);
         
         // ✅ De-duplicate NFTs that may be returned for multiple networks
         const uniqueMap = new Map();
@@ -342,6 +312,8 @@ const Collections = () => {
                 <img
                   src={collection.image || `https://picsum.photos/seed/${collection.id}/400/300`}
                   alt={collection.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
                     e.target.src = `https://picsum.photos/seed/${collection.id}/400/300`;

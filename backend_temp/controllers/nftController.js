@@ -1451,6 +1451,90 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
   }
 };
 
+// 2c. Fetch ALL NFTs across all networks (listed only) – single query.
+export const fetchAllNftsAllNetworks = async (req, res) => {
+  try {
+    const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+    const now = new Date();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 1000);
+
+    // Regular NFTs: only currently listed and not delisted
+    const regularNfts = await nftModel.find({
+      network: { $in: networks },
+      currentlyListed: true,
+      adminStatus: { $ne: 'delisted' },
+    }).lean();
+
+    // Lazy NFTs from all networks, any active status (pending/redeemed/fully_redeemed)
+    const lazyNfts = await LazyNFT.find({
+      network: { $in: networks },
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
+      expiresAt: { $gt: now },
+    }).populate('collection');
+
+    const formattedLazyNfts = lazyNfts.map((lazyNFT) =>
+      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
+    );
+
+    let allNfts = [...regularNfts, ...formattedLazyNfts];
+
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    if (limit && Number.isFinite(limit) && limit > 0) {
+      allNfts = allNfts.slice(0, limit);
+    }
+
+    res.json(allNfts);
+  } catch (error) {
+    console.error('Error fetching NFTs across all networks:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 2d. Fetch ALL NFTs across all networks for Explore (regardless of listing status)
+export const fetchAllNftsAllNetworksForExplore = async (req, res) => {
+  try {
+    const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
+    const now = new Date();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 1000);
+
+    // Regular NFTs except those explicitly delisted
+    const regularNfts = await nftModel.find({
+      network: { $in: networks },
+      adminStatus: { $ne: 'delisted' },
+    }).lean();
+
+    const lazyNfts = await LazyNFT.find({
+      network: { $in: networks },
+      status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
+      expiresAt: { $gt: now },
+    }).populate('collection');
+
+    const formattedLazyNfts = lazyNfts.map((lazyNFT) =>
+      formatLazyNFTAsNFT(lazyNFT, lazyNFT.network || 'polygon')
+    );
+
+    let allNfts = [...regularNfts, ...formattedLazyNfts];
+
+    allNfts.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    if (limit && Number.isFinite(limit) && limit > 0) {
+      allNfts = allNfts.slice(0, limit);
+    }
+
+    res.json(allNfts);
+  } catch (error) {
+    console.error('Error fetching NFTs for explore (all networks):', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // 3. Fetch all NFTs under a particular collection filtered by network and collection name
 export const fetchCollectionNfts = async (req, res) => {
   const { network, collection } = req.params;

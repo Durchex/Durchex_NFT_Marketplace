@@ -153,20 +153,9 @@ function App() {
 
   const fetchLatestNftsFromAllNetworks = async () => {
     try {
-      let allNftsFromAllNetworks = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
-      // Fetch NFTs from all networks
-      for (const network of networks) {
-        try {
-          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts) && networkNfts.length > 0) {
-            allNftsFromAllNetworks = [...allNftsFromAllNetworks, ...networkNfts];
-          }
-        } catch (err) {
-          console.warn(`Error fetching from ${network}:`, err.message);
-        }
-      }
+      // Fetch ALL NFTs across all networks in a single call, then
+      // take the latest ones for the hero section.
+      const allNftsFromAllNetworks = await nftAPI.getAllNftsAllNetworks(200);
 
       // Sort by createdAt (newest first)
       allNftsFromAllNetworks.sort((a, b) => {
@@ -422,6 +411,8 @@ function App() {
                       className="w-full h-full object-cover absolute top-0 left-0"
                       src={item.image}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                     />
                   </Link>
 

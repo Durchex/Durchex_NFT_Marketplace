@@ -114,23 +114,13 @@ const NftDetailsPage = () => {
         }
       }
 
-      // 2. Fallback: fetch from all networks by itemId or tokenId (for regular NFTs or if by-id missed)
+      // 2. Fallback: single all-networks query, then find by itemId/tokenId/_id
       if (!nftData) {
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-        for (const network of networks) {
-          try {
-            const nfts = await nftAPI.getAllNftsByNetwork(network);
-            const found = nfts?.find(n =>
-              n.itemId === id || n.tokenId === id || (n._id && String(n._id) === String(id))
-            );
-            if (found) {
-              nftData = found;
-              break;
-            }
-          } catch (networkErr) {
-            continue;
-          }
-        }
+        const allNfts = await nftAPI.getAllNftsAllNetworksForExplore(500);
+        const found = allNfts?.find((n) =>
+          n.itemId === id || n.tokenId === id || (n._id && String(n._id) === String(id))
+        );
+        nftData = found || null;
       }
 
       if (!nftData) {
@@ -333,6 +323,8 @@ const NftDetailsPage = () => {
               <img
                 src={nft.image || nft.imageURL}
                 alt={nft.name}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-48 xs:h-64 sm:h-80 md:h-96 object-cover"
               />
             </div>

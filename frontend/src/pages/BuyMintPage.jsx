@@ -38,21 +38,15 @@ export default function BuyMintPage() {
         setError(null);
         let nftData = await nftAPI.getNftByAnyId(id);
         if (!nftData) {
-          const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-          for (const network of networks) {
-            try {
-              const nfts = await nftAPI.getAllNftsByNetwork(network);
-              const found = nfts?.find(n =>
-                n.itemId === id || n.tokenId === id || (n._id && String(n._id) === String(id))
-              );
-              if (found) {
-                nftData = found;
-                break;
-              }
-            } catch (_) {
-              continue;
-            }
-          }
+          // Fallback: single all-networks query, then find this NFT by id
+          const allNfts = await nftAPI.getAllNftsAllNetworks(500);
+          const found = allNfts?.find(
+            (n) =>
+              n.itemId === id ||
+              n.tokenId === id ||
+              (n._id && String(n._id) === String(id))
+          );
+          nftData = found || null;
         }
         if (!nftData) {
           setError('NFT not found.');

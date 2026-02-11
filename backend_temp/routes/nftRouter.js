@@ -4,6 +4,8 @@ import {
   getNftByAnyId,
   fetchAllNftsByNetwork,
   fetchAllNftsByNetworkForExplore,
+  fetchAllNftsAllNetworks,
+  fetchAllNftsAllNetworksForExplore,
   fetchCollectionNfts,
   fetchSingleNft,
   fetchSingleNfts,
@@ -103,8 +105,14 @@ router.get("/nfts/by-id/:id", getNftByAnyId);
 // Get all NFTs on a network (for marketplace - only listed)
 router.get("/nfts/:network", fetchAllNftsByNetwork);
 
+// Get ALL NFTs across all networks (for marketplace - only listed)
+router.get("/nfts", fetchAllNftsAllNetworks);
+
 // Get all NFTs for Explore page (regardless of listing status - admin moderates)
 router.get("/nfts-explore/:network", fetchAllNftsByNetworkForExplore);
+
+// Get ALL NFTs for Explore page across all networks
+router.get("/nfts-explore", fetchAllNftsAllNetworksForExplore);
 
 // Get all NFTs in a specific collection on a network
 router.get("/nfts/:network/collection/:collection", fetchCollectionNfts);

@@ -24,21 +24,8 @@ const TopNFTsCarousel = () => {
       setLoading(true);
       console.log('[TopNFTs] Fetching NFTs...');
       
-      // ✅ Fetch all NFTs from all networks
-      let allNFTs = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
-      for (const network of networks) {
-        try {
-          console.log(`[TopNFTs] Fetching NFTs from ${network}...`);
-          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts)) {
-            allNFTs = [...allNFTs, ...networkNfts];
-          }
-        } catch (err) {
-          console.warn(`[TopNFTs] Error fetching from ${network}:`, err.message);
-        }
-      }
+      // ✅ Fetch ALL NFTs across all networks with a single API call
+      let allNFTs = await nftAPI.getAllNftsAllNetworks(500);
       
       // ✅ De-duplicate NFTs so we don't show the same one per-network
       const uniqueMap = new Map();
@@ -185,6 +172,8 @@ const TopNFTsCarousel = () => {
                 <img
                   src={nft.image || 'https://via.placeholder.com/280x320'}
                   alt={nft.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                 />
               </div>

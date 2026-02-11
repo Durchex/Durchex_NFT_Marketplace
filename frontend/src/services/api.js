@@ -84,9 +84,11 @@ if (typeof window !== 'undefined') {
 }
 
 // Create axios instance with base configuration
+// Keep the global timeout reasonably low so the UI never hangs for
+// 45s+ waiting on a bad backend. Individual calls can still override.
 const api = axios.create({
   baseURL: resolvedBase,
-  timeout: 45000, // 45s for slow connections / high-latency API
+  timeout: 12000, // 12s global cap; heavy calls can override if needed
   headers: {
     'Content-Type': 'application/json',
   },
@@ -138,6 +140,20 @@ api.interceptors.response.use(
   },
   async (error) => {
     const { config, response } = error;
+
+    // Handle client-side timeouts explicitly so the UI can degrade gracefully
+    if (error.code === 'ECONNABORTED' && error.message?.includes('timeout')) {
+      console.warn('[API] Request timeout, returning empty data for graceful degradation', {
+        url: config?.url,
+        method: config?.method,
+      });
+      // For GETs, treat timeout as "no data" instead of hard failure so
+      // components like Explore/Collections can fall back quickly.
+      if (config?.method?.toLowerCase() === 'get') {
+        return { data: [] };
+      }
+      return Promise.reject(error);
+    }
 
     // Retry on 429 (rate limit) errors
     if (response?.status === 429 && !config._retry) {
@@ -857,7 +873,7 @@ export const nftAPI = {
     }
     try {
       const response = await api.get(`/nft/nfts/${network}`, {
-        timeout: 45000,
+        timeout: 20000,
         _maxRetries: 2,
       });
       const data = response.data || [];
@@ -895,6 +911,66 @@ export const nftAPI = {
         return [];
       }
       console.error(`[getAllNftsByNetworkForExplore] Error fetching NFTs for network ${network}:`, error.message);
+      return [];
+    }
+  },
+
+  // Get ALL NFTs across all networks (listed only)
+  getAllNftsAllNetworks: async (limit = 500) => {
+    const key = 'all';
+    const cached = allNftsByNetworkCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < 60_000) {
+      return cached.data;
+    }
+    try {
+      const response = await api.get('/nft/nfts', {
+        params: { limit },
+        timeout: 20000,
+        _maxRetries: 1,
+      });
+      const data = response.data || [];
+      allNftsByNetworkCache.set(key, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (error) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('[getAllNftsAllNetworks] Timeout. Returning empty array.');
+        return [];
+      }
+      if (error.response?.status === 502) {
+        console.warn('[getAllNftsAllNetworks] 502 Bad Gateway, returning empty array');
+        return [];
+      }
+      console.error('[getAllNftsAllNetworks] Error fetching NFTs for all networks:', error.message);
+      return [];
+    }
+  },
+
+  // Get ALL NFTs for Explore across all networks (regardless of listing status)
+  getAllNftsAllNetworksForExplore: async (limit = 500) => {
+    const key = 'all_explore';
+    const cached = allNftsByNetworkCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < 60_000) {
+      return cached.data;
+    }
+    try {
+      const response = await api.get('/nft/nfts-explore', {
+        params: { limit },
+        timeout: 20000,
+        _maxRetries: 1,
+      });
+      const data = response.data || [];
+      allNftsByNetworkCache.set(key, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (error) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.warn('[getAllNftsAllNetworksForExplore] Timeout. Returning empty array.');
+        return [];
+      }
+      if (error.response?.status === 502) {
+        console.warn('[getAllNftsAllNetworksForExplore] 502 Bad Gateway, returning empty array');
+        return [];
+      }
+      console.error('[getAllNftsAllNetworksForExplore] Error fetching NFTs for all networks:', error.message);
       return [];
     }
   },

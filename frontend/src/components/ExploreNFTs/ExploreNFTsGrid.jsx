@@ -55,30 +55,8 @@ const ExploreNFTsGrid = () => {
       if (!silent) setLoading(true);
       if (!silent) console.log('[ExploreNFTsGrid] Fetching NFTs from all networks...');
       
-      // ✅ Fetch real NFTs from all networks IN PARALLEL (faster first paint)
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      const results = await Promise.allSettled(
-        networks.map(async (network) => {
-          try {
-            console.log(`[ExploreNFTsGrid] Fetching NFTs from ${network}...`);
-            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-            if (Array.isArray(networkNfts)) {
-              console.log(`[ExploreNFTsGrid] Found ${networkNfts.length} NFTs on ${network}`);
-              return networkNfts;
-            }
-          } catch (err) {
-            console.warn(`[ExploreNFTsGrid] Error fetching from ${network}:`, err.message);
-          }
-          return [];
-        })
-      );
-
-      let nftsData = [];
-      results.forEach((res) => {
-        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-          nftsData = nftsData.concat(res.value);
-        }
-      });
+      // ✅ Fetch ALL NFTs across all networks in a single call.
+      const nftsData = await nftAPI.getAllNftsAllNetworksForExplore(500);
 
       if (nftsData && nftsData.length > 0) {
         // ✅ De-duplicate NFTs that may appear under multiple networks
@@ -240,6 +218,8 @@ const ExploreNFTsGrid = () => {
                     <img
                       src={nft.image}
                       alt={nft.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                     />
                   ) : (
