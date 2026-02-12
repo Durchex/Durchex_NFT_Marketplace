@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { nftAPI, userAPI } from '../../services/api';
 import { getCurrencySymbol } from '../../Context/constants';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
-import { ErrorToast } from '../../app/Toast/Error.jsx';
 import { useNavigate } from 'react-router-dom';
 
 /**
@@ -99,9 +97,8 @@ const FeaturedNFTShowcase = () => {
       setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching collections:', error);
-      // Generate mock data as fallback
-      const mockCollections = generateMockCollections();
-      setCollections(mockCollections);
+      setCollections([]);
+      setAllNftsPool([]);
     } finally {
       setLoading(false);
     }
@@ -153,14 +150,6 @@ const FeaturedNFTShowcase = () => {
           ? uniqueNFTs
           : shuffle(uniqueNFTs).slice(0, 3);
 
-      if (showcaseNFTs.length === 0) {
-        showcaseNFTs = [
-          { _id: `${collection._id}-1`, name: `${collection.name} #1`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
-          { _id: `${collection._id}-2`, name: `${collection.name} #2`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
-          { _id: `${collection._id}-3`, name: `${collection.name} #3`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
-        ];
-      }
-
       setFeaturedNFTs(showcaseNFTs);
       console.log(`[FeaturedNFTShowcase] Loaded ${showcaseNFTs.length} NFTs for collection`);
       
@@ -196,49 +185,8 @@ const FeaturedNFTShowcase = () => {
       setCreatorProfiles(profilesMap);
     } catch (error) {
       console.error('[FeaturedNFTShowcase] Error fetching NFTs:', error);
-      // Generate mock NFTs as fallback
-      setFeaturedNFTs(generateMockNFTs(collection));
+      setFeaturedNFTs([]);
     }
-  };
-
-  const generateMockCollections = () => {
-    return [
-      {
-        _id: 'collection-1',
-      name: 'Victory of Olympus',
-      image: 'https://via.placeholder.com/600x400?text=Victory+of+Olympus',
-      description: 'A collection inspired by ancient Greek mythology',
-      itemCount: 250,
-        floorPrice: '0.6',
-        network: 'polygon'
-      },
-      {
-        _id: 'collection-2',
-        name: 'Digital Dreams',
-        image: 'https://via.placeholder.com/600x400?text=Digital+Dreams',
-        description: 'Futuristic digital art collection',
-        itemCount: 180,
-        floorPrice: '0.8',
-        network: 'ethereum'
-      },
-      {
-        _id: 'collection-3',
-        name: 'Cosmic Warriors',
-        image: 'https://via.placeholder.com/600x400?text=Cosmic+Warriors',
-        description: 'Space-themed warrior collection',
-        itemCount: 320,
-        floorPrice: '0.5',
-        network: 'polygon'
-      }
-    ];
-  };
-
-  const generateMockNFTs = (collection) => {
-    return [
-      { _id: `${collection._id}-1`, name: `${collection.name} #1`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
-      { _id: `${collection._id}-2`, name: `${collection.name} #2`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
-      { _id: `${collection._id}-3`, name: `${collection.name} #3`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' }
-    ];
   };
 
   const handleLike = (collectionId) => {
@@ -285,14 +233,21 @@ const FeaturedNFTShowcase = () => {
     return () => clearInterval(interval);
   }, [collections.length]);
 
-  if (loading || collections.length === 0) {
+  if (loading) {
     return (
       <div className="w-full h-96 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl animate-pulse"></div>
     );
   }
+  if (collections.length === 0) {
+    return (
+      <div className="w-full h-64 rounded-2xl border border-gray-800 bg-gray-900/50 flex items-center justify-center">
+        <p className="text-gray-400 text-sm">No collections available right now.</p>
+      </div>
+    );
+  }
 
   const currentCollection = collections[currentIndex];
-  const displayNFTs = featuredNFTs.length > 0 ? featuredNFTs : generateMockNFTs(currentCollection);
+  const displayNFTs = featuredNFTs;
 
   return (
     <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full">
@@ -376,7 +331,7 @@ const FeaturedNFTShowcase = () => {
           {/* Mobile: 3 column grid below, Desktop: Horizontal row at bottom right inside slider */}
           <div className="lg:absolute lg:bottom-0 lg:right-0 lg:flex lg:justify-end lg:pb-4 xl:pb-6 lg:pr-4 xl:pr-6">
             <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:flex lg:flex-row lg:gap-3 lg:h-auto">
-              {displayNFTs.map((nft, idx) => (
+              {displayNFTs.length > 0 ? displayNFTs.map((nft, idx) => (
                 <div
                   key={nft._id || idx}
                   className="relative rounded-lg overflow-hidden cursor-pointer group aspect-square w-full lg:w-[140px] xl:w-[160px] lg:h-[140px] xl:h-[160px]"
@@ -399,7 +354,11 @@ const FeaturedNFTShowcase = () => {
                     </p>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="col-span-3 lg:w-[420px] xl:w-[480px] h-[120px] lg:h-[140px] flex items-center justify-center rounded-lg border border-gray-700 bg-gray-900/60">
+                  <p className="text-gray-400 text-sm">No NFTs found in this collection.</p>
+                </div>
+              )}
             </div>
           </div>
 

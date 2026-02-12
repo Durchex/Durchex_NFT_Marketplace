@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { nftAPI, userAPI, auctionAPI } from '../../services/api';
-import toast from 'react-hot-toast';
 
 /**
  * LiveAuctions - Grid of active auctions (live API first, fallback to collections/mock)
@@ -58,66 +57,51 @@ const LiveAuctions = () => {
         // No live auctions – show collections as auction-style cards (like before)
         const collectionsData = await nftAPI.getCollections();
         if (Array.isArray(collectionsData) && collectionsData.length > 0) {
-          const mockAuctions = collectionsData.slice(0, 6).map((c, idx) => ({
+          const collectionAuctions = collectionsData.slice(0, 6).map((c, idx) => ({
             _id: c._id || `auction-${idx}`,
             collectionId: c._id,
             collection: c.name,
             network: c.network || 'polygon',
             name: c.name || `Collection ${idx + 1}`,
-            image: c.image || `https://via.placeholder.com/300x350?text=Auction%20${idx + 1}`,
-            currentBid: (Math.random() * 3 + 0.5).toFixed(2),
-            bidCount: Math.floor(Math.random() * 50) + 5,
+            image: c.image || '',
+            currentBid: String(c.floorPrice || '0.00'),
+            bidCount: Number(c.totalSales || c.sales || 0),
             creatorName: c.creatorName || `Creator ${idx + 1}`,
             creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.creatorWallet || idx}`,
             creatorWallet: c.creatorWallet,
-            endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+            endTime: c.updatedAt || c.createdAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx % 6]
           }));
-          setAuctions(mockAuctions);
+          setAuctions(collectionAuctions);
 
-          const wallets = [...new Set(mockAuctions.map((a) => a.creatorWallet).filter(Boolean))];
+          const wallets = [...new Set(collectionAuctions.map((a) => a.creatorWallet).filter(Boolean))];
           const profilesMap = new Map();
           for (let i = 0; i < wallets.length; i++) {
             const w = wallets[i];
             try {
               if (i > 0) await new Promise((r) => setTimeout(r, 100));
               const profile = await userAPI.getUserProfile(w);
-              const a = mockAuctions.find((x) => x.creatorWallet === w);
+              const a = collectionAuctions.find((x) => x.creatorWallet === w);
               profilesMap.set(w, {
                 username: profile?.username || a?.creatorName || `${w.slice(0, 6)}...`,
                 avatar: profile?.image || profile?.avatar || a?.creatorAvatar
               });
             } catch {
-              const a = mockAuctions.find((x) => x.creatorWallet === w);
+              const a = collectionAuctions.find((x) => x.creatorWallet === w);
               profilesMap.set(w, { username: a?.creatorName || `${w.slice(0, 6)}...`, avatar: a?.creatorAvatar });
             }
           }
           setCreatorProfiles(profilesMap);
         } else {
-          setAuctions(generateMockAuctions());
+          setAuctions([]);
         }
       }
     } catch (error) {
       console.warn('[LiveAuctions] Error:', error);
-      setAuctions(generateMockAuctions());
+      setAuctions([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockAuctions = () => {
-    const colors = ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'];
-    return Array(6).fill(0).map((_, i) => ({
-      _id: `auction-${i}`,
-      name: 'Futuristic Artist Portrait',
-      image: `https://via.placeholder.com/300x350?text=Auction%20${i + 1}`,
-      currentBid: (Math.random() * 3 + 0.5).toFixed(2),
-      bidCount: Math.floor(Math.random() * 50) + 5,
-      creatorName: 'Alexander Bias',
-      creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=auctioneer${i}`,
-      endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-      backgroundColor: colors[i % colors.length]
-    }));
   };
 
   // Countdown timer logic
@@ -151,6 +135,19 @@ const LiveAuctions = () => {
           {Array(6).fill(0).map((_, i) => (
             <div key={i} className="h-48 xs:h-56 sm:h-64 md:h-72 lg:h-80 bg-gray-800 rounded-lg"></div>
           ))}
+        </div>
+      </div>
+    );
+  }
+  if (auctions.length === 0) {
+    return (
+      <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full max-w-full">
+        <div className="mb-3 sm:mb-4 md:mb-6 w-full">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Live Auction</h2>
+          <p className="text-gray-400 text-xs md:text-sm">You are welcome to participate and bid for NFT from Durchex</p>
+        </div>
+        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-6 text-center">
+          <p className="text-gray-400 text-sm">No collections available for live auction right now.</p>
         </div>
       </div>
     );

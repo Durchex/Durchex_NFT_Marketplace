@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, ArrowRight } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
 import { Link, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+const TOP_CREATORS_REFRESH_MS = 60000;
 
 /** Shorten wallet for display: 0x1234...5678 */
 const shortenAddress = (addr) => {
@@ -27,6 +27,8 @@ const TopCreators = () => {
 
   useEffect(() => {
     fetchTopCreators();
+    const interval = setInterval(fetchTopCreators, TOP_CREATORS_REFRESH_MS);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchTopCreators = async () => {
@@ -34,21 +36,8 @@ const TopCreators = () => {
       setLoading(true);
       console.log('[TopCreators] Fetching users with NFTs...');
       
-      // ✅ Fetch all NFTs from all networks
-      let allNFTs = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
-      for (const network of networks) {
-        try {
-          console.log(`[TopCreators] Fetching NFTs from ${network}...`);
-          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts)) {
-            allNFTs = [...allNFTs, ...networkNfts];
-          }
-        } catch (err) {
-          console.warn(`[TopCreators] Error fetching from ${network}:`, err.message);
-        }
-      }
+      // ✅ Single all-networks call for consistency
+      const allNFTs = await nftAPI.getAllNftsAllNetworksForExplore(1000);
       
       if (allNFTs.length === 0) {
         throw new Error('No NFTs found');
@@ -130,25 +119,10 @@ const TopCreators = () => {
       console.log(`[TopCreators] Loaded ${creatorsWithProfiles.length} creators`);
     } catch (error) {
       console.error('[TopCreators] Error fetching creators:', error);
-      // Generate mock data if API fails
-      setCreators(generateMockCreators());
+      // Keep existing creators in state instead of replacing with placeholders
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockCreators = () => {
-    const names = [
-      'Kexyread', 'Daysi.ch', 'GreatDying', 'Jianelia', 'Joaniela',
-      'Roarnwhale', 'Mr Fox', 'Strenaldo', 'Robotica', 'Robotica'
-    ];
-    
-    return names.map((name, idx) => ({
-      address: `0x${Math.random().toString(16).slice(2, 42)}`,
-      username: name,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
-      mostRecentNFTDate: new Date(Date.now() - idx * 86400000) // Stagger dates
-    }));
   };
 
   if (loading) {
@@ -158,6 +132,21 @@ const TopCreators = () => {
           {Array(10).fill(0).map((_, i) => (
             <div key={i} className="h-32 md:h-40 bg-gray-800 rounded-lg"></div>
           ))}
+        </div>
+      </div>
+    );
+  }
+  if (creators.length === 0) {
+    return (
+      <div className="mb-6 sm:mb-8 md:mb-12 lg:mb-16 w-full max-w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 w-full">
+          <div>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1">Top Creators</h2>
+            <p className="text-gray-400 text-xs sm:text-sm">Verified creators on Durchex</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-6 text-center">
+          <p className="text-gray-400 text-sm">No creator data available right now.</p>
         </div>
       </div>
     );
