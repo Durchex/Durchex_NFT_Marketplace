@@ -4,9 +4,20 @@ import { nftAPI, userAPI } from '../../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+/** Shorten wallet for display: 0x1234...5678 */
+const shortenAddress = (addr) => {
+  if (!addr || typeof addr !== 'string') return 'Unknown';
+  if (addr.length <= 14) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+};
+
+/** True if string looks like a full wallet address */
+const isWalletAddress = (s) =>
+  typeof s === 'string' && s.length >= 42 && (s.startsWith('0x') || s.startsWith('0X'));
+
 /**
  * TopCreators - Displays users with NFTs, arranged by most recent NFT
- * Shows username and avatar, clickable to profile
+ * Always shows avatar and display name (username or shortened address, never full wallet)
  */
 const TopCreators = () => {
   const [creators, setCreators] = useState([]);
@@ -55,9 +66,12 @@ const TopCreators = () => {
         const nftDate = nft.createdAt ? new Date(nft.createdAt) : (nft._id ? new Date(nft._id.toString().substring(0, 8)) : new Date(0));
         
         if (!creatorsMap.has(walletAddress)) {
+          const nameFromNft = nft.creatorName || nft.creator;
+          const initialDisplay =
+            nameFromNft && !isWalletAddress(nameFromNft) ? nameFromNft : shortenAddress(walletAddress);
           creatorsMap.set(walletAddress, {
             address: walletAddress,
-            username: nft.creatorName || nft.creator || `User ${walletAddress.substring(0, 6)}`,
+            username: initialDisplay,
             avatar: nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress}`,
             nftCount: 0,
             mostRecentNFTDate: nftDate,
@@ -85,22 +99,29 @@ const TopCreators = () => {
       // Take top 10
       creatorsList = creatorsList.slice(0, 10);
       
-      // Fetch user profiles to get usernames and avatars
+      // Fetch user profiles so we always show avatar and username (or shortened address)
       const creatorsWithProfiles = await Promise.all(
         creatorsList.map(async (creator) => {
           try {
             const profile = await userAPI.getUserProfile(creator.address);
-            if (profile) {
-              return {
-                ...creator,
-                username: profile.username || creator.username,
-                avatar: profile.image || profile.avatar || creator.avatar
-              };
-            }
-            return creator;
+            const profileUsername = profile?.username || profile?.userName || profile?.creatorName;
+            const displayName =
+              profileUsername && !isWalletAddress(profileUsername)
+                ? profileUsername
+                : shortenAddress(creator.address);
+            const avatar =
+              profile?.image || profile?.avatar || profile?.profilePicture || profile?.creatorAvatar || creator.avatar;
+            return {
+              ...creator,
+              username: displayName,
+              avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.address}`
+            };
           } catch (error) {
             console.warn(`[TopCreators] Error fetching profile for ${creator.address}:`, error);
-            return creator;
+            return {
+              ...creator,
+              username: creator.username && !isWalletAddress(creator.username) ? creator.username : shortenAddress(creator.address)
+            };
           }
         })
       );
@@ -203,15 +224,20 @@ const TopCreators = () => {
                 <img
                   src={creator.avatar}
                   alt={creator.username}
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition border-2 border-gray-700 group-hover:border-purple-500"
+                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full group-hover:shadow-lg group-hover:shadow-purple-500/50 transition border-2 border-gray-700 group-hover:border-purple-500 object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.address}`;
+                  }}
                 />
               </div>
 
-              {/* Username */}
-              <h3 
+              {/* Display name: always username or shortened address, never full wallet */}
+              <h3
                 className="font-bold text-white text-sm sm:text-base mb-2 group-hover:text-purple-400 transition text-center line-clamp-1"
+                title={creator.address}
               >
-                {creator.username || `User ${creator.address.substring(0, 6)}`}
+                {creator.username}
               </h3>
 
               {/* Stats */}
