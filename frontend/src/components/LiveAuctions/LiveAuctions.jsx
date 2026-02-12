@@ -55,21 +55,55 @@ const LiveAuctions = () => {
         }
         setCreatorProfiles(profilesMap);
       } else {
-        const collectionsData = await nftAPI.getCollections();
-        if (Array.isArray(collectionsData) && collectionsData.length > 0) {
-          const mockAuctions = collectionsData.slice(0, 6).map((c, idx) => ({
-            _id: `auction-${idx}`,
-            name: c.name || `Collection Auction ${idx + 1}`,
-            image: c.image || `https://via.placeholder.com/300x350?text=Auction%20${idx + 1}`,
-            currentBid: (Math.random() * 3 + 0.5).toFixed(2),
-            bidCount: Math.floor(Math.random() * 50) + 5,
-            creatorName: c.creatorName || `Creator ${idx + 1}`,
-            creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.creatorWallet || idx}`,
-            endTime: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-            backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx]
-          }));
-          setAuctions(mockAuctions);
+        // No explicit auctions from backend – build "live auctions" from real NFTs across all networks
+        const allNfts = await nftAPI.getAllNftsAllNetworks(200);
+        if (Array.isArray(allNfts) && allNfts.length > 0) {
+          const pseudoAuctions = allNfts.slice(0, 8).map((nft, idx) => {
+            const rawPrice =
+              nft.floorPrice != null && nft.floorPrice !== ''
+                ? nft.floorPrice
+                : nft.price;
+            let v = parseFloat(rawPrice || '0');
+            if (v > 1000) v = v / 1e18;
+            const price = !isNaN(v) && v > 0 ? v.toFixed(4) : '0.00';
+            const seller = nft.owner || nft.seller || nft.creatorWallet || nft.walletAddress || '';
+            return {
+              _id: nft._id || nft.itemId || `auction-${idx}`,
+              nftId: nft._id || nft.itemId || nft.tokenId,
+              name: nft.name || `NFT #${idx + 1}`,
+              image: nft.image || `https://via.placeholder.com/300x350?text=NFT%20${idx + 1}`,
+              currentBid: price,
+              bidCount: nft.tradesCount ?? 0,
+              creatorName: seller ? `${seller.slice(0, 6)}...${seller.slice(-4)}` : '—',
+              creatorAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seller || idx}`,
+              creatorWallet: seller,
+              endTime: new Date(Date.now() + (idx + 1) * 60 * 60 * 1000).toISOString(),
+              backgroundColor: ['bg-yellow-400', 'bg-orange-400', 'bg-red-400', 'bg-purple-400', 'bg-blue-400', 'bg-pink-400'][idx % 6]
+            };
+          });
+          setAuctions(pseudoAuctions);
+
+          // Enrich with creator profiles
+          const wallets = [...new Set(pseudoAuctions.map((a) => a.creatorWallet).filter(Boolean))];
+          const profilesMap = new Map();
+          for (let i = 0; i < wallets.length; i++) {
+            const w = wallets[i];
+            try {
+              if (i > 0) await new Promise((r) => setTimeout(r, 100));
+              const profile = await userAPI.getUserProfile(w);
+              const a = pseudoAuctions.find((x) => x.creatorWallet === w);
+              profilesMap.set(w, {
+                username: profile?.username || a?.creatorName || `${w.slice(0, 6)}...`,
+                avatar: profile?.image || profile?.avatar || a?.creatorAvatar
+              });
+            } catch {
+              const a = pseudoAuctions.find((x) => x.creatorWallet === w);
+              profilesMap.set(w, { username: a?.creatorName || `${w.slice(0, 6)}...`, avatar: a?.creatorAvatar });
+            }
+          }
+          setCreatorProfiles(profilesMap);
         } else {
+          // Final fallback when there are no NFTs yet
           setAuctions(generateMockAuctions());
         }
       }
@@ -164,6 +198,8 @@ const LiveAuctions = () => {
                   <img
                     src={auction.image}
                     alt={auction.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                   />
                 ) : (

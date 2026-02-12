@@ -30,25 +30,9 @@ const RealTimeDataTable = () => {
   const fetchMarketData = useCallback(async () => {
     try {
       setLoading(true);
-      let allNFTs = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      // Fetch all networks in parallel to reduce time-to-data
-      const results = await Promise.allSettled(
-        networks.map(async (network) => {
-          try {
-            const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-            return Array.isArray(networkNfts) ? networkNfts : [];
-          } catch (err) {
-            console.warn(`[RealTimeDataTable] ${network}:`, err.message);
-            return [];
-          }
-        })
-      );
-      results.forEach((res) => {
-        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-          allNFTs = allNFTs.concat(res.value);
-        }
-      });
+      // ✅ Single call: fetch ALL NFTs across all networks for real‑time table
+      let allNFTs = await nftAPI.getAllNftsAllNetworks(500);
+      if (!Array.isArray(allNFTs)) allNFTs = [];
       const uniqueMap = new Map();
       allNFTs.forEach((nft) => {
         const key = nft._id || `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;

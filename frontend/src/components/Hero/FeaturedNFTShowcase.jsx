@@ -17,6 +17,7 @@ const FeaturedNFTShowcase = () => {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(new Set());
   const [creatorProfiles, setCreatorProfiles] = useState(new Map()); // Store creator profiles
+  const [allNftsPool, setAllNftsPool] = useState([]); // All NFTs used to derive collections + featured items
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,21 +34,66 @@ const FeaturedNFTShowcase = () => {
     try {
       setLoading(true);
       console.log('[FeaturedNFTShowcase] Fetching collections...');
-      
-      // ✅ Fetch all collections (newest to oldest)
-      const allCollectionsData = await nftAPI.getCollections();
-      console.log('[FeaturedNFTShowcase] Collections:', allCollectionsData);
-      
+
+      // ✅ Fetch ALL NFTs across all networks once and derive "collections" from real NFTs.
+      const allNfts = await nftAPI.getAllNftsAllNetworksForExplore(500);
+      setAllNftsPool(Array.isArray(allNfts) ? allNfts : []);
+
       let collectionsList = [];
-      if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Sort by creation date (newest first) - assuming _id or createdAt field
-        collectionsList = allCollectionsData.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(a._id ? a._id.toString().substring(0, 8) : 0);
-          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(b._id ? b._id.toString().substring(0, 8) : 0);
+      if (Array.isArray(allNfts) && allNfts.length > 0) {
+        // Group NFTs by collection name/id
+        const collectionMap = new Map();
+        allNfts.forEach((nft) => {
+          const key =
+            String(nft.collection || nft.collectionName || nft.collectionId || 'Uncategorized');
+          if (!collectionMap.has(key)) {
+            collectionMap.set(key, {
+              _id: nft.collectionId || nft.collection || key,
+              name: nft.collectionName || nft.collection || key,
+              image: nft.collectionImage || nft.image || 'https://via.placeholder.com/600x400',
+              description: nft.collectionDescription || '',
+              itemCount: 0,
+              floorPrice: null,
+              network: nft.network || 'polygon',
+              createdAt: nft.createdAt || null,
+              creatorWallet: nft.creatorWallet || nft.owner || nft.walletAddress,
+              creatorName: nft.creatorName,
+              creatorAvatar: nft.creatorAvatar,
+            });
+          }
+          const col = collectionMap.get(key);
+          col.itemCount += 1;
+
+          // Normalize price (handle wei-style large integers)
+          const rawPrice =
+            nft.floorPrice != null && nft.floorPrice !== ''
+              ? nft.floorPrice
+              : nft.price;
+          let v = parseFloat(rawPrice || '0');
+          if (v > 1000) v = v / 1e18;
+          if (!isNaN(v) && v > 0) {
+            col.floorPrice = col.floorPrice == null ? v : Math.min(col.floorPrice, v);
+          }
+
+          // Track "freshness" by the newest NFT in the collection
+          if (nft.createdAt) {
+            const nftDate = new Date(nft.createdAt);
+            if (!col.createdAt || nftDate > new Date(col.createdAt)) {
+              col.createdAt = nft.createdAt;
+            }
+          }
+        });
+
+        collectionsList = Array.from(collectionMap.values());
+
+        // Sort collections by newest activity
+        collectionsList.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
           return dateB - dateA;
         });
       }
-      
+
       if (collectionsList.length === 0) {
         throw new Error('No collections found');
       }
@@ -101,38 +147,27 @@ const FeaturedNFTShowcase = () => {
     try {
       console.log(`[FeaturedNFTShowcase] Fetching NFTs for collection: ${collection.name}`);
       
-      // Get collection network and name
-      const network = collection.network || 'polygon';
-      const collectionName = collection.name || collection.collectionName;
-      
-      // Fetch NFTs from this collection
+      // Prefer filtering from the all‑networks pool we already loaded for hero
       let collectionNFTs = [];
-      try {
-        collectionNFTs = await nftAPI.getCollectionNfts(network, collectionName);
-        if (!Array.isArray(collectionNFTs)) {
-          collectionNFTs = [];
-        }
-      } catch (err) {
-        console.warn(`[FeaturedNFTShowcase] Error fetching collection NFTs:`, err);
-      }
-      
-      // If no NFTs found in collection, try fetching from all networks and filter
-      if (collectionNFTs.length === 0) {
-        const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-        for (const net of networks) {
-          try {
-            const allNfts = await nftAPI.getAllNftsByNetwork(net);
-            if (Array.isArray(allNfts)) {
-              const filtered = allNfts.filter(nft => 
-                nft.collection === collectionName || 
-                nft.collectionName === collectionName ||
-                (collection._id && nft.collectionId === collection._id)
-              );
-              collectionNFTs = [...collectionNFTs, ...filtered];
-            }
-          } catch (err) {
-            console.warn(`[FeaturedNFTShowcase] Error fetching from ${net}:`, err.message);
+      if (Array.isArray(allNftsPool) && allNftsPool.length > 0) {
+        const key = String(collection.name || collection.collectionName || collection._id || '').toLowerCase();
+        collectionNFTs = allNftsPool.filter((nft) => {
+          const nftKey = String(
+            nft.collection || nft.collectionName || nft.collectionId || ''
+          ).toLowerCase();
+          return nftKey === key;
+        });
+      } else {
+        // Fallback: direct API call by network/name if pool is empty for some reason
+        const network = collection.network || 'polygon';
+        const collectionName = collection.name || collection.collectionName;
+        try {
+          const direct = await nftAPI.getCollectionNfts(network, collectionName);
+          if (Array.isArray(direct)) {
+            collectionNFTs = direct;
           }
+        } catch (err) {
+          console.warn('[FeaturedNFTShowcase] Fallback getCollectionNfts failed:', err?.message);
         }
       }
 
@@ -153,6 +188,7 @@ const FeaturedNFTShowcase = () => {
       
       // If still no NFTs, generate mock ones
       if (showcaseNFTs.length === 0) {
+        // Final fallback: mock NFTs for this collection if no real items yet
         showcaseNFTs.push(
           { _id: `${collection._id}-1`, name: `${collection.name} #1`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
           { _id: `${collection._id}-2`, name: `${collection.name} #2`, image: collection.image || 'https://via.placeholder.com/200x200', price: collection.floorPrice || '0.5' },
