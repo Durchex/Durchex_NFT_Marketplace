@@ -3,6 +3,8 @@ import axios from 'axios';
 // Simple in-memory cache for heavy read endpoints (per-session)
 const allNftsByNetworkCache = new Map(); // key: network or special key, value: { data, fetchedAt }
 let collectionsCache = { data: null, fetchedAt: 0 }; // cache for /nft/collections
+const userProfileCache = new Map(); // key: wallet, value: { data, fetchedAt }
+const analyticsCache = new Map(); // key: string, value: { data, fetchedAt }
 
 // Helper function to normalize URL by removing non-standard ports
 function normalizeURL(url) {
@@ -244,15 +246,24 @@ export const userAPI = {
   // Get user profile by wallet address
   getUserProfile: async (walletAddress) => {
     try {
+      const key = String(walletAddress || '').toLowerCase();
+      const cached = userProfileCache.get(key);
+      if (cached && Date.now() - cached.fetchedAt < 5 * 60_000) {
+        return cached.data;
+      }
+
       const response = await api.get(`/user/users/${walletAddress}`, {
         timeout: 25000, // 25s for profile (API may be slow)
       });
-      return response.data;
+      const data = response.data;
+      userProfileCache.set(key, { data, fetchedAt: Date.now() });
+      return data;
     } catch (error) {
       // Handle timeout errors
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         console.warn(`Timeout fetching user profile for ${walletAddress}, returning null`);
-        return null; // Don't throw error for profile loading timeouts
+        const cached = userProfileCache.get(String(walletAddress || '').toLowerCase());
+        return cached?.data ?? null; // Prefer cache over null on timeout
       }
       // Handle rate limiting
       if (error.response?.status === 429) {
@@ -642,12 +653,34 @@ export const monetizationAPI = {
 // Analytics API (backend at /api/v1/analytics)
 export const analyticsAPI = {
   getMarketplaceStats: async (timeframe = '7d') => {
-    const response = await api.get('/analytics/marketplace-stats', { params: { timeframe } });
-    return response.data?.data ?? {};
+    const key = `marketplaceStats:${timeframe}`;
+    const cached = analyticsCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < 30_000) {
+      return cached.data;
+    }
+    const response = await api.get('/analytics/marketplace-stats', {
+      params: { timeframe },
+      timeout: 15000,
+      _maxRetries: 1,
+    });
+    const data = response.data?.data ?? {};
+    analyticsCache.set(key, { data, fetchedAt: Date.now() });
+    return data;
   },
   getVolumeTrends: async (timeframe = '7d', interval = 'daily') => {
-    const response = await api.get('/analytics/volume-trends', { params: { timeframe, interval } });
-    return response.data?.data ?? [];
+    const key = `volumeTrends:${timeframe}:${interval}`;
+    const cached = analyticsCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < 30_000) {
+      return cached.data;
+    }
+    const response = await api.get('/analytics/volume-trends', {
+      params: { timeframe, interval },
+      timeout: 15000,
+      _maxRetries: 1,
+    });
+    const data = response.data?.data ?? [];
+    analyticsCache.set(key, { data, fetchedAt: Date.now() });
+    return data;
   },
   getTrendingCollections: async (limit = 10, timeframe = '7d') => {
     const response = await api.get('/analytics/trending-collections', { params: { limit, timeframe } });
@@ -898,7 +931,7 @@ export const nftAPI = {
   getAllNftsByNetworkForExplore: async (network) => {
     try {
       const response = await api.get(`/nft/nfts-explore/${network}`, {
-        timeout: 45000,
+        timeout: 20000,
         _maxRetries: 2,
       });
       return response.data || [];
@@ -1005,7 +1038,10 @@ export const nftAPI = {
   getCollectionNfts: async (network, collection) => {
     try {
       const encoded = encodeURIComponent(collection);
-      const response = await api.get(`/nft/nfts/${network}/collection/${encoded}`, { timeout: 45000 });
+      const response = await api.get(`/nft/nfts/${network}/collection/${encoded}`, {
+        timeout: 20000,
+        _maxRetries: 1,
+      });
       return response.data;
     } catch (error) {
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
