@@ -1234,8 +1234,19 @@ export const nftAPI = {
     return response.data.trades || [];
   },
   getNftAnalyticsByTrades: async (network, itemId, period = '7d') => {
-    const response = await api.get(`/nft/nfts/${network}/${itemId}/analytics`, { params: { period } });
-    return response.data;
+    const key = `nftAnalytics:${network}:${itemId}:${period}`;
+    const cached = analyticsCache.get(key);
+    if (cached && Date.now() - cached.fetchedAt < 30_000) {
+      return cached.data;
+    }
+    const response = await api.get(`/nft/nfts/${network}/${itemId}/analytics`, {
+      params: { period },
+      timeout: 15000,
+      _maxRetries: 1,
+    });
+    const data = response.data;
+    analyticsCache.set(key, { data, fetchedAt: Date.now() });
+    return data;
   },
   getNftRarityRank: async (network, itemId) => {
     try {
