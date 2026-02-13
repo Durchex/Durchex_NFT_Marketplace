@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Simple in-memory cache for heavy read endpoints (per-session)
-const allNftsByNetworkCache = new Map(); // key: network, value: { data, fetchedAt }
+const allNftsByNetworkCache = new Map(); // key: network or special key, value: { data, fetchedAt }
+let collectionsCache = { data: null, fetchedAt: 0 }; // cache for /nft/collections
 
 // Helper function to normalize URL by removing non-standard ports
 function normalizeURL(url) {
@@ -1279,18 +1280,25 @@ export const nftAPI = {
 
   // Get all collections (for Collections page)
   getCollections: async () => {
+    const now = Date.now();
+    if (collectionsCache.data && now - collectionsCache.fetchedAt < 60_000) {
+      return collectionsCache.data;
+    }
     try {
       const response = await api.get(`/nft/collections`, {
-        timeout: 45000, // 45s for collections (can be slow)
+        timeout: 20000, // keep consistent with other heavy endpoints
+        _maxRetries: 1,
       });
-      return response.data || [];
+      const data = response.data || [];
+      collectionsCache = { data, fetchedAt: now };
+      return data;
     } catch (error) {
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        console.warn('Timeout fetching all collections, returning empty array');
-        return [];
+        console.warn('Timeout fetching all collections, returning last cached or empty array');
+        return collectionsCache.data || [];
       }
-      console.error('Failed to fetch all collections:', error);
-      return [];
+      console.error('Failed to fetch all collections:', error.message || error);
+      return collectionsCache.data || [];
     }
   },
 };
