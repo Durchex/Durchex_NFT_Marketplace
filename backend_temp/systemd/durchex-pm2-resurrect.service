@@ -1,0 +1,14 @@
+[Unit]
+Description=Durchex PM2 resurrect on boot
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Run as the deploy user; change if needed
+User=${USER}
+Environment=PATH=/usr/bin:/usr/local/bin
+ExecStart=/usr/bin/env bash -lc 'pm2 resurrect || true'
+
+[Install]
+WantedBy=multi-user.target

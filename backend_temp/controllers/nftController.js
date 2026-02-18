@@ -5,6 +5,8 @@ import { pieceHoldingModel } from "../models/pieceHoldingModel.js";
 import { pieceSellOrderModel } from "../models/pieceSellOrderModel.js";
 import { nftTradeModel } from "../models/nftTradeModel.js";
 import nftContractService from "../services/nftContractService.js";
+import { ethers } from 'ethers';
+import { PendingTransfer } from '../models/pendingTransferModel.js';
 
 /**
  * Helper function to convert lazy NFT to regular NFT format
@@ -445,8 +447,7 @@ export const checkNftExists = async (req, res) => {
   }
 };
 
-// In-memory store for pending transfers (network:itemId -> record)
-const pendingTransfersStore = new Map();
+// pendingTransfersStore is imported from services/pendingStore (shared)
 
 /** POST /nfts/update-owner — Post-buy sync: decrement remainingPieces, add piece holding for buyer, record trade (price/market cap). Creator/owner of token is never changed. */
 export const updateNftOwner = async (req, res) => {
@@ -546,17 +547,15 @@ export const createPendingTransfer = async (req, res) => {
     if (!network || itemId == null || !buyerAddress) {
       return res.status(400).json({ error: "network, itemId, and buyerAddress are required" });
     }
-    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
-    pendingTransfersStore.set(key, {
+    const doc = await PendingTransfer.create({
+      type: 'manual',
       network: String(network).toLowerCase(),
       itemId: String(itemId),
-      nftContract: nftContract || null,
-      buyerAddress: String(buyerAddress).toLowerCase(),
-      sellerAddress: sellerAddress ? String(sellerAddress).toLowerCase() : null,
+      buyer: String(buyerAddress).toLowerCase(),
+      seller: sellerAddress ? String(sellerAddress).toLowerCase() : null,
       transactionHash: transactionHash || null,
-      createdAt: new Date().toISOString(),
     });
-    return res.status(201).json({ success: true, message: "Pending transfer recorded" });
+    return res.status(201).json({ success: true, message: "Pending transfer recorded", id: doc._id });
   } catch (error) {
     console.error("Error creating pending transfer:", error);
     return res.status(500).json({ error: error.message });
@@ -656,6 +655,64 @@ export const recordLazyMintPurchase = async (req, res) => {
     const priceStr = pricePerPiece != null ? String(pricePerPiece) : lazy.price || "0";
     lazy.lastPrice = priceStr;
     await lazy.save();
+
+    // Require transactionHash and verify on-chain TransferSingle before updating DB
+    const txHash = transactionHash || req.body.txHash || null;
+    if (!txHash) {
+      await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, pricePerPiece: priceStr, transactionHash: null });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction hash required for immediate DB sync; recorded pending intent.' });
+    }
+
+    const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
+    if (!rpcUrl) {
+      await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'No RPC configured to verify transaction; recorded pending intent.' });
+    }
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+
+    let receipt;
+    try {
+      receipt = await provider.getTransactionReceipt(txHash);
+    } catch (e) {
+      await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction receipt not available yet; recorded pending intent.' });
+    }
+    if (!receipt || receipt.status !== 1) {
+      await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction not confirmed; recorded pending intent.' });
+    }
+
+    // Verify TransferSingle present in receipt logs for this lazy NFT (if liquidity info present)
+    let verified = false;
+    try {
+      const iface = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
+      const liquidityContract = lazy.liquidityContract || null;
+      const liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
+      if (liquidityContract && liquidityPieceId) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = iface.parseLog(log);
+            if (parsed && parsed.name === 'TransferSingle') {
+              const to = String(parsed.args.to).toLowerCase();
+              const id = parsed.args.id.toString();
+              if (to === buyerNorm && id === String(liquidityPieceId)) {
+                verified = true;
+                break;
+              }
+            }
+          } catch (e) {
+            // ignore logs that don't match iface
+          }
+        }
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+
+    if (!verified) {
+      await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but TransferSingle not observed yet; recorded pending intent.' });
+    }
 
     const holding = await pieceHoldingModel.findOneAndUpdate(
       { network: net, itemId: String(lazy._id), wallet: buyerNorm },
@@ -856,6 +913,71 @@ export const recordPoolPurchase = async (req, res) => {
         return res.status(404).json({ error: "NFT not found" });
       }
       creatorWallet = (lazy.creator || "").toLowerCase();
+    }
+
+    // Require transactionHash and verify on-chain TransferSingle before updating DB
+    const txHash = transactionHash || req.body.txHash || null;
+    if (!txHash) {
+      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, pricePerPiece: String(pricePerPiece), transactionHash: null });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction hash required for immediate DB sync; recorded pending intent.' });
+    }
+
+    const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
+    if (!rpcUrl) {
+      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'No RPC configured to verify transaction; recorded pending intent.' });
+    }
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+
+    let receipt;
+    try {
+      receipt = await provider.getTransactionReceipt(txHash);
+    } catch (e) {
+      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction receipt not available yet; recorded pending intent.' });
+    }
+    if (!receipt || receipt.status !== 1) {
+      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction not confirmed; recorded pending intent.' });
+    }
+
+    // Verify TransferSingle present in receipt logs for this pool purchase (if liquidity info present)
+    let verified = false;
+    try {
+      const iface = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
+      let liquidityAddress = nft?.liquidityContract || null;
+      let liquidityPieceId = nft?.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
+      if ((!liquidityAddress || !liquidityPieceId) && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+        const lazy = await LazyNFT.findById(itemIdStr).lean();
+        if (lazy) {
+          liquidityAddress = liquidityAddress || lazy.liquidityContract;
+          liquidityPieceId = liquidityPieceId || (lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null);
+        }
+      }
+      if (liquidityAddress && liquidityPieceId) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = iface.parseLog(log);
+            if (parsed && parsed.name === 'TransferSingle') {
+              const to = String(parsed.args.to).toLowerCase();
+              const id = parsed.args.id.toString();
+              if (to === buyerNorm && id === String(liquidityPieceId)) {
+                verified = true;
+                break;
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!verified) {
+      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but TransferSingle not observed yet; recorded pending intent.' });
     }
 
     await pieceHoldingModel.findOneAndUpdate(
@@ -1163,8 +1285,8 @@ export const getNftRarityRank = async (req, res) => {
 export const getPendingTransfer = async (req, res) => {
   try {
     const { network, itemId } = req.params;
-    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
-    const record = pendingTransfersStore.get(key);
+    const net = String(network).toLowerCase();
+    const record = await PendingTransfer.findOne({ network: net, itemId: String(itemId) }).lean();
     if (!record) return res.status(404).json({ error: "Pending transfer not found" });
     return res.json(record);
   } catch (error) {
@@ -1177,9 +1299,9 @@ export const getPendingTransfer = async (req, res) => {
 export const deletePendingTransfer = async (req, res) => {
   try {
     const { network, itemId } = req.params;
-    const key = `${String(network).toLowerCase()}:${String(itemId)}`;
-    if (!pendingTransfersStore.has(key)) return res.status(404).json({ error: "Pending transfer not found" });
-    pendingTransfersStore.delete(key);
+    const net = String(network).toLowerCase();
+    const result = await PendingTransfer.findOneAndDelete({ network: net, itemId: String(itemId) });
+    if (!result) return res.status(404).json({ error: "Pending transfer not found" });
     return res.json({ success: true, message: "Pending transfer removed" });
   } catch (error) {
     console.error("Error deleting pending transfer:", error);
