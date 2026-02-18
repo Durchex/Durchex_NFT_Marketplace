@@ -786,6 +786,9 @@ export const recordLazyMintPurchase = async (req, res) => {
       remainingPieces: lazy.remainingPieces,
       lastPrice: priceStr,
     });
+  } catch (error) {
+    console.error("Error in recordLazyMintPurchase:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
