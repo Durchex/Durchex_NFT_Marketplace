@@ -910,8 +910,24 @@ export const getPiecesBalanceOnChain = async (networkName, userAddress, liquidit
     if (!piecesAddress || piecesAddress === ethers.constants.AddressZero) return 0;
 
     const piecesContract = new ethers.Contract(piecesAddress, NftPieces_ABI, provider);
-    const bn = await piecesContract.balanceOf(userAddress, pieceId);
-    return ethers.BigNumber.from(bn).toNumber();
+    // Normalize pieceId to BigNumber-compatible value
+    let pid;
+    try {
+      pid = ethers.BigNumber.from(String(pieceId));
+    } catch (err) {
+      console.warn('getPiecesBalanceOnChain: invalid pieceId', pieceId, err);
+      pid = pieceId;
+    }
+
+    console.debug('getPiecesBalanceOnChain: querying', { network: net, rpcUrl, liquidityAddress, piecesAddress, userAddress, pieceId: pid?.toString?.() });
+    const bn = await piecesContract.balanceOf(userAddress, pid);
+    console.debug('getPiecesBalanceOnChain: raw balance', bn?.toString?.());
+    try {
+      return ethers.BigNumber.from(bn).toNumber();
+    } catch (convErr) {
+      console.warn('getPiecesBalanceOnChain: could not convert balance to number', bn, convErr);
+      return parseInt(String(bn || '0'), 10) || 0;
+    }
   } catch (e) {
     console.warn("getPiecesBalanceOnChain:", e);
     return 0;
