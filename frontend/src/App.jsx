@@ -71,6 +71,7 @@ const HiLo = lazy(() => import("./pages/games/HiLo"));
 const Limbo = lazy(() => import("./pages/games/Limbo"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ExploreDebug = lazy(() => import("./pages/Explore_DEBUG"));
+const Deposit = lazy(() => import("./pages/Deposit"));
 
 export default function App() {
   const { address } = useContext(ICOContent) || {};
@@ -219,6 +220,7 @@ export default function App() {
           <Route path="/games/mines" element={<Mines />} />
           <Route path="/games/hi-lo" element={<HiLo />} />
           <Route path="/games/limbo" element={<Limbo />} />
+          <Route path="/deposit" element={<Deposit />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/explore-debug" element={<ExploreDebug />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
