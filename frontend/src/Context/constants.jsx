@@ -894,9 +894,22 @@ export const getNftPiecesContractWithSigner = async (networkName, liquidityContr
  */
 export const getPiecesBalanceOnChain = async (networkName, userAddress, liquidityContractAddress, pieceId) => {
   try {
-    if (typeof window?.ethereum === "undefined") return 0;
-    const piecesContract = await getNftPiecesContractWithSigner(networkName, liquidityContractAddress);
-    if (!piecesContract) return 0;
+    // Use a read-only JSON-RPC provider so we can fetch balances even when
+    // the user's wallet is on a different chain or not connected.
+    const net = String(networkName || "").toLowerCase();
+    const rpcUrl = rpcUrls[net];
+    if (!rpcUrl) return 0;
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+
+    // Resolve liquidity contract address: prefer explicit override, fallback to configured address
+    const liquidityAddress = liquidityContractAddress || getContractAddresses(net)?.nftLiquidity;
+    if (!liquidityAddress) return 0;
+
+    const liquidity = new ethers.Contract(liquidityAddress, NftLiquidity_ABI, provider);
+    const piecesAddress = await liquidity.piecesContract();
+    if (!piecesAddress || piecesAddress === ethers.constants.AddressZero) return 0;
+
+    const piecesContract = new ethers.Contract(piecesAddress, NftPieces_ABI, provider);
     const bn = await piecesContract.balanceOf(userAddress, pieceId);
     return ethers.BigNumber.from(bn).toNumber();
   } catch (e) {
