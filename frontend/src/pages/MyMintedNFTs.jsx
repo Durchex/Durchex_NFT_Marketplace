@@ -1044,10 +1044,18 @@ function MyMintedNFTs() {
                 />
               </div>
               {sellPiecesQuote && (
-                <p className="text-sm text-gray-300">
-                  You will receive ~<span className="font-semibold text-white">{Number(sellPiecesQuote.totalProceeds).toFixed(4)}</span> {getCurrencySymbol(sellPiecesModal.nft?.network || "ethereum")}
-                  <span className="text-gray-500 text-xs ml-1">(at {Number(sellPiecesQuote.pricePerPiece).toFixed(4)} per piece)</span>
-                </p>
+                <>
+                  {sellPiecesQuote.insufficientReserve ? (
+                    <p className="text-sm text-red-400 font-semibold">
+                      ⚠️ Pool Error: {sellPiecesQuote.warning}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-300">
+                      You will receive ~<span className="font-semibold text-white">{Number(sellPiecesQuote.totalProceeds).toFixed(4)}</span> {getCurrencySymbol(sellPiecesModal.nft?.network || "ethereum")}
+                      <span className="text-gray-500 text-xs ml-1">(at {Number(sellPiecesQuote.pricePerPiece).toFixed(4)} per piece; pool reserve: {sellPiecesQuote.onChainReserve})</span>
+                    </p>
+                  )}
+                </>
               )}
             </div>
             <div className="flex gap-2 justify-end">
@@ -1060,7 +1068,7 @@ function MyMintedNFTs() {
               </button>
               <button
                 onClick={handleSellPieces}
-                disabled={sellPiecesSubmitting || sellPiecesOnChainBalance === null || sellPiecesOnChainBalance === 0}
+                disabled={sellPiecesSubmitting || sellPiecesOnChainBalance === null || sellPiecesOnChainBalance === 0 || sellPiecesQuote?.insufficientReserve}
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
               >
                 {sellPiecesSubmitting ? "Selling…" : "Sell to liquidity"}

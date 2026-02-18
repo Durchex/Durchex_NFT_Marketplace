@@ -869,6 +869,24 @@ export const quoteSellToLiquidity = async (req, res) => {
 
     const totalProceeds = (pricePerPiece * qty).toFixed(18);
 
+    // Check on-chain reserve
+    let onChainReserve = 0;
+    let reserveCheckError = null;
+    if (liquidityContract && liquidityPieceId != null) {
+      try {
+        const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
+        if (rpcUrl) {
+          const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+          const erc1155Abi = ['function balanceOf(address,uint256) view returns (uint256)'];
+          const contract = new ethers.Contract(liquidityContract, erc1155Abi, provider);
+          const bn = await contract.balanceOf(liquidityContract, liquidityPieceId);
+          onChainReserve = bn.toNumber();
+        }
+      } catch (e) {
+        reserveCheckError = `Could not verify reserve: ${e.message}`;
+      }
+    }
+
     const payload = {
       success: true,
       network: net,
@@ -876,10 +894,18 @@ export const quoteSellToLiquidity = async (req, res) => {
       quantity: qty,
       pricePerPiece: String(pricePerPiece),
       totalProceeds,
+      onChainReserve,
     };
     if (liquidityContract && liquidityPieceId != null) {
       payload.liquidityContract = liquidityContract;
       payload.liquidityPieceId = liquidityPieceId;
+    }
+    if (reserveCheckError) {
+      payload.reserveCheckWarning = reserveCheckError;
+    }
+    if (onChainReserve < qty) {
+      payload.insufficientReserve = true;
+      payload.warning = `Liquidity pool has ${onChainReserve} pieces, but you are trying to sell ${qty}`;
     }
     return res.json(payload);
   } catch (error) {
@@ -1046,17 +1072,46 @@ export const pieceSellBackToLiquidity = async (req, res) => {
     const itemIdStr = String(itemId);
 
     let creatorWallet = "";
+    let liquidityContract = null;
+    let liquidityPieceId = null;
     const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
     if (nft) {
       creatorWallet = (nft.creator || nft.owner || nft.seller || "").toLowerCase();
+      liquidityContract = nft.liquidityContract || null;
+      liquidityPieceId = nft.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
     } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
       const lazy = await LazyNFT.findById(itemIdStr).lean();
       if (!lazy) {
         return res.status(404).json({ error: "NFT not found" });
       }
       creatorWallet = (lazy.creator || "").toLowerCase();
+      liquidityContract = lazy.liquidityContract || null;
+      liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
     } else {
       return res.status(404).json({ error: "NFT not found" });
+    }
+
+    // Check on-chain reserve before allowing sell
+    if (liquidityContract && liquidityPieceId != null) {
+      try {
+        const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
+        if (rpcUrl) {
+          const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+          const erc1155Abi = ['function balanceOf(address,uint256) view returns (uint256)'];
+          const contract = new ethers.Contract(liquidityContract, erc1155Abi, provider);
+          const bn = await contract.balanceOf(liquidityContract, liquidityPieceId);
+          const reserve = bn.toNumber();
+          if (reserve < qty) {
+            return res.status(400).json({
+              error: `Insufficient liquidity pool reserve. Pool has ${reserve} pieces, you are selling ${qty}. Transaction would fail on-chain.`,
+              reserve,
+              requested: qty
+            });
+          }
+        }
+      } catch (e) {
+        console.warn(`Reserve check failed (proceeding anyway): ${e.message}`);
+      }
     }
 
     // Decrease seller's piece holdings
