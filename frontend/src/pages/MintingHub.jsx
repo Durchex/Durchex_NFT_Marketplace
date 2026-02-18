@@ -1,10 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { ICOContent } from "../Context/index";
-import { nftAPI } from "../services/api";
+import { nftAPI, lazyMintAPI } from "../services/api";
 import { SuccessToast } from "../app/Toast/Success.jsx";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import toast from "react-hot-toast";
 import { Loader, Check, X, ZapOff } from "lucide-react";
+import { ethers } from "ethers";
+import { getMultiPieceLazyMintContractWithSigner, changeNetwork } from "../Context/constants";
 
 /**
  * MintingHub - User interface for minting NFTs to blockchain
@@ -99,7 +101,7 @@ function MintingHub() {
     setSelectedNFTs(newSelected);
   };
 
-  // Mint single NFT
+  // Mint single NFT - handle lazy mint on-chain
   const handleMintSingle = async (nft) => {
     if (!address) {
       toast.error("Please connect wallet first");
@@ -110,31 +112,128 @@ function MintingHub() {
       setMinting(true);
       setMintingProgress({ [nft._id]: 0 });
       
-      const response = await nftAPI.post(`/minting/mint`, {
-        nftId: nft._id,
-        walletAddress: address,
-        collectionAddress: nft.collectionAddress
-      });
+      // Check if this is a lazy mint NFT (has _id and price)
+      const isLazyMint = nft._id && nft.price && (nft.ipfsURI || nft.metadataURI);
+      
+      if (isLazyMint) {
+        // Lazy mint: Redeem on-chain via LazyMintNFT contract
+        const network = (nft.network || 'polygon').toLowerCase().trim();
+        const qty = 1; // Initial mint is 1 piece
+        const pricePerPiece = String(nft.price || "0.001");
 
-      setMintingProgress({ [nft._id]: 100 });
-      
-      SuccessToast(`NFT minted successfully! Token ID: ${response.data.tokenId}`);
-      
-      // Update display
-      setMintableNFTs(prev => prev.filter(n => n._id !== nft._id));
-      
-      // Optionally fetch updated minted NFTs
-      setTimeout(() => fetchMintedNFTs(), 2000);
+        // Request wallet and change network
+        if (!window.ethereum) {
+          throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+        }
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await changeNetwork(network);
+        await new Promise((r) => setTimeout(r, 500));
+
+        setMintingProgress({ [nft._id]: 20 });
+
+        // Get redemption voucher from backend
+        const redemptionRes = await lazyMintAPI.redeem(nft._id, pricePerPiece, qty);
+        const { redemptionData } = redemptionRes;
+        if (!redemptionData) throw new Error('No voucher data from server.');
+
+        setMintingProgress({ [nft._id]: 40 });
+
+        // Get contract instance
+        const contract = await getMultiPieceLazyMintContractWithSigner(network);
+        if (!contract) {
+          throw new Error(
+            'Lazy mint contract not configured for this network. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS and connect your wallet.'
+          );
+        }
+
+        setMintingProgress({ [nft._id]: 60 });
+
+        // Call redeemListing on-chain
+        const sig = redemptionData.signature?.startsWith('0x')
+          ? redemptionData.signature
+          : '0x' + (redemptionData.signature || '');
+
+        const maxSupply = Number(redemptionData.maxSupply ?? redemptionData.pieces ?? nft.pieces ?? 1) || 1;
+        const pricePerPieceWei = ethers.utils.parseEther(String(pricePerPiece));
+        const valueWei = pricePerPieceWei.mul(ethers.BigNumber.from(qty));
+
+        const creatorAddress = redemptionData.creator && ethers.utils.isAddress(redemptionData.creator)
+          ? ethers.utils.getAddress(redemptionData.creator)
+          : redemptionData.creator;
+
+        const tx = await contract.redeemListing(
+          creatorAddress,
+          redemptionData.ipfsURI,
+          Number(redemptionData.royaltyPercentage ?? redemptionData.royaltyBps ?? 0) || 0,
+          pricePerPieceWei,
+          maxSupply,
+          qty,
+          sig,
+          { value: valueWei, gasLimit: 500000 }
+        );
+
+        setMintingProgress({ [nft._id]: 80 });
+
+        const receipt = await tx.wait();
+
+        setMintingProgress({ [nft._id]: 90 });
+
+        // Post-mint sync: update DB with transaction hash
+        try {
+          await lazyMintAPI.recordPurchase(nft._id, {
+            buyer: address,
+            quantity: qty,
+            totalPrice: ethers.utils.formatEther(valueWei),
+            pricePerPiece: pricePerPiece,
+            network,
+            transactionHash: tx.hash,
+          });
+        } catch (syncErr) {
+          console.warn('Post-mint sync failed; on-chain mint succeeded but DB not updated yet:', syncErr?.message || syncErr);
+        }
+
+        setMintingProgress({ [nft._id]: 100 });
+        SuccessToast(`NFT minted successfully and pieces added to your wallet!`);
+        
+        // Update display
+        setMintableNFTs(prev => prev.filter(n => n._id !== nft._id));
+        
+        // Fetch updated minted NFTs
+        setTimeout(() => fetchMintedNFTs(), 2000);
+      } else {
+        // Regular NFT: Use traditional minting endpoint
+        const response = await nftAPI.post(`/minting/mint`, {
+          nftId: nft._id,
+          walletAddress: address,
+          collectionAddress: nft.collectionAddress
+        });
+
+        setMintingProgress({ [nft._id]: 100 });
+        
+        SuccessToast(`NFT minted successfully! Token ID: ${response.data.tokenId}`);
+        
+        // Update display
+        setMintableNFTs(prev => prev.filter(n => n._id !== nft._id));
+        
+        // Fetch updated minted NFTs
+        setTimeout(() => fetchMintedNFTs(), 2000);
+      }
     } catch (error) {
-      ErrorToast(error.response?.data?.message || "Failed to mint NFT");
-      console.error(error);
+      console.error('Mint error:', error);
+      const code = error?.code ?? error?.error?.code;
+      const msg = String(error?.message || error?.error?.message || '');
+      if (code === 4001 || msg.toLowerCase().includes('rejected')) {
+        ErrorToast('Transaction rejected.');
+      } else {
+        ErrorToast(error.response?.data?.message || msg || 'Failed to mint NFT');
+      }
     } finally {
       setMinting(false);
       setMintingProgress({});
     }
   };
 
-  // Batch mint selected NFTs
+  // Batch mint selected NFTs - handle lazy mints on-chain
   const handleBatchMint = async () => {
     if (selectedNFTs.size === 0) {
       toast.error("Please select at least one NFT");
@@ -157,28 +256,134 @@ function MintingHub() {
       nftIds.forEach(id => progress[id] = 0);
       setMintingProgress(progress);
 
-      const data = await nftAPI.batchMint({
-        nftIds,
-        walletAddress: address,
-        collectionAddress: selectedNFTObjects[0]?.collectionAddress,
-      });
+      // Check if any are lazy mints
+      const lazyMints = selectedNFTObjects.filter(n => n._id && n.price && (n.ipfsURI || n.metadataURI));
+      const regularMints = selectedNFTObjects.filter(n => !n._id || !n.price || (!n.ipfsURI && !n.metadataURI));
 
-      // Update progress
-      nftIds.forEach(id => {
-        setMintingProgress(prev => ({ ...prev, [id]: 100 }));
-      });
+      // Change network once if there are lazy mints
+      if (lazyMints.length > 0) {
+        const network = (lazyMints[0].network || 'polygon').toLowerCase().trim();
+        if (!window.ethereum) {
+          throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+        }
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        await changeNetwork(network);
+        await new Promise((r) => setTimeout(r, 500));
+      }
 
-      SuccessToast(`${(data.mintedNFTs ?? []).length} NFTs minted successfully!`);
+      let successCount = 0;
+
+      // Mint lazy mints on-chain
+      for (const nft of lazyMints) {
+        try {
+          const network = (nft.network || 'polygon').toLowerCase().trim();
+          const qty = 1;
+          const pricePerPiece = String(nft.price || "0.001");
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 20 }));
+
+          // Get redemption voucher
+          const redemptionRes = await lazyMintAPI.redeem(nft._id, pricePerPiece, qty);
+          const { redemptionData } = redemptionRes;
+          if (!redemptionData) throw new Error('No voucher data from server.');
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 40 }));
+
+          // Get contract
+          const contract = await getMultiPieceLazyMintContractWithSigner(network);
+          if (!contract) {
+            throw new Error('Lazy mint contract not configured for this network.');
+          }
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 60 }));
+
+          // Call redeemListing
+          const sig = redemptionData.signature?.startsWith('0x')
+            ? redemptionData.signature
+            : '0x' + (redemptionData.signature || '');
+
+          const maxSupply = Number(redemptionData.maxSupply ?? redemptionData.pieces ?? nft.pieces ?? 1) || 1;
+          const pricePerPieceWei = ethers.utils.parseEther(pricePerPiece);
+          const valueWei = pricePerPieceWei.mul(ethers.BigNumber.from(qty));
+
+          const creatorAddress = redemptionData.creator && ethers.utils.isAddress(redemptionData.creator)
+            ? ethers.utils.getAddress(redemptionData.creator)
+            : redemptionData.creator;
+
+          const tx = await contract.redeemListing(
+            creatorAddress,
+            redemptionData.ipfsURI,
+            Number(redemptionData.royaltyPercentage ?? redemptionData.royaltyBps ?? 0) || 0,
+            pricePerPieceWei,
+            maxSupply,
+            qty,
+            sig,
+            { value: valueWei, gasLimit: 500000 }
+          );
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 80 }));
+
+          await tx.wait();
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 90 }));
+
+          // Sync backend
+          try {
+            await lazyMintAPI.recordPurchase(nft._id, {
+              buyer: address,
+              quantity: qty,
+              totalPrice: ethers.utils.formatEther(valueWei),
+              pricePerPiece: pricePerPiece,
+              network,
+              transactionHash: tx.hash,
+            });
+          } catch (syncErr) {
+            console.warn('Post-mint sync failed:', syncErr?.message || syncErr);
+          }
+
+          setMintingProgress(prev => ({ ...prev, [nft._id]: 100 }));
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to mint lazy NFT ${nft._id}:`, err);
+          setMintingProgress(prev => ({ ...prev, [nft._id]: -1 })); // Mark as failed
+        }
+      }
+
+      // Mint regular NFTs via backend
+      if (regularMints.length > 0) {
+        try {
+          const data = await nftAPI.batchMint({
+            nftIds: regularMints.map(n => n._id),
+            walletAddress: address,
+            collectionAddress: regularMints[0]?.collectionAddress,
+          });
+
+          regularMints.forEach(n => {
+            setMintingProgress(prev => ({ ...prev, [n._id]: 100 }));
+          });
+
+          successCount += (data.mintedNFTs ?? []).length;
+        } catch (err) {
+          console.error("Batch mint error:", err);
+          regularMints.forEach(n => {
+            setMintingProgress(prev => ({ ...prev, [n._id]: -1 }));
+          });
+        }
+      }
+
+      if (successCount > 0) {
+        SuccessToast(`${successCount} NFT(s) minted successfully!`);
+      }
       
       // Update display
       setMintableNFTs(prev => prev.filter(n => !selectedNFTs.has(n._id)));
       setSelectedNFTs(new Set());
       
-      // Optionally fetch updated minted NFTs
+      // Fetch updated minted NFTs
       setTimeout(() => fetchMintedNFTs(), 2000);
     } catch (error) {
-      ErrorToast(error.response?.data?.message || "Failed to batch mint NFTs");
-      console.error(error);
+      console.error('Batch mint error:', error);
+      ErrorToast(error.response?.data?.message || error.message || 'Failed to batch mint NFTs');
     } finally {
       setMinting(false);
       setMintingProgress({});
@@ -351,26 +556,56 @@ function MintingHub() {
                           <div className="mb-3">
                             <div className="w-full bg-gray-700 rounded-full h-2">
                               <div
-                                className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${mintingProgress[nft._id]}%` }}
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  mintingProgress[nft._id] === -1
+                                    ? 'bg-red-600 w-full'
+                                    : 'bg-purple-600'
+                                }`}
+                                style={{ width: mintingProgress[nft._id] === -1 ? '100%' : `${mintingProgress[nft._id]}%` }}
                               />
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {mintingProgress[nft._id]}% Complete
+                            <p className={`text-xs mt-1 ${
+                              mintingProgress[nft._id] === -1
+                                ? 'text-red-400'
+                                : 'text-gray-400'
+                            }`}>
+                              {mintingProgress[nft._id] === -1
+                                ? 'Failed - Please try again'
+                                : `${mintingProgress[nft._id]}% Complete`
+                              }
                             </p>
                           </div>
                         )}
 
                         {/* Mint Button */}
                         <button
-                          onClick={() => handleMintSingle(nft)}
-                          disabled={minting || mintingProgress[nft._id] !== undefined}
-                          className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                          onClick={() => {
+                            if (mintingProgress[nft._id] === -1) {
+                              // Reset progress to allow retry
+                              setMintingProgress(prev => {
+                                const newProgress = { ...prev };
+                                delete newProgress[nft._id];
+                                return newProgress;
+                              });
+                            }
+                            handleMintSingle(nft);
+                          }}
+                          disabled={minting || (mintingProgress[nft._id] !== undefined && mintingProgress[nft._id] !== -1)}
+                          className={`w-full ${
+                            mintingProgress[nft._id] === -1
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-purple-600 hover:bg-purple-700'
+                          } disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2`}
                         >
-                          {mintingProgress[nft._id] !== undefined ? (
+                          {mintingProgress[nft._id] !== undefined && mintingProgress[nft._id] !== -1 ? (
                             <>
                               <Loader size={16} className="animate-spin" />
                               Minting...
+                            </>
+                          ) : mintingProgress[nft._id] === -1 ? (
+                            <>
+                              <X size={16} />
+                              Retry
                             </>
                           ) : (
                             "Mint Now"
