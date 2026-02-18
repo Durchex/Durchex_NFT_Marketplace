@@ -20,6 +20,9 @@ const nftTradeSchema = new Schema(
     quantity: { type: Number, required: true, min: 1 },
     pricePerPiece: { type: String, required: true },
     totalAmount: { type: String, required: true },
+    // Optional royalty fields (recorded when applicable)
+    royaltyPercentage: { type: String, default: "0" },
+    royaltyAmount: { type: String, default: "0" },
     transactionHash: { type: String, default: null, index: true },
     blockTimestamp: { type: Date, default: Date.now },
   },

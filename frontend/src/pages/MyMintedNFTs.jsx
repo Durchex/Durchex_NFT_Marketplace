@@ -8,6 +8,7 @@ import { ethers } from "ethers";
 import { getNftLiquidityContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol, ensurePiecesApprovalForLiquidity, getPiecesBalanceOnChain } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
+import { getSocket } from "../services/socket";
 import { adminAPI } from "../services/adminAPI";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success.jsx";
@@ -109,6 +110,35 @@ function MyMintedNFTs() {
       }
     };
     fetchMyNFTs();
+  }, [address]);
+
+  // Live updates: refresh user's NFTs and holdings when server emits activity
+  useEffect(() => {
+    if (!address) return;
+    const socket = getSocket();
+    const handler = async (payload) => {
+      if (!payload) return;
+      const wallets = [payload.wallet, payload.buyer, payload.seller, payload.to, payload.from]
+        .filter(Boolean)
+        .map((w) => String(w).toLowerCase());
+      if (wallets.includes(address.toLowerCase())) {
+        try {
+          setLoading(true);
+          const [nfts, holdings] = await Promise.all([
+            nftAPI.getUserNFTs(address),
+            nftAPI.getPieceHoldingsByWallet(address).catch(() => []),
+          ]);
+          setMyNFTs(nfts);
+          setPieceHoldings(holdings);
+        } catch (e) {
+          // ignore
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    socket.on('user_activity_update', handler);
+    return () => socket.off('user_activity_update', handler);
   }, [address]);
 
   const getMyPieces = (nft) => {

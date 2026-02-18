@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
+import mongoose from "mongoose";
 
 const app = express();
 const server = createServer(app);
@@ -15,6 +16,8 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
+// Expose socket.io instance to request handlers via app.set/get
+app.set('io', io);
 
 // auto import routes
 // const { readdirSync } = require("fs");
@@ -36,6 +39,7 @@ import coverPhotoRouter from "./routes/coverPhotoRouter.js";
 import chainAPIRouter from "./routes/chainAPI.js";
 import royaltyRouter from "./routes/royalty.js";
 import analyticsRouter from "./routes/analytics.js";
+import paymentsRouter from "./routes/paymentsRouter.js";
 import bridgeRouter from "./routes/bridge.js";
 import rentalRouter from "./routes/rental.js";
 import searchRouter from "./routes/search.js";
@@ -60,6 +64,19 @@ import AnalyticsServiceStub from "./services/AnalyticsServiceStub.js";
 
 // connect db
 connectDB();
+
+// Short-circuit API requests when DB is not ready to avoid 500s from Mongoose
+app.use((req, res, next) => {
+  // 1 = connected
+  if (mongoose.connection && mongoose.connection.readyState !== 1) {
+    // allow health check to work even when DB is down
+    if (req.path === '/api/health' || req.path === '/' || req.path.startsWith('/api/v1/chain')) {
+      return next();
+    }
+    return res.status(503).json({ error: 'Service temporarily unavailable: database not connected' });
+  }
+  return next();
+});
 
 // Services required by routes (so financing/governance/monetization/analytics don't 500)
 app.locals.financingService = new FinancingServiceStub();
@@ -105,6 +122,9 @@ app.get('/', (req, res) => {
 
 // Rate limiting temporarily disabled to prevent blocking legitimate requests
 // app.use(limiter);
+
+// Payments router (deposit verification)
+app.use('/api/v1/payments', paymentsRouter);
 
 // In-memory game rooms: roomCode -> { roomName, gameType, players, roundId, bets, countdownTimer, resultTimer }
 const gameRooms = new Map();

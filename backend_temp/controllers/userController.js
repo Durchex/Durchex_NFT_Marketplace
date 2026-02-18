@@ -57,55 +57,14 @@ export const getUserProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        if (!user.gameCode) {
-            const code = await ensureUniqueGameCode();
-            await updateUserByWalletAddress(walletAddress, { gameCode: code, gameCodeRedeemed: false }, true);
-            user = await getUserByWalletAddress(walletAddress);
-        }
+        // game codes and free point redemptions removed — users receive chips via deposits only
         res.status(200).json(user);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-const GAME_POINTS_PER_REDEEM = 1000;
-
-// Redeem game code: body { code, walletAddress }. Only the code owner can redeem; credits 1000 points and persists to DB.
-export const redeemGameCode = async (req, res) => {
-    try {
-        const { code, walletAddress } = req.body;
-        if (!code || typeof code !== "string" || !code.trim()) {
-            return res.status(400).json({ error: "Game code is required" });
-        }
-        if (!walletAddress || typeof walletAddress !== "string") {
-            return res.status(400).json({ error: "Wallet address is required" });
-        }
-        const user = await getUserByGameCode(code.trim());
-        if (!user) {
-            return res.status(404).json({ error: "Invalid game code" });
-        }
-        if (user.gameCodeRedeemed) {
-            return res.status(400).json({ error: "This game code has already been redeemed" });
-        }
-        const wallet = walletAddress.trim().toLowerCase();
-        if (user.walletAddress !== wallet) {
-            return res.status(403).json({ error: "Only the account that received this code can redeem it" });
-        }
-        const currentBalance = typeof user.gameBalance === "number" ? user.gameBalance : 0;
-        const newBalance = currentBalance + GAME_POINTS_PER_REDEEM;
-        await updateUserByWalletAddress(user.walletAddress, {
-            gameCodeRedeemed: true,
-            gameBalance: newBalance,
-        }, true);
-        res.status(200).json({
-            success: true,
-            points: GAME_POINTS_PER_REDEEM,
-            gameBalance: newBalance,
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+// Redeem endpoint removed — free points disabled
 
 // Get or sync game balance: GET returns balance for wallet; PATCH body { walletAddress, balance } updates (so frontend can restore/sync).
 export const getGameBalance = async (req, res) => {

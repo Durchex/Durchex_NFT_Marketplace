@@ -7,6 +7,7 @@ import OfferModal from '../components/OfferModal';
 import SellModal from '../components/SellModal';
 import { ethers } from 'ethers';
 import { nftAPI, engagementAPI, userAPI } from '../services/api';
+import { getSocket } from '../services/socket';
 import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress, getNftLiquidityContractWithSigner, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
 import { useCart } from '../Context/CartContext';
@@ -36,6 +37,22 @@ const NftDetailsPage = () => {
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
+
+  // Socket-driven refresh: refresh details when relevant activity occurs
+  useEffect(() => {
+    const socket = getSocket();
+    const handler = (payload) => {
+      if (!payload) return;
+      const itemIdStr = String(nft?.itemId || nft?.tokenId || id);
+      const payloadItem = payload.itemId ? String(payload.itemId) : null;
+      const wallets = [payload.wallet, payload.buyer, payload.seller, payload.to, payload.from].filter(Boolean).map(w=>String(w).toLowerCase());
+      if (payloadItem === itemIdStr || (address && wallets.includes(address.toLowerCase()))) {
+        fetchNftDetails();
+      }
+    };
+    socket.on('user_activity_update', handler);
+    return () => socket.off('user_activity_update', handler);
+  }, [nft, id, address]);
 
   // Resolve creator wallet to display name (no address shown)
   useEffect(() => {

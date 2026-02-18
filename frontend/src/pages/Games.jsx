@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
 import { ICOContent } from '../Context';
+import { useEffect } from 'react';
 import { useGameWallet } from '../hooks/useGameWallet';
 import { userAPI } from '../services/api';
 import {
@@ -38,6 +39,26 @@ const GAMES = [
     name: 'Slots',
     path: '/games/slots',
     icon: LayoutGrid,
+  
+  // Refresh chips balance when server emits activity for this wallet (deposits, payouts)
+  useEffect(() => {
+    if (!address) return;
+    const socket = getSocket();
+    const handler = async (payload) => {
+      if (!payload) return;
+      const wallets = [payload.wallet, payload.buyer, payload.seller, payload.to, payload.from]
+        .filter(Boolean)
+        .map((w) => String(w).toLowerCase());
+      if (wallets.includes(address.toLowerCase())) {
+        try {
+          const server = await userAPI.getGameBalance(address);
+          setGameBalance(server || 0);
+        } catch (_) {}
+      }
+    };
+    socket.on('user_activity_update', handler);
+    return () => socket.off('user_activity_update', handler);
+  }, [address, setGameBalance]);
     color: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-500/20',
     desc: 'Classic 3-reel slots. Match symbols to win.',
@@ -77,53 +98,56 @@ const GAMES = [
     color: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-500/20',
     desc: 'Provably fair. Server generates crash point. Cash out before it crashes.',
-  },
-  {
-    id: 'coin-flip',
+          <p className="text-gray-400 text-lg">
+            Fund your casino chips by depositing USDT to the platform deposit address and verifying the deposit. Your chips balance is shared across all games.
+          </p>
     name: 'Coin Flip',
     path: '/games/coin-flip',
     icon: Coins,
-    color: 'from-amber-500 to-orange-600',
-    glow: 'shadow-amber-500/20',
-    desc: 'Heads or tails. Provably fair.',
-  },
-  {
-    id: 'plinko',
-    name: 'Plinko',
-    path: '/games/plinko',
-    icon: CircleDot,
-    color: 'from-cyan-500 to-blue-600',
-    glow: 'shadow-cyan-500/20',
-    desc: 'Drop the ball. Land in a bucket for a multiplier.',
-  },
-  {
-    id: 'mines',
-    name: 'Mines',
-    path: '/games/mines',
-    icon: Bomb,
-    color: 'from-red-500 to-rose-600',
-    glow: 'shadow-red-500/20',
-    desc: 'Reveal tiles. Cash out before you hit a mine.',
-  },
-  {
-    id: 'hi-lo',
-    name: 'Hi-Lo',
-    path: '/games/hi-lo',
-    icon: ArrowUpDown,
-    color: 'from-violet-500 to-purple-600',
-    glow: 'shadow-violet-500/20',
-    desc: 'Guess if the next card is higher or lower.',
-  },
-  {
-    id: 'limbo',
-    name: 'Limbo',
-    path: '/games/limbo',
-    icon: Gauge,
-    color: 'from-rose-500 to-pink-600',
-    glow: 'shadow-rose-500/20',
-    desc: 'Pick a target multiplier. Win if the result reaches it.',
-  },
-  {
+        {/* Game wallet info (chips) */}
+        <div className="bg-gray-900/70 backdrop-blur rounded-2xl border border-purple-500/30 p-6 mb-10 shadow-xl shadow-purple-500/5">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Wallet className="text-purple-400" /> Casino Chips
+          </h2>
+          <div className="flex flex-wrap items-center gap-6 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Balance</span>
+              <span className="text-3xl font-bold text-green-400">{gameBalance.toFixed(0)} chips</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/deposit" className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl transition shadow-lg shadow-amber-500/20">
+              Deposit Chips
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!address) {
+                  toast.error('Connect your wallet to view deposits.');
+                  return;
+                }
+                setRedeeming(true);
+                try {
+                  const server = await userAPI.getGameBalance(address);
+                  setGameBalance(server || 0);
+                  toast.success('Balance refreshed');
+                } catch (err) {
+                  toast.error('Failed to refresh balance');
+                } finally {
+                  setRedeeming(false);
+                }
+              }}
+              disabled={redeeming}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl"
+            >
+              {redeeming ? 'Refreshing...' : 'Refresh Balance'}
+            </button>
+          </div>
+          {!address && (
+            <p className="text-amber-400 text-sm mt-2">Connect your wallet to view and use chips.</p>
+          )}
+          <p className="text-gray-500 text-sm mt-2">To add chips, deposit USDT to the platform deposit address and then verify the deposit via the Payments page.</p>
+        </div>
     id: 'multiplayer-dice',
     name: 'Multiplayer Dice',
     path: '/games/multiplayer-dice',

@@ -644,7 +644,11 @@ export const recordLazyMintPurchase = async (req, res) => {
 
     const net = String(lazy.network || "polygon").toLowerCase();
     const sellerNorm = String(lazy.creator || "").toLowerCase();
-
+    
+    // Prevent creator from buying their own lazy listing
+    if (buyerNorm === sellerNorm) {
+      return res.status(400).json({ error: "Creator cannot buy their own listing" });
+    }
     const currentRemaining = Math.max(0, Number(lazy.remainingPieces ?? lazy.pieces ?? 1));
     const newRemaining = Math.max(0, currentRemaining - qty);
     lazy.remainingPieces = newRemaining;
@@ -713,17 +717,17 @@ export const recordLazyMintPurchase = async (req, res) => {
       await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
       return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but TransferSingle not observed yet; recorded pending intent.' });
     }
-
+    // Verified on-chain TransferSingle observed: update DB
+    // Add piece holding for buyer (creator/owner of token unchanged)
     const holding = await pieceHoldingModel.findOneAndUpdate(
       { network: net, itemId: String(lazy._id), wallet: buyerNorm },
       { $inc: { pieces: qty } },
       { new: true, upsert: true }
     );
 
-    const totalAmount =
-      totalPrice != null
-        ? String(totalPrice)
-        : (parseFloat(priceStr) * qty).toFixed(18);
+    const totalAmount = totalPrice != null ? String(totalPrice) : (parseFloat(priceStr) * qty).toFixed(18);
+    const royaltyPct = lazy.royaltyPercentage != null ? Number(lazy.royaltyPercentage) : 0;
+    const royaltyAmt = royaltyPct ? ((parseFloat(totalAmount) * royaltyPct) / 100).toFixed(18) : "0";
 
     await nftTradeModel.create({
       network: net,
@@ -733,19 +737,55 @@ export const recordLazyMintPurchase = async (req, res) => {
       buyer: buyerNorm,
       quantity: qty,
       pricePerPiece: priceStr,
-      totalAmount,
-      transactionHash: transactionHash || null,
+      totalAmount: totalAmount,
+      royaltyPercentage: String(royaltyPct),
+      royaltyAmount: String(royaltyAmt),
+      transactionHash: txHash || null,
     });
+
+    // Update any regular nftModel that mirrors this lazy _id (if present)
+    try {
+      const nftDoc = await nftModel.findOne({ network: net, itemId: String(lazy._id) });
+      if (nftDoc) {
+        const totalPieces = Math.max(1, Number(nftDoc.pieces ?? 1));
+        const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
+        await nftModel.updateOne({ network: net, itemId: String(lazy._id) }, { $set: { lastPrice: priceStr, marketCap } });
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Emit a socket event so frontend Explore/My NFTs can update in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('user_activity_update', {
+          type: 'trade',
+          network: net,
+          itemId: String(lazy._id),
+          buyer: buyerNorm,
+          seller: sellerNorm,
+          quantity: qty,
+          pricePerPiece: priceStr,
+          transactionType: 'primary_buy',
+          timestamp: new Date(),
+        });
+      }
+    } catch (e) {
+      // ignore socket errors
+    }
 
     return res.json({
       success: true,
-      lazyId: lazy._id,
-      remainingPieces: newRemaining,
+      pending: false,
+      network: net,
+      itemId: String(lazy._id),
+      buyer: buyerNorm,
+      quantity: qty,
       holdingPieces: holding?.pieces ?? qty,
+      remainingPieces: lazy.remainingPieces,
+      lastPrice: priceStr,
     });
-  } catch (error) {
-    console.error("Error recording lazy-mint purchase:", error);
-    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -763,6 +803,10 @@ export const fillPieceSellOrder = async (req, res) => {
     const order = await pieceSellOrderModel.findById(orderId);
     if (!order || order.status !== "active") {
       return res.status(404).json({ error: "Order not found or not active" });
+    }
+    // Prevent buyer from filling their own sell order
+    if (String(order.seller).toLowerCase() === buyerNorm) {
+      return res.status(400).json({ error: "Buyer cannot fill their own sell order" });
     }
     const remaining = order.quantity - (order.filledQuantity || 0);
     if (buyQty > remaining) {
@@ -798,6 +842,15 @@ export const fillPieceSellOrder = async (req, res) => {
 
     const pricePerPiece = order.pricePerPiece;
     const totalAmount = (parseFloat(pricePerPiece) * buyQty).toFixed(18);
+    // Try to capture royalty percentage from nft or lazy doc
+    let royaltyPctOrder = 0;
+    const nftDocOrder = await nftModel.findOne({ network: order.network, itemId: order.itemId }).lean();
+    if (nftDocOrder && nftDocOrder.royaltyPercentage != null) royaltyPctOrder = Number(nftDocOrder.royaltyPercentage);
+    else if (/^[a-fA-F0-9]{24}$/.test(String(order.itemId))) {
+      const lazyDocOrder = await LazyNFT.findById(String(order.itemId)).lean();
+      if (lazyDocOrder && lazyDocOrder.royaltyPercentage != null) royaltyPctOrder = Number(lazyDocOrder.royaltyPercentage);
+    }
+    const royaltyAmtOrder = royaltyPctOrder ? ((parseFloat(totalAmount) * royaltyPctOrder) / 100).toFixed(18) : "0";
     await nftTradeModel.create({
       network: order.network,
       itemId: order.itemId,
@@ -807,6 +860,8 @@ export const fillPieceSellOrder = async (req, res) => {
       quantity: buyQty,
       pricePerPiece: String(pricePerPiece),
       totalAmount,
+      royaltyPercentage: String(royaltyPctOrder),
+      royaltyAmount: String(royaltyAmtOrder),
       transactionHash: null,
     });
     const nft = await nftModel.findOne({ network: order.network, itemId: order.itemId });
@@ -941,6 +996,11 @@ export const recordPoolPurchase = async (req, res) => {
       creatorWallet = (lazy.creator || "").toLowerCase();
     }
 
+    // Prevent creator from buying their own listing
+    if (creatorWallet && buyerNorm === creatorWallet) {
+      return res.status(400).json({ error: "Creator cannot buy their own listing" });
+    }
+
     // Require transactionHash and verify on-chain TransferSingle before updating DB
     const txHash = transactionHash || req.body.txHash || null;
     if (!txHash) {
@@ -1016,6 +1076,14 @@ export const recordPoolPurchase = async (req, res) => {
     const totalStr =
       totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
 
+    // Attempt to record royalty information from known NFT or lazy NFT doc
+    let royaltyPct = 0;
+    if (nft && nft.royaltyPercentage != null) royaltyPct = Number(nft.royaltyPercentage);
+    else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      const lazyDoc = await LazyNFT.findById(itemIdStr).lean();
+      if (lazyDoc && lazyDoc.royaltyPercentage != null) royaltyPct = Number(lazyDoc.royaltyPercentage);
+    }
+    const royaltyAmountPool = royaltyPct ? ((parseFloat(totalStr) * royaltyPct) / 100).toFixed(18) : "0";
     await nftTradeModel.create({
       network: net,
       itemId: itemIdStr,
@@ -1025,6 +1093,8 @@ export const recordPoolPurchase = async (req, res) => {
       quantity: qty,
       pricePerPiece: priceStr,
       totalAmount: totalStr,
+      royaltyPercentage: String(royaltyPct),
+      royaltyAmount: String(royaltyAmountPool),
       transactionHash: transactionHash || null,
     });
 
@@ -1134,6 +1204,16 @@ export const pieceSellBackToLiquidity = async (req, res) => {
     const totalStr =
       totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
 
+    // Attempt to capture royalty percentage from nft or lazy doc
+    let royaltyPctSellBack = 0;
+    const nftDocForRoyalty = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
+    if (nftDocForRoyalty && nftDocForRoyalty.royaltyPercentage != null) royaltyPctSellBack = Number(nftDocForRoyalty.royaltyPercentage);
+    else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
+      const lazyDocSellBack = await LazyNFT.findById(itemIdStr).lean();
+      if (lazyDocSellBack && lazyDocSellBack.royaltyPercentage != null) royaltyPctSellBack = Number(lazyDocSellBack.royaltyPercentage);
+    }
+    const royaltyAmtSellBack = royaltyPctSellBack ? ((parseFloat(totalStr) * royaltyPctSellBack) / 100).toFixed(18) : "0";
+
     await nftTradeModel.create({
       network: net,
       itemId: String(itemId),
@@ -1143,8 +1223,30 @@ export const pieceSellBackToLiquidity = async (req, res) => {
       quantity: qty,
       pricePerPiece: priceStr,
       totalAmount: totalStr,
+      royaltyPercentage: String(royaltyPctSellBack),
+      royaltyAmount: String(royaltyAmtSellBack),
       transactionHash: transactionHash || null,
     });
+
+    // Emit socket event for UI updates
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('user_activity_update', {
+          type: 'sell_to_liquidity',
+          network: net,
+          itemId: String(itemId),
+          seller: sellerNorm,
+          buyer: creatorWallet || null,
+          quantity: qty,
+          pricePerPiece: priceStr,
+          transactionType: 'secondary_sell_to_liquidity',
+          timestamp: new Date(),
+        });
+      }
+    } catch (e) {
+      // ignore socket errors
+    }
 
     // Update last traded price so market price moves with sell-backs
     const nftDoc = await nftModel.findOne({ network: net, itemId: itemIdStr });

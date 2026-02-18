@@ -1,40 +1,13 @@
 import { nftUserModel } from '../models/userModel.js';
 import { casinoRoundModel, createRound, findRoundById } from '../models/casinoRoundModel.js';
+import { atomicDeduct, creditPayout } from '../services/gameWalletService.js';
 import { GAME_IDS, getGameConfig, getRTP } from '../config/casinoConfig.js';
 import { generateServerSeed, hashSeed, getProvablyFairFloat, getVerificationHash } from '../utils/provablyFair.js';
 import { runGameMath } from '../services/casinoGameMath/index.js';
 
 const VALID_GAME_IDS = Object.values(GAME_IDS);
 
-/**
- * Atomic deduct: only succeeds if balance >= bet. Returns updated user or null.
- */
-async function atomicDeduct(walletAddress, bet) {
-  const w = (walletAddress || '').toLowerCase();
-  const amount = Math.max(0, Number(bet) || 0);
-  if (amount <= 0) return null;
-  const user = await nftUserModel.findOneAndUpdate(
-    { walletAddress: w, gameBalance: { $gte: amount } },
-    { $inc: { gameBalance: -amount } },
-    { new: true }
-  ).lean();
-  return user;
-}
-
-/**
- * Credit payout to wallet.
- */
-async function creditPayout(walletAddress, payout) {
-  const w = (walletAddress || '').toLowerCase();
-  const amount = Math.max(0, Number(payout) || 0);
-  if (amount <= 0) return null;
-  const user = await nftUserModel.findOneAndUpdate(
-    { walletAddress: w },
-    { $inc: { gameBalance: amount } },
-    { new: true }
-  ).lean();
-  return user;
-}
+// Use shared atomicDeduct and creditPayout from services/gameWalletService.js
 
 /**
  * POST /api/v1/casino/place-bet
