@@ -52,10 +52,23 @@ class NFTContractService {
     }
 
     // Create signer with private key if available
-    const privateKey = process.env.PRIVATE_KEY;
+    const privateKey = process.env.PRIVATE_KEY?.trim();
     if (privateKey) {
-      for (const network of Object.keys(networks)) {
-        this.signers[network] = new ethers.Wallet(privateKey, this.providers[network]);
+      const normalizedPrivateKey = privateKey.startsWith('0x')
+        ? privateKey
+        : `0x${privateKey}`;
+
+      if (/^0x[0-9a-fA-F]{64}$/.test(normalizedPrivateKey)) {
+        for (const network of Object.keys(networks)) {
+          this.signers[network] = new ethers.Wallet(
+            normalizedPrivateKey,
+            this.providers[network]
+          );
+        }
+      } else {
+        console.warn(
+          '⚠️  PRIVATE_KEY is not a valid 32-byte hex key; blockchain signing features are disabled.'
+        );
       }
     }
   }

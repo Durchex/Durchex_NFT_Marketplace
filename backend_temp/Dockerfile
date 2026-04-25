@@ -43,14 +43,14 @@ COPY --from=dependencies --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=5000
 
 # Expose port
-EXPOSE 3000
+EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+    CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Switch to non-root user
 USER nodejs
