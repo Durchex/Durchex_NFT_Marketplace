@@ -97,13 +97,16 @@ const limiter = rateLimit({
 
 const corsOptions = {
   origin: "*",
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  optionsSuccessStatus: 200,
 };
 
 // app use
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
-app.use(cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(bodyParse.json({ limit: "10mb" }));
 
 // Health check endpoint for socket service - BEFORE rate limiter

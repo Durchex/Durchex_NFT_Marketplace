@@ -22,54 +22,49 @@ function normalizeURL(url) {
 }
 
 // Helper function to validate and construct a proper base URL
+function getSameOriginProductionURL() {
+  if (typeof window === 'undefined' || !window.location) return null;
+  const hostname = window.location.hostname;
+  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return null;
+  return `${window.location.protocol}//${hostname}/api/v1`;
+}
+
 function getBaseURL() {
   // For development, always use localhost:3001
   if (import.meta.env.DEV) {
     return 'http://localhost:3001/api/v1';
   }
   
-  const envBase = import.meta.env.VITE_API_BASE_URL || 'https://durchex.com/api/v1';
-  console.log('[API] Environment VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
-  console.log('[API] Fallback envBase:', envBase);
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  console.log('[API] Environment VITE_API_BASE_URL:', envBase);
   
-  // If env variable is set and looks valid, normalize it (remove port 3000 if present)
-  if (envBase && typeof envBase === 'string' && (envBase.startsWith('http://') || envBase.startsWith('https://'))) {
-    const normalized = normalizeURL(envBase);
-    console.log('[API] Using environment variable:', normalized, '(original:', envBase, ')');
-    return normalized;
+  // Accept relative URLs from environment variables such as "/api/v1"
+  if (envBase && typeof envBase === 'string' && envBase.startsWith('/')) {
+    console.log('[API] Using relative VITE_API_BASE_URL:', envBase);
+    return envBase;
   }
   
-  // If we're in the browser, construct from current origin
-  if (typeof window !== 'undefined' && window.location) {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    const port = window.location.port;
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-    
-    // For local development, use localhost:3000
-    if (isLocal) {
-      const localUrl = 'http://localhost:3000/api/v1';
-      console.log('[API] Using local development URL:', localUrl);
-      return localUrl;
+  const sameOriginUrl = getSameOriginProductionURL();
+  if (sameOriginUrl) {
+    if (envBase && typeof envBase === 'string') {
+      try {
+        const envOrigin = new URL(envBase).origin;
+        const currentOrigin = `${window.location.protocol}//${window.location.hostname}`;
+        if (envOrigin !== currentOrigin) {
+          console.warn('[API] Production site is served from a different origin than VITE_API_BASE_URL. Using current origin to avoid CORS issues:', currentOrigin);
+          return sameOriginUrl;
+        }
+      } catch (error) {
+        console.warn('[API] Invalid VITE_API_BASE_URL, falling back to same origin:', envBase, error);
+        return sameOriginUrl;
+      }
     }
-    
-    // For production, construct URL from protocol + hostname (without port)
-    // This ensures we use the same domain without port 3000
-    // Nginx will proxy /api/ to localhost:3000
-    if (hostname && protocol) {
-      // Always use protocol + hostname without port for production
-      // Standard ports (80/443) are implicit, non-standard ports should be removed
-      const productionUrl = `${protocol}//${hostname}/api/v1`;
-      console.log('[API] Using production URL (same domain, no port):', productionUrl);
-      console.log('[API] Original origin:', window.location.origin, 'port:', port);
-      return productionUrl;
-    }
+    return sameOriginUrl;
   }
   
-  // Final fallback
-  const fallbackUrl = 'https://durchex.com/api/v1';
-  console.warn('[API] Using fallback URL:', fallbackUrl);
-  return fallbackUrl;
+  const finalUrl = envBase || 'https://durchex.com/api/v1';
+  console.warn('[API] Using final API URL:', finalUrl);
+  return normalizeURL(finalUrl);
 }
 
 const resolvedBase = getBaseURL();
