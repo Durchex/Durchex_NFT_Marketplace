@@ -1,7 +1,6 @@
 import { useContext, useState, useEffect, useMemo } from "react";
 import { ICOContent } from "../Context";
 import { Toaster, toast } from "react-hot-toast";
-import Header from "../components/Header";
 import { nftAPI } from "../services/api";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { SUPPORTED_NETWORKS } from "../Context/constants";
@@ -438,7 +437,7 @@ export default function CreateNFTForm() {
       return <audio controls src={form.filePreview} style={{ width: '100%' }} />;
     }
     return (
-      <div style={{ padding: '18px', borderRadius: '16px', background: '#f3f4f6', color: '#374151' }}>
+      <div style={{ padding: '18px', borderRadius: '16px', background: '#111827', color: '#cbd5e1' }}>
         <strong>{form.file?.name || 'Uploaded file'}</strong>
         <div>{form.file?.type || 'Preview unavailable for this file type'}</div>
       </div>
@@ -446,8 +445,7 @@ export default function CreateNFTForm() {
   }, [form.filePreview, form.file]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
-      <Header />
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
       <Toaster position="top-right" />
       <main style={{ maxWidth: '1140px', margin: '0 auto', padding: '24px 20px 40px' }}>
         <section style={{ marginBottom: '28px' }}>
@@ -473,7 +471,7 @@ export default function CreateNFTForm() {
                 borderRadius: '18px',
                 padding: '32px',
                 textAlign: 'center',
-                background: dragActive ? '#eff6ff' : '#f9fafb',
+                background: dragActive ? '#0f172a' : '#111827',
                 transition: 'border-color 150ms ease',
               }}
             >
@@ -566,10 +564,10 @@ export default function CreateNFTForm() {
                   width: 'fit-content',
                   padding: '12px 18px',
                   borderRadius: '12px',
-                  background: '#f3f4f6',
+                  background: '#1f2937',
                   cursor: 'pointer',
-                  border: '1px solid #d1d5db',
-                  color: '#111827',
+                  border: '1px solid #475569',
+                  color: '#e2e8f0',
                 }}
               >
                 {showNewCollectionForm ? 'Hide new collection' : 'Create a new collection'}
@@ -659,7 +657,7 @@ export default function CreateNFTForm() {
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addProperty} style={{ padding: '12px 18px', borderRadius: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                <button type="button" onClick={addProperty} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
                   Add trait
                 </button>
               </div>
@@ -711,7 +709,7 @@ export default function CreateNFTForm() {
                     </div>
                   </div>
                 ))}
-                <button type="button" onClick={addLevel} style={{ padding: '12px 18px', borderRadius: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                <button type="button" onClick={addLevel} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
                   Add level
                 </button>
               </div>
@@ -747,7 +745,7 @@ export default function CreateNFTForm() {
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addStat} style={{ padding: '12px 18px', borderRadius: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                <button type="button" onClick={addStat} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
                   Add stat
                 </button>
               </div>
