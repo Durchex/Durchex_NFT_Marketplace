@@ -1,7 +1,8 @@
 import React, { useContext, useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiClock, FiTag } from 'react-icons/fi';
 import { ICOContent } from '../Context';
 import { getCurrencySymbol } from '../Context/constants';
+import { useMarketplace } from '../hooks/useMarketplace';
 import toast from 'react-hot-toast';
 
 const NETWORK_CHAIN_IDS = {
@@ -13,23 +14,12 @@ const NETWORK_CHAIN_IDS = {
 };
 
 const SellModal = ({ isOpen, onClose, nft }) => {
-  const { address, listNFT, setSelectedChain } = useContext(ICOContent);
+  const { address } = useContext(ICOContent);
+  const { createListing, isLoading } = useMarketplace();
+  const [listingType, setListingType] = useState('fixed'); // 'fixed' or 'auction'
   const [price, setPrice] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSwitchNetwork = async (networkName) => {
-    if (!window.ethereum) throw new Error('Please install a Web3 wallet');
-    const chainId = NETWORK_CHAIN_IDS[networkName?.toLowerCase()];
-    if (!chainId) throw new Error(`Unknown network: ${networkName}`);
-    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-    const currentChainIdNum = parseInt(currentChainId, 16);
-    if (currentChainIdNum === chainId) return;
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${chainId.toString(16)}` }],
-    });
-    await new Promise((r) => setTimeout(r, 500));
-  };
+  const [minimumBid, setMinimumBid] = useState('');
+  const [auctionDuration, setAuctionDuration] = useState('24'); // hours
 
   const handleList = async (e) => {
     e?.preventDefault();
@@ -37,36 +27,63 @@ const SellModal = ({ isOpen, onClose, nft }) => {
       toast.error('Connect your wallet first');
       return;
     }
+
     const nftContract = nft?.contractAddress || nft?.nftContract;
     const tokenId = nft?.tokenId;
-    const network = (nft?.network || 'ethereum').toLowerCase();
+
     if (!nftContract || !tokenId) {
       toast.error('This NFT cannot be listed here (missing contract or token ID). Use Profile > List NFT.');
       return;
     }
+
+    // Validate price
     const priceNum = price && parseFloat(price);
     if (!priceNum || priceNum <= 0) {
       toast.error('Enter a valid price');
       return;
     }
-    setIsLoading(true);
-    try {
-      await handleSwitchNetwork(network);
-      if (setSelectedChain) setSelectedChain(network);
-      const receipt = await listNFT(nftContract, tokenId, String(priceNum), network);
-      const success = receipt && (receipt.status === 1 || receipt.transactionHash);
-      if (success) {
-        toast.success('Listed for sale successfully!');
-        setPrice('');
-        onClose?.();
-      } else {
-        toast.error(receipt?.message || 'Listing failed');
+
+    // Validate auction fields if auction listing
+    if (listingType === 'auction') {
+      const minBidNum = minimumBid && parseFloat(minimumBid);
+      if (!minBidNum || minBidNum <= 0) {
+        toast.error('Enter a valid minimum bid for auction');
+        return;
       }
+      if (minBidNum >= priceNum) {
+        toast.error('Minimum bid must be less than reserve price');
+        return;
+      }
+    }
+
+    try {
+      const listingData = {
+        nftContract,
+        tokenId,
+        price: priceNum,
+        listingType,
+        network: nft?.network || 'ethereum',
+      };
+
+      // Add auction-specific data
+      if (listingType === 'auction') {
+        const durationHours = parseInt(auctionDuration);
+        listingData.startTime = Math.floor(Date.now() / 1000);
+        listingData.endTime = listingData.startTime + (durationHours * 3600);
+        listingData.minimumBid = parseFloat(minimumBid);
+      }
+
+      await createListing(listingData);
+
+      // Reset form
+      setPrice('');
+      setMinimumBid('');
+      setAuctionDuration('24');
+      setListingType('fixed');
+      onClose?.();
     } catch (err) {
       console.error('SellModal list error:', err);
-      toast.error(err?.message || 'Failed to list NFT');
-    } finally {
-      setIsLoading(false);
+      // Error is already handled in the hook
     }
   };
 
@@ -97,24 +114,43 @@ const SellModal = ({ isOpen, onClose, nft }) => {
             </button>
           </div>
           <form onSubmit={handleList} className="p-6 space-y-4">
-            <div className="bg-gray-800 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Network</span>
-                <span className="font-medium text-white capitalize">{nft?.network || 'Ethereum'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Token ID</span>
-                <span className="font-mono text-white">{nft?.tokenId ?? '—'}</span>
+            {/* Listing Type Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                Listing Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setListingType('fixed')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    listingType === 'fixed'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
+                  }`}
+                >
+                  <FiTag className="text-lg mx-auto mb-1" />
+                  <div className="text-sm font-medium">Fixed Price</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setListingType('auction')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    listingType === 'auction'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
+                  }`}
+                >
+                  <FiClock className="text-lg mx-auto mb-1" />
+                  <div className="text-sm font-medium">Auction</div>
+                </button>
               </div>
             </div>
-            {!canList && (
-              <p className="text-amber-400 text-sm">
-                This item does not have a contract/token ID for on-chain listing. You can list from Profile → List NFT with your token ID.
-              </p>
-            )}
+
+            {/* Price Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Price ({symbol}) *
+                {listingType === 'auction' ? 'Reserve Price' : 'Price'} ({symbol}) *
               </label>
               <input
                 type="text"
@@ -125,6 +161,69 @@ const SellModal = ({ isOpen, onClose, nft }) => {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+
+            {/* Auction-specific fields */}
+            {listingType === 'auction' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Minimum Bid ({symbol}) *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={minimumBid}
+                    onChange={(e) => setMinimumBid(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Auction Duration
+                  </label>
+                  <select
+                    value={auctionDuration}
+                    onChange={(e) => setAuctionDuration(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="1">1 hour</option>
+                    <option value="6">6 hours</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours</option>
+                    <option value="48">2 days</option>
+                    <option value="72">3 days</option>
+                    <option value="168">7 days</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* NFT Info */}
+            <div className="bg-gray-800 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Network</span>
+                <span className="font-medium text-white capitalize">{nft?.network || 'Ethereum'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400">Token ID</span>
+                <span className="font-mono text-white">{nft?.tokenId ?? '—'}</span>
+              </div>
+              {listingType === 'auction' && (
+                <div className="text-xs text-gray-400 mt-2">
+                  Auction will start immediately and end after {auctionDuration} hours
+                </div>
+              )}
+            </div>
+
+            {!canList && (
+              <p className="text-amber-400 text-sm">
+                This item does not have a contract/token ID for on-chain listing. You can list from Profile → List NFT with your token ID.
+              </p>
+            )}
+
+            {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -135,10 +234,10 @@ const SellModal = ({ isOpen, onClose, nft }) => {
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !price.trim() || !canList}
+                disabled={isLoading || !price.trim() || !canList || (listingType === 'auction' && !minimumBid.trim())}
                 className="flex-1 py-3 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isLoading ? 'Listing…' : 'List for sale'}
+                {isLoading ? 'Creating…' : `List for ${listingType === 'auction' ? 'Auction' : 'Sale'}`}
               </button>
             </div>
           </form>

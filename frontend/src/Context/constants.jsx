@@ -184,6 +184,20 @@ export const getUsdValueFromCrypto = (amount, chainOrNetwork) => {
   return numericAmount * rate;
 };
 
+export const MarketplaceContractAddresses = {
+  ethereum: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ETHEREUM || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_POLYGON || '',
+  polygon: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_POLYGON || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || '',
+  bsc: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BSC || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || '',
+  arbitrum: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_ARBITRUM || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || '',
+  base: import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS_BASE || import.meta.env.VITE_APP_NFTMARKETPLACE_CONTRACT_ADDRESS || '',
+};
+
+export const getMarketplaceContractAddress = (network) => {
+  if (!network) return MarketplaceContractAddresses.ethereum;
+  const normalized = String(network).toLowerCase();
+  return MarketplaceContractAddresses[normalized] || MarketplaceContractAddresses.ethereum;
+};
+
  export const formatPrice = (priceInWei) => {
   // Convert from Wei to the appropriate token (ETH/MATIC/BNB/etc.)
   const formattedPrice = ethers.utils.formatEther(priceInWei);

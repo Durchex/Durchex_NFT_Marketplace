@@ -17,6 +17,7 @@ const Hero = lazy(() => import("./pages/Hero"));
 const CreateNFTForm = lazy(() => import("./components/CreateNFTForm"));
 const Explore = lazy(() => import("./pages/Explore"));
 const Collections = lazy(() => import("./pages/Collections"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
 const NftDetailsPage = lazy(() => import("./pages/NftDetailsPage"));
 const BuyMintPage = lazy(() => import("./pages/BuyMintPage"));
 const NftCreatorForm = lazy(() => import("./components/NftCreatorForm"));
@@ -157,6 +158,7 @@ export default function App() {
           />
           <Route path="/create" element={<Create />} />
           <Route path="/collections" element={<Collections />} />
+          <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
           <Route path="/stats" element={<Stats />} />

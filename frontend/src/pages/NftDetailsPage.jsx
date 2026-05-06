@@ -5,8 +5,9 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import Header from '../components/Header';
 import OfferModal from '../components/OfferModal';
 import SellModal from '../components/SellModal';
+import BuyModal from '../components/BuyModal';
 import { ethers } from 'ethers';
-import { nftAPI, engagementAPI, userAPI } from '../services/api';
+import { nftAPI, engagementAPI, userAPI, marketplaceAPI } from '../services/api';
 import { getSocket } from '../services/socket';
 import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress, getNftLiquidityContractWithSigner, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
@@ -18,6 +19,7 @@ const NftDetailsPage = () => {
   const navigate = useNavigate();
   const { address } = useContext(ICOContent);
   const { addToCart, isInCart, getCartNftId } = useCart();
+  const { executeSale } = useMarketplace();
   const [nft, setNft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,6 +28,8 @@ const NftDetailsPage = () => {
   const [tradeData, setTradeData] = useState([]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [selectedMarketplaceListing, setSelectedMarketplaceListing] = useState(null);
   const [views, setViews] = useState(0);
   const [likes, setLikes] = useState(0);
   const [analytics, setAnalytics] = useState(null);
@@ -33,10 +37,17 @@ const NftDetailsPage = () => {
   const [creatorDisplayName, setCreatorDisplayName] = useState(null);
   const [marketBuyQuantity, setMarketBuyQuantity] = useState(1);
   const [marketBuyLoading, setMarketBuyLoading] = useState(false);
+  const [marketplaceListings, setMarketplaceListings] = useState([]);
 
   useEffect(() => {
     fetchNftDetails();
   }, [id]);
+
+  useEffect(() => {
+    if (nft) {
+      fetchMarketplaceListings();
+    }
+  }, [nft]);
 
   // Socket-driven refresh: refresh details when relevant activity occurs
   useEffect(() => {
@@ -198,6 +209,28 @@ const NftDetailsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMarketplaceListings = async () => {
+    if (!nft) return;
+
+    try {
+      // Fetch marketplace listings for this NFT
+      const listings = await marketplaceAPI.getListings({
+        nftContract: nft.contractAddress || nft.nftContract,
+        tokenId: nft.tokenId || id,
+        limit: 10
+      });
+      setMarketplaceListings(listings.listings || []);
+    } catch (error) {
+      console.error('Failed to fetch marketplace listings:', error);
+      setMarketplaceListings([]);
+    }
+  };
+
+  const handleMarketplaceBuy = (listing) => {
+    setSelectedMarketplaceListing(listing);
+    setBuyModalOpen(true);
   };
 
   const handleToggleLike = async () => {
@@ -575,6 +608,67 @@ const NftDetailsPage = () => {
                   </button>
                 );
               })()}
+
+              {/* Marketplace Listings */}
+              {marketplaceListings.length > 0 && (
+                <div className="border-t border-gray-700 pt-4 mt-4">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-3">Marketplace Listings</h4>
+                  <div className="space-y-2">
+                    {marketplaceListings.slice(0, 3).map((listing) => (
+                      <div key={listing._id} className="bg-gray-800/50 rounded-lg p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            listing.listingType === 'auction' ? 'bg-blue-500' : 'bg-emerald-500'
+                          }`} />
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              {listing.price} {getCurrencySymbol(listing.network)}
+                            </div>
+                            <div className="text-xs text-gray-400 capitalize">
+                              {listing.listingType}
+                              {listing.listingType === 'auction' && listing.endTime && (
+                                <span className="ml-1">
+                                  • Ends {new Date(listing.endTime * 1000).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleMarketplaceBuy(listing)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded transition-colors"
+                        >
+                          Buy
+                        </button>
+                      </div>
+                    ))}
+                    {marketplaceListings.length > 3 && (
+                      <button
+                        onClick={() => navigate('/marketplace')}
+                        className="w-full text-center text-sm text-emerald-400 hover:text-emerald-300 py-2"
+                      >
+                        View all {marketplaceListings.length} listings →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Marketplace Actions */}
+              <div className="border-t border-gray-700 pt-4 mt-4 space-y-2">
+                <button
+                  onClick={() => setSellModalOpen(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <FiDollarSign className="text-sm" /> List on Marketplace
+                </button>
+                <button
+                  onClick={() => navigate('/marketplace')}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                >
+                  <FiShoppingCart className="text-sm" /> Browse Marketplace
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -757,6 +851,12 @@ const NftDetailsPage = () => {
       <OfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} nft={nft} />
       {/* Sell Modal – list for sale (owner only) */}
       <SellModal isOpen={sellModalOpen} onClose={() => setSellModalOpen(false)} nft={nft} />
+      {/* Marketplace Buy Modal */}
+      <BuyModal
+        isOpen={buyModalOpen}
+        onClose={() => setBuyModalOpen(false)}
+        listing={selectedMarketplaceListing}
+      />
     </div>
   );
 };

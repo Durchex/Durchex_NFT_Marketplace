@@ -2312,3 +2312,135 @@ export const reviewsAPI = {
   }
 };
 
+// Marketplace API - for NFT marketplace listings, offers, and sales
+export const marketplaceAPI = {
+  // Create a new listing (gasless via EIP-712 signature)
+  createListing: async (listingData) => {
+    try {
+      const response = await api.post('/marketplace/listings', listingData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create listing:', error);
+      throw error;
+    }
+  },
+
+  // Get marketplace listings with filtering and pagination
+  getListings: async (params = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      // Add pagination
+      if (params.page) queryParams.append('page', params.page);
+      if (params.limit) queryParams.append('limit', params.limit);
+      
+      // Add filters
+      if (params.network) queryParams.append('network', params.network);
+      if (params.collection) queryParams.append('collection', params.collection);
+      if (params.seller) queryParams.append('seller', params.seller);
+      if (params.minPrice) queryParams.append('minPrice', params.minPrice);
+      if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice);
+      if (params.listingType) queryParams.append('listingType', params.listingType);
+      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+      
+      const queryString = queryParams.toString();
+      const url = `/marketplace/listings${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch listings:', error);
+      throw error;
+    }
+  },
+
+  // Get a specific listing by ID
+  getListing: async (listingId) => {
+    try {
+      const response = await api.get(`/marketplace/listings/${listingId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch listing:', error);
+      throw error;
+    }
+  },
+
+  // Cancel a listing
+  cancelListing: async (listingId) => {
+    try {
+      const response = await api.delete(`/marketplace/listings/${listingId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel listing:', error);
+      throw error;
+    }
+  },
+
+  // Execute a sale (purchase)
+  executeSale: async (saleData) => {
+    try {
+      const response = await api.post('/marketplace/sales', saleData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to execute sale:', error);
+      throw error;
+    }
+  },
+
+  // Get marketplace statistics
+  getStats: async (timeframe = '7d') => {
+    try {
+      const response = await api.get(`/marketplace/stats?timeframe=${timeframe}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch marketplace stats:', error);
+      throw error;
+    }
+  },
+
+  // Create an offer on a listing
+  createOffer: async (offerData) => {
+    try {
+      const response = await api.post('/marketplace/offers', offerData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create offer:', error);
+      throw error;
+    }
+  },
+
+  // Get offers for a listing
+  getOffers: async (listingId) => {
+    try {
+      const response = await api.get(`/marketplace/listings/${listingId}/offers`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch offers:', error);
+      throw error;
+    }
+  },
+
+  // Accept an offer
+  acceptOffer: async (offerId, acceptanceData) => {
+    try {
+      const response = await api.post(`/marketplace/offers/${offerId}/accept`, acceptanceData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to accept offer:', error);
+      throw error;
+    }
+  },
+
+  // Cancel an offer
+  cancelOffer: async (offerId) => {
+    try {
+      const response = await api.delete(`/marketplace/offers/${offerId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cancel offer:', error);
+      throw error;
+    }
+  }
+};
+

@@ -15,6 +15,7 @@ import {
   Repeat2,
   Bell,
   ShoppingCart,
+  Store,
   Settings,
   Menu,
   X,
@@ -37,8 +38,7 @@ const Sidebar = () => {
     {
       section: 'Main',
       items: [
-        { icon: LayoutGrid, label: 'Explore', path: '/', badge: null },
-        { icon: Wind, label: 'Create', path: '/create', badge: null },
+        { icon: LayoutGrid, label: 'Explore', path: '/', badge: null },        { icon: Store, label: 'Marketplace', path: '/marketplace', badge: null },        { icon: Wind, label: 'Create', path: '/create', badge: null },
         { icon: FolderOpen, label: 'Collections', path: '/collections', badge: null },
         { icon: Gamepad2, label: 'Games', path: '/games', badge: null },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews', badge: null },
