@@ -95,12 +95,13 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    const fullUrl = config.baseURL ? `${config.baseURL}${config.url}` : config.url;
+      const trimmedBase = config.baseURL ? `${config.baseURL}` : '';
+    const fullUrl = config.baseURL ? `${trimmedBase.replace(/\/+$/, '')}${config.url}` : config.url;
     console.log(`API Request: ${config.method?.toUpperCase()} ${fullUrl}`);
     console.log(`API Config - baseURL: ${config.baseURL}, url: ${config.url}`);
     
-    // Validate URL before making request
-    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+    // Validate URL before making request, but allow relative paths for same-origin requests
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://') && !fullUrl.startsWith('/')) {
       console.error('[API] Invalid request URL detected:', fullUrl);
       console.error('[API] baseURL:', config.baseURL);
       console.error('[API] url:', config.url);
