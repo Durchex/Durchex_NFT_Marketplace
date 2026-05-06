@@ -1,6 +1,6 @@
 import Listing from '../models/listingModel.js';
 import Offer from '../models/offerModel.js';
-import NFT from '../models/nftModel.js';
+import { nftModel as NFT } from '../models/nftModel.js';
 import { ethers } from 'ethers';
 import { getContractAddresses } from '../utils/contractAddresses.js';
 
