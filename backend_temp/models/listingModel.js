@@ -86,5 +86,5 @@ listingSchema.index({ endTime: 1, active: 1 });
 
 const Listing = mongoose.model('Listing', listingSchema);
 
-export default Listing;</content>
+export default Listing;
 <parameter name="filePath">c:\Users\Darker Elf\Documents\GitHub\Durchex_NFT_Marketplace\backend_temp\models\listingModel.js
