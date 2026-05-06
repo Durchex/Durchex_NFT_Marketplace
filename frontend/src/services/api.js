@@ -70,7 +70,7 @@ function getBaseURL() {
 const resolvedBase = getBaseURL();
 
 // Validate the resolved URL
-if (!resolvedBase || !resolvedBase.startsWith('http')) {
+if (!resolvedBase || (!resolvedBase.startsWith('http') && !resolvedBase.startsWith('/'))) {
   console.error('[API] Invalid base URL detected:', resolvedBase);
   throw new Error(`Invalid API base URL: ${resolvedBase}. Please set VITE_API_BASE_URL environment variable.`);
 }
