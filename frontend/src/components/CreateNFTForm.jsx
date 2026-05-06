@@ -11,28 +11,28 @@ const ACCEPTED_FILE_PREFIXES = ["image/", "video/", "audio/"];
 const ACCEPTED_FILE_EXTENSIONS = [".glb", ".gltf", ".fbx", ".stl", ".zip", ".obj"];
 
 const cardStyle = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: '#0f172a',
+  border: '1px solid #334155',
   borderRadius: '22px',
   padding: '24px',
-  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.05)',
+  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
 };
 
 const fieldStyle = {
   width: '100%',
-  border: '1px solid #d1d5db',
+  border: '1px solid #475569',
   borderRadius: '14px',
   padding: '14px 16px',
   fontSize: '1rem',
-  background: '#f9fafb',
-  color: '#111827',
+  background: '#111827',
+  color: '#e2e8f0',
 };
 
 const labelStyle = {
   display: 'block',
   fontWeight: 600,
   marginBottom: '10px',
-  color: '#111827',
+  color: '#cbd5e1',
 };
 
 function isValidUploadFile(file) {
@@ -452,7 +452,7 @@ export default function CreateNFTForm() {
       <main style={{ maxWidth: '1140px', margin: '0 auto', padding: '24px 20px 40px' }}>
         <section style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h1 style={{ fontSize: '2rem', margin: 0, color: '#111827' }}>Create new NFT</h1>
+            <h1 style={{ fontSize: '2rem', margin: 0, color: '#e2e8f0' }}>Create new NFT</h1>
             <p style={{ margin: 0, color: '#4b5563', maxWidth: '760px' }}>
               Upload your artwork, select a collection, add traits, stats, and metadata, then mint your NFT with a live metadata preview.
             </p>

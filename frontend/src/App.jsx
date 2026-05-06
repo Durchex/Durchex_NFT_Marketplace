@@ -5,6 +5,7 @@ import { lazy, Suspense } from "react";
 import Loading from "./components/Loader";
 import AboutUs from "./FooterComponents/AboutUs";
 import FAQ from "./FooterComponents/FAQ";
+import Create from "./pages/Create";
 import CollectionPage from "./pages/CollectionPage";
 import CollectionDetails from "./pages/CollectionDetails";
 import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
@@ -154,7 +155,7 @@ export default function App() {
               )
             }
           />
-          <Route path="/create" element={<CreateNFTForm />} />
+          <Route path="/create" element={<Create />} />
           <Route path="/collections" element={<Collections />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />
