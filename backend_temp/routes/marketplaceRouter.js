@@ -28,5 +28,5 @@ router.post("/execute-sale", executeSale);
 // Get marketplace stats
 router.get("/stats", getMarketplaceStats);
 
-export default router;</content>
+export default router;
 <parameter name="filePath">c:\Users\Darker Elf\Documents\GitHub\Durchex_NFT_Marketplace\backend_temp\routes\marketplaceRouter.js
