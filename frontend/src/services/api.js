@@ -844,6 +844,16 @@ export const nftAPI = {
     }
   },
 
+  // Preview generated NFT metadata
+  previewNftMetadata: async (metadataData) => {
+    try {
+      const response = await api.post('/nft/nfts/preview', metadataData);
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to preview NFT metadata: ${error.message}`);
+    }
+  },
+
   // Minting Hub: get mintable NFTs
   getMintable: async (walletAddress, page = 1, limit = 12) => {
     const response = await api.get('/minting/mintable', {

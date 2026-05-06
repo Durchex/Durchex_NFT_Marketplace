@@ -17,7 +17,7 @@ class IPFSService {
         this.pinataKey = process.env.PINATA_API_KEY;
         this.pinataSecret = process.env.PINATA_API_SECRET;
         this.uploadCache = new Map(); // Cache uploaded files to avoid duplicates
-        this.maxFileSize = 50 * 1024 * 1024; // 50MB max
+        this.maxFileSize = 100 * 1024 * 1024; // 100MB max
     }
 
     /**

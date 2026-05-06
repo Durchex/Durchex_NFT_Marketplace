@@ -15,6 +15,7 @@ import {
   deleteNftInCollection,
   checkNftExists,
   createNft,
+  previewNftMetadata,
   createCollection,
   getCollection,
   getUserCollections,
@@ -47,6 +48,7 @@ const router = express.Router();
 
 router.post("/nfts/check", checkNftExists);
 router.post("/nfts/update-owner", updateNftOwner);
+router.post("/nfts/preview", previewNftMetadata);
 router.post("/nfts", createNft);
 
 // Piece sell orders (collectors sell pieces back into liquidity — no relist/approval)

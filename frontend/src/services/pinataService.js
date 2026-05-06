@@ -65,7 +65,7 @@ class PinataService {
   }
 
   // Upload image file to IPFS
-  async uploadImage(file) {
+  async uploadImage(file, onUploadProgress = null) {
     try {
       if (!this.apiKey && !this.secretKey && !PINATA_JWT) {
         throw new Error('Pinata API credentials not configured');
@@ -106,7 +106,10 @@ class PinataService {
       const response = await axios.post(
         `${this.baseURL}/pinning/pinFileToIPFS`,
         formData,
-        { headers }
+        {
+          headers,
+          onUploadProgress: onUploadProgress || undefined
+        }
       );
 
       return {

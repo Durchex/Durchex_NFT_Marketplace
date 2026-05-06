@@ -10,14 +10,14 @@ import pinataService from './pinataService';
  * @param {File} file - The file to upload
  * @returns {Promise<string>} - IPFS CID (hash)
  */
-export async function uploadToIPFS(file) {
+export async function uploadToIPFS(file, onUploadProgress = null) {
   try {
     if (!file) {
       throw new Error('No file provided');
     }
 
-    // Upload image/file to IPFS
-    const result = await pinataService.uploadImage(file);
+    // Upload image/file to IPFS with optional progress callback
+    const result = await pinataService.uploadImage(file, onUploadProgress);
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to upload to IPFS');

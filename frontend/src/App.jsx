@@ -13,7 +13,7 @@ import { SidebarProvider } from "./Context/SidebarContext";
 
 // Lazy-loaded components
 const Hero = lazy(() => import("./pages/Hero"));
-const Create = lazy(() => import("./pages/Create"));
+const CreateNFTForm = lazy(() => import("./components/CreateNFTForm"));
 const Explore = lazy(() => import("./pages/Explore"));
 const Collections = lazy(() => import("./pages/Collections"));
 const NftDetailsPage = lazy(() => import("./pages/NftDetailsPage"));
@@ -154,7 +154,7 @@ export default function App() {
               )
             }
           />
-          <Route path="/create" element={<Create />} />
+          <Route path="/create" element={<CreateNFTForm />} />
           <Route path="/collections" element={<Collections />} />
           <Route path="/trading" element={<TradingPage />} />
           <Route path="/cart" element={<ShoppingCart />} />

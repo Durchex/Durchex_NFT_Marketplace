@@ -6,6 +6,7 @@ import { pieceSellOrderModel } from "../models/pieceSellOrderModel.js";
 import { nftTradeModel } from "../models/nftTradeModel.js";
 import nftContractService from "../services/nftContractService.js";
 import { ethers } from 'ethers';
+import crypto from 'crypto';
 import { PendingTransfer } from '../models/pendingTransferModel.js';
 
 /**
@@ -90,6 +91,25 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
         : {}),
     liquidityContract: lazyNFT.liquidityContract || null,
     liquidityPieceId: lazyNFT.liquidityPieceId != null ? String(lazyNFT.liquidityPieceId) : null,
+  };
+}
+
+function encryptUnlockableContent(content) {
+  if (!content) return null;
+  const key = Buffer.from((process.env.UNLOCKABLE_CONTENT_KEY || '').padEnd(32, '0').slice(0, 32), 'utf-8');
+  if (key.length !== 32) {
+    throw new Error('UNLOCKABLE_CONTENT_KEY must be 32 bytes long');
+  }
+
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(content, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  return {
+    encrypted: encrypted.toString('base64'),
+    iv: iv.toString('base64'),
+    tag: authTag.toString('base64'),
   };
 }
 
@@ -1543,6 +1563,21 @@ export const createNft = async (req, res) => {
 
     // Canonical owner/creator of the token (never overwritten by piece sales)
     if (!nftData.creator) nftData.creator = nftData.owner || nftData.seller;
+
+    // Ensure metadata arrays are present and normalize unlockable content handling
+    nftData.attributes = Array.isArray(nftData.attributes) ? nftData.attributes : [];
+    nftData.levels = Array.isArray(nftData.levels) ? nftData.levels : [];
+    nftData.stats = Array.isArray(nftData.stats) ? nftData.stats : [];
+
+    if (nftData.unlockableContent) {
+      try {
+        nftData.unlockableContentEncrypted = encryptUnlockableContent(nftData.unlockableContent);
+        delete nftData.unlockableContent;
+      } catch (encryptError) {
+        console.warn('Unlockable content encryption failed:', encryptError.message);
+      }
+    }
+
     const nft = new nftModel(nftData);
     await nft.save();
 
@@ -1555,6 +1590,39 @@ export const createNft = async (req, res) => {
         txHash: nft.mintTxHash
       })
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const previewNftMetadata = async (req, res) => {
+  try {
+    const { name, description, externalUrl, properties, levels, stats, unlockableContent, explicitContent, supply, network } = req.body;
+    if (!name || !description) {
+      return res.status(400).json({ error: 'name and description are required for metadata preview' });
+    }
+
+    const metadata = {
+      name: name.trim(),
+      description: description.trim(),
+      image: req.body.image || '',
+      external_url: externalUrl?.trim() || undefined,
+      attributes: Array.isArray(properties)
+        ? properties.filter((p) => p?.type || p?.value).map((item) => ({ trait_type: item.type, value: item.value }))
+        : [],
+      levels: Array.isArray(levels)
+        ? levels.filter((item) => item?.name).map((item) => ({ name: item.name, value: Number(item.value) || 0, max: Number(item.max) || 0 }))
+        : [],
+      stats: Array.isArray(stats)
+        ? stats.filter((item) => item?.name).map((item) => ({ name: item.name, value: Number(item.value) || 0 }))
+        : [],
+      unlockable_content: unlockableContent || undefined,
+      explicit_content: Boolean(explicitContent),
+      supply: Number(supply) || 1,
+      blockchain: network || 'polygon',
+    };
+
+    res.status(200).json({ metadata });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
