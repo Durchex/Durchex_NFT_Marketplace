@@ -392,7 +392,8 @@ app.use('/api/v1/auctions', auctionRouter);
 app.use('/api/v1/staking', stakingRouter);
 app.use('/api/v1/notifications', notificationRouter);
 
-const PORT = process.env.PORT || 3000;
+const DEFAULT_PORT = process.env.NODE_ENV === 'production' ? 8080 : 3000;
+const PORT = process.env.PORT || DEFAULT_PORT;
 server.listen(PORT, () =>
   console.log(`Server is running on port: ${PORT} with Socket.io support 🎉🎉🎉`)
 );

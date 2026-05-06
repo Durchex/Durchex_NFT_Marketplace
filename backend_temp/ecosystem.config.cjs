@@ -14,7 +14,7 @@ module.exports = {
         MONGODB_URI: 'mongodb+srv://durchex_db_user:Durchex2025..@durchex-cluster.otgf1xa.mongodb.net/?appName=durchex-cluster',
         BASE_RPC_URL: 'https://mainnet.base.org',
         RPC_URL: 'https://mainnet.base.org',
-        PORT: '3000'
+        PORT: '8080'
       },
       autorestart: true,
       watch: false,
