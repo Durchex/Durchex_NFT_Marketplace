@@ -292,3 +292,5 @@ export const deleteNftByItemId = (itemId) =>
 
 export const updateNftByItemId = (itemId, values, newOption = true) =>
   nftModel.findOneAndUpdate({ itemId }, values, { new: newOption });
+
+export default nftModel;
