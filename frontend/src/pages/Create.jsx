@@ -4,7 +4,7 @@ import CreateNFTForm from '../components/CreateNFTForm';
 
 export default function Create() {
   return (
-    <div className='min-h-screen w-full bg-black text-white'>
+    <div className='min-h-screen w-full bg-gradient-to-b from-gray-900 via-gray-950 to-black text-white'>
       <Header />
       <main className='flex-1 p-4 sm:p-8'>
         <div className='max-w-6xl mx-auto'>
