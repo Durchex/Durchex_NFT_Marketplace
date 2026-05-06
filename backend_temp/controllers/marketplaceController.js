@@ -342,4 +342,3 @@ export const getMarketplaceStats = async (req, res) => {
     });
   }
 };
-<parameter name="filePath">c:\Users\Darker Elf\Documents\GitHub\Durchex_NFT_Marketplace\backend_temp\controllers\marketplaceController.js
