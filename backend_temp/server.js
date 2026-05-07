@@ -105,7 +105,7 @@ const corsOptions = {
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(bodyParse.json({ limit: "10mb" }));
 
 // Health check endpoint for socket service - BEFORE rate limiter
