@@ -12,6 +12,7 @@ import { getSocket } from '../services/socket';
 import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress, getNftLiquidityContractWithSigner, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
 import { useCart } from '../Context/CartContext';
+import { useMarketplace } from '../hooks/useMarketplace';
 import toast from 'react-hot-toast';
 
 const NftDetailsPage = () => {

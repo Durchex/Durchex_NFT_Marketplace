@@ -52,114 +52,6 @@ export const useMarketplace = () => {
     }
   }, [selectedChain]);
 
-  // Create EIP-712 signature for listing
-  const createListingSignature = useCallback(async (listingData) => {
-    if (!signer || !address) {
-      throw new Error('Wallet not connected');
-    }
-
-    try {
-      const network = selectedChain || 'ethereum';
-      const contractAddress = await resolveMarketplaceContractAddress(network);
-
-      const domain = {
-        ...MARKETPLACE_DOMAIN,
-        chainId: getChainId(network),
-        verifyingContract: contractAddress,
-      };
-
-      const message = {
-        nftContract: listingData.nftContract,
-        tokenId: listingData.tokenId,
-        price: ethers.utils.parseEther(listingData.price.toString()),
-        listingType: listingData.listingType || 0, // 0 = fixed price
-        startTime: listingData.startTime || Math.floor(Date.now() / 1000),
-        endTime: listingData.endTime || 0, // 0 for fixed price
-        nonce: listingData.nonce || Math.floor(Math.random() * 1000000),
-      };
-
-      const signature = await signer._signTypedData(domain, LISTING_TYPES, message);
-      return { signature, message, domain };
-    } catch (error) {
-      console.error('Failed to create listing signature:', error);
-      throw error;
-    }
-  }, [signer, address, selectedChain, resolveMarketplaceContractAddress]);
-
-  // Create EIP-712 signature for offer
-  const createOfferSignature = useCallback(async (offerData) => {
-    if (!signer || !address) {
-      throw new Error('Wallet not connected');
-    }
-
-    try {
-      const network = selectedChain || 'ethereum';
-      const contractAddress = await resolveMarketplaceContractAddress(network);
-
-      const domain = {
-        ...MARKETPLACE_DOMAIN,
-        chainId: getChainId(network),
-        verifyingContract: contractAddress,
-      };
-
-      const message = {
-        listingId: offerData.listingId,
-        price: ethers.utils.parseEther(offerData.price.toString()),
-        expiry: offerData.expiry || Math.floor(Date.now() / 1000) + 86400, // 24 hours
-        nonce: offerData.nonce || Math.floor(Math.random() * 1000000),
-      };
-
-      const signature = await signer._signTypedData(domain, OFFER_TYPES, message);
-      return { signature, message, domain };
-    } catch (error) {
-      console.error('Failed to create offer signature:', error);
-      throw error;
-    }
-  }, [signer, address, selectedChain, resolveMarketplaceContractAddress]);
-
-  // Create a marketplace listing
-  const createListing = useCallback(async (listingData) => {
-    if (!address) {
-      toast.error('Please connect your wallet');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Create signature
-      const { signature, message } = await createListingSignature(listingData);
-
-      // Prepare listing data for API
-      const apiData = {
-        nftContract: listingData.nftContract,
-        tokenId: listingData.tokenId,
-        price: listingData.price,
-        listingType: listingData.listingType || 'fixed',
-        network: selectedChain || 'ethereum',
-        signature,
-        message,
-        seller: address,
-      };
-
-      // Add auction-specific fields if it's an auction
-      if (listingData.listingType === 'auction') {
-        apiData.startTime = listingData.startTime;
-        apiData.endTime = listingData.endTime;
-        apiData.minimumBid = listingData.minimumBid;
-      }
-
-      const result = await marketplaceAPI.createListing(apiData);
-      toast.success('Listing created successfully!');
-      return result;
-    } catch (error) {
-      console.error('Failed to create listing:', error);
-      toast.error(error.message || 'Failed to create listing');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [address, selectedChain, createListingSignature]);
-
   // Execute a sale (purchase)
   const executeSale = useCallback(async (listingId, price) => {
     if (!address) {
@@ -188,8 +80,8 @@ export const useMarketplace = () => {
     }
   }, [address, selectedChain]);
 
-  // Create an offer
-  const createOffer = useCallback(async (offerData) => {
+  // Create a marketplace listing
+  const createListing = useCallback(async (listingData) => {
     if (!address) {
       toast.error('Please connect your wallet');
       return;
@@ -197,61 +89,39 @@ export const useMarketplace = () => {
 
     setIsLoading(true);
     try {
-      // Create signature
-      const { signature, message } = await createOfferSignature(offerData);
-
-      // Prepare offer data for API
+      // Prepare listing data for API
       const apiData = {
-        listingId: offerData.listingId,
-        price: offerData.price,
-        expiry: offerData.expiry,
-        signature,
-        message,
-        buyer: address,
+        nftContract: listingData.nftContract,
+        tokenId: listingData.tokenId,
+        price: listingData.price,
+        listingType: listingData.listingType || 'fixed',
         network: selectedChain || 'ethereum',
+        seller: address,
       };
 
-      const result = await marketplaceAPI.createOffer(apiData);
-      toast.success('Offer submitted successfully!');
+      // Add auction-specific fields if it's an auction
+      if (listingData.listingType === 'auction') {
+        apiData.startTime = listingData.startTime;
+        apiData.endTime = listingData.endTime;
+        apiData.minimumBid = listingData.minimumBid;
+      }
+
+      const result = await marketplaceAPI.createListing(apiData);
+      toast.success('Listing created successfully!');
       return result;
     } catch (error) {
-      console.error('Failed to create offer:', error);
-      toast.error(error.message || 'Failed to submit offer');
+      console.error('Failed to create listing:', error);
+      toast.error(error.message || 'Failed to create listing');
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [address, selectedChain, createOfferSignature]);
-
-  // Cancel a listing
-  const cancelListing = useCallback(async (listingId) => {
-    if (!address) {
-      toast.error('Please connect your wallet');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const result = await marketplaceAPI.cancelListing(listingId);
-      toast.success('Listing cancelled successfully!');
-      return result;
-    } catch (error) {
-      console.error('Failed to cancel listing:', error);
-      toast.error(error.message || 'Failed to cancel listing');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [address]);
+  }, [address, selectedChain]);
 
   return {
     isLoading,
     createListing,
     executeSale,
-    createOffer,
-    cancelListing,
-    createListingSignature,
-    createOfferSignature,
   };
 };
 
