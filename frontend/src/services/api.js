@@ -840,7 +840,13 @@ export const nftAPI = {
       const response = await api.post('/nft/nfts', nftData);
       return response.data;
     } catch (error) {
-      throw new Error(`Failed to create NFT: ${error.message}`);
+      // Surface the backend's error message so callers can branch on it
+      // (e.g. the "Collection contract not found or not deployed" fallback).
+      const serverMessage = error.response?.data?.error || error.response?.data?.message;
+      const wrapped = new Error(`Failed to create NFT: ${serverMessage || error.message}`);
+      wrapped.status = error.response?.status;
+      wrapped.serverError = serverMessage;
+      throw wrapped;
     }
   },
 
