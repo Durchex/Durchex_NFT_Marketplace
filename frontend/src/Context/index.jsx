@@ -70,6 +70,10 @@ export const Index = ({ children }) => {
         }
       }
 
+      if (!provider && wcProvider) {
+        provider = wcProvider;
+      }
+
       if (!provider) {
         setAddress(null);
         setAccountBalance(null);
@@ -140,8 +144,8 @@ export const Index = ({ children }) => {
 
   useEffect(() => {
     // Get the wallet provider
-    let provider = null;
-    if (typeof window !== "undefined") {
+    let provider = wcProvider || null;
+    if (!provider && typeof window !== "undefined") {
       if (window.ethereum) {
         provider = window.ethereum;
       } else if (window.BinanceChain) {
@@ -152,6 +156,8 @@ export const Index = ({ children }) => {
         provider = window.tokenpocket;
       } else if (window.safepal) {
         provider = window.safepal;
+      } else if (window.__wc_provider__) {
+        provider = window.__wc_provider__;
       }
     }
 
@@ -206,7 +212,7 @@ export const Index = ({ children }) => {
         }
       };
     }
-  }, []);
+  }, [wcProvider]);
 
   useEffect(() => {
     checkIfWalletConnected();
@@ -377,6 +383,12 @@ export const Index = ({ children }) => {
         }
 
         provider = wprovider;
+        if (typeof window !== 'undefined') {
+          window.__wc_provider__ = wprovider;
+          if (!window.ethereum) {
+            window.ethereum = wprovider;
+          }
+        }
       } catch (err) {
         console.error('Error initializing WalletConnect provider:', err);
         ErrorToast('Failed to initialize WalletConnect. Check console for details.');
@@ -408,23 +420,55 @@ export const Index = ({ children }) => {
             console.log('[Context] Calling connect() for WalletConnect provider');
             await provider.connect();
           }
-          
+
           // After connecting, get accounts
           if (provider.request) {
-            accounts = await provider.request({
-              method: "eth_accounts",
-            });
-            // If no accounts, request them
-            if (!accounts || accounts.length === 0) {
-              accounts = await provider.request({
-                method: "eth_requestAccounts",
+            try {
+              accounts = await provider.request({ method: 'eth_requestAccounts' });
+            } catch (requestError) {
+              console.warn('[Context] WalletConnect eth_requestAccounts failed, trying eth_accounts', requestError);
+              if (requestError.code === 4001) {
+                ErrorToast('WalletConnect connection rejected by user');
+                return null;
+              }
+              if (provider.request) {
+                accounts = await provider.request({ method: 'eth_accounts' });
+              }
+            }
+          }
+
+          if ((!accounts || accounts.length === 0) && typeof provider.enable === 'function') {
+            try {
+              accounts = await provider.enable();
+            } catch (enableError) {
+              console.warn('[Context] WalletConnect enable failed:', enableError);
+            }
+          }
+
+          if ((!accounts || accounts.length === 0) && typeof provider.send === 'function') {
+            try {
+              accounts = await provider.send('eth_requestAccounts', []);
+            } catch (sendError) {
+              console.warn('[Context] WalletConnect send failed:', sendError);
+            }
+          }
+
+          if ((!accounts || accounts.length === 0) && typeof provider.sendAsync === 'function') {
+            try {
+              accounts = await new Promise((resolve, reject) => {
+                provider.sendAsync({ method: 'eth_requestAccounts', params: [] }, (err, result) => {
+                  if (err) return reject(err);
+                  resolve(result?.result || []);
+                });
               });
+            } catch (sendAsyncError) {
+              console.warn('[Context] WalletConnect sendAsync failed:', sendAsyncError);
             }
           }
         } catch (wcError) {
           console.error('[Context] WalletConnect connection error:', wcError);
-          if (wcError.code === 4001) {
-            ErrorToast("WalletConnect connection rejected by user");
+          if (wcError && wcError.code === 4001) {
+            ErrorToast('WalletConnect connection rejected by user');
             return null;
           }
           throw wcError;
@@ -559,7 +603,7 @@ export const Index = ({ children }) => {
         }
 
         // Also attempt to call generic provider disconnect/close
-        const provider = typeof window !== 'undefined' && (window.ethereum || window.wallet?.provider || window.__walletconnect__);
+        const provider = typeof window !== 'undefined' && (window.ethereum || window.wallet?.provider || window.__walletconnect__ || window.__wc_provider__);
         if (provider && typeof provider.disconnect === 'function') {
           try { 
             await provider.disconnect();
@@ -574,6 +618,18 @@ export const Index = ({ children }) => {
             console.log('[Context] provider.close succeeded');
           } catch(e) {
             console.warn('[Context] provider.close failed:', e);
+          }
+        }
+
+        if (typeof window !== 'undefined') {
+          if (window.__wc_provider__) {
+            delete window.__wc_provider__;
+          }
+          if (window.__walletconnect__) {
+            delete window.__walletconnect__;
+          }
+          if (window.ethereum && window.ethereum === wcProvider) {
+            delete window.ethereum;
           }
         }
         
