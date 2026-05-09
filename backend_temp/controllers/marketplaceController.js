@@ -228,41 +228,67 @@ export const executeSale = async (req, res) => {
     const {
       listingId,
       buyer,
-      seller,
       price,
       quantity = 1,
       transactionHash,
       network
     } = req.body;
 
-    // Update listing status
-    const listing = await Listing.findOne({ listingId: parseInt(listingId) });
-
-    if (listing) {
-      if (quantity >= listing.quantity) {
-        listing.active = false;
-      } else {
-        listing.quantity -= quantity;
-      }
-      await listing.save();
+    if (!listingId || !buyer) {
+      return res.status(400).json({ success: false, message: 'listingId and buyer are required' });
     }
 
-    // Update NFT ownership in database
+    // Listing IDs may be ints (numeric counter) or string Mongo _id values.
+    let listing = null;
+    if (/^\d+$/.test(String(listingId))) {
+      listing = await Listing.findOne({ listingId: parseInt(listingId, 10) });
+    } else {
+      listing = await Listing.findById(listingId).catch(() => null);
+    }
+
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing not found' });
+    }
+
+    const qty = Number(quantity) || 1;
+    if (qty >= listing.quantity) {
+      listing.active = false;
+      listing.quantity = 0;
+    } else {
+      listing.quantity -= qty;
+    }
+    await listing.save();
+
+    // Update NFT ownership and piece accounting.
     const nft = await NFT.findOne({
       contractAddress: listing.nftContract,
       tokenId: listing.tokenId,
-      network
+      network: (network || listing.network || '').toLowerCase()
     });
 
     if (nft) {
-      nft.owner = buyer.toLowerCase();
+      // For multi-piece NFTs, decrement remainingPieces; transfer canonical
+      // ownership only when the buyer takes the final piece.
+      if (typeof nft.remainingPieces === 'number' && nft.pieces > 1) {
+        nft.remainingPieces = Math.max(0, nft.remainingPieces - qty);
+        if (nft.remainingPieces === 0) {
+          nft.owner = String(buyer).toLowerCase();
+        }
+      } else {
+        nft.owner = String(buyer).toLowerCase();
+      }
+      nft.currentlyListed = listing.active;
+      nft.lastPrice = String(price ?? nft.lastPrice ?? '0');
       nft.lastTransferAt = new Date();
+      if (transactionHash) nft.lastTxHash = transactionHash;
       await nft.save();
     }
 
     res.json({
       success: true,
-      message: 'Sale executed successfully'
+      message: 'Sale executed successfully',
+      listingActive: listing.active,
+      remainingPieces: nft?.remainingPieces ?? null,
     });
 
   } catch (error) {

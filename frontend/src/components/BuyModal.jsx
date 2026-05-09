@@ -21,8 +21,15 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
       return;
     }
 
+    if (isAuction && isEnded) {
+      toast.error('This auction has ended.');
+      return;
+    }
+
     try {
-      await executeSale(listing._id, listing.price);
+      // Pass the full listing so the hook can forward seller/quantity/network
+      // to the backend (executeSale needs all of these to update state correctly).
+      await executeSale(listing);
       setAgreedToTerms(false);
       onClose?.();
     } catch (error) {

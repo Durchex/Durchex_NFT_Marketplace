@@ -52,8 +52,9 @@ export const useMarketplace = () => {
     }
   }, [selectedChain]);
 
-  // Execute a sale (purchase)
-  const executeSale = useCallback(async (listingId, price) => {
+  // Execute a sale (purchase). Caller can pass either a listingId+price (legacy)
+  // or a full listing-shaped object so we can forward all fields the backend needs.
+  const executeSale = useCallback(async (listingOrId, priceArg, options = {}) => {
     if (!address) {
       toast.error('Please connect your wallet');
       return;
@@ -61,11 +62,19 @@ export const useMarketplace = () => {
 
     setIsLoading(true);
     try {
+      const isListingObject = listingOrId && typeof listingOrId === 'object';
+      const listing = isListingObject ? listingOrId : null;
+      const listingId = listing ? (listing.listingId ?? listing._id) : listingOrId;
+      const price = listing ? listing.price : priceArg;
+
       const saleData = {
         listingId,
         buyer: address,
+        seller: listing?.seller || options.seller,
         price,
-        network: selectedChain || 'ethereum',
+        quantity: listing?.quantity || options.quantity || 1,
+        transactionHash: options.transactionHash || null,
+        network: listing?.network || options.network || selectedChain || 'ethereum',
       };
 
       const result = await marketplaceAPI.executeSale(saleData);
@@ -80,7 +89,8 @@ export const useMarketplace = () => {
     }
   }, [address, selectedChain]);
 
-  // Create a marketplace listing
+  // Create a marketplace listing — signs EIP-712 typed data with the user's
+  // wallet so the backend can verify the listing was authorized by the seller.
   const createListing = useCallback(async (listingData) => {
     if (!address) {
       toast.error('Please connect your wallet');
@@ -89,20 +99,59 @@ export const useMarketplace = () => {
 
     setIsLoading(true);
     try {
-      // Prepare listing data for API
+      const network = (listingData.network || selectedChain || 'ethereum').toLowerCase();
+      const verifyingContract = await resolveMarketplaceContractAddress(network);
+      const chainId = getChainId(network);
+
+      // Wallet-derived signer (the context doesn't expose one).
+      if (typeof window === 'undefined' || !window.ethereum) {
+        throw new Error('No Ethereum provider found. Please connect a wallet first.');
+      }
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      // Build the EIP-712 message. Price is in wei to match Solidity uint256 expectations.
+      const priceWei = ethers.utils.parseEther(String(listingData.price)).toString();
+      const startTime = Number(listingData.startTime || Math.floor(Date.now() / 1000));
+      const endTime = Number(listingData.endTime || 0);
+      const nonce = Date.now();
+
+      const message = {
+        nftContract: listingData.nftContract,
+        tokenId: String(listingData.tokenId),
+        price: priceWei,
+        listingType: listingData.listingType === 'auction' ? 1 : 0,
+        startTime,
+        endTime,
+        nonce,
+      };
+      const domain = { ...MARKETPLACE_DOMAIN, chainId, verifyingContract };
+
+      let signature;
+      try {
+        signature = await signer._signTypedData(domain, LISTING_TYPES, message);
+      } catch (signError) {
+        if (signError?.code === 4001 || /reject/i.test(signError?.message || '')) {
+          toast.error('Listing cancelled — signature rejected.');
+        } else {
+          toast.error('Could not sign listing message. Try a different wallet or method.');
+        }
+        throw signError;
+      }
+
       const apiData = {
         nftContract: listingData.nftContract,
         tokenId: listingData.tokenId,
-        price: listingData.price,
+        price: priceWei,
         listingType: listingData.listingType || 'fixed',
-        network: selectedChain || 'ethereum',
+        network,
         seller: address,
+        signature,
+        nonce,
+        startTime,
       };
-
-      // Add auction-specific fields if it's an auction
+      if (endTime) apiData.endTime = endTime;
       if (listingData.listingType === 'auction') {
-        apiData.startTime = listingData.startTime;
-        apiData.endTime = listingData.endTime;
         apiData.minimumBid = listingData.minimumBid;
       }
 
@@ -111,12 +160,15 @@ export const useMarketplace = () => {
       return result;
     } catch (error) {
       console.error('Failed to create listing:', error);
-      toast.error(error.message || 'Failed to create listing');
+      // Avoid double-toasting if we already showed a signing-specific message.
+      if (!error?._toastShown) {
+        toast.error(error.message || 'Failed to create listing');
+      }
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [address, selectedChain]);
+  }, [address, selectedChain, resolveMarketplaceContractAddress]);
 
   return {
     isLoading,

@@ -97,10 +97,13 @@ export const getUserMintedNFTs = async (req, res) => {
  */
 export const mintNFT = async (req, res) => {
   try {
-    const { nftId, collectionId, network = 'sepolia', walletAddress } = req.body;
+    const { nftId, collectionId, network, walletAddress } = req.body;
 
     if (!nftId || !collectionId) {
       return res.status(400).json({ error: 'NFT ID and collection ID required' });
+    }
+    if (!network) {
+      return res.status(400).json({ error: 'network is required (e.g. ethereum, polygon, base, …)' });
     }
 
     // Find the NFT
@@ -234,7 +237,7 @@ export const mintNFT = async (req, res) => {
  */
 export const batchMintNFTs = async (req, res) => {
   try {
-    const { nftIds, collectionId, network = 'sepolia', walletAddress } = req.body;
+    const { nftIds, collectionId, network, walletAddress } = req.body;
 
     if (!Array.isArray(nftIds) || nftIds.length === 0) {
       return res.status(400).json({ error: 'NFT IDs array required' });
@@ -242,6 +245,9 @@ export const batchMintNFTs = async (req, res) => {
 
     if (!collectionId) {
       return res.status(400).json({ error: 'Collection ID required' });
+    }
+    if (!network) {
+      return res.status(400).json({ error: 'network is required (e.g. ethereum, polygon, base, …)' });
     }
 
     // Find the collection

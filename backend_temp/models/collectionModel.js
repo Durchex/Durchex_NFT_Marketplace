@@ -41,7 +41,12 @@ const collectionSchema = new mongoose.Schema(
     },
     network: {
       type: String,
-      enum: ['ethereum', 'polygon', 'bsc', 'arbitrum', 'base', 'solana'],
+      // Keep aligned with frontend SUPPORTED_NETWORKS (Context/constants.jsx).
+      enum: [
+        'ethereum', 'polygon', 'bsc', 'arbitrum', 'optimism', 'avalanche',
+        'base', 'assetchain', 'hyperliquid', 'hyperliquidTestnet',
+        'tezosMainnet', 'tezosTestnet', 'solana',
+      ],
       required: true,
       index: true
     },

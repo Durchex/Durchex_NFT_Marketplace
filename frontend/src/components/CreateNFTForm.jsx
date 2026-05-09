@@ -89,6 +89,8 @@ export default function CreateNFTForm() {
   const [showNewCollectionForm, setShowNewCollectionForm] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionDescription, setNewCollectionDescription] = useState('');
+  const [newCollectionImage, setNewCollectionImage] = useState(null);
+  const [newCollectionImagePreview, setNewCollectionImagePreview] = useState('');
   const [uploadingCollection, setUploadingCollection] = useState(false);
 
   const [form, setForm] = useState({
@@ -145,6 +147,14 @@ export default function CreateNFTForm() {
       }
     };
   }, [form.filePreview]);
+
+  useEffect(() => {
+    return () => {
+      if (newCollectionImagePreview) {
+        URL.revokeObjectURL(newCollectionImagePreview);
+      }
+    };
+  }, [newCollectionImagePreview]);
 
   const fetchCollections = async (wallet, network) => {
     if (!wallet) {
@@ -216,12 +226,26 @@ export default function CreateNFTForm() {
 
     setUploadingCollection(true);
     try {
+      let imageUrl;
+      if (newCollectionImage) {
+        try {
+          const cid = await uploadToIPFS(newCollectionImage);
+          imageUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+        } catch (uploadError) {
+          console.error('Collection image upload failed:', uploadError);
+          toast.error('Could not upload collection image. Try again or skip it.');
+          setUploadingCollection(false);
+          return null;
+        }
+      }
+
       const payload = {
         name: newCollectionName.trim(),
         description: newCollectionDescription.trim(),
         network: form.network,
         creatorWallet: address,
         creator: address,
+        ...(imageUrl ? { image: imageUrl } : {}),
       };
       const response = await nftAPI.createCollection(payload);
       const collection = response.collection || response;
@@ -232,6 +256,9 @@ export default function CreateNFTForm() {
         setShowNewCollectionForm(false);
         setNewCollectionName('');
         setNewCollectionDescription('');
+        if (newCollectionImagePreview) URL.revokeObjectURL(newCollectionImagePreview);
+        setNewCollectionImage(null);
+        setNewCollectionImagePreview('');
         toast.success('Collection created. You can now mint to this collection.');
         return value;
       }
@@ -243,6 +270,22 @@ export default function CreateNFTForm() {
     } finally {
       setUploadingCollection(false);
     }
+  };
+
+  const handleCollectionImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Collection image must be an image file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Collection image must be under 10MB.');
+      return;
+    }
+    if (newCollectionImagePreview) URL.revokeObjectURL(newCollectionImagePreview);
+    setNewCollectionImage(file);
+    setNewCollectionImagePreview(URL.createObjectURL(file));
   };
 
   const handlePropertyChange = (index, field, value) => {
@@ -432,6 +475,8 @@ export default function CreateNFTForm() {
         collection: collectionId,
         metadataURI,
         supply: Number(form.supply),
+        pieces: Number(form.supply),
+        remainingPieces: Number(form.supply),
         attributes: metadata.attributes,
         levels: metadata.levels,
         stats: metadata.stats,
@@ -666,6 +711,46 @@ export default function CreateNFTForm() {
                       placeholder="New collection title"
                     />
                     {errors.newCollectionName && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.newCollectionName}</div>}
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Collection image</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                      {newCollectionImagePreview ? (
+                        <img
+                          src={newCollectionImagePreview}
+                          alt="collection preview"
+                          style={{ width: '88px', height: '88px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #475569' }}
+                        />
+                      ) : (
+                        <div style={{ width: '88px', height: '88px', borderRadius: '14px', border: '1px dashed #475569', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.75rem', textAlign: 'center', padding: '6px' }}>
+                          No image
+                        </div>
+                      )}
+                      <label htmlFor="collection-image" style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                        {newCollectionImage ? 'Replace image' : 'Choose image'}
+                      </label>
+                      <input
+                        id="collection-image"
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleCollectionImageChange}
+                      />
+                      {newCollectionImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newCollectionImagePreview) URL.revokeObjectURL(newCollectionImagePreview);
+                            setNewCollectionImage(null);
+                            setNewCollectionImagePreview('');
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div>
