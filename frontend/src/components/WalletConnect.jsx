@@ -303,10 +303,11 @@ const WalletConnect = () => {
           } else if (requestError.code === -32002) {
             toast.error('Connection request already pending. Please check your wallet.');
           } else if (requestError.code === -32603 && /no active wallet/i.test(requestError.message || '')) {
-            toast.error(`${wallet.name} has no active wallet. Open the extension and create or import an account, then try again.`, { duration: 7000 });
+            toast.error(`${wallet.name} has no active wallet. Open the extension, create or import an account, unlock it, then try again.`, { duration: 8000 });
           } else {
             toast.error(`Failed to connect: ${requestError.message || 'Unknown error'}`);
           }
+          requestError._toastShown = true;
           throw requestError;
         }
       } else {
@@ -326,7 +327,9 @@ const WalletConnect = () => {
         message: error.message,
         stack: error.stack
       });
-      if (error.code === 4001) {
+      if (error._toastShown) {
+        // The inner handler already showed a specific toast; don't double up.
+      } else if (error.code === 4001) {
         toast.error('User rejected the connection request');
       } else {
         toast.error(`Failed to connect to ${wallet.name}. ${error.message || 'Please try again.'}`);
