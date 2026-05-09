@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { FiFilter, FiSearch, FiGrid, FiList, FiClock, FiTag } from 'react-icons/fi';
 import { ICOContent } from '../Context';
-import { marketplaceAPI } from '../services/api';
+import { marketplaceAPI, auctionAPI } from '../services/api';
 import { getCurrencySymbol } from '../Context/constants';
 import BuyModal from '../components/BuyModal';
 import Loader from '../components/Loader';
@@ -31,7 +31,44 @@ const Marketplace = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch listings
+  const normalizeAuctionListing = (auction) => {
+    const priceValue = auction.currentBid || auction.reservePrice || 0;
+    return {
+      _id: `auction-${auction.id}`,
+      nftName: auction.nftName || auction.name || `NFT #${auction.tokenId}`,
+      nftImage: auction.nftImage || auction.image || auction.thumbnail || auction.mediaUrl || '',
+      tokenId: auction.tokenId,
+      network: auction.network || 'ethereum',
+      listingType: 'auction',
+      price: priceValue,
+      currentBid: auction.currentBid,
+      reservePrice: auction.reservePrice,
+      endTime: auction.endTime,
+      auctionId: auction.id,
+      seller: auction.seller,
+      nftContract: auction.nftContract,
+    };
+  };
+
+  const isAuctionFilterActive = filters.listingType === 'auction';
+  const isFixedFilterActive = filters.listingType === 'fixed';
+
+  const matchesAuctionFilter = (auction) => {
+    if (isFixedFilterActive) return false;
+    if (filters.network && auction.network !== filters.network) return false;
+    if (!searchQuery) return true;
+
+    const search = searchQuery.toLowerCase();
+    return [
+      auction.nftName,
+      auction.tokenId?.toString(),
+      auction.seller,
+      auction.nftContract,
+    ]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(search));
+  };
+
   const fetchListings = async (page = 1) => {
     try {
       setLoading(true);
@@ -42,13 +79,37 @@ const Marketplace = () => {
         search: searchQuery,
       };
 
-      const response = await marketplaceAPI.getListings(params);
-      setListings(response.listings || []);
+      const [response, auctionData] = await Promise.all([
+        marketplaceAPI.getListings(params),
+        auctionAPI.list(),
+      ]);
+
+      const marketplaceListings = response.listings || [];
+      const auctions = Array.isArray(auctionData) ? auctionData : [];
+      const normalizedAuctions = auctions
+        .map(normalizeAuctionListing)
+        .filter(matchesAuctionFilter);
+
+      const existingAuctionKeys = new Set(
+        marketplaceListings
+          .filter((item) => item.listingType === 'auction')
+          .map((item) => `${item.nftContract || ''}_${item.tokenId}`)
+      );
+
+      const uniqueAuctionListings = normalizedAuctions.filter(
+        (auction) => !existingAuctionKeys.has(`${auction.nftContract || ''}_${auction.tokenId}`)
+      );
+
+      const allListings = isFixedFilterActive
+        ? marketplaceListings.filter((item) => item.listingType !== 'auction')
+        : [...marketplaceListings, ...uniqueAuctionListings];
+
+      setListings(allListings);
       setPagination({
         ...pagination,
         page: response.pagination?.page || 1,
-        total: response.pagination?.total || 0,
-        totalPages: response.pagination?.totalPages || 0,
+        total: (response.pagination?.total || marketplaceListings.length) + uniqueAuctionListings.length,
+        totalPages: response.pagination?.totalPages || Math.ceil(allListings.length / pagination.limit),
       });
       setError('');
     } catch (error) {
@@ -297,6 +358,12 @@ const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
   const symbol = getCurrencySymbol(listing.network || 'ethereum');
   const isAuction = listing.listingType === 'auction';
   const isEnded = isAuction && listing.endTime && Date.now() / 1000 > listing.endTime;
+  const endsLabel = listing.endTime ? formatEnds(listing.endTime) : 'No end date';
+  const displayPrice = isAuction
+    ? listing.currentBid || listing.reservePrice || listing.price || 0
+    : listing.price || 0;
+
+  const priceLabel = isAuction ? 'Current Bid' : 'Price';
 
   if (viewMode === 'list') {
     return (
@@ -313,6 +380,9 @@ const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
             <h3 className="font-semibold text-white">{listing.nftName || 'Unnamed NFT'}</h3>
             <p className="text-sm text-gray-400">Token ID: {listing.tokenId}</p>
             <p className="text-xs text-gray-500 capitalize">{listing.network}</p>
+            {isAuction && (
+              <p className="text-xs text-blue-300 mt-1">Ends in {endsLabel}</p>
+            )}
           </div>
           <div className="text-right">
             <div className="flex items-center gap-2 mb-2">
@@ -322,7 +392,7 @@ const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
                 <FiTag className="text-emerald-400" />
               )}
               <span className="text-lg font-bold text-white">
-                {listing.price} {symbol}
+                {displayPrice} {symbol}
               </span>
             </div>
             <button
@@ -357,23 +427,31 @@ const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
         <p className="text-sm text-gray-400 mb-2">Token ID: {listing.tokenId}</p>
 
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1">
-            {isAuction ? (
-              <FiClock className="text-blue-400 text-sm" />
-            ) : (
-              <FiTag className="text-emerald-400 text-sm" />
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              {isAuction ? (
+                <FiClock className="text-blue-400 text-sm" />
+              ) : (
+                <FiTag className="text-emerald-400 text-sm" />
+              )}
+              <span className="text-sm text-gray-400 capitalize">
+                {isAuction ? 'Auction' : 'Fixed Price'}
+              </span>
+            </div>
+            {isAuction && (
+              <p className="text-xs text-blue-300">Ends in {endsLabel}</p>
             )}
-            <span className="text-sm text-gray-400 capitalize">
-              {isAuction ? 'Auction' : 'Fixed Price'}
-            </span>
           </div>
           <span className="text-xs text-gray-500 capitalize">{listing.network}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-emerald-400">
-            {listing.price} {symbol}
-          </span>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">{priceLabel}</p>
+            <span className="text-lg font-bold text-emerald-400">
+              {displayPrice} {symbol}
+            </span>
+          </div>
           <button
             onClick={() => onBuyClick(listing)}
             disabled={isAuction && isEnded}
@@ -385,6 +463,17 @@ const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
       </div>
     </div>
   );
+};
+
+const formatEnds = (endTime) => {
+  if (!endTime) return 'TBD';
+  const timestamp = Number(endTime);
+  const seconds = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
+  const diff = seconds - Math.floor(Date.now() / 1000);
+  if (diff <= 0) return 'Ended';
+  const hours = Math.floor(diff / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+  return `${hours}h ${minutes}m`;
 };
 
 export default Marketplace;
