@@ -13,7 +13,7 @@ const cardStyle = {
   background: '#0f172a',
   border: '1px solid #334155',
   borderRadius: '22px',
-  padding: '24px',
+  padding: 'clamp(16px, 3.5vw, 24px)',
   boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
 };
 
@@ -25,6 +25,7 @@ const fieldStyle = {
   fontSize: '1rem',
   background: '#111827',
   color: '#e2e8f0',
+  boxSizing: 'border-box',
 };
 
 const labelStyle = {
@@ -32,6 +33,21 @@ const labelStyle = {
   fontWeight: 600,
   marginBottom: '10px',
   color: '#cbd5e1',
+};
+
+// Auto-wrapping grids — collapse to one column when there isn't room for the minimum.
+const twoColGrid = {
+  display: 'grid',
+  gap: '12px',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
+  alignItems: 'flex-end',
+};
+
+const threeColGrid = {
+  display: 'grid',
+  gap: '12px',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))',
+  alignItems: 'flex-end',
 };
 
 function isValidUploadFile(file) {
@@ -106,17 +122,14 @@ export default function CreateNFTForm() {
   useEffect(() => {
     if (selectedChain) {
       setForm((prev) => ({ ...prev, network: selectedChain }));
-      fetchCollections(selectedChain);
-    } else {
-      fetchCollections(form.network);
     }
   }, [selectedChain]);
 
   useEffect(() => {
-    if (form.network) {
-      fetchCollections(form.network);
-    }
-  }, [form.network]);
+    fetchCollections(address, form.network);
+    // Reset selection if it no longer belongs to the current network/user.
+    setSelectedCollection('');
+  }, [address, form.network]);
 
   useEffect(() => {
     return () => {
@@ -126,13 +139,22 @@ export default function CreateNFTForm() {
     };
   }, [form.filePreview]);
 
-  const fetchCollections = async (network) => {
-    if (!network) return;
+  const fetchCollections = async (wallet, network) => {
+    if (!wallet) {
+      // No connected wallet — no collections to show.
+      setCollections([]);
+      return;
+    }
     try {
-      const data = await nftAPI.getCollectionsByNetwork(network);
-      setCollections(Array.isArray(data) ? data : []);
+      const data = await nftAPI.getUserCollections(wallet);
+      const list = Array.isArray(data) ? data : (data?.collections || []);
+      // Show only collections that belong to the selected network.
+      const filtered = network
+        ? list.filter((c) => !c.network || c.network === network)
+        : list;
+      setCollections(filtered);
     } catch (error) {
-      console.error('Failed to fetch collections:', error);
+      console.error('Failed to fetch user collections:', error);
       setCollections([]);
     }
   };
@@ -447,10 +469,10 @@ export default function CreateNFTForm() {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
       <Toaster position="top-right" />
-      <main style={{ maxWidth: '1140px', margin: '0 auto', padding: '24px 20px 40px' }}>
+      <main style={{ maxWidth: '1140px', margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 20px) 40px' }}>
         <section style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h1 style={{ fontSize: '2rem', margin: 0, color: '#e2e8f0' }}>Create new NFT</h1>
+            <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', margin: 0, color: '#e2e8f0' }}>Create new NFT</h1>
             <p style={{ margin: 0, color: '#4b5563', maxWidth: '760px' }}>
               Upload your artwork, select a collection, add traits, stats, and metadata, then mint your NFT with a live metadata preview.
             </p>
@@ -546,8 +568,15 @@ export default function CreateNFTForm() {
                   style={fieldStyle}
                   value={selectedCollection}
                   onChange={(event) => setSelectedCollection(event.target.value)}
+                  disabled={!address}
                 >
-                  <option value="">Select existing collection</option>
+                  <option value="">
+                    {!address
+                      ? 'Connect your wallet to see your collections'
+                      : collections.length === 0
+                        ? `No collections on ${form.network} yet — create one below`
+                        : 'Select one of your collections'}
+                  </option>
                   {collections.map((collection) => (
                     <option key={collection.collectionId || collection._id} value={collection.collectionId || collection._id}>
                       {collection.name} ({collection.network || form.network})
@@ -628,7 +657,7 @@ export default function CreateNFTForm() {
                 <h3 style={{ marginBottom: '12px' }}>Properties</h3>
                 {form.properties.map((property, index) => (
                   <div key={index} style={{ display: 'grid', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr', alignItems: 'flex-end' }}>
+                    <div style={twoColGrid}>
                       <div>
                         <label style={labelStyle}>Type</label>
                         <input
@@ -666,7 +695,7 @@ export default function CreateNFTForm() {
                 <h3 style={{ marginBottom: '12px' }}>Levels</h3>
                 {form.levels.map((level, index) => (
                   <div key={index} style={{ display: 'grid', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'flex-end' }}>
+                    <div style={threeColGrid}>
                       <div>
                         <label style={labelStyle}>Name</label>
                         <input
@@ -718,7 +747,7 @@ export default function CreateNFTForm() {
                 <h3 style={{ marginBottom: '12px' }}>Stats</h3>
                 {form.stats.map((stat, index) => (
                   <div key={index} style={{ display: 'grid', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: '1fr 1fr', alignItems: 'flex-end' }}>
+                    <div style={twoColGrid}>
                       <div>
                         <label style={labelStyle}>Name</label>
                         <input
@@ -791,7 +820,7 @@ export default function CreateNFTForm() {
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: '1fr 1fr', alignItems: 'flex-end' }}>
+              <div style={{ ...twoColGrid, gap: '16px' }}>
                 <div>
                   <label style={labelStyle}>Supply</label>
                   <input
@@ -821,7 +850,7 @@ export default function CreateNFTForm() {
           <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>6. Metadata preview</h2>
             <p style={{ color: '#4b5563', marginBottom: '16px' }}>Review the NFT metadata JSON before submitting. The image field will point to the IPFS file CID after upload.</p>
-            <pre style={{ background: '#111827', color: '#f9fafb', borderRadius: '18px', padding: '18px', overflowX: 'auto', maxHeight: '420px' }}>
+            <pre style={{ background: '#111827', color: '#f9fafb', borderRadius: '18px', padding: '18px', overflowX: 'auto', maxHeight: '420px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.85rem' }}>
               {JSON.stringify(getMetadataForPreview, null, 2)}
             </pre>
           </div>

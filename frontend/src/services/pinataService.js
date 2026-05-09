@@ -17,7 +17,7 @@ class PinataService {
   async uploadMetadata(metadata) {
     try {
       if (!this.apiKey && !this.secretKey && !PINATA_JWT) {
-        throw new Error('Pinata API credentials not configured');
+        throw new Error('Pinata API credentials not configured. Add VITE_APP_PINATA_API_KEY and VITE_APP_PINATA_SECRET_KEY (or VITE_APP_PINATA_JWT) to frontend/.env.production and rebuild — Vite inlines these at build time, not runtime.');
       }
 
       // Use API key/secret if available (more reliable), otherwise use JWT token
@@ -68,7 +68,7 @@ class PinataService {
   async uploadImage(file, onUploadProgress = null) {
     try {
       if (!this.apiKey && !this.secretKey && !PINATA_JWT) {
-        throw new Error('Pinata API credentials not configured');
+        throw new Error('Pinata API credentials not configured. Add VITE_APP_PINATA_API_KEY and VITE_APP_PINATA_SECRET_KEY (or VITE_APP_PINATA_JWT) to frontend/.env.production and rebuild — Vite inlines these at build time, not runtime.');
       }
 
       const formData = new FormData();
