@@ -215,8 +215,13 @@ export const Index = ({ children }) => {
   }, [wcProvider]);
 
   useEffect(() => {
+    // Only probe once on mount. Re-running on every `address` change re-enters
+    // checkIfWalletConnected, which calls eth_accounts on window.ethereum and
+    // resets address to null if that provider has no active session — wiping
+    // out a successful connection made through a different provider.
     checkIfWalletConnected();
-  }, [address]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const connectWallet = async (walletId = null) => {
     // Support calling with a specific wallet id (e.g. 'metamask', 'coinbase', 'walletconnect')
