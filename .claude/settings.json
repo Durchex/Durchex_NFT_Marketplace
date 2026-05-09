@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git -C \"c:/Users/Darker Elf/Documents/GitHub/Durchex_NFT_Marketplace\" log --oneline -3 -- frontend/src/components/WalletConnect.jsx)",
       "Bash(git -C \"c:/Users/Darker Elf/Documents/GitHub/Durchex_NFT_Marketplace\" log --oneline -3 -- src/components/WalletConnect.jsx)",
-      "Bash(git -C \"c:/Users/Darker Elf/Documents/GitHub/Durchex_NFT_Marketplace\" show --stat b7ddb53)"
+      "Bash(git -C \"c:/Users/Darker Elf/Documents/GitHub/Durchex_NFT_Marketplace\" show --stat b7ddb53)",
+      "Read(//c/Users/Darker Elf/Documents/GitHub/Darker Elf/Documents/GitHub/Durchex_NFT_Marketplace/frontend/src/services/**)"
     ]
   }
 }

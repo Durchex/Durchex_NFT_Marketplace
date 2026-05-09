@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { resolveNftImages } from '../utils/ipfsUrl';
 
 // Simple in-memory cache for heavy read endpoints (per-session)
 const allNftsByNetworkCache = new Map(); // key: network or special key, value: { data, fetchedAt }
@@ -135,6 +136,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     console.log(`API Response: ${response.status} ${response.config.url}`);
+    // Rewrite ipfs://… image fields to gateway URLs so consumers everywhere
+    // can render <img src={nft.image}> without each call site having to know.
+    try {
+      resolveNftImages(response.data);
+    } catch (e) {
+      console.warn('[api] resolveNftImages failed (non-fatal):', e);
+    }
     return response;
   },
   async (error) => {

@@ -14,16 +14,7 @@ import { ICOContent } from '../Context';
 import { useCart } from '../Context/CartContext';
 import { useMarketplace } from '../hooks/useMarketplace';
 import toast from 'react-hot-toast';
-
-// Browsers can't load ipfs:// URIs natively. Convert any ipfs://CID/... or
-// bare CID into a Pinata gateway URL; pass through https/http/data URIs as-is.
-const resolveIpfsUrl = (uri) => {
-  if (!uri) return uri;
-  const s = String(uri).trim();
-  if (s.startsWith('ipfs://')) return `https://gateway.pinata.cloud/ipfs/${s.slice(7)}`;
-  if (/^[a-zA-Z0-9]{46,}$/.test(s)) return `https://gateway.pinata.cloud/ipfs/${s}`;
-  return s;
-};
+import { resolveIpfsUrl } from '../utils/ipfsUrl';
 
 const NftDetailsPage = () => {
   const { id } = useParams();
