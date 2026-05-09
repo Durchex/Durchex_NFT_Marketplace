@@ -83,27 +83,29 @@ const WalletConnect = () => {
       description: 'Connect using MetaMask',
       isInstalled: () => {
         if (typeof window === 'undefined') return false;
-        // Check if MetaMask is specifically installed
+        // Real MetaMask sets isMetaMask=true. Trust/Coinbase/Brave also set
+        // isMetaMask=true for compatibility, so we must exclude them explicitly.
+        const isRealMetaMask = (p) =>
+          p && p.isMetaMask && !p.isCoinbaseWallet && !p.isTrust &&
+          !p.isTrustWallet && !p.isBraveWallet && !p.isRabby && !p.isPhantom;
         if (window.ethereum) {
-          // Check if it's MetaMask directly
-          if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
-            return true;
-          }
-          // Check if MetaMask is in the providers array
+          if (isRealMetaMask(window.ethereum)) return true;
           if (Array.isArray(window.ethereum.providers)) {
-            return window.ethereum.providers.some(p => p.isMetaMask && !p.isCoinbaseWallet);
+            return window.ethereum.providers.some(isRealMetaMask);
           }
         }
         return false;
       },
       getProvider: () => {
+        const isRealMetaMask = (p) =>
+          p && p.isMetaMask && !p.isCoinbaseWallet && !p.isTrust &&
+          !p.isTrustWallet && !p.isBraveWallet && !p.isRabby && !p.isPhantom;
         if (window.ethereum) {
-          if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
-            return window.ethereum;
-          }
           if (Array.isArray(window.ethereum.providers)) {
-            return window.ethereum.providers.find(p => p.isMetaMask && !p.isCoinbaseWallet);
+            const found = window.ethereum.providers.find(isRealMetaMask);
+            if (found) return found;
           }
+          if (isRealMetaMask(window.ethereum)) return window.ethereum;
         }
         return null;
       },
@@ -236,51 +238,30 @@ const WalletConnect = () => {
       if (wallet.getProvider && typeof window !== 'undefined') {
         const specificProvider = wallet.getProvider();
         console.log('[WalletConnect] Got provider for', wallet.name, ':', specificProvider);
-        
+
         if (!specificProvider) {
-          toast.error(`Could not find ${wallet.name} provider. Please make sure it's installed.`);
+          toast.error(`${wallet.name} doesn't appear to be installed. If another wallet is installed, it may be impersonating MetaMask — disable it or use the matching option in this list.`, { duration: 6000 });
           setIsConnecting(false);
           return;
         }
 
-        // Ensure this provider is the primary one in window.ethereum
-        if (Array.isArray(window.ethereum?.providers)) {
-          const providerIndex = window.ethereum.providers.findIndex(p => p === specificProvider);
-          console.log('[WalletConnect] Provider index in array:', providerIndex);
-          
-          if (providerIndex !== -1) {
-            // Move selected wallet to first position if it's not already first
-            if (providerIndex > 0) {
-              console.log('[WalletConnect] Moving provider to first position');
-              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
-                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
-            }
-            // Use the first provider (which is now our selected wallet)
-            window.ethereum = window.ethereum.providers[0];
-            console.log('[WalletConnect] Set window.ethereum to first provider');
-          } else {
-            console.warn('[WalletConnect] Provider not found in providers array, using directly');
-            window.ethereum = specificProvider;
-          }
-        } else if (window.ethereum !== specificProvider) {
-          // If not in array, directly set it
-          console.log('[WalletConnect] Setting window.ethereum directly to provider');
-          window.ethereum = specificProvider;
-        }
+        // Use the specific provider directly. Do NOT mutate window.ethereum:
+        // it can be a non-writable property and reassigning it doesn't change
+        // which extension actually answers the request — the provider itself does.
+        const finalProvider = specificProvider;
+        console.log('[WalletConnect] Using provider:', finalProvider);
+        console.log('[WalletConnect] Provider flags:', {
+          isMetaMask: finalProvider?.isMetaMask,
+          isCoinbaseWallet: finalProvider?.isCoinbaseWallet,
+          isTrust: finalProvider?.isTrust,
+          isTrustWallet: finalProvider?.isTrustWallet,
+        });
 
-        // Verify the provider is set correctly
-        const finalProvider = window.ethereum || specificProvider;
-        console.log('[WalletConnect] Final provider:', finalProvider);
-        console.log('[WalletConnect] Provider has request method:', typeof finalProvider?.request === 'function');
-        console.log('[WalletConnect] Provider isMetaMask:', finalProvider?.isMetaMask);
-        console.log('[WalletConnect] Provider isCoinbaseWallet:', finalProvider?.isCoinbaseWallet);
-
-        // DIRECTLY call eth_requestAccounts on the provider - this will open the wallet popup
-        if (!finalProvider || !finalProvider.request) {
+        if (!finalProvider.request) {
           throw new Error('Provider does not support connection requests');
         }
 
-        console.log('[WalletConnect] DIRECTLY calling eth_requestAccounts on provider');
+        console.log('[WalletConnect] Calling eth_requestAccounts on selected provider');
         try {
           const accounts = await finalProvider.request({
             method: "eth_requestAccounts",
@@ -321,6 +302,8 @@ const WalletConnect = () => {
             toast.error('Connection rejected by user');
           } else if (requestError.code === -32002) {
             toast.error('Connection request already pending. Please check your wallet.');
+          } else if (requestError.code === -32603 && /no active wallet/i.test(requestError.message || '')) {
+            toast.error(`${wallet.name} has no active wallet. Open the extension and create or import an account, then try again.`, { duration: 7000 });
           } else {
             toast.error(`Failed to connect: ${requestError.message || 'Unknown error'}`);
           }
