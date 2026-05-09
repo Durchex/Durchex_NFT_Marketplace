@@ -97,6 +97,8 @@ export default function CreateNFTForm() {
     name: '',
     externalUrl: '',
     description: '',
+    category: 'Art',
+    price: '',
     properties: [{ type: '', value: '' }],
     levels: [{ name: 'Strength', value: '80', max: '100' }],
     stats: [{ name: 'Power', value: '250' }],
@@ -107,6 +109,8 @@ export default function CreateNFTForm() {
     network: selectedChain || 'polygon',
   });
 
+  const NFT_CATEGORIES = ['Art', 'Collectibles', 'Music', 'Photography', 'Sports', 'Trading Cards', 'Utility', 'Virtual Worlds'];
+
   const [errors, setErrors] = useState({});
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -114,9 +118,12 @@ export default function CreateNFTForm() {
   const [successMessage, setSuccessMessage] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
-  const networkOptions = SUPPORTED_NETWORKS.filter((n) => n.isEVM).map((network) => ({
+  // Show every supported network. Non-EVM networks (Tezos, Solana) won't deploy
+  // an EVM contract, so the deployContract path falls back to off-chain save.
+  const networkOptions = SUPPORTED_NETWORKS.map((network) => ({
     value: network.id,
     label: network.name,
+    isEVM: network.isEVM,
   }));
 
   useEffect(() => {
@@ -387,14 +394,39 @@ export default function CreateNFTForm() {
       const metadata = buildMetadataForMint(fileCID);
       const metadataCID = await uploadMetadataToIPFS(metadata);
       const metadataURI = `ipfs://${metadataCID}`;
+      const imageURI = `ipfs://${fileCID}`;
+
+      // For unminted drafts the chain hasn't issued a tokenId yet — generate
+      // a unique itemId so the Mongoose required check passes. Once the
+      // collection contract deploys, mintNFT will fill in tokenId.
+      const generateId = () =>
+        (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? `draft-${crypto.randomUUID()}`
+          : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+      const priceString = String(form.price ?? '').trim() || '0';
+      const isListed = priceString !== '0' && Number(priceString) > 0;
 
       const nftPayload = {
+        // Required by nftModel.js
+        itemId: generateId(),
         name: form.name.trim(),
         description: form.description.trim(),
+        image: imageURI,
+        category: form.category || 'Art',
         owner: address,
+        seller: address,
+        price: priceString,
+        currentlyListed: isListed,
+        network: form.network,
+        properties: {
+          attributes: metadata.attributes,
+          levels: metadata.levels,
+          stats: metadata.stats,
+        },
+        // Optional / extra context
         creator: address,
         collection: collectionId,
-        network: form.network,
         metadataURI,
         supply: Number(form.supply),
         attributes: metadata.attributes,
@@ -428,6 +460,8 @@ export default function CreateNFTForm() {
         name: '',
         externalUrl: '',
         description: '',
+        category: 'Art',
+        price: '',
         properties: [{ type: '', value: '' }],
         levels: [{ name: 'Strength', value: '80', max: '100' }],
         stats: [{ name: 'Power', value: '250' }],
@@ -555,6 +589,19 @@ export default function CreateNFTForm() {
                   onChange={(event) => updateField('description', event.target.value)}
                   placeholder="Add a description. Markdown supported."
                 />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Category *</label>
+                <select
+                  style={fieldStyle}
+                  value={form.category}
+                  onChange={(event) => updateField('category', event.target.value)}
+                >
+                  {NFT_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -833,14 +880,29 @@ export default function CreateNFTForm() {
                   {errors.supply && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.supply}</div>}
                 </div>
                 <div>
+                  <label style={labelStyle}>List price (optional)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.0001"
+                    style={fieldStyle}
+                    value={form.price}
+                    onChange={(event) => updateField('price', event.target.value)}
+                    placeholder="0 (leave blank to mint unlisted)"
+                  />
+                </div>
+                <div>
                   <label style={labelStyle}>Blockchain</label>
                   <select
                     style={fieldStyle}
                     value={form.network}
                     onChange={(event) => updateField('network', event.target.value)}
                   >
-                    <option value="ethereum">Ethereum</option>
-                    <option value="polygon">Polygon</option>
+                    {networkOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}{!option.isEVM ? ' (non-EVM)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
