@@ -394,7 +394,10 @@ export default function CreateNFTForm() {
       const metadata = buildMetadataForMint(fileCID);
       const metadataCID = await uploadMetadataToIPFS(metadata);
       const metadataURI = `ipfs://${metadataCID}`;
-      const imageURI = `ipfs://${fileCID}`;
+      // Use a gateway URL for the DB-backed image so the standard <img src=…>
+      // tag can render it directly. The metadata JSON uploaded to IPFS still
+      // holds the canonical ipfs:// form (set in buildMetadataForMint).
+      const imageURI = `https://gateway.pinata.cloud/ipfs/${fileCID}`;
 
       // For unminted drafts the chain hasn't issued a tokenId yet — generate
       // a unique itemId so the Mongoose required check passes. Once the
@@ -829,8 +832,24 @@ export default function CreateNFTForm() {
           </div>
 
           <div style={cardStyle}>
-            <h2 style={{ marginTop: 0 }}>5. Advanced settings</h2>
+            <h2 style={{ marginTop: 0 }}>5. Pricing &amp; Settings</h2>
             <div style={{ display: 'grid', gap: '18px' }}>
+              <div>
+                <label style={labelStyle}>Price</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.0001"
+                  style={fieldStyle}
+                  value={form.price}
+                  onChange={(event) => updateField('price', event.target.value)}
+                  placeholder="0.05"
+                />
+                <div style={{ marginTop: '6px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  Leave blank or 0 to mint without listing. Any positive value lists the NFT for sale at that price.
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gap: '12px' }}>
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Unlockable Content</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -878,18 +897,6 @@ export default function CreateNFTForm() {
                     onChange={(event) => updateField('supply', Number(event.target.value) || 1)}
                   />
                   {errors.supply && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.supply}</div>}
-                </div>
-                <div>
-                  <label style={labelStyle}>List price (optional)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.0001"
-                    style={fieldStyle}
-                    value={form.price}
-                    onChange={(event) => updateField('price', event.target.value)}
-                    placeholder="0 (leave blank to mint unlisted)"
-                  />
                 </div>
                 <div>
                   <label style={labelStyle}>Blockchain</label>

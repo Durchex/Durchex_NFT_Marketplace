@@ -15,6 +15,16 @@ import { useCart } from '../Context/CartContext';
 import { useMarketplace } from '../hooks/useMarketplace';
 import toast from 'react-hot-toast';
 
+// Browsers can't load ipfs:// URIs natively. Convert any ipfs://CID/... or
+// bare CID into a Pinata gateway URL; pass through https/http/data URIs as-is.
+const resolveIpfsUrl = (uri) => {
+  if (!uri) return uri;
+  const s = String(uri).trim();
+  if (s.startsWith('ipfs://')) return `https://gateway.pinata.cloud/ipfs/${s.slice(7)}`;
+  if (/^[a-zA-Z0-9]{46,}$/.test(s)) return `https://gateway.pinata.cloud/ipfs/${s}`;
+  return s;
+};
+
 const NftDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -372,7 +382,7 @@ const NftDetailsPage = () => {
           <div className="flex flex-col">
             <div className="bg-gray-900 rounded-xl overflow-hidden mb-3 xs:mb-4 border border-gray-800">
               <img
-                src={nft.image || nft.imageURL}
+                src={resolveIpfsUrl(nft.image || nft.imageURL)}
                 alt={nft.name}
                 loading="lazy"
                 decoding="async"
@@ -657,12 +667,6 @@ const NftDetailsPage = () => {
 
               {/* Marketplace Actions */}
               <div className="border-t border-gray-700 pt-4 mt-4 space-y-2">
-                <button
-                  onClick={() => setSellModalOpen(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-                >
-                  <FiDollarSign className="text-sm" /> List on Marketplace
-                </button>
                 <button
                   onClick={() => navigate('/marketplace')}
                   className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
