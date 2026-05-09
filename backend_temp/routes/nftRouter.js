@@ -84,6 +84,9 @@ router.get("/collections", getAllCollections);
 // Get all collections by user - MUST come before :collectionId
 router.get("/collections/user/:walletAddress", getUserCollections);
 
+// Get collections grouped by collection name for a given network - MUST come before :collectionId
+router.get("/collections/by-network/:network", fetchCollectionsGroupedByNetwork);
+
 // Get NFTs in a collection - MUST come BEFORE the generic :collectionId route
 router.get("/collections/:collectionId/nfts", getCollectionNFTs);
 

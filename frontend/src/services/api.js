@@ -885,7 +885,7 @@ export const nftAPI = {
   // Get collections grouped by network
   getCollectionsByNetwork: async (network) => {
     try {
-      const response = await api.get(`/nft/collections/${network}`);
+      const response = await api.get(`/nft/collections/by-network/${encodeURIComponent(network)}`);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to get collections: ${error.message}`);
