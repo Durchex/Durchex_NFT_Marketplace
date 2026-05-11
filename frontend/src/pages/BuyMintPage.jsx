@@ -83,6 +83,39 @@ export default function BuyMintPage() {
   const isListedNft = !isLazyMint;
   const hasLiquidityPool = !!(nft?.liquidityContract && nft?.liquidityPieceId != null);
 
+  const getVendorContractAddress = (network) => {
+    const networkUpper = String(network || 'polygon').toUpperCase();
+    return (
+      import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] ||
+      import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS ||
+      null
+    );
+  };
+
+  const getMultiPieceLazyMintContractAddress = (network) => {
+    const networkUpper = String(network || 'polygon').toUpperCase();
+    return (
+      import.meta.env[`VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${networkUpper}`] ||
+      import.meta.env.VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS ||
+      null
+    );
+  };
+
+  const currentNetwork = (nft.network || 'polygon').toLowerCase().trim();
+  const vendorContractAddress =
+    nft.contractAddress || nft.nftContract || getVendorContractAddress(currentNetwork);
+  const multiPieceLazyMintContractAddress = getMultiPieceLazyMintContractAddress(currentNetwork);
+  const mintContractMissing = hasPiecesToMint && !multiPieceLazyMintContractAddress;
+  const buyContractMissing = isListedNft && !vendorContractAddress;
+  const contractMissingMessage = mintContractMissing
+    ? `Mint contract not configured for ${currentNetwork}. Deploy and set VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${currentNetwork}.`
+    : buyContractMissing
+    ? `Vendor contract not configured for ${currentNetwork}. Deploy and set VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${currentNetwork}.`
+    : null;
+
+  const canMint = hasPiecesToMint && address && !mintContractMissing;
+  const canBuy = isListedNft && address && !buyContractMissing;
+
   const handleFillOrder = async (order, qty) => {
     if (!address || !order?._id) return;
     const quantity = Math.max(1, parseInt(qty, 10) || 1);
@@ -159,6 +192,10 @@ export default function BuyMintPage() {
       toast.error('Connect your wallet first.');
       return;
     }
+    if (contractMissingMessage) {
+      toast.error(contractMissingMessage);
+      return;
+    }
     const qty = Math.max(1, Math.min(maxQuantity, quantity));
     const pricePerPiece = priceInDecimalForBuy(nft.price);
     const totalPriceEth = (parseFloat(pricePerPiece) * qty).toFixed(18);
@@ -169,6 +206,12 @@ export default function BuyMintPage() {
     try {
       // Lazy-mint: fully on-chain redemption via LazyMintNFT contract (voucher from backend, no confirm-redemption).
       if (hasPiecesToMint) {
+        if (!multiPieceLazyMintContractAddress) {
+          throw new Error(
+            `Mint contract not configured for ${currentNetwork}. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${currentNetwork} or VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS.`
+          );
+        }
+
         const lazyNftId = (nft._id && nft._id.toString()) || id;
 
         if (!window.ethereum) {
@@ -185,9 +228,7 @@ export default function BuyMintPage() {
         const contract = await getMultiPieceLazyMintContractWithSigner(network);
         if (!contract) {
           throw new Error(
-            'Lazy mint contract not configured for this network. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS (or _' +
-              network.toUpperCase() +
-              ') and connect your wallet.'
+            `Lazy mint contract not configured for ${network}. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${network.toUpperCase()} or VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS.`
           );
         }
 
@@ -242,10 +283,19 @@ export default function BuyMintPage() {
         toast.error('This item is not available to buy here. Use Make Offer on the NFT page.');
         return;
       }
+      const getVendorContractAddress = (network) => {
+        const networkUpper = String(network || 'polygon').toUpperCase();
+        return (
+          import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] ||
+          import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS ||
+          null
+        );
+      };
+
       const contractAddress =
         nft.contractAddress ||
         nft.nftContract ||
-        getContractAddresses(currentNetwork)?.vendor;
+        getVendorContractAddress(currentNetwork);
       if (!contractAddress) {
         toast.error('NFT contract not found for this network.');
         return;
@@ -411,6 +461,11 @@ export default function BuyMintPage() {
 
             {!address ? (
               <p className="text-amber-400 text-sm mb-4">Connect your wallet to continue.</p>
+            ) : null}
+            {contractMissingMessage ? (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 mb-4 text-amber-100 text-sm">
+                {contractMissingMessage}
+              </div>
             ) : null}
 
             {/* Lazy-mint sold out: Sold out + Make Offer */}
