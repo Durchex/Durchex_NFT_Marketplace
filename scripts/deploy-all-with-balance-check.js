@@ -316,5 +316,4 @@ main()
   .catch((error) => {
     console.error("❌ Deployment script failed:", error);
     process.exit(1);
-  });</content>
-<parameter name="filePath">c:\Users\Darker Elf\Documents\GitHub\Durchex_NFT_Marketplace\scripts\deploy-all-with-balance-check.js
+  });
