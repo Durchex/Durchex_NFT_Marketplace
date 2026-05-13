@@ -15,8 +15,8 @@
  * node scripts/deploy-all-with-balance-check.js
  */
 
-import pkg from "hardhat";
-const { ethers } = pkg;
+import hre from "hardhat";
+const { ethers } = hre;
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
@@ -243,6 +243,16 @@ async function main() {
     process.exit(1);
   }
 
+  // Compile contracts first
+  console.log(`\n🔨 Compiling contracts...`);
+  try {
+    await hre.run("compile");
+    console.log(`✅ Contracts compiled successfully`);
+  } catch (error) {
+    console.error(`❌ Failed to compile contracts:`, error.message);
+    process.exit(1);
+  }
+
   // Deploy to each network
   for (const network of NETWORKS) {
     await deployToNetwork(network);
@@ -293,6 +303,11 @@ async function main() {
     "deployments",
     `multi-network-deployment-${Date.now()}.json`
   );
+
+  const summaryDir = path.dirname(summaryPath);
+  if (!fs.existsSync(summaryDir)) {
+    fs.mkdirSync(summaryDir, { recursive: true });
+  }
 
   const summary = {
     timestamp: new Date().toISOString(),
