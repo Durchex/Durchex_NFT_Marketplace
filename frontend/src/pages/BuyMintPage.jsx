@@ -301,6 +301,10 @@ export default function BuyMintPage() {
         return;
       }
       const itemIdStr = nft.itemId ?? nft.tokenId ?? nft._id;
+      if (typeof itemIdStr === 'string' && itemIdStr.startsWith('draft-')) {
+        toast.error('This NFT has not been minted yet. Ask the seller to mint it first, or convert it to a lazy mint.');
+        return;
+      }
       const qtyNum = Math.max(1, Math.min(maxQuantity, quantity));
       const totalEth = (parseFloat(priceInDecimalForBuy(nft.price)) * qtyNum).toFixed(18);
       if (typeof buyNFT !== 'function') {

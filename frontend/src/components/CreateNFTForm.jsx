@@ -484,6 +484,7 @@ export default function CreateNFTForm() {
         external_url: form.externalUrl.trim() || undefined,
         blockchain: form.network,
         deployContract: true,
+        isLazyMint: true,
       };
 
       let createResult;
