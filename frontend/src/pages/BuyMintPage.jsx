@@ -101,9 +101,9 @@ export default function BuyMintPage() {
     );
   };
 
-  const currentNetwork = (nft.network || 'polygon').toLowerCase().trim();
+  const currentNetwork = (nft?.network || 'polygon').toLowerCase().trim();
   const vendorContractAddress =
-    nft.contractAddress || nft.nftContract || getVendorContractAddress(currentNetwork);
+    nft?.contractAddress || nft?.nftContract || getVendorContractAddress(currentNetwork);
   const multiPieceLazyMintContractAddress = getMultiPieceLazyMintContractAddress(currentNetwork);
   const mintContractMissing = hasPiecesToMint && !multiPieceLazyMintContractAddress;
   const buyContractMissing = isListedNft && !vendorContractAddress;
