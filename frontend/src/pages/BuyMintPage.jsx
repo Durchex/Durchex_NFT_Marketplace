@@ -384,8 +384,6 @@ export default function BuyMintPage() {
   const priceDisplay = pricePerPiece.toFixed(4);
   const totalDisplay = (pricePerPiece * Math.max(1, Math.min(maxQuantity, quantity))).toFixed(4);
   const currency = getCurrencySymbol(nft.network || 'ethereum');
-  const canMint = hasPiecesToMint && address;
-  const canBuy = isListedNft && address;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

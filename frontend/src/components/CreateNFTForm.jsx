@@ -391,7 +391,6 @@ export default function CreateNFTForm() {
       unlockable_content: form.unlockableEnabled ? form.unlockableContent.trim() : undefined,
       explicit_content: form.explicitContent,
       supply: Number(form.supply),
-      external_url: form.externalUrl.trim() || undefined,
       blockchain: form.network,
     };
   };
