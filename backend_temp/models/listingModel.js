@@ -73,6 +73,20 @@ const listingSchema = new mongoose.Schema({
     type: String,
     required: true,
     lowercase: true
+  },
+  // Link to the parent NFT document so we can compute floor price across all
+  // pieces of a multi-piece lazy mint NFT (each piece has its own tokenId).
+  parentNftId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'NFT',
+    index: true,
+    default: null
+  },
+  listingType: {
+    type: String,
+    enum: ['fixed', 'auction'],
+    default: 'fixed',
+    index: true
   }
 }, {
   timestamps: true

@@ -483,22 +483,12 @@ export default function CreateNFTForm() {
         explicitContent: form.explicitContent,
         external_url: form.externalUrl.trim() || undefined,
         blockchain: form.network,
-        deployContract: true,
+        // Lazy mint only: no upfront contract deploy, buyer mints + pays gas at redemption.
+        deployContract: false,
         isLazyMint: true,
       };
 
-      let createResult;
-      try {
-        createResult = await nftAPI.createNft(nftPayload);
-      } catch (error) {
-        const message = error.message || String(error);
-        if (message.includes('Collection contract not found') || message.includes('not deployed')) {
-          createResult = await nftAPI.createNft({ ...nftPayload, deployContract: false });
-          toast.success('NFT saved to the database. Minting will complete once the collection contract is deployed.');
-        } else {
-          throw error;
-        }
-      }
+      const createResult = await nftAPI.createNft(nftPayload);
 
       const mintedId = createResult.nft?.tokenId || createResult.nft?._id || 'saved';
       setSuccessMessage(`NFT created successfully (${mintedId})`);

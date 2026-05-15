@@ -509,8 +509,11 @@ const Explore = () => {
                         }}
                       />
                       {(() => {
-                        // Support both verificationStatus (from DB) and verificationType (from mock data)
-                        const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
+                        // Support verificationStatus, legacy isVerified boolean, and mock-data verificationType.
+                        const verificationStatus =
+                          creator?.verificationStatus
+                          || (creator?.isVerified ? 'premium' : null)
+                          || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
                         const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
                         
                         if (badge) {

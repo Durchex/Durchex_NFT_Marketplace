@@ -10,6 +10,47 @@ function getMarketplaceContract(network) {
   return addresses?.marketplaceV2 || addresses?.marketplace;
 }
 
+/**
+ * Recompute the floor price for a parent NFT and persist it as `nft.price`.
+ *
+ * Floor = lowest active fixed-price listing among all pieces of the NFT.
+ * Only applies after primary sale completes (remainingPieces === 0). During
+ * primary sale, the voucher price stays authoritative.
+ *
+ * Falls back to `lastPrice` when no active listings exist (e.g. all sold
+ * out, or all cancelled). Returns the floor that was applied, or null.
+ */
+async function recomputeFloorPrice(parentNft) {
+  if (!parentNft) return null;
+
+  const totalPieces = Number(parentNft.pieces ?? parentNft.supply ?? 1) || 1;
+  const remaining = Number(parentNft.remainingPieces ?? 0);
+  const primarySaleComplete = totalPieces <= 1 || remaining === 0;
+  if (!primarySaleComplete) return null; // Voucher price stays authoritative.
+
+  // Active fixed-price listings linked to this parent NFT, sorted by price asc.
+  // Compare prices numerically — they're stored as strings (wei), so cast.
+  const activeListings = await Listing.find({
+    parentNftId: parentNft._id,
+    active: true,
+    listingType: 'fixed',
+  }).lean();
+
+  let floor = null;
+  for (const l of activeListings) {
+    const p = BigInt(l.price || '0');
+    if (floor === null || p < floor) floor = p;
+  }
+
+  if (floor !== null) {
+    parentNft.price = floor.toString();
+  } else if (parentNft.lastPrice) {
+    parentNft.price = String(parentNft.lastPrice);
+  }
+  await parentNft.save();
+  return floor;
+}
+
 // Create a new listing
 export const createListing = async (req, res) => {
   try {
@@ -25,7 +66,8 @@ export const createListing = async (req, res) => {
       isERC1155 = false,
       signature,
       nonce,
-      network
+      network,
+      parentNftId,
     } = req.body;
 
     // Validate required fields
@@ -36,11 +78,38 @@ export const createListing = async (req, res) => {
       });
     }
 
+    // Primary-sale lock: secondary listings are blocked until the parent NFT's
+    // full supply has been minted out. Look up the parent NFT by id, _id or
+    // itemId, or fall back to matching nftContract+network when no id provided.
+    const parentQueries = [];
+    if (parentNftId) {
+      if (typeof parentNftId === 'string' && /^[0-9a-fA-F]{24}$/.test(parentNftId)) {
+        parentQueries.push({ _id: parentNftId });
+      }
+      parentQueries.push({ itemId: parentNftId });
+    }
+    parentQueries.push({
+      nftContract: nftContract.toLowerCase(),
+      network: network.toLowerCase(),
+    });
+    const parentNft = await NFT.findOne({ $or: parentQueries });
+    if (parentNft) {
+      const totalPieces = Number(parentNft.pieces ?? parentNft.supply ?? 1) || 1;
+      const remaining = Number(parentNft.remainingPieces ?? 0);
+      if (totalPieces > 1 && remaining > 0) {
+        return res.status(403).json({
+          success: false,
+          message: `Resale is locked: ${remaining} of ${totalPieces} pieces still unminted. Listings unlock once the primary sale completes.`,
+        });
+      }
+    }
+
     // Get the next listing ID
     const lastListing = await Listing.findOne({}, {}, { sort: { 'listingId': -1 } });
     const listingId = lastListing ? lastListing.listingId + 1 : 1;
 
     const marketplaceContract = getMarketplaceContract(network);
+    const listingType = endTime ? 'auction' : 'fixed';
 
     // Create listing
     const listing = new Listing({
@@ -58,10 +127,15 @@ export const createListing = async (req, res) => {
       signature,
       nonce,
       network: network.toLowerCase(),
-      marketplaceContract
+      marketplaceContract,
+      parentNftId: parentNft?._id || null,
+      listingType,
     });
 
     await listing.save();
+
+    // Floor may have just dropped (or established for the first time).
+    if (parentNft) await recomputeFloorPrice(parentNft);
 
     res.status(201).json({
       success: true,
@@ -207,6 +281,12 @@ export const cancelListing = async (req, res) => {
     listing.active = false;
     await listing.save();
 
+    // Floor may have just risen — recompute against remaining active listings.
+    if (listing.parentNftId) {
+      const parentNft = await NFT.findById(listing.parentNftId);
+      if (parentNft) await recomputeFloorPrice(parentNft);
+    }
+
     res.json({
       success: true,
       message: 'Listing cancelled successfully'
@@ -278,10 +358,15 @@ export const executeSale = async (req, res) => {
         nft.owner = String(buyer).toLowerCase();
       }
       nft.currentlyListed = listing.active;
-      nft.lastPrice = String(price ?? nft.lastPrice ?? '0');
+      const salePrice = String(price ?? nft.lastPrice ?? '0');
+      nft.lastPrice = salePrice;
       nft.lastTransferAt = new Date();
       if (transactionHash) nft.lastTxHash = transactionHash;
       await nft.save();
+
+      // Sale consumed an active listing → recompute floor across what's left.
+      // The helper skips during primary sale (voucher price stays authoritative).
+      await recomputeFloorPrice(nft);
     }
 
     res.json({

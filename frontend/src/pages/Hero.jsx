@@ -505,7 +505,10 @@ function App() {
 
                         {/* Verification badge or online indicator (preserve previous logic) */}
                         {(() => {
-                          const verificationStatus = creator?.verificationStatus || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
+                          const verificationStatus =
+                            creator?.verificationStatus
+                            || (creator?.isVerified ? 'premium' : null)
+                            || (creator?.verificationType === 'gold' ? 'super_premium' : creator?.verificationType === 'white' ? 'premium' : null);
                           const badge = verificationStatus ? getVerificationBadge(verificationStatus) : null;
 
                           if (badge) {

@@ -38,6 +38,21 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    verificationStatus: {
+      type: String,
+      enum: ['none', 'pending', 'premium', 'super_premium', 'rejected'],
+      default: 'none',
+      index: true,
+    },
+    verificationData: {
+      idVerification: { type: Boolean, default: false },
+      fullName: { type: String, default: null },
+      email: { type: String, default: null },
+      submittedAt: { type: Date, default: null },
+      verifiedAt: { type: Date, default: null },
+      verifiedBy: { type: String, default: null },
+      rejectionReason: { type: String, default: null },
+    },
     bio: {
       type: String,
     },

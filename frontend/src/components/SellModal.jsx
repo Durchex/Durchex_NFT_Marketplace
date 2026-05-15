@@ -21,10 +21,19 @@ const SellModal = ({ isOpen, onClose, nft }) => {
   const [minimumBid, setMinimumBid] = useState('');
   const [auctionDuration, setAuctionDuration] = useState('24'); // hours
 
+  const totalPieces = Number(nft?.pieces ?? nft?.supply ?? 1) || 1;
+  const remainingPieces = Number(nft?.remainingPieces ?? 0);
+  const primarySaleComplete = totalPieces <= 1 || remainingPieces <= 0;
+
   const handleList = async (e) => {
     e?.preventDefault();
     if (!address) {
       toast.error('Connect your wallet first');
+      return;
+    }
+
+    if (!primarySaleComplete) {
+      toast.error(`Resale is locked until all ${totalPieces} pieces are minted (${remainingPieces} left).`);
       return;
     }
 
@@ -63,6 +72,7 @@ const SellModal = ({ isOpen, onClose, nft }) => {
         price: priceNum,
         listingType,
         network: nft?.network || 'ethereum',
+        parentNftId: nft?._id || nft?.itemId,
       };
 
       // Add auction-specific data
@@ -223,6 +233,12 @@ const SellModal = ({ isOpen, onClose, nft }) => {
               </p>
             )}
 
+            {!primarySaleComplete && (
+              <p className="text-amber-400 text-sm">
+                Resale is locked: {remainingPieces} of {totalPieces} pieces still unminted. Secondary listings unlock once all pieces are minted.
+              </p>
+            )}
+
             {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
@@ -234,7 +250,7 @@ const SellModal = ({ isOpen, onClose, nft }) => {
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !price.trim() || !canList || (listingType === 'auction' && !minimumBid.trim())}
+                disabled={isLoading || !price.trim() || !canList || !primarySaleComplete || (listingType === 'auction' && !minimumBid.trim())}
                 className="flex-1 py-3 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? 'Creating…' : `List for ${listingType === 'auction' ? 'Auction' : 'Sale'}`}

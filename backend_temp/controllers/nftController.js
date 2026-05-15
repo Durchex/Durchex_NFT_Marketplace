@@ -1491,7 +1491,12 @@ export const deletePendingTransfer = async (req, res) => {
 
 export const createNft = async (req, res) => {
   const nftData = req.body;
-  const { deployContract = false, network = 'sepolia', metadataURI } = req.body;
+  const { network = 'sepolia', metadataURI } = req.body;
+
+  // Lazy mint only: NFTs are never minted on-chain at creation time.
+  // The contract mint happens when a buyer calls redeemListing() and pays gas.
+  nftData.isLazyMint = true;
+  const deployContract = false;
 
   try {
     // Optional: double-check if already exists to avoid duplicates

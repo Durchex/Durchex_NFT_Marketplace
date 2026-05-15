@@ -579,6 +579,17 @@ const NftDetailsPage = () => {
                   );
                 }
                 if (isOwner) {
+                  const totalPieces = Number(nft?.pieces ?? nft?.supply ?? 1) || 1;
+                  const remainingPieces = Number(nft?.remainingPieces ?? 0);
+                  const primarySaleComplete = totalPieces <= 1 || remainingPieces <= 0;
+                  if (!primarySaleComplete) {
+                    return (
+                      <div className="w-full bg-gray-800 border border-gray-700 text-gray-400 font-semibold py-3 rounded-lg flex flex-col items-center justify-center gap-1 px-3 text-center">
+                        <div className="flex items-center gap-2"><FiDollarSign /> Resale locked</div>
+                        <div className="text-xs text-gray-500">{remainingPieces} of {totalPieces} pieces still unminted</div>
+                      </div>
+                    );
+                  }
                   return (
                     <button onClick={() => setSellModalOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                       <FiDollarSign /> Sell

@@ -149,6 +149,7 @@ export const useMarketplace = () => {
         signature,
         nonce,
         startTime,
+        parentNftId: listingData.parentNftId,
       };
       if (endTime) apiData.endTime = endTime;
       if (listingData.listingType === 'auction') {
