@@ -108,6 +108,7 @@ export default function CreateNFTForm() {
     unlockableContent: '',
     explicitContent: false,
     supply: 1,
+    royaltyPercent: 5, // % to creator on secondary sales (0-50)
     network: selectedChain || 'polygon',
   });
 
@@ -476,6 +477,7 @@ export default function CreateNFTForm() {
         supply: Number(form.supply),
         pieces: Number(form.supply),
         remainingPieces: Number(form.supply),
+        royaltyBps: Math.max(0, Math.min(5000, Math.round(Number(form.royaltyPercent || 0) * 100))),
         attributes: metadata.attributes,
         levels: metadata.levels,
         stats: metadata.stats,

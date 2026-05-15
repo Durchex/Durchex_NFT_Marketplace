@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import Header from '../components/Header';
 import CreateNFTForm from '../components/CreateNFTForm';
 import CreateCollectionForm from '../components/CreateCollectionForm';
+import CreateUpcomingNFTForm from '../components/CreateUpcomingNFTForm';
 
 const TABS = [
   { id: 'nft', label: 'Create NFT' },
+  { id: 'upcoming', label: 'Create upcoming NFT' },
   { id: 'collection', label: 'Create collection' },
 ];
 
@@ -33,7 +35,9 @@ export default function Create() {
             ))}
           </div>
 
-          {activeTab === 'nft' ? <CreateNFTForm /> : <CreateCollectionForm />}
+          {activeTab === 'nft' && <CreateNFTForm />}
+          {activeTab === 'upcoming' && <CreateUpcomingNFTForm />}
+          {activeTab === 'collection' && <CreateCollectionForm />}
         </div>
       </main>
     </div>

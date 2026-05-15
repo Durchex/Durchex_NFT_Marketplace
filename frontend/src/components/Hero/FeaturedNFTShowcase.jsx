@@ -4,6 +4,7 @@ import { nftAPI, userAPI } from '../../services/api';
 import { getCurrencySymbol } from '../../Context/constants';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
 import { useNavigate } from 'react-router-dom';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 /**
  * FeaturedNFTShowcase - Hero section with collection slider showing 3 NFTs from each collection
@@ -277,11 +278,25 @@ const FeaturedNFTShowcase = () => {
                     const avatar = profile?.avatar || currentCollection.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
                     return (
                       <>
-                        <img
-                          src={avatar}
-                          alt={username}
-                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-gray-600"
-                        />
+                        <span className="relative inline-block">
+                          <img
+                            src={avatar}
+                            alt={username}
+                            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-gray-600"
+                          />
+                          {(() => {
+                            const status = profile?.verificationStatus || (profile?.isVerified ? 'premium' : null);
+                            const badge = status ? getVerificationBadge(status) : null;
+                            return badge ? (
+                              <img
+                                src={badge.imageUrl}
+                                alt={badge.label}
+                                title={badge.title}
+                                className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full pointer-events-none"
+                              />
+                            ) : null;
+                          })()}
+                        </span>
                         <p className="text-gray-300 text-sm sm:text-base">By {username}</p>
                       </>
                     );

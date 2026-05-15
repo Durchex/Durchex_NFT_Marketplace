@@ -84,9 +84,26 @@ const listingSchema = new mongoose.Schema({
   },
   listingType: {
     type: String,
-    enum: ['fixed', 'auction'],
+    enum: ['fixed', 'auction', 'dutch'],
     default: 'fixed',
     index: true
+  },
+  // Dutch auction params. Price decays linearly from startPrice → endPrice
+  // between startTime and endTime. currentPrice() helper in marketplaceController
+  // computes the active price on the fly.
+  dutchStartPrice: { type: String, default: null }, // wei
+  dutchEndPrice:   { type: String, default: null }, // wei (floor)
+  // Snapshot of how the most recent sale was split (creator royalty / platform fee / seller).
+  // Populated by executeSale; used for payout reconciliation and seller earnings dashboards.
+  lastSaleSplit: {
+    creatorRoyalty: String,
+    platformFee: String,
+    sellerProceeds: String,
+    creator: String,
+    seller: String,
+    royaltyBps: Number,
+    platformFeeBps: Number,
+    recordedAt: Date,
   }
 }, {
   timestamps: true

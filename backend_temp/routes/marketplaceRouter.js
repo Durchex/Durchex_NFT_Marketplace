@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createListing,
+  createBulkListings,
   getListings,
   getListing,
   cancelListing,
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // Create listing
 router.post("/listings", createListing);
+
+// Bulk create listings (one request, many signed listings)
+router.post("/listings/bulk", createBulkListings);
 
 // Get listings with filters
 router.get("/listings", getListings);

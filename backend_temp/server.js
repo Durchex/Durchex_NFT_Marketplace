@@ -53,6 +53,7 @@ import mintingRoutes from "./routes/mintingRoutes.js";
 import lazyMintRouter from "./routes/lazyMint.js";
 import reviewRouter from "./routes/reviewRouter.js";
 import marketplaceSettingsRouter from "./routes/marketplaceSettingsRouter.js";import marketplaceRouter from "./routes/marketplaceRouter.js";import notificationRouter from "./routes/notificationRouter.js";
+import aggregationRouter from "./routes/aggregationRouter.js";
 import casinoRouter from "./routes/casinoRouter.js";
 import auctionRouter from "./routes/auctionRouter.js";
 import stakingRouter from "./routes/staking.js";
@@ -391,6 +392,7 @@ app.use('/api/v1/casino', casinoRouter);
 app.use('/api/v1/auctions', auctionRouter);
 app.use('/api/v1/staking', stakingRouter);
 app.use('/api/v1/notifications', notificationRouter);
+app.use('/api/v1/aggregation', aggregationRouter);
 
 const DEFAULT_PORT = process.env.NODE_ENV === 'production' ? 8080 : 3000;
 const PORT = process.env.PORT || DEFAULT_PORT;

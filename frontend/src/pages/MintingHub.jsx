@@ -16,15 +16,30 @@ function MintingHub() {
   const contexts = useContext(ICOContent);
   const { address, connectWallet } = contexts;
 
-  const [tab, setTab] = useState("mintable"); // "mintable" or "minted"
+  const [tab, setTab] = useState("upcoming"); // "upcoming" | "mintable" | "minted"
   const [mintableNFTs, setMintableNFTs] = useState([]);
   const [mintedNFTs, setMintedNFTs] = useState([]);
+  const [upcomingNFTs, setUpcomingNFTs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedNFTs, setSelectedNFTs] = useState(new Set());
   const [minting, setMinting] = useState(false);
   const [mintingProgress, setMintingProgress] = useState({});
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch live & upcoming NFTs (anyone can view, no wallet required).
+  const fetchUpcoming = async () => {
+    try {
+      setLoading(true);
+      const data = await nftAPI.listUpcomingNfts({ includePublic: true, page, limit: 24 });
+      setUpcomingNFTs(data.nfts ?? []);
+      setTotalPages(Math.max(1, Math.ceil((data.pagination?.total ?? 0) / 24)));
+    } catch (error) {
+      console.error("Failed to fetch upcoming NFTs", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch mintable NFTs
   const fetchMintableNFTs = async () => {
@@ -74,7 +89,9 @@ function MintingHub() {
   useEffect(() => {
     setPage(1);
     setSelectedNFTs(new Set());
-    if (tab === "mintable") {
+    if (tab === "upcoming") {
+      fetchUpcoming();
+    } else if (tab === "mintable") {
       fetchMintableNFTs();
     } else {
       fetchMintedNFTs();
@@ -83,7 +100,9 @@ function MintingHub() {
 
   // Handle pagination
   useEffect(() => {
-    if (tab === "mintable") {
+    if (tab === "upcoming") {
+      fetchUpcoming();
+    } else if (tab === "mintable") {
       fetchMintableNFTs();
     } else {
       fetchMintedNFTs();
@@ -443,6 +462,16 @@ function MintingHub() {
         <div className="max-w-6xl mx-auto">
           <div className="flex gap-4 border-b border-gray-700">
             <button
+              onClick={() => setTab("upcoming")}
+              className={`pb-4 font-semibold transition ${
+                tab === "upcoming"
+                  ? "text-purple-600 border-b-2 border-purple-600"
+                  : "text-gray-400 hover:text-gray-300"
+              }`}
+            >
+              Live & Upcoming ({upcomingNFTs.length})
+            </button>
+            <button
               onClick={() => setTab("mintable")}
               className={`pb-4 font-semibold transition ${
                 tab === "mintable"
@@ -469,7 +498,69 @@ function MintingHub() {
       {/* Content */}
       <section className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-6xl mx-auto">
-          {tab === "mintable" ? (
+          {tab === "upcoming" ? (
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Live & Upcoming</h2>
+              {loading ? (
+                <div className="flex justify-center py-12"><Loader className="animate-spin text-purple-500" size={32} /></div>
+              ) : upcomingNFTs.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">No upcoming NFTs yet.</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {upcomingNFTs.map((nft) => {
+                    const launchAt = nft.publicLaunchAt ? new Date(nft.publicLaunchAt) : null;
+                    const now = new Date();
+                    const isLive = nft.isPublic || (launchAt && launchAt <= now);
+                    const phaseLabel = isLive ? 'Public mint' : 'Whitelist';
+                    const displayPrice = isLive && nft.publicPrice
+                      ? nft.publicPrice
+                      : (nft.whitelistPrice ?? '0');
+                    return (
+                      <div key={nft._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-purple-500 transition">
+                        <div className="relative">
+                          <img src={nft.image} alt={nft.name} className="w-full h-48 object-cover" />
+                          <span className={`absolute top-2 left-2 px-2 py-1 text-xs rounded-full font-semibold ${
+                            isLive ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-black'
+                          }`}>
+                            {phaseLabel}
+                          </span>
+                          {nft.whitelistMode === 'allowlist' && !isLive && (
+                            <span className="absolute top-2 right-2 px-2 py-1 text-xs rounded-full bg-purple-600/90 text-white font-semibold">
+                              Allowlist
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-semibold text-white truncate">{nft.name}</h3>
+                          <div className="text-sm text-gray-400 mt-1 capitalize">{nft.network}</div>
+                          <div className="mt-3 flex items-center justify-between">
+                            <div>
+                              <div className="text-xs text-gray-400">Mint price</div>
+                              <div className="text-white font-semibold">{Number(displayPrice) === 0 ? 'FREE' : `${displayPrice}`}</div>
+                            </div>
+                            {Number(nft.mintingFee) > 0 && (
+                              <div className="text-right">
+                                <div className="text-xs text-gray-400">+ fee</div>
+                                <div className="text-white text-sm">{nft.mintingFee}</div>
+                              </div>
+                            )}
+                          </div>
+                          {launchAt && !isLive && (
+                            <div className="mt-3 text-xs text-purple-300">
+                              Public launch: {launchAt.toLocaleString()}
+                            </div>
+                          )}
+                          <a href={`/nft/${nft._id}`} className="mt-4 inline-block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition">
+                            {isLive ? 'Mint now' : 'View drop'}
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : tab === "mintable" ? (
             <>
               {/* Mintable NFTs View */}
               {mintableNFTs.length > 0 && (

@@ -145,6 +145,16 @@ const nftSchema = new Schema(
     royalties: {
       type: Object,
     },
+    // Creator royalty in basis points (e.g. 1000 = 10%). Used by executeSale to
+    // split secondary-sale proceeds: creator gets royaltyBps, platform gets
+    // platformFeeBps, seller gets the rest.
+    royaltyBps: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5000, // 50% cap
+      description: "Creator royalty in basis points on secondary sales"
+    },
     // Minting status
     isMinted: {
       type: Boolean,
@@ -260,6 +270,90 @@ const nftSchema = new Schema(
       type: Date,
       default: null,
       description: "When the user last submitted a listing request"
+    },
+    // Upcoming/whitelist mint phase (creator schedules a launch ahead of time).
+    isUpcoming: {
+      type: Boolean,
+      default: false,
+      index: true,
+      description: "True if this NFT is in pre-public/whitelist phase"
+    },
+    whitelistMode: {
+      type: String,
+      enum: ['open', 'allowlist'],
+      default: 'open',
+      description: "'open' = any wallet can mint at whitelistPrice. 'allowlist' = only whitelistAddresses can mint."
+    },
+    whitelistPrice: {
+      type: String,
+      default: '0',
+      description: "Pre-public mint price in wei. '0' means free."
+    },
+    whitelistAddresses: {
+      type: [String],
+      default: [],
+      description: "Lowercase wallet addresses allowed to mint during whitelist phase (allowlist mode only)"
+    },
+    maxPerWalletWhitelist: {
+      type: Number,
+      default: 0, // 0 = unlimited
+      min: 0,
+      description: "Max pieces a single wallet can mint during whitelist phase. 0 = unlimited."
+    },
+    maxPerWalletPublic: {
+      type: Number,
+      default: 0, // 0 = unlimited
+      min: 0,
+      description: "Max pieces a single wallet can mint during public phase. 0 = unlimited."
+    },
+    // Wallet → cumulative pieces minted by that wallet on this listing.
+    mintedByWallet: {
+      type: Map,
+      of: Number,
+      default: {},
+      description: "Per-wallet mint counter, keyed by lowercase wallet address"
+    },
+    mintingFee: {
+      type: String,
+      default: '0',
+      description: "Additive fee paid by buyer on every mint, goes to creator (on top of price)"
+    },
+    publicLaunchAt: {
+      type: Date,
+      default: null,
+      index: true,
+      description: "When the NFT transitions from whitelist phase to public sale"
+    },
+    publicPrice: {
+      type: String,
+      default: null,
+      description: "Mint price after publicLaunchAt. If null, NFT stays in whitelist phase until creator sets it."
+    },
+    isPublic: {
+      type: Boolean,
+      default: false,
+      description: "Derived: true once publicLaunchAt has passed AND publicPrice is set"
+    },
+    // Creator-signed vouchers for each phase. Required so MultiPieceLazyMintNFT.redeemListing
+    // can verify the creator authorized this specific price+supply combination.
+    // pricePerPieceWei in each voucher = (phase price + mintingFee), denominated in wei.
+    whitelistVoucher: {
+      pricePerPieceWei: { type: String, default: null },
+      royaltyBps: { type: Number, default: 0 },
+      uri: { type: String, default: null },
+      maxSupply: { type: Number, default: 1 },
+      messageHash: { type: String, default: null },
+      signature: { type: String, default: null },
+      signedAt: { type: Date, default: null },
+    },
+    publicVoucher: {
+      pricePerPieceWei: { type: String, default: null },
+      royaltyBps: { type: Number, default: 0 },
+      uri: { type: String, default: null },
+      maxSupply: { type: Number, default: 1 },
+      messageHash: { type: String, default: null },
+      signature: { type: String, default: null },
+      signedAt: { type: Date, default: null },
     }
   },
   { timestamps: true }

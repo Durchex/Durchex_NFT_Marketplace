@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './FollowingList.css';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 export default function FollowingList({ userId, currentUserId }) {
     const [following, setFollowing] = useState([]);
@@ -114,12 +115,32 @@ export default function FollowingList({ userId, currentUserId }) {
                     const followee = follow.followeeId;
                     return (
                         <div key={followee._id} className="following-item">
-                            <div className="following-avatar">
+                            <div className="following-avatar" style={{ position: 'relative' }}>
                                 {followee.avatar ? (
                                     <img src={followee.avatar} alt={followee.username} />
                                 ) : (
                                     <div className="placeholder">👤</div>
                                 )}
+                                {(() => {
+                                    const status = followee.verificationStatus || (followee.isVerified ? 'premium' : null);
+                                    const badge = status ? getVerificationBadge(status) : null;
+                                    return badge ? (
+                                        <img
+                                            src={badge.imageUrl}
+                                            alt={badge.label}
+                                            title={badge.title}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: -2,
+                                                right: -2,
+                                                width: 16,
+                                                height: 16,
+                                                borderRadius: '50%',
+                                                pointerEvents: 'none',
+                                            }}
+                                        />
+                                    ) : null;
+                                })()}
                             </div>
 
                             <div className="following-info">

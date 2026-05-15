@@ -8,6 +8,8 @@ import { ICOContent } from "../Context";
 import { useNetwork } from "../Context/NetworkContext";
 import { useSidebar } from "../Context/SidebarContext";
 import WalletConnect from "./WalletConnect";
+import VerifiedAvatar from "./VerifiedAvatar";
+import { notificationsAPI } from "../services/api";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
 import CartDrawer from "./CartDrawer";
@@ -28,6 +30,7 @@ export default function Navbar() {
   const { userProfile, initializeProfile } = useUser();
   const { toggleSidebar } = useSidebar();
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navRef = useRef(null);
   const networkButtonRef = useRef(null);
   const notificationsButtonRef = useRef(null);
@@ -37,6 +40,50 @@ export default function Navbar() {
   useEffect(() => {
     if (address) initializeProfile(address);
   }, [address, initializeProfile]);
+
+  // Poll notifications on wallet connect / address change. 60s cadence is
+  // plenty for marketplace events; the dropdown also refreshes on open.
+  useEffect(() => {
+    if (!address) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const list = await notificationsAPI.getList(address, { limit: 20 });
+        const items = Array.isArray(list) ? list : (list?.notifications || []);
+        if (!cancelled) {
+          setNotifications(items);
+          setUnreadCount(items.filter((n) => !n.read).length);
+        }
+      } catch (err) {
+        // Silent fail — header should never break on a backend hiccup.
+      }
+    };
+    load();
+    const id = setInterval(load, 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [address]);
+
+  const handleMarkAllRead = async () => {
+    if (!address) return;
+    try {
+      await notificationsAPI.markAllAsRead(address);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (_) { /* ignore */ }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    if (!address || !notif?.id || notif.read) return;
+    try {
+      await notificationsAPI.markAsRead(address, notif.id);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch (_) { /* ignore */ }
+  };
 
   useEffect(() => {
     if (isOpen && networkButtonRef.current) {
@@ -130,8 +177,10 @@ export default function Navbar() {
                 aria-label="Notifications"
               >
                 <FiBell className="w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-0 right-0 w-2 h-2 xs:w-2.5 xs:h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
                 )}
               </button>
             </div>
@@ -147,14 +196,28 @@ export default function Navbar() {
                       right: `${notificationsDropdownPosition.right}px`
                     }}
                   >
-                    <h3 className="font-bold text-white mb-2 xs:mb-3 text-sm xs:text-base">Notifications</h3>
+                    <div className="flex items-center justify-between mb-2 xs:mb-3">
+                      <h3 className="font-bold text-white text-sm xs:text-base">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={handleMarkAllRead}
+                          className="text-purple-400 hover:text-purple-300 text-xs font-medium">
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
                     {notifications.length === 0 ? (
                       <p className="text-gray-400 text-xs xs:text-sm">No new notifications</p>
                     ) : (
                       <div className="space-y-2">
-                        {notifications.map((notif, idx) => (
-                          <div key={idx} className="p-2 bg-gray-800/50 rounded text-xs xs:text-sm text-gray-300">
-                            {notif}
+                        {notifications.map((notif) => (
+                          <div key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`p-2 rounded text-xs xs:text-sm cursor-pointer transition ${
+                              notif.read ? 'bg-gray-800/30 text-gray-400' : 'bg-gray-800/70 text-gray-100 border-l-2 border-purple-500'
+                            }`}>
+                            <div className="font-semibold">{notif.title || notif.type}</div>
+                            {notif.body && <div className="text-gray-400 mt-1">{notif.body}</div>}
+                            <div className="text-[10px] text-gray-500 mt-1">{new Date(notif.createdAt).toLocaleString()}</div>
                           </div>
                         ))}
                       </div>
@@ -263,22 +326,17 @@ export default function Navbar() {
           {/* Mobile Profile Menu / Connect Wallet */}
           <div className="md:hidden relative flex-shrink-0 z-[100]" style={{ position: 'relative' }}>
             {address ? (
-              <div className="w-7 h-7 xs:w-8 xs:h-8 rounded-full overflow-hidden border-2 border-purple-500 flex-shrink-0">
-                {avatarUrl ? (
-                  <img 
-                    src={avatarUrl} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover" 
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }} 
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                    <FiUser className="w-3 h-3 xs:w-4 xs:h-4 text-gray-300" />
-                  </div>
-                )}
-              </div>
+              <span className="inline-block rounded-full border-2 border-purple-500 flex-shrink-0">
+                <VerifiedAvatar
+                  user={userProfile}
+                  size="sm"
+                  fallback={
+                    <span className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center">
+                      <FiUser className="w-3 h-3 xs:w-4 xs:h-4 text-gray-300" />
+                    </span>
+                  }
+                />
+              </span>
             ) : (
               <WalletConnect />
             )}

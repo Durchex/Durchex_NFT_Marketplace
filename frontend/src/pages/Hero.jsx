@@ -744,32 +744,25 @@ function App() {
                           e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.username}`;
                         }}
                       />
-                      {creator.verificationType === 'gold' && (
-                        <span
-                          title="Gold verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
-                        >
-                          <img
-                            src="https://imgur.com/5cAUe81.png"
-                            alt="Gold Verified"
-                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
-                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                          />
-                        </span>
-                      )}
-                      {creator.verificationType === 'white' && (
-                        <span
-                          title="Verified"
-                          className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
-                        >
-                          <img
-                            src="https://imgur.com/pa1Y2LB.png"
-                            alt="Verified"
-                            className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
-                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                          />
-                        </span>
-                      )}
+                      {(() => {
+                        const status = creator.verificationStatus
+                          || (creator.isVerified ? 'premium' : null)
+                          || (creator.verificationType === 'gold' ? 'super_premium' : creator.verificationType === 'white' ? 'premium' : null);
+                        const badge = status ? getVerificationBadge(status) : null;
+                        return badge ? (
+                          <span
+                            title={badge.title}
+                            className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-6 h-6 z-10 pointer-events-none"
+                          >
+                            <img
+                              src={badge.imageUrl}
+                              alt={badge.label}
+                              className="w-6 h-6 object-contain drop-shadow-[0_0_2px_rgba(0,0,0,0.6)]"
+                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                            />
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">

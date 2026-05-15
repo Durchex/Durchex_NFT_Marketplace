@@ -221,7 +221,17 @@ export default function BuyMintPage() {
         await changeNetwork(network);
         await new Promise((r) => setTimeout(r, 500));
 
-        const redemptionRes = await lazyMintAPI.redeem(lazyNftId, pricePerPiece, qty);
+        // Upcoming NFTs use a phase-aware voucher endpoint that enforces allowlist
+        // and serves whitelist vs public voucher based on publicLaunchAt.
+        let redemptionRes;
+        if (nft.isUpcoming) {
+          redemptionRes = await nftAPI.redeemUpcomingNft(lazyNftId, {
+            walletAddress: address,
+            quantity: qty,
+          });
+        } else {
+          redemptionRes = await lazyMintAPI.redeem(lazyNftId, pricePerPiece, qty);
+        }
         const { redemptionData } = redemptionRes;
         if (!redemptionData) throw new Error('No voucher data from server.');
 
@@ -237,8 +247,11 @@ export default function BuyMintPage() {
           : '0x' + (redemptionData.signature || '');
 
         const maxSupply = Number(redemptionData.maxSupply ?? redemptionData.pieces ?? nft.pieces ?? 1) || 1;
-        const pricePerPieceEth = String(redemptionData.pricePerPieceEth ?? redemptionData.price ?? nft.price ?? '0');
-        const pricePerPieceWei = ethers.utils.parseEther(pricePerPieceEth);
+        // Upcoming vouchers already carry pricePerPieceWei (price + mintingFee, in wei).
+        // Legacy vouchers send an ETH-denominated price field that we parse here.
+        const pricePerPieceWei = redemptionData.pricePerPieceWei
+          ? ethers.BigNumber.from(redemptionData.pricePerPieceWei)
+          : ethers.utils.parseEther(String(redemptionData.pricePerPieceEth ?? redemptionData.price ?? nft.price ?? '0'));
         const valueWei = pricePerPieceWei.mul(ethers.BigNumber.from(qty));
 
         const creatorAddress = redemptionData.creator && ethers.utils.isAddress(redemptionData.creator)
@@ -257,16 +270,25 @@ export default function BuyMintPage() {
         );
         const receipt = await tx.wait();
 
-        // Post-mint sync: update remainingPieces + piece holdings in backend
+        // Post-mint sync: update remainingPieces + piece holdings in backend.
+        // Upcoming NFTs need a dedicated endpoint to increment the per-wallet counter.
         try {
-          await lazyMintAPI.recordPurchase(lazyNftId, {
-            buyer: address,
-            quantity: qty,
-            totalPrice: totalPriceEth,
-            pricePerPiece: pricePerPieceEth,
-            network,
-            transactionHash: tx.hash,
-          });
+          if (nft.isUpcoming) {
+            await nftAPI.recordUpcomingMint(lazyNftId, {
+              buyer: address,
+              quantity: qty,
+              transactionHash: tx.hash,
+            });
+          } else {
+            await lazyMintAPI.recordPurchase(lazyNftId, {
+              buyer: address,
+              quantity: qty,
+              totalPrice: totalPriceEth,
+              pricePerPiece: ethers.utils.formatEther(pricePerPieceWei),
+              network,
+              transactionHash: tx.hash,
+            });
+          }
         } catch (syncErr) {
           console.warn(
             'Post-mint sync failed; on-chain mint succeeded but DB not updated yet:',

@@ -276,7 +276,7 @@ const MyProfile = () => {
       {/* Profile Image and Username */}
       <div className="flex flex-col items-center mb-8 relative">
         <div
-          className={`rounded-full overflow-hidden cursor-pointer group`}
+          className={`rounded-full overflow-hidden cursor-pointer group relative`}
           onClick={() => isEditing && fileInputRef.current.click()}
         >
           {profileData.image ? (
@@ -293,6 +293,18 @@ const MyProfile = () => {
               Click to change image
             </div>
           )}
+          {(() => {
+            const status = profileData.verificationStatus || (profileData.isVerified ? 'premium' : null);
+            const badge = status ? getVerificationBadge(status) : null;
+            return badge ? (
+              <img
+                src={badge.imageUrl}
+                alt={badge.label}
+                title={badge.title}
+                className="absolute bottom-2 right-2 w-10 h-10 rounded-full pointer-events-none drop-shadow-lg"
+              />
+            ) : null;
+          })()}
           <input
             type="file"
             ref={fileInputRef}

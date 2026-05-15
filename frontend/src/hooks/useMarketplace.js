@@ -151,6 +151,11 @@ export const useMarketplace = () => {
         startTime,
         parentNftId: listingData.parentNftId,
       };
+      if (listingData.listingType === 'dutch') {
+        // Convert ETH-denominated dutch prices to wei strings for the backend.
+        apiData.dutchStartPrice = ethers.utils.parseEther(String(listingData.dutchStartPriceEth)).toString();
+        apiData.dutchEndPrice = ethers.utils.parseEther(String(listingData.dutchEndPriceEth)).toString();
+      }
       if (endTime) apiData.endTime = endTime;
       if (listingData.listingType === 'auction') {
         apiData.minimumBid = listingData.minimumBid;
@@ -171,9 +176,75 @@ export const useMarketplace = () => {
     }
   }, [address, selectedChain, resolveMarketplaceContractAddress]);
 
+  // Bulk listing: caller passes an array of listingData entries (same shape as
+  // createListing's input). This signs each entry's EIP-712 message in turn,
+  // then sends one batched POST to the bulk endpoint.
+  const bulkList = useCallback(async (listings) => {
+    if (!address) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+    if (!Array.isArray(listings) || listings.length === 0) return;
+
+    setIsLoading(true);
+    try {
+      const network = (listings[0].network || selectedChain || 'ethereum').toLowerCase();
+      const verifyingContract = await resolveMarketplaceContractAddress(network);
+      const chainId = getChainId(network);
+
+      if (typeof window === 'undefined' || !window.ethereum) {
+        throw new Error('No Ethereum provider found. Please connect a wallet first.');
+      }
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const domain = { ...MARKETPLACE_DOMAIN, chainId, verifyingContract };
+
+      const prepared = [];
+      for (const item of listings) {
+        const priceWei = ethers.utils.parseEther(String(item.price)).toString();
+        const startTime = Number(item.startTime || Math.floor(Date.now() / 1000));
+        const endTime = Number(item.endTime || 0);
+        const nonce = Date.now() + prepared.length;
+        const message = {
+          nftContract: item.nftContract,
+          tokenId: String(item.tokenId),
+          price: priceWei,
+          listingType: item.listingType === 'auction' ? 1 : 0,
+          startTime, endTime, nonce,
+        };
+        const signature = await signer._signTypedData(domain, LISTING_TYPES, message);
+        prepared.push({
+          nftContract: item.nftContract,
+          tokenId: item.tokenId,
+          price: priceWei,
+          listingType: item.listingType || 'fixed',
+          network,
+          seller: address,
+          signature,
+          nonce,
+          startTime,
+          ...(endTime ? { endTime } : {}),
+          parentNftId: item.parentNftId,
+        });
+      }
+
+      const result = await marketplaceAPI.createBulkListings(prepared);
+      const ok = result?.results?.filter((r) => r.ok).length ?? 0;
+      toast.success(`${ok} of ${prepared.length} listings created`);
+      return result;
+    } catch (error) {
+      console.error('Bulk list failed:', error);
+      toast.error(error.message || 'Bulk listing failed');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [address, selectedChain, resolveMarketplaceContractAddress]);
+
   return {
     isLoading,
     createListing,
+    bulkList,
     executeSale,
   };
 };

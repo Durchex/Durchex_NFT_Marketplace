@@ -611,7 +611,14 @@ const _networks = [
   { id: 'tezosMainnet', name: 'Tezos', symbol: 'XTZ', chainId: 1729, rpcUrl: rpcUrls.tezosMainnet, blockExplorerUrl: 'https://tzstats.com', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tezos/info/logo.png', isEVM: false, walletType: 'tezos' },
   { id: 'solana', name: 'Solana', symbol: 'SOL', chainId: 101, rpcUrl: import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com', blockExplorerUrl: import.meta.env.VITE_SOLANA_BLOCK_EXPLORER || 'https://solscan.io', icon: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png', isEVM: false, walletType: 'solana' },
 ];
-export const SUPPORTED_NETWORKS = _networks.map((n) => ({ ...n, blockExplorer: n.blockExplorerUrl }));
+// Drop non-EVM chains from user-facing dropdowns until native contracts (Solana program, Tezos FA2) exist.
+// Keep the entries in _networks so any existing references to getNetworkById('solana') etc. still resolve,
+// but filter them out of the dropdown source the UI iterates over.
+export const SUPPORTED_NETWORKS = _networks
+  .filter((n) => n.isEVM)
+  .map((n) => ({ ...n, blockExplorer: n.blockExplorerUrl }));
+
+export const ALL_NETWORKS_INCLUDING_NON_EVM = _networks.map((n) => ({ ...n, blockExplorer: n.blockExplorerUrl }));
 
 export const getNetworkById = (id) => SUPPORTED_NETWORKS.find((n) => n.id === (id || '').toLowerCase()) || null;
 export const getNetworkIdFromName = (name) => (SUPPORTED_NETWORKS.find((n) => n.name === name) || {}).id || (name || '').toLowerCase().replace(/\s+/g, '');

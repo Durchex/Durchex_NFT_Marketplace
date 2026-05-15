@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
 import { getCurrencySymbol } from '../../Context/constants';
 import { useNavigate } from 'react-router-dom';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 /**
  * TopNFTsCarousel - Horizontal scrollable carousel of top NFTs (newest to oldest)
@@ -197,11 +198,25 @@ const TopNFTsCarousel = () => {
                   const avatar = profile?.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
                   return (
                     <div className="flex items-center gap-2 mb-4">
-                      <img
-                        src={avatar}
-                        alt={username}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0 border border-gray-700"
-                      />
+                      <span className="relative inline-block flex-shrink-0">
+                        <img
+                          src={avatar}
+                          alt={username}
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-700"
+                        />
+                        {(() => {
+                          const status = profile?.verificationStatus || (profile?.isVerified ? 'premium' : null);
+                          const badge = status ? getVerificationBadge(status) : null;
+                          return badge ? (
+                            <img
+                              src={badge.imageUrl}
+                              alt={badge.label}
+                              title={badge.title}
+                              className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full pointer-events-none"
+                            />
+                          ) : null;
+                        })()}
+                      </span>
                       <span className="text-gray-400 text-sm line-clamp-1">{username}</span>
                     </div>
                   );

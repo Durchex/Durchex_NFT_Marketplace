@@ -15,6 +15,12 @@ import {
   deleteNftInCollection,
   checkNftExists,
   createNft,
+  createUpcomingNft,
+  listUpcomingNfts,
+  listUserUpcomingNfts,
+  updateUpcomingNft,
+  redeemUpcomingNft,
+  recordUpcomingMint,
   previewNftMetadata,
   createCollection,
   getCollection,
@@ -50,6 +56,14 @@ router.post("/nfts/check", checkNftExists);
 router.post("/nfts/update-owner", updateNftOwner);
 router.post("/nfts/preview", previewNftMetadata);
 router.post("/nfts", createNft);
+
+// Upcoming / whitelist-phase NFTs.
+router.post("/nfts/upcoming", createUpcomingNft);
+router.get("/nfts/upcoming", listUpcomingNfts);
+router.get("/nfts/upcoming/user/:walletAddress", listUserUpcomingNfts);
+router.patch("/nfts/upcoming/:id", updateUpcomingNft);
+router.post("/nfts/upcoming/:id/redeem", redeemUpcomingNft);
+router.post("/nfts/upcoming/:id/record-mint", recordUpcomingMint);
 
 // Piece sell orders (collectors sell pieces back into liquidity — no relist/approval)
 router.post("/nfts/piece-sell-orders", createPieceSellOrder);

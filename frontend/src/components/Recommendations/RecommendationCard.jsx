@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './RecommendationCard.css';
+import VerifiedAvatar from '../VerifiedAvatar';
 
 const RecommendationCard = ({ nft, recommendation, onAddToCollection }) => {
     const [isHovering, setIsHovering] = useState(false);
@@ -146,7 +147,7 @@ const RecommendationCard = ({ nft, recommendation, onAddToCollection }) => {
                 {/* Creator Info */}
                 <div className="creator-info">
                     {nft.creator?.avatar && (
-                        <img src={nft.creator.avatar} alt={nft.creator.username} />
+                        <VerifiedAvatar user={nft.creator} size="sm" />
                     )}
                     <Link
                         to={`/creator/${nft.creator?._id}`}

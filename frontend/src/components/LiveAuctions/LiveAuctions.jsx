@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, User, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { nftAPI, userAPI, auctionAPI } from '../../services/api';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 /**
  * LiveAuctions - Grid of active auctions (live API first, fallback to collections/mock)
@@ -249,11 +250,25 @@ const LiveAuctions = () => {
                   const avatar = profile?.avatar || auction.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
                   return (
                     <div className="flex items-center gap-2 mb-3">
-                      <img
-                        src={avatar}
-                        alt={username}
-                        className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full flex-shrink-0 border border-gray-700"
-                      />
+                      <span className="relative inline-block flex-shrink-0">
+                        <img
+                          src={avatar}
+                          alt={username}
+                          className="w-6 sm:w-7 md:w-8 h-6 sm:h-7 md:h-8 rounded-full border border-gray-700"
+                        />
+                        {(() => {
+                          const status = profile?.verificationStatus || (profile?.isVerified ? 'premium' : null);
+                          const badge = status ? getVerificationBadge(status) : null;
+                          return badge ? (
+                            <img
+                              src={badge.imageUrl}
+                              alt={badge.label}
+                              title={badge.title}
+                              className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full pointer-events-none"
+                            />
+                          ) : null;
+                        })()}
+                      </span>
                       <span className="text-gray-400 text-xs sm:text-sm line-clamp-1">{username}</span>
                     </div>
                   );

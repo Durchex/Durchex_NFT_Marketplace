@@ -11,6 +11,23 @@ import { ICOContent } from '../Context';
 import NFTImageHoverOverlay from '../components/NFTImageHoverOverlay';
 import CoverPhotoUploader from '../components/CoverPhotoUploader';
 import ListingRequestForm from '../components/ListingRequestForm';
+import { getVerificationBadge } from '../utils/verificationUtils';
+import { ethers } from 'ethers';
+
+async function signLazyMintVoucher({ creator, ipfsURI, royaltyBps, pricePerPieceWei, maxSupply }) {
+  if (typeof window === 'undefined' || !window.ethereum) {
+    throw new Error('No wallet provider found. Connect MetaMask.');
+  }
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const signer = provider.getSigner();
+  const listingId = ethers.utils.solidityKeccak256(
+    ['address', 'string', 'uint256', 'uint256', 'uint256'],
+    [creator, ipfsURI, royaltyBps, pricePerPieceWei, maxSupply]
+  );
+  const messageHash = ethers.utils.solidityKeccak256(['bytes32'], [listingId]);
+  const signature = await signer.signMessage(ethers.utils.arrayify(messageHash));
+  return { messageHash, signature };
+}
 
 const CreatorProfile = () => {
   const { walletAddress } = useParams();
@@ -32,6 +49,12 @@ const CreatorProfile = () => {
   const [sellerOrders, setSellerOrders] = useState([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [upcomingNFTs, setUpcomingNFTs] = useState([]);
+  const [editingUpcoming, setEditingUpcoming] = useState(null); // selected NFT to edit
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+
+  const isOwnProfile = userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase();
 
   useEffect(() => {
     fetchCreatorProfile();
@@ -43,9 +66,112 @@ const CreatorProfile = () => {
       if (userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase()) {
         fetchReceivedOffers();
         fetchSellerOrders();
+        fetchUpcomingNfts();
       }
     }
   }, [walletAddress, userWalletAddress]);
+
+  const fetchUpcomingNfts = async () => {
+    try {
+      const data = await nftAPI.listUserUpcomingNfts(walletAddress);
+      setUpcomingNFTs(data?.nfts || []);
+    } catch (err) {
+      console.error('Failed to load upcoming NFTs', err);
+    }
+  };
+
+  const openEdit = (nft) => {
+    setEditingUpcoming(nft);
+    setEditForm({
+      whitelistMode: nft.whitelistMode || 'open',
+      whitelistPrice: nft.whitelistPrice || '0',
+      mintingFee: nft.mintingFee || '0',
+      whitelistAddressesText: (nft.whitelistAddresses || []).join('\n'),
+      publicLaunchAt: nft.publicLaunchAt ? new Date(nft.publicLaunchAt).toISOString().slice(0, 16) : '',
+      publicPrice: nft.publicPrice || '',
+      makePublicNow: false,
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingUpcoming) return;
+    setEditSaving(true);
+    try {
+      const allowlist = editForm.whitelistMode === 'allowlist'
+        ? editForm.whitelistAddressesText.split(/[\s,]+/).filter(Boolean)
+        : [];
+
+      // If price or fee changed, vouchers need to be re-signed against the new
+      // listingId — the contract verifies sig over hash(creator, uri, royaltyBps,
+      // pricePerPieceWei, maxSupply) so stale vouchers would revert on redeem.
+      const priceChanged =
+        String(editForm.whitelistPrice ?? '') !== String(editingUpcoming.whitelistPrice ?? '') ||
+        String(editForm.publicPrice ?? '') !== String(editingUpcoming.publicPrice ?? '') ||
+        String(editForm.mintingFee ?? '') !== String(editingUpcoming.mintingFee ?? '');
+
+      const updates = {
+        walletAddress: userWalletAddress,
+        whitelistMode: editForm.whitelistMode,
+        whitelistPrice: String(editForm.whitelistPrice || '0'),
+        mintingFee: String(editForm.mintingFee || '0'),
+        whitelistAddresses: allowlist,
+        publicLaunchAt: editForm.publicLaunchAt ? new Date(editForm.publicLaunchAt).toISOString() : null,
+        publicPrice: editForm.publicPrice ? String(editForm.publicPrice) : null,
+        makePublicNow: !!editForm.makePublicNow,
+      };
+
+      if (priceChanged) {
+        const royaltyBps = editingUpcoming.whitelistVoucher?.royaltyBps || 0;
+        const maxSupply = Number(editingUpcoming.pieces ?? 1);
+        const ipfsURI = editingUpcoming.metadataURI
+          || editingUpcoming.whitelistVoucher?.uri
+          || editingUpcoming.publicVoucher?.uri;
+        if (!ipfsURI) {
+          toast.error('Cannot re-sign: metadata URI missing.');
+          setEditSaving(false);
+          return;
+        }
+        const mintingFeeEth = Number(editForm.mintingFee || '0');
+
+        const wlEth = Number(editForm.whitelistPrice || '0') + mintingFeeEth;
+        const wlWei = ethers.utils.parseEther(wlEth.toString()).toString();
+        toast('Re-sign the whitelist voucher in your wallet…');
+        const wlSig = await signLazyMintVoucher({
+          creator: editingUpcoming.creator,
+          ipfsURI, royaltyBps, pricePerPieceWei: wlWei, maxSupply,
+        });
+        updates.whitelistVoucher = {
+          pricePerPieceWei: wlWei, royaltyBps, uri: ipfsURI, maxSupply,
+          messageHash: wlSig.messageHash, signature: wlSig.signature,
+          signedAt: new Date().toISOString(),
+        };
+
+        if (editForm.publicPrice) {
+          const pubEth = Number(editForm.publicPrice) + mintingFeeEth;
+          const pubWei = ethers.utils.parseEther(pubEth.toString()).toString();
+          toast('Re-sign the public voucher in your wallet…');
+          const pubSig = await signLazyMintVoucher({
+            creator: editingUpcoming.creator,
+            ipfsURI, royaltyBps, pricePerPieceWei: pubWei, maxSupply,
+          });
+          updates.publicVoucher = {
+            pricePerPieceWei: pubWei, royaltyBps, uri: ipfsURI, maxSupply,
+            messageHash: pubSig.messageHash, signature: pubSig.signature,
+            signedAt: new Date().toISOString(),
+          };
+        }
+      }
+
+      await nftAPI.updateUpcomingNft(editingUpcoming._id, updates);
+      toast.success('Upcoming NFT updated.');
+      setEditingUpcoming(null);
+      fetchUpcomingNfts();
+    } catch (err) {
+      toast.error(err.message || 'Update failed');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const fetchCreatorProfile = async () => {
     setIsLoading(true);
@@ -298,7 +424,7 @@ const CreatorProfile = () => {
 
           <div className="flex flex-col md:flex-row items-start gap-8">
             {/* Avatar */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 relative">
               <img
                 src={creator.image || `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}`}
                 alt={creator.username}
@@ -307,6 +433,18 @@ const CreatorProfile = () => {
                   e.currentTarget.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}`;
                 }}
               />
+              {(() => {
+                const status = creator.verificationStatus || (creator.isVerified ? 'premium' : null);
+                const badge = status ? getVerificationBadge(status) : null;
+                return badge ? (
+                  <img
+                    src={badge.imageUrl}
+                    alt={badge.label}
+                    title={badge.title}
+                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full pointer-events-none drop-shadow-lg"
+                  />
+                ) : null;
+              })()}
             </div>
 
             {/* Creator Info */}
@@ -442,8 +580,18 @@ const CreatorProfile = () => {
           >
             Collections ({creatorCollections.length})
           </button>
-          {userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase() && (
+          {isOwnProfile && (
             <>
+              <button
+                onClick={() => setActiveTab('upcoming')}
+                className={`px-6 py-4 font-semibold transition ${
+                  activeTab === 'upcoming'
+                    ? 'text-purple-400 border-b-2 border-purple-400'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Upcoming ({upcomingNFTs.length})
+              </button>
               <button
                 onClick={() => setActiveTab('offers')}
                 className={`px-6 py-4 font-semibold transition ${
@@ -626,6 +774,51 @@ const CreatorProfile = () => {
             )
           )}
 
+          {/* Upcoming NFTs Tab */}
+          {activeTab === 'upcoming' && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Upcoming NFTs</h2>
+              {upcomingNFTs.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  No upcoming NFTs. Create one from <Link to="/create" className="text-purple-400 underline">Create</Link>.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {upcomingNFTs.map((nft) => {
+                    const launchAt = nft.publicLaunchAt ? new Date(nft.publicLaunchAt) : null;
+                    const isLive = nft.isPublic || (launchAt && launchAt <= new Date());
+                    return (
+                      <div key={nft._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+                        <img src={nft.image} alt={nft.name} className="w-full h-48 object-cover" />
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-white truncate">{nft.name}</h3>
+                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                              isLive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                            }`}>
+                              {isLive ? 'Public' : 'Whitelist'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 capitalize mb-1">{nft.whitelistMode === 'allowlist' ? `Allowlist (${nft.whitelistAddresses?.length || 0})` : 'Open pre-sale'}</div>
+                          <div className="text-sm text-gray-300">
+                            WL price: <span className="text-white">{Number(nft.whitelistPrice || 0) === 0 ? 'FREE' : nft.whitelistPrice}</span>
+                            {Number(nft.mintingFee) > 0 && <span className="text-gray-400"> + {nft.mintingFee} fee</span>}
+                          </div>
+                          {nft.publicPrice && <div className="text-sm text-gray-300">Public price: <span className="text-white">{nft.publicPrice}</span></div>}
+                          {launchAt && <div className="text-xs text-purple-300 mt-1">Launch: {launchAt.toLocaleString()}</div>}
+                          <button onClick={() => openEdit(nft)}
+                            className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition">
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Offers Tab */}
           {activeTab === 'offers' && (
             <div>
@@ -707,12 +900,92 @@ const CreatorProfile = () => {
       />
 
       {/* Listing Request Form Modal */}
-      <ListingRequestForm 
-        isOpen={listingRequestOpen} 
-        onClose={() => setListingRequestOpen(false)} 
+      <ListingRequestForm
+        isOpen={listingRequestOpen}
+        onClose={() => setListingRequestOpen(false)}
         creatorAddress={walletAddress}
         userNFTs={creatorNFTs}
       />
+
+      {/* Edit Upcoming NFT Modal */}
+      {editingUpcoming && (
+        <>
+          <div className="fixed inset-0 bg-black/70 z-50" onClick={() => !editSaving && setEditingUpcoming(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full p-6 my-8" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-white mb-1">Edit: {editingUpcoming.name}</h3>
+              <p className="text-sm text-gray-400 mb-6">Update whitelist phase or set the public launch.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Whitelist mode</label>
+                  <div className="flex gap-2">
+                    {['open', 'allowlist'].map((m) => (
+                      <button key={m} type="button"
+                        onClick={() => setEditForm({ ...editForm, whitelistMode: m })}
+                        className={`flex-1 py-2 rounded-lg font-semibold ${
+                          editForm.whitelistMode === m ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-300'
+                        }`}>
+                        {m === 'open' ? 'Open' : 'Allowlist'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {editForm.whitelistMode === 'allowlist' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">Allowlist addresses</label>
+                    <textarea rows={4} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white text-sm font-mono"
+                      value={editForm.whitelistAddressesText}
+                      onChange={(e) => setEditForm({ ...editForm, whitelistAddressesText: e.target.value })}
+                      placeholder="0x... per line" />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">Whitelist price</label>
+                    <input type="number" step="0.000001" min={0} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                      value={editForm.whitelistPrice}
+                      onChange={(e) => setEditForm({ ...editForm, whitelistPrice: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">Minting fee</label>
+                    <input type="number" step="0.000001" min={0} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                      value={editForm.mintingFee}
+                      onChange={(e) => setEditForm({ ...editForm, mintingFee: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Public launch date & time</label>
+                  <input type="datetime-local" className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                    value={editForm.publicLaunchAt}
+                    onChange={(e) => setEditForm({ ...editForm, publicLaunchAt: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Public mint price</label>
+                  <input type="number" step="0.000001" min={0} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                    value={editForm.publicPrice}
+                    onChange={(e) => setEditForm({ ...editForm, publicPrice: e.target.value })}
+                    placeholder="Optional" />
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-300">
+                  <input type="checkbox" checked={editForm.makePublicNow}
+                    onChange={(e) => setEditForm({ ...editForm, makePublicNow: e.target.checked })} />
+                  Make public now (requires public price set)
+                </label>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setEditingUpcoming(null)} disabled={editSaving}
+                  className="flex-1 py-3 rounded-lg bg-gray-700 text-gray-200 font-semibold hover:bg-gray-600">
+                  Cancel
+                </button>
+                <button onClick={saveEdit} disabled={editSaving}
+                  className="flex-1 py-3 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 disabled:opacity-50">
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

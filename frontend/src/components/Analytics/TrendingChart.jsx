@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './TrendingChart.css';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 const TrendingChart = ({ limit = 10, timeframe = '7d' }) => {
     const [trendingCollections, setTrendingCollections] = useState([]);
@@ -205,15 +206,33 @@ const TrendingChart = ({ limit = 10, timeframe = '7d' }) => {
                                 <div key={creator.address} className="trending-item creator-item">
                                     <div className="rank-badge">{creator.rank}</div>
                                     
-                                    <div className="item-avatar">
+                                    <div className="item-avatar" style={{ position: 'relative' }}>
                                         {creator.avatar ? (
                                             <img src={creator.avatar} alt={creator.username} />
                                         ) : (
                                             <div className="placeholder">👤</div>
                                         )}
-                                        {creator.verified && (
-                                            <div className="verified-badge">✓</div>
-                                        )}
+                                        {(() => {
+                                            const status = creator.verificationStatus
+                                                || (creator.isVerified || creator.verified ? 'premium' : null);
+                                            const badge = status ? getVerificationBadge(status) : null;
+                                            return badge ? (
+                                                <img
+                                                    src={badge.imageUrl}
+                                                    alt={badge.label}
+                                                    title={badge.title}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: -2,
+                                                        right: -2,
+                                                        width: 16,
+                                                        height: 16,
+                                                        borderRadius: '50%',
+                                                        pointerEvents: 'none',
+                                                    }}
+                                                />
+                                            ) : null;
+                                        })()}
                                     </div>
 
                                     <div className="item-info">

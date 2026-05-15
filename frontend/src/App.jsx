@@ -57,6 +57,7 @@ const BridgeNFT = lazy(() => import("./pages/BridgeNFT"));
 const Staking = lazy(() => import("./pages/Staking"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MintingHub = lazy(() => import("./pages/MintingHub"));
+const Drops = lazy(() => import("./pages/Drops"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const Games = lazy(() => import("./pages/Games"));
 const SpinTheWheel = lazy(() => import("./pages/games/SpinTheWheel"));
@@ -209,6 +210,7 @@ export default function App() {
           <Route path="/features/analytics" element={<AnalyticsDashboard />} />
           <Route path="/features/notifications" element={<Notifications />} />
           <Route path="/minting" element={<MintingHub />} />
+          <Route path="/drops" element={<Drops />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/games" element={<Games />} />
           <Route path="/games/spin-the-wheel" element={<SpinTheWheel />} />

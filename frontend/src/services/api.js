@@ -742,6 +742,17 @@ export const analyticsAPI = {
   },
 };
 
+// Aggregation API — external marketplace listings (OpenSea, Magic Eden, Blur).
+// Returns [] when no adapter is configured or all adapters return empty.
+export const aggregationAPI = {
+  getExternalListings: async ({ chain, contract, tokenId }) => {
+    const response = await api.get('/aggregation/listings', {
+      params: { chain, contract, tokenId },
+    });
+    return response.data?.listings || [];
+  },
+};
+
 // Notifications API (backend at /api/v1/notifications) – auth: wallet in Authorization
 export const notificationsAPI = {
   getList: async (walletAddress, params = {}) => {
@@ -856,6 +867,51 @@ export const nftAPI = {
       wrapped.serverError = serverMessage;
       throw wrapped;
     }
+  },
+
+  // Upcoming NFTs (whitelist-phase mints)
+  createUpcomingNft: async (nftData) => {
+    try {
+      const response = await api.post('/nft/nfts/upcoming', nftData);
+      return response.data;
+    } catch (error) {
+      const serverMessage = error.response?.data?.error || error.response?.data?.message;
+      throw new Error(serverMessage || error.message || 'Failed to create upcoming NFT');
+    }
+  },
+  listUpcomingNfts: async ({ network, includePublic = true, page = 1, limit = 24 } = {}) => {
+    const response = await api.get('/nft/nfts/upcoming', {
+      params: { network, includePublic, page, limit },
+    });
+    return response.data;
+  },
+  listUserUpcomingNfts: async (walletAddress) => {
+    const response = await api.get(`/nft/nfts/upcoming/user/${walletAddress}`);
+    return response.data;
+  },
+  updateUpcomingNft: async (id, updates) => {
+    try {
+      const response = await api.patch(`/nft/nfts/upcoming/${id}`, updates);
+      return response.data;
+    } catch (error) {
+      const serverMessage = error.response?.data?.error || error.response?.data?.message;
+      throw new Error(serverMessage || error.message || 'Failed to update upcoming NFT');
+    }
+  },
+  redeemUpcomingNft: async (id, { walletAddress, quantity }) => {
+    try {
+      const response = await api.post(`/nft/nfts/upcoming/${id}/redeem`, { walletAddress, quantity });
+      return response.data;
+    } catch (error) {
+      const serverMessage = error.response?.data?.error || error.response?.data?.message;
+      throw new Error(serverMessage || error.message || 'Failed to redeem upcoming NFT');
+    }
+  },
+  recordUpcomingMint: async (id, { buyer, quantity, transactionHash }) => {
+    const response = await api.post(`/nft/nfts/upcoming/${id}/record-mint`, {
+      buyer, quantity, transactionHash,
+    });
+    return response.data;
   },
 
   // Preview generated NFT metadata
@@ -2335,6 +2391,19 @@ export const marketplaceAPI = {
       return response.data;
     } catch (error) {
       console.error('Failed to create listing:', error);
+      throw error;
+    }
+  },
+
+  // Bulk-create up to 100 pre-signed listings in one round trip.
+  // Each entry must include its own signature; per-item failures are
+  // surfaced in the response without aborting successful entries.
+  createBulkListings: async (listings) => {
+    try {
+      const response = await api.post('/marketplace/listings/bulk', { listings });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to bulk create listings:', error);
       throw error;
     }
   },

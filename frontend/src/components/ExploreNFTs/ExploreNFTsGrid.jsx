@@ -5,6 +5,7 @@ import { getCurrencySymbol } from '../../Context/constants';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { SuccessToast } from '../../app/Toast/Success.jsx';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 const EXPLORE_REFRESH_MS = 60000; // Refresh grid every 60s
 
@@ -293,11 +294,25 @@ const ExploreNFTsGrid = () => {
                         const avatar = profile?.avatar || nft.creatorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${walletAddress || 'creator'}`;
                         return (
                           <div className="flex items-center gap-1.5">
-                            <img
-                              src={avatar}
-                              alt={username}
-                              className="w-4 h-4 rounded-full border border-gray-700"
-                            />
+                            <span className="relative inline-block">
+                              <img
+                                src={avatar}
+                                alt={username}
+                                className="w-4 h-4 rounded-full border border-gray-700"
+                              />
+                              {(() => {
+                                const status = profile?.verificationStatus || (profile?.isVerified ? 'premium' : null);
+                                const badge = status ? getVerificationBadge(status) : null;
+                                return badge ? (
+                                  <img
+                                    src={badge.imageUrl}
+                                    alt={badge.label}
+                                    title={badge.title}
+                                    className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full pointer-events-none"
+                                  />
+                                ) : null;
+                              })()}
+                            </span>
                             <span className="text-white text-xs font-medium line-clamp-1">{username}</span>
                           </div>
                         );

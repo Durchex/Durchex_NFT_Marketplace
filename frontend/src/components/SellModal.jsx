@@ -16,10 +16,12 @@ const NETWORK_CHAIN_IDS = {
 const SellModal = ({ isOpen, onClose, nft }) => {
   const { address } = useContext(ICOContent);
   const { createListing, isLoading } = useMarketplace();
-  const [listingType, setListingType] = useState('fixed'); // 'fixed' or 'auction'
+  const [listingType, setListingType] = useState('fixed'); // 'fixed' | 'auction' | 'dutch'
   const [price, setPrice] = useState('');
   const [minimumBid, setMinimumBid] = useState('');
   const [auctionDuration, setAuctionDuration] = useState('24'); // hours
+  const [dutchStartPrice, setDutchStartPrice] = useState('');
+  const [dutchEndPrice, setDutchEndPrice] = useState('');
 
   const totalPieces = Number(nft?.pieces ?? nft?.supply ?? 1) || 1;
   const remainingPieces = Number(nft?.remainingPieces ?? 0);
@@ -75,12 +77,31 @@ const SellModal = ({ isOpen, onClose, nft }) => {
         parentNftId: nft?._id || nft?.itemId,
       };
 
-      // Add auction-specific data
+      // English auction
       if (listingType === 'auction') {
         const durationHours = parseInt(auctionDuration);
         listingData.startTime = Math.floor(Date.now() / 1000);
         listingData.endTime = listingData.startTime + (durationHours * 3600);
         listingData.minimumBid = parseFloat(minimumBid);
+      }
+
+      // Dutch auction — price decays linearly from start → end over duration
+      if (listingType === 'dutch') {
+        const start = parseFloat(dutchStartPrice);
+        const end = parseFloat(dutchEndPrice);
+        if (!start || !end || end >= start) {
+          toast.error('Dutch auction needs start price > end price.');
+          return;
+        }
+        const durationHours = parseInt(auctionDuration);
+        listingData.startTime = Math.floor(Date.now() / 1000);
+        listingData.endTime = listingData.startTime + (durationHours * 3600);
+        // Backend wants wei strings; the createListing hook converts price → wei.
+        // Re-use the same conversion by sending eth-denominated values and letting
+        // the hook handle parseEther for both endpoints. Send dutch start/end
+        // as eth strings; the bulk path also accepts these.
+        listingData.dutchStartPriceEth = start;
+        listingData.dutchEndPriceEth = end;
       }
 
       await createListing(listingData);
@@ -129,30 +150,31 @@ const SellModal = ({ isOpen, onClose, nft }) => {
               <label className="block text-sm font-medium text-gray-300 mb-3">
                 Listing Type
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setListingType('fixed')}
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => setListingType('fixed')}
                   className={`p-3 rounded-lg border-2 transition-all ${
-                    listingType === 'fixed'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    listingType === 'fixed' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
                       : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
+                  }`}>
                   <FiTag className="text-lg mx-auto mb-1" />
-                  <div className="text-sm font-medium">Fixed Price</div>
+                  <div className="text-sm font-medium">Fixed</div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setListingType('auction')}
+                <button type="button" onClick={() => setListingType('auction')}
                   className={`p-3 rounded-lg border-2 transition-all ${
-                    listingType === 'auction'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    listingType === 'auction' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
                       : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
+                  }`}>
                   <FiClock className="text-lg mx-auto mb-1" />
                   <div className="text-sm font-medium">Auction</div>
+                </button>
+                <button type="button" onClick={() => setListingType('dutch')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    listingType === 'dutch' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
+                  }`}
+                  title="Price decays linearly over time">
+                  <FiClock className="text-lg mx-auto mb-1 rotate-180" />
+                  <div className="text-sm font-medium">Dutch</div>
                 </button>
               </div>
             </div>
@@ -171,6 +193,41 @@ const SellModal = ({ isOpen, onClose, nft }) => {
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
+
+            {/* Dutch-specific fields */}
+            {listingType === 'dutch' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Start price ({symbol})</label>
+                    <input type="text" inputMode="decimal" placeholder="2.0" value={dutchStartPrice}
+                      onChange={(e) => setDutchStartPrice(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">End price ({symbol})</label>
+                    <input type="text" inputMode="decimal" placeholder="0.5" value={dutchEndPrice}
+                      onChange={(e) => setDutchEndPrice(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Duration</label>
+                  <select value={auctionDuration} onChange={(e) => setAuctionDuration(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white">
+                    <option value="1">1 hour</option>
+                    <option value="6">6 hours</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours</option>
+                    <option value="48">2 days</option>
+                    <option value="72">3 days</option>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Price will decay linearly from {dutchStartPrice || '?'} {symbol} to {dutchEndPrice || '?'} {symbol} over {auctionDuration}h.
+                </p>
+              </>
+            )}
 
             {/* Auction-specific fields */}
             {listingType === 'auction' && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { nftAPI, userAPI } from '../../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 const TOP_CREATORS_REFRESH_MS = 60000;
 
 /** Shorten wallet for display: 0x1234...5678 */
@@ -219,6 +220,20 @@ const TopCreators = () => {
                     e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.address}`;
                   }}
                 />
+                {(() => {
+                  const status = creator.verificationStatus
+                    || (creator.isVerified ? 'premium' : null)
+                    || (creator.verificationType === 'gold' ? 'super_premium' : creator.verificationType === 'white' ? 'premium' : null);
+                  const badge = status ? getVerificationBadge(status) : null;
+                  return badge ? (
+                    <img
+                      src={badge.imageUrl}
+                      alt={badge.label}
+                      title={badge.title}
+                      className="absolute bottom-0 right-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full pointer-events-none drop-shadow"
+                    />
+                  ) : null;
+                })()}
               </div>
 
               {/* Display name: always username or shortened address, never full wallet */}

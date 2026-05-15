@@ -1600,6 +1600,391 @@ export const createNft = async (req, res) => {
   }
 };
 
+/**
+ * Lazily flip isPublic on an upcoming NFT once publicLaunchAt has passed AND
+ * publicPrice is set. Mutates and saves the document if it transitioned.
+ */
+async function applyUpcomingPhaseTransition(nft) {
+  if (!nft?.isUpcoming || nft.isPublic) return nft;
+  const hasLaunchTime = nft.publicLaunchAt instanceof Date && !isNaN(nft.publicLaunchAt.getTime());
+  const hasPublicPrice = nft.publicPrice !== null && nft.publicPrice !== undefined && nft.publicPrice !== '';
+  if (hasLaunchTime && hasPublicPrice && nft.publicLaunchAt <= new Date()) {
+    nft.isPublic = true;
+    nft.price = String(nft.publicPrice);
+    await nft.save();
+  }
+  return nft;
+}
+
+/**
+ * Create an upcoming/whitelist-phase NFT. Same metadata + media as a normal NFT,
+ * plus pre-public economics (whitelistMode, whitelistPrice, whitelistAddresses,
+ * mintingFee, publicLaunchAt, publicPrice). Always lazy-minted.
+ */
+export const createUpcomingNft = async (req, res) => {
+  try {
+    const nftData = req.body;
+
+    // Lock to lazy mint + upcoming.
+    nftData.isLazyMint = true;
+    nftData.isUpcoming = true;
+    nftData.isPublic = false;
+
+    // Normalize upcoming-specific fields.
+    nftData.whitelistMode = nftData.whitelistMode === 'allowlist' ? 'allowlist' : 'open';
+    nftData.whitelistPrice = String(nftData.whitelistPrice ?? '0');
+    nftData.mintingFee = String(nftData.mintingFee ?? '0');
+    if (Array.isArray(nftData.whitelistAddresses)) {
+      nftData.whitelistAddresses = nftData.whitelistAddresses
+        .filter((a) => typeof a === 'string' && a.trim().length > 0)
+        .map((a) => a.toLowerCase().trim());
+    } else {
+      nftData.whitelistAddresses = [];
+    }
+    if (nftData.publicLaunchAt) {
+      const d = new Date(nftData.publicLaunchAt);
+      nftData.publicLaunchAt = isNaN(d.getTime()) ? null : d;
+    }
+    nftData.publicPrice = nftData.publicPrice ? String(nftData.publicPrice) : null;
+
+    // Reject if no whitelist voucher (frontend must sign at creation).
+    if (!nftData.whitelistVoucher?.signature) {
+      return res.status(400).json({
+        error: 'Whitelist voucher signature missing. Sign the listing with the creator wallet at creation.',
+      });
+    }
+    // Public voucher is optional — only present when publicPrice is set.
+    if (nftData.publicPrice && !nftData.publicVoucher?.signature) {
+      return res.status(400).json({
+        error: 'Public price was set but public voucher is missing. Sign the public listing too.',
+      });
+    }
+    if (!nftData.publicPrice) {
+      nftData.publicVoucher = undefined; // Don't store an unused voucher.
+    }
+
+    // The currently-active mint price defaults to whitelistPrice during the upcoming phase.
+    nftData.price = nftData.whitelistPrice;
+    nftData.currentlyListed = false;
+
+    // Avoid duplicate itemId+network.
+    const exists = await nftModel.findOne({
+      itemId: nftData.itemId,
+      network: nftData.network,
+    });
+    if (exists) {
+      return res.status(409).json({ error: 'NFT already exists' });
+    }
+
+    if (!nftData.creator) nftData.creator = nftData.owner || nftData.seller;
+    nftData.attributes = Array.isArray(nftData.attributes) ? nftData.attributes : [];
+    nftData.levels = Array.isArray(nftData.levels) ? nftData.levels : [];
+    nftData.stats = Array.isArray(nftData.stats) ? nftData.stats : [];
+
+    const nft = new nftModel(nftData);
+    await nft.save();
+    res.status(201).json({ message: 'Upcoming NFT created', nft });
+  } catch (error) {
+    console.error('createUpcomingNft error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * List all upcoming NFTs (for the Mint page Live & Upcoming section).
+ * Auto-flips any that have hit their publicLaunchAt with publicPrice set.
+ */
+export const listUpcomingNfts = async (req, res) => {
+  try {
+    const { network, includePublic = 'true', page = 1, limit = 24 } = req.query;
+    const filter = { isUpcoming: true };
+    if (network) filter.network = network.toLowerCase();
+    if (includePublic === 'false') filter.isPublic = { $ne: true };
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const nfts = await nftModel.find(filter)
+      .sort({ publicLaunchAt: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    for (const nft of nfts) {
+      await applyUpcomingPhaseTransition(nft);
+    }
+
+    const total = await nftModel.countDocuments(filter);
+    res.json({
+      success: true,
+      nfts,
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    });
+  } catch (error) {
+    console.error('listUpcomingNfts error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * List a creator's upcoming NFTs (for their profile).
+ */
+export const listUserUpcomingNfts = async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress required' });
+    }
+    const filter = {
+      isUpcoming: true,
+      $or: [
+        { creator: walletAddress.toLowerCase() },
+        { owner: walletAddress.toLowerCase() },
+        { seller: walletAddress.toLowerCase() },
+      ],
+    };
+    const nfts = await nftModel.find(filter).sort({ createdAt: -1 });
+    for (const nft of nfts) {
+      await applyUpcomingPhaseTransition(nft);
+    }
+    res.json({ success: true, nfts });
+  } catch (error) {
+    console.error('listUserUpcomingNfts error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Update an upcoming NFT (used by creator-side edit in their profile).
+ * Only the creator may edit. Accepts a subset of editable fields.
+ */
+export const updateUpcomingNft = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { walletAddress } = req.body;
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress required' });
+    }
+
+    const nft = await nftModel.findById(id);
+    if (!nft) return res.status(404).json({ error: 'NFT not found' });
+    if (!nft.isUpcoming) return res.status(400).json({ error: 'NFT is not upcoming' });
+
+    const requester = walletAddress.toLowerCase();
+    if (nft.creator?.toLowerCase() !== requester && nft.owner?.toLowerCase() !== requester) {
+      return res.status(403).json({ error: 'Only the creator can edit this NFT' });
+    }
+
+    const editable = [
+      'whitelistMode', 'whitelistPrice', 'mintingFee',
+      'whitelistAddresses', 'publicLaunchAt', 'publicPrice',
+      'maxPerWalletWhitelist', 'maxPerWalletPublic',
+    ];
+    // Detect changes to fields that invalidate stored vouchers.
+    const priceFieldsChanged =
+      ('whitelistPrice' in req.body && String(req.body.whitelistPrice) !== String(nft.whitelistPrice)) ||
+      ('publicPrice' in req.body && String(req.body.publicPrice ?? '') !== String(nft.publicPrice ?? '')) ||
+      ('mintingFee' in req.body && String(req.body.mintingFee) !== String(nft.mintingFee));
+
+    for (const key of editable) {
+      if (key in req.body) {
+        if (key === 'whitelistAddresses' && Array.isArray(req.body[key])) {
+          nft[key] = req.body[key]
+            .filter((a) => typeof a === 'string' && a.trim().length > 0)
+            .map((a) => a.toLowerCase().trim());
+        } else if (key === 'publicLaunchAt' && req.body[key]) {
+          const d = new Date(req.body[key]);
+          nft[key] = isNaN(d.getTime()) ? null : d;
+        } else if (key === 'publicPrice') {
+          nft[key] = req.body[key] ? String(req.body[key]) : null;
+        } else if (key === 'whitelistMode') {
+          nft[key] = req.body[key] === 'allowlist' ? 'allowlist' : 'open';
+        } else {
+          nft[key] = req.body[key];
+        }
+      }
+    }
+
+    // If the price changed, the previously stored vouchers no longer match the
+    // listing parameters — they'd fail signature verification on-chain. Caller
+    // must re-sign and pass new vouchers when changing whitelistPrice / publicPrice / mintingFee.
+    if (priceFieldsChanged) {
+      if (req.body.whitelistVoucher?.signature) {
+        nft.whitelistVoucher = req.body.whitelistVoucher;
+      }
+      if (req.body.publicVoucher?.signature) {
+        nft.publicVoucher = req.body.publicVoucher;
+      }
+      if (!req.body.whitelistVoucher?.signature) {
+        return res.status(400).json({
+          error: 'Whitelist price/fee changed. Re-sign the whitelist voucher and include it in this request.',
+        });
+      }
+      if (nft.publicPrice && !req.body.publicVoucher?.signature) {
+        return res.status(400).json({
+          error: 'Public price/fee changed. Re-sign the public voucher and include it in this request.',
+        });
+      }
+      if (!nft.publicPrice) {
+        nft.publicVoucher = undefined;
+      }
+    } else if (req.body.publicVoucher?.signature && nft.publicPrice) {
+      // Public price unchanged but creator chose to (re-)sign anyway.
+      nft.publicVoucher = req.body.publicVoucher;
+    }
+
+    // Explicit promote-now toggle from the edit form.
+    if (req.body.makePublicNow === true && nft.publicPrice) {
+      nft.isPublic = true;
+      nft.publicLaunchAt = new Date();
+      nft.price = String(nft.publicPrice);
+    } else {
+      // Keep current price aligned with whichever phase we're in.
+      if (!nft.isPublic) nft.price = nft.whitelistPrice;
+    }
+
+    await nft.save();
+    await applyUpcomingPhaseTransition(nft);
+    res.json({ success: true, nft });
+  } catch (error) {
+    console.error('updateUpcomingNft error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Issue a redemption voucher for an upcoming NFT, with phase + allowlist enforcement.
+ * - Auto-flips to public if publicLaunchAt has passed and publicVoucher is present.
+ * - In whitelist phase with allowlist mode, rejects buyers not in whitelistAddresses.
+ * - Returns the appropriate creator-signed voucher (whitelist or public).
+ *
+ * The returned voucher matches what MultiPieceLazyMintNFT.redeemListing expects:
+ *   { creator, uri, royaltyBps, pricePerPieceWei, maxSupply, signature }
+ * pricePerPieceWei already bakes in the additive minting fee.
+ */
+export const redeemUpcomingNft = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { walletAddress, quantity: reqQuantity } = req.body;
+    const quantity = Math.max(1, parseInt(reqQuantity, 10) || 1);
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress required' });
+    }
+
+    const nft = await nftModel.findById(id);
+    if (!nft) return res.status(404).json({ error: 'NFT not found' });
+    if (!nft.isUpcoming) return res.status(400).json({ error: 'NFT is not an upcoming drop' });
+
+    await applyUpcomingPhaseTransition(nft);
+
+    const remaining = Number(nft.remainingPieces ?? nft.pieces ?? 0);
+    if (quantity > remaining) {
+      return res.status(400).json({ error: `Only ${remaining} piece(s) available.` });
+    }
+
+    const buyer = walletAddress.toLowerCase();
+    const inPublicPhase = nft.isPublic === true;
+
+    // Allowlist enforcement (whitelist phase only, allowlist mode only).
+    if (!inPublicPhase && nft.whitelistMode === 'allowlist') {
+      const allowed = (nft.whitelistAddresses || []).map((a) => a.toLowerCase());
+      if (!allowed.includes(buyer)) {
+        return res.status(403).json({
+          error: 'Your wallet is not on the allowlist for this drop.',
+        });
+      }
+    }
+
+    // Per-wallet mint limit enforcement.
+    const phaseLimit = inPublicPhase
+      ? Number(nft.maxPerWalletPublic || 0)
+      : Number(nft.maxPerWalletWhitelist || 0);
+    if (phaseLimit > 0) {
+      const alreadyMinted = Number(nft.mintedByWallet?.get?.(buyer) ?? nft.mintedByWallet?.[buyer] ?? 0);
+      if (alreadyMinted + quantity > phaseLimit) {
+        return res.status(403).json({
+          error: `Per-wallet limit reached: ${phaseLimit} pieces in this phase. You've already minted ${alreadyMinted}.`,
+          phaseLimit,
+          alreadyMinted,
+        });
+      }
+    }
+
+    // Pick the right voucher.
+    const voucher = inPublicPhase ? nft.publicVoucher : nft.whitelistVoucher;
+    if (!voucher || !voucher.signature || !voucher.pricePerPieceWei) {
+      return res.status(409).json({
+        error: inPublicPhase
+          ? 'Public voucher not signed yet. Creator must edit the NFT to set a public price.'
+          : 'Whitelist voucher missing. Creator must re-sign the listing.',
+      });
+    }
+
+    res.json({
+      success: true,
+      phase: inPublicPhase ? 'public' : 'whitelist',
+      quantity,
+      maxQuantity: Number(nft.pieces ?? 1),
+      remainingPieces: remaining,
+      mintingFee: nft.mintingFee || '0',
+      // Voucher shaped for the contract call.
+      redemptionData: {
+        nftId: nft._id,
+        creator: nft.creator,
+        ipfsURI: voucher.uri,
+        royaltyBps: voucher.royaltyBps || 0,
+        pricePerPieceWei: voucher.pricePerPieceWei,
+        maxSupply: voucher.maxSupply || Number(nft.pieces ?? 1),
+        messageHash: voucher.messageHash,
+        signature: voucher.signature,
+        buyer,
+      },
+    });
+  } catch (error) {
+    console.error('redeemUpcomingNft error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Record an upcoming-NFT mint after the on-chain redeemListing tx succeeds.
+ * Decrements remainingPieces and increments mintedByWallet so per-wallet limits
+ * stay accurate. Called from BuyMintPage's post-mint sync.
+ */
+export const recordUpcomingMint = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { buyer, quantity = 1, transactionHash } = req.body;
+    if (!id || !buyer) {
+      return res.status(400).json({ error: 'id and buyer required' });
+    }
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    const buyerNorm = String(buyer).toLowerCase();
+
+    const nft = await nftModel.findById(id);
+    if (!nft) return res.status(404).json({ error: 'NFT not found' });
+    if (!nft.isUpcoming) return res.status(400).json({ error: 'Not an upcoming NFT' });
+
+    nft.remainingPieces = Math.max(0, Number(nft.remainingPieces ?? nft.pieces ?? 1) - qty);
+    if (!nft.mintedByWallet) nft.mintedByWallet = new Map();
+    const prior = Number(nft.mintedByWallet.get?.(buyerNorm) ?? nft.mintedByWallet[buyerNorm] ?? 0);
+    if (typeof nft.mintedByWallet.set === 'function') {
+      nft.mintedByWallet.set(buyerNorm, prior + qty);
+    } else {
+      nft.mintedByWallet[buyerNorm] = prior + qty;
+    }
+    if (transactionHash) nft.lastTxHash = transactionHash;
+    nft.lastTransferAt = new Date();
+    await nft.save();
+    res.json({
+      success: true,
+      remainingPieces: nft.remainingPieces,
+      walletMintedTotal: prior + qty,
+    });
+  } catch (error) {
+    console.error('recordUpcomingMint error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const previewNftMetadata = async (req, res) => {
   try {
     const { name, description, externalUrl, properties, levels, stats, unlockableContent, explicitContent, supply, network } = req.body;

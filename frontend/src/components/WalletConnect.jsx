@@ -21,6 +21,7 @@ import {
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { userAPI } from '../services/api';
+import { getVerificationBadge } from '../utils/verificationUtils';
 
 const WalletConnect = () => {
   const { address, connectWallet, disconnectWallet, accountBalance, shortenAddress, setAddress, setAccountBalance } = useContext(ICOContent);
@@ -597,9 +598,9 @@ const WalletConnect = () => {
         >
           {avatarUrl ? (
             <div className="relative">
-              <img 
-                src={avatarUrl} 
-                alt="Profile" 
+              <img
+                src={avatarUrl}
+                alt="Profile"
                 className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-green-500 group-hover:border-green-400 transition-colors"
                 onError={(e) => {
                   // Fallback to icon if image fails to load
@@ -617,6 +618,19 @@ const WalletConnect = () => {
               <FiShield className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-white" />
             </div>
           )}
+          {(() => {
+            const badge = getVerificationBadge(
+              userProfile?.verificationStatus || (userProfile?.isVerified ? 'premium' : null)
+            );
+            return badge ? (
+              <img
+                src={badge.imageUrl}
+                alt={badge.label}
+                title={badge.title}
+                className="absolute -top-1 -right-1 w-3 h-3 xs:w-3.5 xs:h-3.5 rounded-full pointer-events-none"
+              />
+            ) : null;
+          })()}
           <div className="absolute -bottom-0.5 -right-0.5 xs:-bottom-1 xs:-right-1 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
         </div>
 
@@ -675,6 +689,19 @@ const WalletConnect = () => {
                 <div className={`w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center avatar-fallback ${avatarUrl ? 'hidden' : 'flex'}`}>
                   <FiUser className="w-5 h-5 text-white" />
                 </div>
+                {(() => {
+                  const badge = getVerificationBadge(
+                    userProfile?.verificationStatus || (userProfile?.isVerified ? 'premium' : null)
+                  );
+                  return badge ? (
+                    <img
+                      src={badge.imageUrl}
+                      alt={badge.label}
+                      title={badge.title}
+                      className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full pointer-events-none"
+                    />
+                  ) : null;
+                })()}
               </div>
               <div className="flex-1">
                 <div className="text-white font-display font-medium">

@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './ProfileView.css';
+import { getVerificationBadge } from '../../utils/verificationUtils';
 
 export default function ProfileView({ userId, onEdit, currentUser }) {
     const [profile, setProfile] = useState(null);
@@ -100,13 +101,34 @@ export default function ProfileView({ userId, onEdit, currentUser }) {
                 <div className="header-content">
                     {/* Avatar */}
                     <div className="avatar-section">
-                        <div className="avatar">
+                        <div className="avatar" style={{ position: 'relative' }}>
                             {profile.avatar && (
                                 <img src={profile.avatar} alt={profile.username} />
                             )}
                             {!profile.avatar && (
                                 <div className="placeholder">👤</div>
                             )}
+                            {(() => {
+                                const status = profile.verificationStatus || (profile.isVerified ? 'premium' : null);
+                                const badge = status ? getVerificationBadge(status) : null;
+                                return badge ? (
+                                    <img
+                                        src={badge.imageUrl}
+                                        alt={badge.label}
+                                        title={badge.title}
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 4,
+                                            right: 4,
+                                            width: '20%',
+                                            height: '20%',
+                                            borderRadius: '50%',
+                                            pointerEvents: 'none',
+                                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
+                                        }}
+                                    />
+                                ) : null;
+                            })()}
                         </div>
                     </div>
 
