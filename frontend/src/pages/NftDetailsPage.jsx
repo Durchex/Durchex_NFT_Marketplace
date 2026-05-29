@@ -7,7 +7,7 @@ import OfferModal from '../components/OfferModal';
 import SellModal from '../components/SellModal';
 import BuyModal from '../components/BuyModal';
 import { ethers } from 'ethers';
-import { nftAPI, engagementAPI, userAPI, marketplaceAPI } from '../services/api';
+import { nftAPI, engagementAPI, userAPI, marketplaceAPI, aggregationAPI } from '../services/api';
 import { getSocket } from '../services/socket';
 import { getCurrencySymbol, getUsdValueFromCrypto, shortenAddress, getNftLiquidityContractWithSigner, changeNetwork } from '../Context/constants';
 import { ICOContent } from '../Context';
@@ -37,6 +37,7 @@ const NftDetailsPage = () => {
   const [analytics, setAnalytics] = useState(null);
   const [rarity, setRarity] = useState(null);
   const [creatorDisplayName, setCreatorDisplayName] = useState(null);
+  const [externalListings, setExternalListings] = useState([]);
   const [marketBuyQuantity, setMarketBuyQuantity] = useState(1);
   const [marketBuyLoading, setMarketBuyLoading] = useState(false);
   const [marketplaceListings, setMarketplaceListings] = useState([]);
@@ -165,6 +166,18 @@ const NftDetailsPage = () => {
 
       const net = (nftData.network || 'ethereum').toLowerCase();
       const itemIdStr = String(nftData.itemId || nftData.tokenId || id);
+
+      // Fire-and-forget aggregator lookup — never blocks page render.
+      // Only meaningful for NFTs with both a contract address and tokenId.
+      const aggContract = nftData.contractAddress || nftData.nftContract;
+      if (aggContract && nftData.tokenId) {
+        aggregationAPI.getExternalListings({
+          chain: net,
+          contract: aggContract,
+          tokenId: nftData.tokenId,
+        }).then((listings) => setExternalListings(listings || []))
+          .catch(() => setExternalListings([]));
+      }
       try {
         const [trades, analyticsRes, rarityRes] = await Promise.all([
           nftAPI.getNftTrades(net, itemIdStr),
@@ -452,6 +465,44 @@ const NftDetailsPage = () => {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-400 mb-2">DESCRIPTION</h3>
                 <p className="text-gray-300">{nft.description}</p>
+              </div>
+            )}
+
+            {/* Also available on (external marketplaces) */}
+            {externalListings.length > 0 && (
+              <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-3">ALSO LISTED ON</h3>
+                <div className="space-y-2">
+                  {externalListings.slice(0, 5).map((l, i) => {
+                    const priceEth = (() => {
+                      try { return ethers.utils.formatEther(String(l.priceWei || '0')); }
+                      catch { return l.priceWei; }
+                    })();
+                    const sourceLabel = {
+                      opensea: 'OpenSea',
+                      blur: 'Blur',
+                      magiceden: 'Magic Eden',
+                    }[l.source] || l.source;
+                    return (
+                      <a key={i} href={l.externalUrl || '#'} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900 rounded-lg transition group">
+                        <div className="flex items-center gap-3">
+                          <span className="px-2 py-1 text-xs font-bold rounded bg-purple-600/20 text-purple-300 uppercase">
+                            {sourceLabel}
+                          </span>
+                          <span className="text-xs text-gray-500 font-mono">{shortenAddress(l.seller)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-white font-semibold">{Number(priceEth).toFixed(4)}</span>
+                          <FiArrowLeft className="text-gray-400 group-hover:text-white rotate-[135deg]" />
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+                {externalListings.length > 5 && (
+                  <div className="text-xs text-gray-500 mt-2">+ {externalListings.length - 5} more</div>
+                )}
               </div>
             )}
 

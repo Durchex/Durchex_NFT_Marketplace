@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMail, FiCopy, FiCheck, FiHeart, FiShare2, FiUserPlus, FiUserMinus } from 'react-icons/fi';
+import { FiArrowLeft, FiMail, FiCopy, FiCheck, FiHeart, FiShare2, FiUserPlus, FiUserMinus, FiX } from 'react-icons/fi';
 import { Edit3 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
@@ -13,6 +13,7 @@ import CoverPhotoUploader from '../components/CoverPhotoUploader';
 import ListingRequestForm from '../components/ListingRequestForm';
 import { getVerificationBadge } from '../utils/verificationUtils';
 import { ethers } from 'ethers';
+import { useMarketplace } from '../hooks/useMarketplace';
 
 async function signLazyMintVoucher({ creator, ipfsURI, royaltyBps, pricePerPieceWei, maxSupply }) {
   if (typeof window === 'undefined' || !window.ethereum) {
@@ -53,6 +54,58 @@ const CreatorProfile = () => {
   const [editingUpcoming, setEditingUpcoming] = useState(null); // selected NFT to edit
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
+
+  // Bulk listing state — only meaningful on own profile, on 'nfts' or 'listed' tab.
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState(() => new Set()); // Set<nft._id>
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkPrice, setBulkPrice] = useState('');
+  const [bulkDuration, setBulkDuration] = useState('0'); // 0 = fixed price, hours otherwise
+  const { bulkList, isLoading: bulkLoading } = useMarketplace();
+
+  const toggleBulkSelected = (nftId) => {
+    setBulkSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(nftId)) next.delete(nftId); else next.add(nftId);
+      return next;
+    });
+  };
+
+  const submitBulkList = async () => {
+    if (bulkSelected.size === 0) return;
+    const priceNum = parseFloat(bulkPrice);
+    if (!priceNum || priceNum <= 0) {
+      toast.error('Enter a valid price');
+      return;
+    }
+    const selected = creatorNFTs.filter((n) => bulkSelected.has(n._id));
+    // Build per-item listing data for the hook.
+    const items = selected.map((nft) => {
+      const data = {
+        nftContract: nft.contractAddress || nft.nftContract,
+        tokenId: nft.tokenId,
+        price: priceNum,
+        listingType: bulkDuration === '0' ? 'fixed' : 'auction',
+        network: nft.network || 'ethereum',
+        parentNftId: nft._id || nft.itemId,
+      };
+      if (bulkDuration !== '0') {
+        const hours = parseInt(bulkDuration, 10);
+        data.startTime = Math.floor(Date.now() / 1000);
+        data.endTime = data.startTime + hours * 3600;
+      }
+      return data;
+    });
+    try {
+      await bulkList(items);
+      setBulkModalOpen(false);
+      setBulkMode(false);
+      setBulkSelected(new Set());
+      setBulkPrice('');
+      // Refresh NFTs to reflect new listings.
+      fetchCreatorProfile();
+    } catch (_) { /* hook surfaces toast */ }
+  };
 
   const isOwnProfile = userWalletAddress?.toLowerCase() === walletAddress?.toLowerCase();
 
@@ -192,26 +245,10 @@ const CreatorProfile = () => {
         });
       }
 
-      // Fetch all NFTs from all networks and filter by this creator
-      let allNFTs = [];
-      const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
-      
-      for (const network of networks) {
-        try {
-          const networkNfts = await nftAPI.getAllNftsByNetwork(network);
-          if (Array.isArray(networkNfts)) {
-            // Filter for NFTs where owner/seller matches this creator
-            const creatorNfts = networkNfts.filter(
-              nft => (nft.owner?.toLowerCase() === walletAddress?.toLowerCase() || 
-                      nft.seller?.toLowerCase() === walletAddress?.toLowerCase() ||
-                      nft.creator?.toLowerCase() === walletAddress?.toLowerCase())
-            );
-            allNFTs = [...allNFTs, ...creatorNfts];
-          }
-        } catch (err) {
-          console.warn(`Error fetching NFTs from ${network}:`, err.message);
-        }
-      }
+      // Use the dedicated user-NFT endpoint which returns both regular and lazy NFTs
+      // (created and owned) without marketplace-specific filters.
+      let allNFTs = await nftAPI.getUserNFTs(walletAddress);
+      if (!Array.isArray(allNFTs)) allNFTs = [];
 
       // Sort by creation date (newest first)
       allNFTs.sort((a, b) => {
@@ -616,6 +653,24 @@ const CreatorProfile = () => {
           )}
         </div>
 
+        {/* Bulk-list toggle (own profile only, on nfts/listed tab) */}
+        {isOwnProfile && (activeTab === 'nfts' || activeTab === 'listed') && creatorNFTs.length > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={() => { setBulkMode(!bulkMode); setBulkSelected(new Set()); }}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+                bulkMode ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {bulkMode ? 'Exit bulk select' : 'Bulk list'}
+            </button>
+            {bulkMode && bulkSelected.size > 0 && (
+              <span className="text-sm text-gray-400">{bulkSelected.size} selected</span>
+            )}
+          </div>
+        )}
+
         {/* NFTs/Collections Grid */}
         <div>
           {activeTab === 'collections' ? (
@@ -688,13 +743,31 @@ const CreatorProfile = () => {
                 {(activeTab === 'listed' 
                   ? creatorNFTs.filter(nft => nft.currentlyListed)
                   : creatorNFTs
-                ).map((nft, index) => (
+                ).map((nft, index) => {
+                  const isSelected = bulkSelected.has(nft._id);
+                  const onCardClick = bulkMode
+                    ? (e) => { e.preventDefault(); toggleBulkSelected(nft._id); }
+                    : undefined;
+                  return (
                   <Link
                     key={nft._id || index}
-                    to={`/nft/${nft.itemId}`}
+                    to={bulkMode ? '#' : `/nft/${nft.itemId}`}
+                    onClick={onCardClick}
                     className="group"
                   >
-                    <div className="relative overflow-hidden rounded-lg bg-gray-900 border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
+                    <div className={`relative overflow-hidden rounded-lg bg-gray-900 border transition-all duration-300 ${
+                      isSelected ? 'border-purple-500 ring-2 ring-purple-500/50' : 'border-gray-800 hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/20'
+                    }`}>
+                      {/* Bulk-select checkbox overlay */}
+                      {bulkMode && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                            isSelected ? 'bg-purple-600 border-purple-600' : 'bg-gray-900/80 border-gray-500'
+                          }`}>
+                            {isSelected && <FiCheck className="text-white w-4 h-4" />}
+                          </div>
+                        </div>
+                      )}
                       {/* NFT Image */}
                       <div className="relative w-full aspect-square overflow-hidden bg-gray-800">
                         <img
@@ -769,7 +842,8 @@ const CreatorProfile = () => {
                       </div>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             )
           )}
@@ -906,6 +980,66 @@ const CreatorProfile = () => {
         creatorAddress={walletAddress}
         userNFTs={creatorNFTs}
       />
+
+      {/* Floating action bar — bulk list */}
+      {bulkMode && bulkSelected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-gray-900 border border-purple-500 rounded-full shadow-2xl px-4 py-3 flex items-center gap-3">
+          <span className="text-white font-semibold">{bulkSelected.size} selected</span>
+          <button onClick={() => setBulkModalOpen(true)} disabled={bulkLoading}
+            className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-full text-sm">
+            List selected
+          </button>
+          <button onClick={() => { setBulkMode(false); setBulkSelected(new Set()); }}
+            className="text-gray-400 hover:text-white p-1">
+            <FiX />
+          </button>
+        </div>
+      )}
+
+      {/* Bulk listing modal */}
+      {bulkModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/70 z-50" onClick={() => !bulkLoading && setBulkModalOpen(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-white mb-1">List {bulkSelected.size} NFTs</h3>
+              <p className="text-sm text-gray-400 mb-6">All selected NFTs will be listed at the same price.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Price each (in native token)</label>
+                  <input type="number" step="0.000001" min={0}
+                    value={bulkPrice} onChange={(e) => setBulkPrice(e.target.value)}
+                    placeholder="0.5"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Listing type</label>
+                  <select value={bulkDuration} onChange={(e) => setBulkDuration(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white">
+                    <option value="0">Fixed price (no expiry)</option>
+                    <option value="24">Auction — 24 hours</option>
+                    <option value="48">Auction — 2 days</option>
+                    <option value="168">Auction — 7 days</option>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-400">
+                  You'll be asked to sign one message per NFT. Make sure your wallet is ready.
+                </p>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setBulkModalOpen(false)} disabled={bulkLoading}
+                  className="flex-1 py-3 rounded-lg bg-gray-700 text-gray-200 font-semibold hover:bg-gray-600">
+                  Cancel
+                </button>
+                <button onClick={submitBulkList} disabled={bulkLoading || !bulkPrice}
+                  className="flex-1 py-3 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 disabled:opacity-50">
+                  {bulkLoading ? `Listing ${bulkSelected.size}…` : `List ${bulkSelected.size}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Edit Upcoming NFT Modal */}
       {editingUpcoming && (

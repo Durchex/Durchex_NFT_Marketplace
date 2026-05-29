@@ -184,7 +184,7 @@ const lazyNFTSchema = new mongoose.Schema(
 
         expiresAt: {
             type: Date,
-            default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+            default: () => new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000), // 10 years
             index: true,
         },
 
@@ -235,7 +235,9 @@ const lazyNFTSchema = new mongoose.Schema(
 // Create indexes
 lazyNFTSchema.index({ creator: 1, status: 1 });
 lazyNFTSchema.index({ status: 1, createdAt: -1 });
-lazyNFTSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
+// NOTE: TTL auto-delete index removed — lazy NFTs must be manually expired/cancelled,
+// never automatically deleted, so listings survive past the original 90-day window.
+lazyNFTSchema.index({ expiresAt: 1 });
 lazyNFTSchema.index({ 'attributes.trait_type': 1, 'attributes.value': 1 });
 
 // Pre-save middleware

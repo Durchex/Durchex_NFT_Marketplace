@@ -361,14 +361,13 @@ export const getCollectionNFTs = async (req, res) => {
       }
     });
     
-    // Query lazy NFTs in the same collection
-    const lazyNfts = await LazyNFT.find({ 
+    // Query lazy NFTs in the same collection — no expiresAt filter so all survive.
+    const lazyNfts = await LazyNFT.find({
       $or: [
         { collection: collectionDoc._id },
         { collection: collectionDoc.collectionId }
       ],
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-      expiresAt: { $gt: new Date() }
     }).populate('collection');
     
     // Convert lazy NFTs to regular NFT format
@@ -2127,10 +2126,10 @@ export const fetchAllNftsByNetwork = async (req, res) => {
     // IMPORTANT: We include both actively selling AND sold-out lazy mints so they
     // remain visible on the marketplace (sold-out == "no pieces left" but still discoverable).
     // Actual "can mint/buy more pieces" logic is handled on the frontend using remainingPieces.
+    // No expiresAt filter — we show all lazy NFTs regardless of expiry so nothing disappears.
     const lazyNfts = await LazyNFT.find({
       network: net,
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-      expiresAt: { $gt: new Date() },
     }).populate('collection');
 
     // Convert lazy NFTs to regular NFT format
@@ -2165,10 +2164,10 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
     });
 
     // Fetch lazy NFTs from lazy_nfts table: same network, any status (pending/redeemed/fully_redeemed)
+    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: net,
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-      expiresAt: { $gt: new Date() },
     }).populate('collection');
 
     // Convert lazy NFTs to regular NFT format
@@ -2206,10 +2205,10 @@ export const fetchAllNftsAllNetworks = async (req, res) => {
     }).lean();
 
     // Lazy NFTs from all networks, any active status (pending/redeemed/fully_redeemed)
+    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: { $in: networks },
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-      expiresAt: { $gt: now },
     }).populate('collection');
 
     const formattedLazyNfts = lazyNfts.map((lazyNFT) =>
@@ -2247,10 +2246,10 @@ export const fetchAllNftsAllNetworksForExplore = async (req, res) => {
       adminStatus: { $ne: 'delisted' },
     }).lean();
 
+    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: { $in: networks },
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-      expiresAt: { $gt: now },
     }).populate('collection');
 
     const formattedLazyNfts = lazyNfts.map((lazyNFT) =>
@@ -2307,7 +2306,6 @@ export const fetchCollectionNfts = async (req, res) => {
         collection: collectionDoc._id,
         network: net,
         status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
-        expiresAt: { $gt: new Date() },
       }).populate('collection');
     }
 
@@ -2488,15 +2486,15 @@ export const fetchUserNFTs = async (req, res) => {
 
     // Find lazy NFTs:
     // 1. Lazy NFTs owned by user (redeemed and bought by user)
-    // 2. Lazy NFTs created by user (pending, so they "own" them as creator)
+    // 2. Lazy NFTs created by user (pending or fully_redeemed — show all they created)
     const lazyNFTsOwned = await LazyNFT.find({
       buyer: normalizedAddress,
       status: 'redeemed'
     }).populate('collection').sort({ redeemedAt: -1 });
-    
+
     const lazyNFTsCreated = await LazyNFT.find({
       creator: normalizedAddress,
-      status: 'pending'
+      status: { $in: ['pending', 'fully_redeemed'] },
     }).populate('collection').sort({ createdAt: -1 });
 
     // Combine lazy NFTs (avoid duplicates)
@@ -2605,10 +2603,10 @@ export const fetchUserNFTsByNetwork = async (req, res) => {
       buyer: normalizedAddress,
       status: 'redeemed'
     }).populate('collection').sort({ redeemedAt: -1 });
-    
+
     const lazyNFTsCreated = await LazyNFT.find({
       creator: normalizedAddress,
-      status: 'pending'
+      status: { $in: ['pending', 'fully_redeemed'] },
     }).populate('collection').sort({ createdAt: -1 });
 
     // Combine lazy NFTs (avoid duplicates)

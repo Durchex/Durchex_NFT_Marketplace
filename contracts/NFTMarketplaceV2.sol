@@ -460,5 +460,4 @@ contract NFTMarketplaceV2 is Ownable, ReentrancyGuard, EIP712 {
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == 0x4e2312e0; // ERC-1155 Receiver
     }
-}</content>
-<parameter name="filePath">c:\Users\Darker Elf\Documents\GitHub\Durchex_NFT_Marketplace\contracts\NFTMarketplaceV2.sol
+}

@@ -20,7 +20,13 @@ dotenv.config();
 const artifactsDir = path.join(process.cwd(), "frontend", "src", "Context");
 const lazyMintArtifact = JSON.parse(fs.readFileSync(path.join(artifactsDir, "MultiPieceLazyMintNFT.json"), "utf8"));
 const vendorArtifact = JSON.parse(fs.readFileSync(path.join(artifactsDir, "VendorNFT.json"), "utf8"));
-const marketplaceArtifact = JSON.parse(fs.readFileSync(path.join(artifactsDir, "NFTMarketplace.json"), "utf8"));
+// Prefer V2 marketplace (EIP-2981 royalty enforcement) when its artifact exists,
+// fall back to V1 for backward compatibility.
+const marketplaceV2Path = path.join(artifactsDir, "NFTMarketplaceV2.json");
+const marketplaceArtifact = fs.existsSync(marketplaceV2Path)
+  ? JSON.parse(fs.readFileSync(marketplaceV2Path, "utf8"))
+  : JSON.parse(fs.readFileSync(path.join(artifactsDir, "NFTMarketplace.json"), "utf8"));
+const isMarketplaceV2 = marketplaceArtifact.contractName === "NFTMarketplaceV2";
 
 // Set DEPLOY_MARKETPLACE=false to deploy only lazy mint (cheapest path).
 const DEPLOY_MARKETPLACE = (process.env.DEPLOY_MARKETPLACE || "true").toLowerCase() !== "false";
@@ -98,7 +104,13 @@ async function deployTo(name) {
     let marketplace = null;
     if (DEPLOY_MARKETPLACE) {
       vendor = await deployArtifact("VendorNFT", vendorArtifact, [wallet.address]);
-      marketplace = await deployArtifact("NFTMarketplace", marketplaceArtifact, [vendor.address, wallet.address]);
+      // V2 constructor takes (platformFeeReceiver) only; V1 takes (vendor, owner).
+      const marketplaceArgs = isMarketplaceV2 ? [platformFeeReceiver] : [vendor.address, wallet.address];
+      marketplace = await deployArtifact(
+        isMarketplaceV2 ? "NFTMarketplaceV2" : "NFTMarketplace",
+        marketplaceArtifact,
+        marketplaceArgs
+      );
     }
 
     results[name] = {

@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
 /**
  * @title MultiPieceLazyMintNFT
@@ -22,8 +23,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * This contract is responsible only for:
  * - Minting ERC-721 tokens to buyers
  * - Splitting primary sale proceeds between creator and platform
+ * - Reporting royalty info (EIP-2981) so secondary marketplaces honor it
  */
-contract MultiPieceLazyMintNFT is ERC721URIStorage, Ownable {
+contract MultiPieceLazyMintNFT is ERC721URIStorage, Ownable, IERC2981 {
     using ECDSA for bytes32;
 
     struct ListingConfig {
@@ -38,6 +40,14 @@ contract MultiPieceLazyMintNFT is ERC721URIStorage, Ownable {
 
     // Optional: listingId => config (for indexing / analytics)
     mapping(bytes32 => ListingConfig) public listings;
+
+    // Per-token royalty info, captured at mint time so secondary sales can read
+    // EIP-2981 royaltyInfo even after the listing is fully redeemed.
+    struct TokenRoyalty {
+        address receiver;       // creator wallet that gets the royalty
+        uint96 bps;             // basis points (max 5000 = 50%)
+    }
+    mapping(uint256 => TokenRoyalty) public tokenRoyalty;
 
     uint256 private _nextTokenId;
 
@@ -149,13 +159,18 @@ contract MultiPieceLazyMintNFT is ERC721URIStorage, Ownable {
             });
         }
 
-        // mint NFTs
+        // mint NFTs and record per-token royalty so secondary marketplaces
+        // honor EIP-2981 even after the listing is fully redeemed.
         firstTokenId = _nextTokenId;
         for (uint96 i = 0; i < quantity; i++) {
             uint256 tokenId = _nextTokenId;
             _nextTokenId++;
             _mint(msg.sender, tokenId);
             _setTokenURI(tokenId, uri);
+            tokenRoyalty[tokenId] = TokenRoyalty({
+                receiver: creator,
+                bps: uint96(royaltyBps)
+            });
         }
 
         mintedSupply[listingId] = mintedSoFar + quantity;
@@ -188,6 +203,36 @@ contract MultiPieceLazyMintNFT is ERC721URIStorage, Ownable {
             uri,
             uint96(pricePerPieceWei)
         );
+    }
+
+    // --------------------------------------------------------------------
+    // EIP-2981 royalty info — read by secondary marketplaces (incl. our own
+    // NFTMarketplaceV2 and external marketplaces like OpenSea, Magic Eden).
+    // royaltyAmount = salePrice * bps / 10000, capped at salePrice.
+    // --------------------------------------------------------------------
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        override
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        TokenRoyalty memory r = tokenRoyalty[tokenId];
+        if (r.receiver == address(0) || r.bps == 0) {
+            return (address(0), 0);
+        }
+        receiver = r.receiver;
+        royaltyAmount = (salePrice * r.bps) / 10000;
+        if (royaltyAmount > salePrice) royaltyAmount = salePrice;
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721URIStorage, IERC165)
+        returns (bool)
+    {
+        return interfaceId == type(IERC2981).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }
 

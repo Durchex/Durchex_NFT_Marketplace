@@ -21,23 +21,9 @@
  */
 
 import axios from 'axios';
+import { cacheGet, cacheSet } from '../utils/redisCache.js';
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-const cache = new Map(); // key → { value, expiresAt }
-
-function cacheGet(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (entry.expiresAt < Date.now()) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.value;
-}
-
-function cacheSet(key, value) {
-  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
-}
+const CACHE_TTL_SECONDS = 5 * 60; // 5 minutes — same as before, now Redis-backed
 
 /**
  * Normalize an external listing into Durchex's shape.
@@ -151,8 +137,8 @@ const adapters = [openseaAdapter, magicEdenAdapter, blurAdapter];
  */
 export async function getExternalListings({ chain, contract, tokenId }) {
   if (!chain || !contract) return [];
-  const key = `${chain}:${contract.toLowerCase()}:${tokenId ?? '*'}`;
-  const cached = cacheGet(key);
+  const key = `aggregation:${chain}:${contract.toLowerCase()}:${tokenId ?? '*'}`;
+  const cached = await cacheGet(key);
   if (cached) return cached;
 
   const settled = await Promise.allSettled(
@@ -178,6 +164,6 @@ export async function getExternalListings({ chain, contract, tokenId }) {
     return ap < bp ? -1 : ap > bp ? 1 : 0;
   });
 
-  cacheSet(key, result);
+  await cacheSet(key, result, CACHE_TTL_SECONDS);
   return result;
 }
