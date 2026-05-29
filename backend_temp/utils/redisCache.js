@@ -10,7 +10,8 @@
  * Public API: { get(key), set(key, value, ttlSeconds), del(key) }
  * Values are serialized as JSON strings.
  */
-import { createClient } from 'redis';
+// Dynamic import — Redis is optional. If the package isn't installed or the
+// connection fails the module silently falls back to the in-memory Map cache.
 
 const ttlDefaultSeconds = 60 * 5; // 5 minutes
 const memCache = new Map(); // fallback when Redis isn't available
@@ -23,6 +24,7 @@ async function connectRedis() {
     || (process.env.REDIS_HOST ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}` : null);
   if (!url) return null;
   try {
+    const { createClient } = await import('redis');
     const client = createClient({ url, socket: { reconnectStrategy: false } });
     client.on('error', () => { /* silenced — fall back to mem cache */ });
     await client.connect();
