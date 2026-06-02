@@ -1261,48 +1261,6 @@ export const nftAPI = {
     return response.data;
   },
 
-  // ——— Post-chain sync: buyer bought pieces from liquidity pool
-  recordPoolPurchase: async ({ network, itemId, buyer, quantity, pricePerPiece, totalAmount, transactionHash }) => {
-    const response = await api.post('/nft/nfts/piece-buy-from-pool', {
-      network,
-      itemId,
-      buyer,
-      quantity,
-      pricePerPiece,
-      totalAmount,
-      transactionHash,
-    });
-    return response.data;
-  },
-
-  // ——— Attach on-chain liquidity pool to an NFT (after createPool)
-  attachLiquidityPool: async (network, itemId, { liquidityContract, liquidityPieceId }) => {
-    const response = await api.post(`/nft/nfts/${network}/${itemId}/liquidity`, {
-      liquidityContract,
-      liquidityPieceId: String(liquidityPieceId),
-    });
-    return response.data;
-  },
-
-  // ——— Direct liquidity sell-back helpers ———
-  quoteSellToLiquidity: async ({ network, itemId, quantity }) => {
-    const response = await api.get('/nft/liquidity/quote-sell', {
-      params: { network, itemId, quantity },
-    });
-    return response.data;
-  },
-  pieceSellBackToLiquidity: async ({ network, itemId, seller, quantity, pricePerPiece, totalAmount, transactionHash }) => {
-    const response = await api.post('/nft/nfts/piece-sell-back', {
-      network,
-      itemId,
-      seller,
-      quantity,
-      pricePerPiece,
-      totalAmount,
-      transactionHash,
-    });
-    return response.data;
-  },
 
   // ——— NFT trades & analytics (transaction history, price movement, market cap) ———
   getNftTrades: async (network, itemId, limit = 50) => {

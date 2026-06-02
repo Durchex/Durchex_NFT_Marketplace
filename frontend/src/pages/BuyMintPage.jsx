@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { FiArrowLeft, FiDollarSign } from 'react-icons/fi';
 import Header from '../components/Header';
 import { nftAPI, lazyMintAPI } from '../services/api';
-import { getCurrencySymbol, getMultiPieceLazyMintContractWithSigner, getNftLiquidityContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
+import { getCurrencySymbol, getMultiPieceLazyMintContractWithSigner, changeNetwork, priceInDecimalForBuy } from '../Context/constants';
 import { ICOContent } from '../Context';
 import toast from 'react-hot-toast';
 
@@ -24,8 +24,6 @@ export default function BuyMintPage() {
   const [minting, setMinting] = useState(false);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [marketBuyQuantity, setMarketBuyQuantity] = useState(1);
-  const [marketBuyLoading, setMarketBuyLoading] = useState(false);
   const [sellOrders, setSellOrders] = useState([]);
   const [sellOrdersLoading, setSellOrdersLoading] = useState(false);
   const [fillOrderQty, setFillOrderQty] = useState({}); // { [orderId]: number }
@@ -81,7 +79,6 @@ export default function BuyMintPage() {
   const hasPiecesToMint = isLazyMint && remainingPieces > 0;
   const lazyMintSoldOut = isLazyMint && remainingPieces <= 0;
   const isListedNft = !isLazyMint;
-  const hasLiquidityPool = !!(nft?.liquidityContract && nft?.liquidityPieceId != null);
 
   const getVendorContractAddress = (network) => {
     const networkUpper = String(network || 'polygon').toUpperCase();
@@ -141,51 +138,6 @@ export default function BuyMintPage() {
     }
   };
 
-  const handleBuyAtMarket = async () => {
-    if (!nft || !address || !hasLiquidityPool) return;
-    const qty = Math.max(1, parseInt(marketBuyQuantity, 10) || 1);
-    const network = (nft.network || 'polygon').toLowerCase().trim();
-    setMarketBuyLoading(true);
-    try {
-      await window.ethereum?.request({ method: 'eth_requestAccounts' });
-      await changeNetwork(network);
-      const liquidityContract = await getNftLiquidityContractWithSigner(network, nft.liquidityContract);
-      if (!liquidityContract) {
-        toast.error('Could not connect to liquidity contract. Check network.');
-        return;
-      }
-      const pieceIdWei = nft.liquidityPieceId;
-      const [totalCostWei] = await liquidityContract.getBuyQuote(pieceIdWei, String(qty));
-      const totalCost = ethers.BigNumber.from(totalCostWei);
-      const tx = await liquidityContract.buyPieces(pieceIdWei, qty, { value: totalCost });
-      const receipt = await tx.wait();
-      const pricePerPiece = totalCost.div(qty);
-      await nftAPI.recordPoolPurchase({
-        network,
-        itemId: nft.itemId || nft._id?.toString() || id,
-        buyer: address,
-        quantity: qty,
-        pricePerPiece: ethers.utils.formatEther(pricePerPiece),
-        totalAmount: ethers.utils.formatEther(totalCost),
-        transactionHash: receipt?.transactionHash || receipt?.hash || null,
-      });
-      toast.success(qty > 1 ? `${qty} pieces bought at market price.` : 'Bought at market price.');
-      navigate(`/nft/${id}`);
-    } catch (err) {
-      console.error('Buy at market error:', err);
-      const code = err?.code ?? err?.error?.code;
-      const msg = String(err?.message || err?.error?.message || '');
-      if (code === 4001 || msg.toLowerCase().includes('rejected')) {
-        toast.error('Transaction rejected.');
-      } else if (msg.includes('Insufficient payment') || msg.includes('pieces')) {
-        toast.error('Insufficient liquidity or wrong amount. Try a smaller quantity.');
-      } else {
-        toast.error(msg || 'Buy at market failed.');
-      }
-    } finally {
-      setMarketBuyLoading(false);
-    }
-  };
 
   const handlePrimaryAction = async () => {
     if (!nft || !address) {
@@ -539,30 +491,6 @@ export default function BuyMintPage() {
               </div>
             )}
 
-          {/* Buy at market (exact current pool price, like trading crypto) — only when NFT is sold out and has liquidity pool */}
-          {hasLiquidityPool && address && remainingPieces <= 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-700 space-y-3">
-                <p className="text-gray-400 text-sm">Buy at current market price (from liquidity pool)</p>
-                <div className="flex items-center gap-3">
-                  <label className="text-gray-400 text-sm">Pieces</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={marketBuyQuantity}
-                    onChange={(e) => setMarketBuyQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                    className="w-24 bg-black/50 border border-purple-500/40 rounded-lg px-3 py-2 text-white text-center focus:ring-2 focus:ring-purple-500/50"
-                  />
-                </div>
-                <button
-                  onClick={handleBuyAtMarket}
-                  disabled={marketBuyLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <FiDollarSign />
-                  {marketBuyLoading ? 'Opening wallet…' : 'Buy at market price'}
-                </button>
-              </div>
-            )}
 
             {/* Buy from orders (fill collector sell orders) */}
             {address && (nft?.itemId || nft?._id) && (

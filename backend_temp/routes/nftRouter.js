@@ -1,4 +1,5 @@
 import express from "express";
+import auth from "../middleware/auth.js";
 import {
   fetchCollectionsGroupedByNetwork,
   getNftByAnyId,
@@ -43,17 +44,13 @@ import {
   getNftTrades,
   getNftAnalytics,
   getNftRarityRank,
-  attachLiquidityPool,
-  quoteSellToLiquidity,
-  pieceSellBackToLiquidity,
-  recordPoolPurchase,
-} from "../controllers/nftController.js"; // Adjust path & file accordingly
+} from "../controllers/nftController.js";
 // import { createNft } from "../models/nftModel.js";
 
 const router = express.Router();
 
 router.post("/nfts/check", checkNftExists);
-router.post("/nfts/update-owner", updateNftOwner);
+router.post("/nfts/update-owner", auth, updateNftOwner);
 router.post("/nfts/preview", previewNftMetadata);
 router.post("/nfts", createNft);
 
@@ -65,18 +62,11 @@ router.patch("/nfts/upcoming/:id", updateUpcomingNft);
 router.post("/nfts/upcoming/:id/redeem", redeemUpcomingNft);
 router.post("/nfts/upcoming/:id/record-mint", recordUpcomingMint);
 
-// Piece sell orders (collectors sell pieces back into liquidity — no relist/approval)
-router.post("/nfts/piece-sell-orders", createPieceSellOrder);
+// Piece sell orders — P2P secondary market (collector lists pieces, another buyer fills)
+router.post("/nfts/piece-sell-orders", auth, createPieceSellOrder);
 router.get("/nfts/piece-sell-orders/:network/:itemId", getPieceSellOrdersByNft);
 router.get("/nfts/piece-holdings/:wallet", getPieceHoldingsByWallet);
-router.post("/nfts/piece-sell-orders/:orderId/fill", fillPieceSellOrder);
-
-// Direct liquidity sell-back (quote + post-chain sync)
-router.get("/liquidity/quote-sell", quoteSellToLiquidity);
-router.post("/nfts/piece-sell-back", pieceSellBackToLiquidity);
-router.post("/nfts/piece-buy-from-pool", recordPoolPurchase);
-// Attach on-chain liquidity pool (CreatorLiquidity / NftLiquidity) to an NFT
-router.post("/nfts/:network/:itemId/liquidity", attachLiquidityPool);
+router.post("/nfts/piece-sell-orders/:orderId/fill", auth, fillPieceSellOrder);
 
 // Pending transfers (post-buy sync)
 router.post("/pending-transfers", createPendingTransfer);

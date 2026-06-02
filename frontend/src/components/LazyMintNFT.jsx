@@ -18,6 +18,10 @@ export default function LazyMintNFT() {
         name: '',
         description: '',
         royaltyPercentage: 10,
+        price: '',
+        pieces: 1,
+        network: 'base',
+        enableStraightBuy: true,
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -78,6 +82,16 @@ export default function LazyMintNFT() {
 
             if (!formData.name.trim()) {
                 throw new Error('Please enter NFT name');
+            }
+
+            const priceNum = parseFloat(formData.price);
+            if (!formData.price || isNaN(priceNum) || priceNum <= 0) {
+                throw new Error('Please enter a valid price greater than 0');
+            }
+
+            const piecesNum = parseInt(formData.pieces, 10);
+            if (!piecesNum || piecesNum < 1) {
+                throw new Error('Please enter at least 1 edition');
             }
 
             // Upload image to IPFS
@@ -190,7 +204,11 @@ export default function LazyMintNFT() {
                 name: formData.name,
                 description: formData.description,
                 ipfsURI,
-                royaltyPercentage: formData.royaltyPercentage,
+                royaltyPercentage: Number(formData.royaltyPercentage),
+                price: formData.price,
+                pieces: parseInt(formData.pieces, 10) || 1,
+                network: formData.network,
+                enableStraightBuy: formData.enableStraightBuy,
                 signature,
                 messageHash,
                 nonce,
@@ -204,7 +222,7 @@ export default function LazyMintNFT() {
                 // Reset form
                 setTimeout(() => {
                     setStep(1);
-                    setFormData({ name: '', description: '', royaltyPercentage: 10 });
+                    setFormData({ name: '', description: '', royaltyPercentage: 10, price: '', pieces: 1, network: 'base', enableStraightBuy: true });
                     setImageFile(null);
                     setImagePreview(null);
                     setIpfsURI('');
@@ -287,6 +305,52 @@ export default function LazyMintNFT() {
                             </div>
 
                             <div className="form-group">
+                                <label htmlFor="price">Price per piece (ETH) *</label>
+                                <input
+                                    type="number"
+                                    id="price"
+                                    name="price"
+                                    value={formData.price}
+                                    onChange={handleInputChange}
+                                    min={0}
+                                    step="0.0001"
+                                    placeholder="e.g. 0.05"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="pieces">Number of editions</label>
+                                <input
+                                    type="number"
+                                    id="pieces"
+                                    name="pieces"
+                                    value={formData.pieces}
+                                    onChange={handleInputChange}
+                                    min={1}
+                                    max={10000}
+                                />
+                                <small>How many copies buyers can purchase</small>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="network">Network</label>
+                                <select
+                                    id="network"
+                                    name="network"
+                                    value={formData.network}
+                                    onChange={handleInputChange}
+                                >
+                                    <option value="base">Base</option>
+                                    <option value="ethereum">Ethereum</option>
+                                    <option value="polygon">Polygon</option>
+                                    <option value="arbitrum">Arbitrum</option>
+                                    <option value="bsc">BSC</option>
+                                    <option value="optimism">Optimism</option>
+                                    <option value="avalanche">Avalanche</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
                                 <label htmlFor="royalty">Royalty Percentage (0-50%)</label>
                                 <input
                                     type="number"
@@ -336,12 +400,11 @@ export default function LazyMintNFT() {
                             </p>
 
                             <div className="details-box">
-                                <p>
-                                    <strong>Name:</strong> {formData.name}
-                                </p>
-                                <p>
-                                    <strong>Royalty:</strong> {formData.royaltyPercentage}%
-                                </p>
+                                <p><strong>Name:</strong> {formData.name}</p>
+                                <p><strong>Price:</strong> {formData.price} ETH per piece</p>
+                                <p><strong>Editions:</strong> {formData.pieces}</p>
+                                <p><strong>Network:</strong> {formData.network}</p>
+                                <p><strong>Royalty:</strong> {formData.royaltyPercentage}%</p>
                                 <p>
                                     <strong>IPFS URI:</strong>{' '}
                                     <code>{ipfsURI.substring(0, 40)}...</code>
@@ -378,15 +441,11 @@ export default function LazyMintNFT() {
 
                             <div className="summary-box">
                                 <h4>Summary</h4>
-                                <p>
-                                    <strong>NFT Name:</strong> {formData.name}
-                                </p>
-                                <p>
-                                    <strong>Creator Royalty:</strong> {formData.royaltyPercentage}%
-                                </p>
-                                <p>
-                                    <strong>Status:</strong> Ready to publish
-                                </p>
+                                <p><strong>NFT Name:</strong> {formData.name}</p>
+                                <p><strong>Price:</strong> {formData.price} ETH × {formData.pieces} edition{formData.pieces > 1 ? 's' : ''}</p>
+                                <p><strong>Network:</strong> {formData.network}</p>
+                                <p><strong>Creator Royalty:</strong> {formData.royaltyPercentage}%</p>
+                                <p><strong>Status:</strong> Ready to publish</p>
                                 <p className="info-text">
                                     💡 Once published, buyers can immediately purchase and mint your NFT
                                     without you needing to do anything else!

@@ -1,4 +1,14 @@
 #!/usr/bin/env node
+/**
+ * Background service that retries pending NFT purchase records.
+ *
+ * When a buyer's tx hash isn't available at purchase time (network lag, RPC timeout)
+ * the controller stores a PendingTransfer and returns 202. This processor polls every
+ * 15 s, re-checks each pending entry against the chain, and finalises the DB state once
+ * the receipt is available and the Transfer event is confirmed.
+ *
+ * Start via PM2: ecosystem.config.cjs → durchex-pending-processor
+ */
 import mongoose from 'mongoose';
 import { ethers } from 'ethers';
 import { PendingTransfer } from '../models/pendingTransferModel.js';
@@ -9,134 +19,134 @@ import LazyNFT from '../models/lazyNFTModel.js';
 
 const MONGO = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.DATABASE;
 if (!MONGO) {
-  console.error('MONGODB_URI / DATABASE env required');
+  console.error('[pendingProcessor] MONGODB_URI / DATABASE env required');
   process.exit(2);
 }
 
-async function processEntry(key, entry) {
+const ERC1155_IFACE = new ethers.utils.Interface([
+  'event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)',
+]);
+const ERC721_IFACE = new ethers.utils.Interface([
+  'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)',
+]);
+
+/** Returns true if the receipt contains a Transfer to `buyerAddr` (ERC721 or ERC1155). */
+function transferToBuyerSeen(receipt, buyerAddr) {
+  const buyer = buyerAddr.toLowerCase();
+  for (const log of receipt.logs) {
+    try { if (String(ERC1155_IFACE.parseLog(log).args.to).toLowerCase() === buyer) return true; } catch (_) {}
+    try { if (String(ERC721_IFACE.parseLog(log).args.to).toLowerCase() === buyer) return true; } catch (_) {}
+  }
+  return false;
+}
+
+function getRpcUrl(network) {
+  const net = String(network || 'base').toUpperCase();
+  return process.env[`${net}_RPC_URL`]
+    || process.env.RPC_URL
+    || process.env.BASE_RPC_URL
+    || null;
+}
+
+async function processEntry(entry) {
+  const net = String(entry.network || 'base').toLowerCase();
+  const rpcUrl = getRpcUrl(net);
+  if (!rpcUrl) return false;
+
+  const txHash = entry.transactionHash;
+  if (!txHash) return false;
+
+  let receipt;
   try {
-    const net = String(entry.network || 'base').toLowerCase();
-    const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
-    if (!rpcUrl) return false;
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-    const txHash = entry.transactionHash;
-    if (!txHash) return false;
-    const receipt = await provider.getTransactionReceipt(txHash);
-    if (!receipt || receipt.status !== 1) return false;
-
-    const iface = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
-
-    if (entry.type === 'pool_purchase') {
-      const itemId = String(entry.itemId);
-      const buyer = String(entry.buyer).toLowerCase();
-      // find liquidityPieceId from nft or lazy
-      const nft = await nftModel.findOne({ network: net, itemId }).lean();
-      let liquidityPieceId = nft?.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
-      if (!liquidityPieceId && /^[a-fA-F0-9]{24}$/.test(itemId)) {
-        const lazy = await LazyNFT.findById(itemId).lean();
-        if (lazy) liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
-      }
-      if (!liquidityPieceId) return false;
-
-      let seen = false;
-      for (const log of receipt.logs) {
-        try {
-          const parsed = iface.parseLog(log);
-          if (parsed && parsed.name === 'TransferSingle') {
-            const to = String(parsed.args.to).toLowerCase();
-            const id = parsed.args.id.toString();
-            if (to === buyer && id === liquidityPieceId) {
-              seen = true; break;
-            }
-          }
-        } catch (e) {}
-      }
-      if (!seen) return false;
-      // update holdings by reading on-chain balance
-      // find pieces contract address
-      const piecesAddr = nft?.liquidityContract || null;
-      if (!piecesAddr) {
-        const lazy = await LazyNFT.findById(itemId).lean();
-        if (lazy) piecesAddr = lazy.liquidityContract || null;
-      }
-      if (!piecesAddr) return false;
-      const contract = new ethers.Contract(piecesAddr, ['function balanceOf(address,uint256) view returns (uint256)'], provider);
-      const bn = await contract.balanceOf(buyer, liquidityPieceId);
-      const pieces = bn.toNumber();
-      await pieceHoldingModel.findOneAndUpdate({ network: net, itemId, wallet: buyer }, { $set: { pieces } }, { upsert: true });
-
-      // create trade if not present
-      await nftTradeModel.create({ network: net, itemId, transactionType: 'primary_buy', seller: entry.seller || null, buyer, quantity: entry.quantity || 1, pricePerPiece: String(entry.pricePerPiece || 0), totalAmount: String((entry.pricePerPiece || 0) * (entry.quantity || 1)), transactionHash: txHash });
-
-      return true;
-    }
-
-    if (entry.type === 'lazy_purchase') {
-      const itemId = String(entry.itemId);
-      const buyer = String(entry.buyer).toLowerCase();
-      const lazy = await LazyNFT.findById(itemId).lean();
-      const liquidityPieceId = lazy?.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
-      const piecesAddr = lazy?.liquidityContract || null;
-      if (!liquidityPieceId || !piecesAddr) return false;
-      let seen = false;
-      for (const log of receipt.logs) {
-        try {
-          const parsed = iface.parseLog(log);
-          if (parsed && parsed.name === 'TransferSingle') {
-            const to = String(parsed.args.to).toLowerCase();
-            const id = parsed.args.id.toString();
-            if (to === buyer && id === liquidityPieceId) { seen = true; break; }
-          }
-        } catch (e) {}
-      }
-      if (!seen) return false;
-      const contract = new ethers.Contract(piecesAddr, ['function balanceOf(address,uint256) view returns (uint256)'], provider);
-      const bn = await contract.balanceOf(buyer, liquidityPieceId);
-      const pieces = bn.toNumber();
-      await pieceHoldingModel.findOneAndUpdate({ network: net, itemId, wallet: buyer }, { $set: { pieces } }, { upsert: true });
-      await nftTradeModel.create({ network: net, itemId, transactionType: 'primary_buy', seller: entry.seller || null, buyer, quantity: entry.quantity || 1, pricePerPiece: String(entry.pricePerPiece || 0), totalAmount: String((entry.pricePerPiece || 0) * (entry.quantity || 1)), transactionHash: txHash });
-      return true;
-    }
-
-    return false;
+    receipt = await provider.getTransactionReceipt(txHash);
   } catch (e) {
-    console.error('Error processing pending entry', key, e.message || e);
+    console.warn(`[pendingProcessor] RPC error for ${txHash}:`, e.message);
     return false;
+  }
+  if (!receipt || receipt.status !== 1) return false;
+
+  if (entry.type === 'lazy_purchase') {
+    const itemId  = String(entry.itemId);
+    const buyer   = String(entry.buyer).toLowerCase();
+    const qty     = Number(entry.quantity) || 1;
+
+    if (!transferToBuyerSeen(receipt, buyer)) return false;
+
+    const lazy = await LazyNFT.findById(itemId).lean();
+    if (!lazy) return false;
+
+    // Upsert piece holding
+    await pieceHoldingModel.findOneAndUpdate(
+      { network: net, itemId, wallet: buyer },
+      { $inc: { pieces: qty } },
+      { upsert: true, new: true }
+    );
+
+    // Create trade record (idempotent — skip if txHash already recorded)
+    const alreadyRecorded = await nftTradeModel.findOne({ transactionHash: txHash }).lean();
+    if (!alreadyRecorded) {
+      const pricePerPiece = String(entry.pricePerPiece || lazy.price || '0');
+      const totalAmount   = (parseFloat(pricePerPiece) * qty).toFixed(18);
+      const royaltyPct    = Number(lazy.royaltyPercentage || 0);
+      const royaltyAmt    = royaltyPct ? ((parseFloat(totalAmount) * royaltyPct) / 100).toFixed(18) : '0';
+      await nftTradeModel.create({
+        network: net,
+        itemId,
+        transactionType: 'primary_buy',
+        seller: (lazy.creator || '').toLowerCase(),
+        buyer,
+        quantity: qty,
+        pricePerPiece,
+        totalAmount,
+        royaltyPercentage: String(royaltyPct),
+        royaltyAmount: royaltyAmt,
+        transactionHash: txHash,
+      });
+      // Update last traded price on the lazy NFT
+      await LazyNFT.updateOne({ _id: itemId }, { $set: { lastPrice: pricePerPiece } });
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+async function runCycle() {
+  const pending = await PendingTransfer.find({ status: 'pending' }).limit(50).lean();
+  for (const rec of pending) {
+    try {
+      // Atomic lock to prevent duplicate processing
+      const locked = await PendingTransfer.findOneAndUpdate(
+        { _id: rec._id, status: 'pending' },
+        { $set: { status: 'processing', lastAttemptAt: new Date() }, $inc: { attempts: 1 } },
+        { new: true }
+      );
+      if (!locked) continue; // another instance grabbed it
+
+      const ok = await processEntry(locked);
+      if (ok) {
+        await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'done' } });
+        console.log(`[pendingProcessor] ✅ Processed ${locked._id} (${locked.type})`);
+      } else if ((locked.attempts || 0) >= 5) {
+        await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'failed' } });
+        console.warn(`[pendingProcessor] ❌ Giving up on ${locked._id} after 5 attempts`);
+      } else {
+        await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'pending' } });
+      }
+    } catch (e) {
+      console.error(`[pendingProcessor] Error on record ${rec._id}:`, e.message || e);
+      try { await PendingTransfer.findByIdAndUpdate(rec._id, { $set: { status: 'pending' } }); } catch (_) {}
+    }
   }
 }
 
 async function main() {
   await mongoose.connect(MONGO);
-  console.log('Connected to Mongo, processing pending transfers...');
-  setInterval(async () => {
-    try {
-      const list = await PendingTransfer.find({ status: 'pending' }).limit(50).lean();
-      for (const rec of list) {
-        try {
-          // lock the record for processing
-          const locked = await PendingTransfer.findByIdAndUpdate(rec._id, { $set: { status: 'processing', lastAttemptAt: new Date() }, $inc: { attempts: 1 } }, { new: true });
-          if (!locked) continue;
-          const ok = await processEntry(String(locked._id), locked);
-          if (ok) {
-            await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'done' } });
-            console.log('Processed pending', locked._id.toString());
-          } else {
-            // mark back to pending for retry, unless attempts exceeded
-            if ((locked.attempts || 0) >= 5) {
-              await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'failed' } });
-              console.log('Pending marked failed', locked._id.toString());
-            } else {
-              await PendingTransfer.findByIdAndUpdate(locked._id, { $set: { status: 'pending' } });
-            }
-          }
-        } catch (e) {
-          console.error('Error processing pending record', rec._id, e.message || e);
-        }
-      }
-    } catch (e) {
-      console.error('Error in pending processor loop', e.message || e);
-    }
-  }, 15 * 1000);
+  console.log('[pendingProcessor] Connected to MongoDB — polling every 15s');
+  await runCycle(); // run once immediately on start
+  setInterval(runCycle, 15_000);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error('[pendingProcessor] Fatal:', e); process.exit(1); });

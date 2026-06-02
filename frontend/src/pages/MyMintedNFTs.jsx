@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 // import metamask from "../assets/metamask.png"; // Removed - no longer needed
 import { ICOContent } from "../Context/index";
 import { ethers } from "ethers";
-import { getNftLiquidityContractWithSigner, getContractAddresses, changeNetwork, getCurrencySymbol, ensurePiecesApprovalForLiquidity, getPiecesBalanceOnChain } from "../Context/constants";
+import { changeNetwork, getCurrencySymbol } from "../Context/constants";
 // import Header from "../components/Header"; // Removed - header already exists in Profile page
 import { nftAPI, engagementAPI } from "../services/api";
 import { getSocket } from "../services/socket";
@@ -68,16 +68,10 @@ function MyMintedNFTs() {
   const [cartItems, setCartItems] = useState(new Set());
   const [likedItems, setLikedItems] = useState(new Set());
   const [sellModalNft, setSellModalNft] = useState(null);
-  const [sellPiecesModal, setSellPiecesModal] = useState(null); // { nft, myPieces }
-  const [sellPiecesQty, setSellPiecesQty] = useState(1);
-  const [sellPiecesQuote, setSellPiecesQuote] = useState(null); // { pricePerPiece, totalProceeds } from API — auto-populated, no user input
-  const [sellPiecesSubmitting, setSellPiecesSubmitting] = useState(false);
-  const [sellPiecesOnChainBalance, setSellPiecesOnChainBalance] = useState(null); // null = loading, number = from NftPieces.balanceOf
   const [placeOrderModal, setPlaceOrderModal] = useState(null); // { nft, myPieces }
   const [placeOrderQty, setPlaceOrderQty] = useState(1);
   const [placeOrderPrice, setPlaceOrderPrice] = useState("");
   const [placeOrderSubmitting, setPlaceOrderSubmitting] = useState(false);
-  const [addLiquidityNFTId, setAddLiquidityNFTId] = useState(null);
   const [pieceHoldings, setPieceHoldings] = useState([]); // { network, itemId, wallet, pieces }
   const { address: userWalletAddress } = useContext(ICOContent) || {};
 
@@ -149,131 +143,6 @@ function MyMintedNFTs() {
     return h ? Number(h.pieces) : 0;
   };
 
-  const handleAddLiquidity = async (nft) => {
-    if (!address) {
-      ErrorToast("Please connect your wallet first");
-      return;
-    }
-    try {
-      setAddLiquidityNFTId(nft.itemId);
-      const network = (nft.network || "polygon").toLowerCase().trim();
-      const addrs = getContractAddresses(network);
-      if (!addrs?.nftLiquidity) {
-        ErrorToast("No liquidity contract configured for this network.");
-        return;
-      }
-
-      const nftContract =
-        nft.nftContract ||
-        nft.contractAddress ||
-        nft.collectionContractAddress ||
-        null;
-      if (!nftContract) {
-        ErrorToast("NFT contract address is missing; cannot create pool.");
-        return;
-      }
-      if (!nft.tokenId) {
-        ErrorToast("NFT tokenId is missing; mint the NFT first.");
-        return;
-      }
-
-      await changeNetwork(network);
-      const liquidityContract = await getNftLiquidityContractWithSigner(
-        network,
-        addrs.nftLiquidity
-      );
-      if (!liquidityContract) {
-        ErrorToast("Could not connect to liquidity contract.");
-        return;
-      }
-
-      const piecesNum = Math.max(1, parseInt(nft.pieces, 10) || 1);
-      const priceWei = ethers.utils.parseEther(String(nft.price || "0.001"));
-
-      toast.loading("Creating liquidity pool…", { id: "manual-create-pool" });
-      const tx = await liquidityContract.createPool(
-        nftContract,
-        ethers.BigNumber.from(nft.tokenId),
-        piecesNum,
-        priceWei,
-        priceWei,
-        0,
-        { value: 0 }
-      );
-      const receipt = await tx.wait();
-      const poolCreated = receipt.events?.find(
-        (e) => e.event === "PoolCreated"
-      );
-      const pieceId =
-        poolCreated?.args?.pieceId != null
-          ? poolCreated.args.pieceId.toString()
-          : null;
-      if (!pieceId) {
-        throw new Error("Could not read pieceId from PoolCreated event.");
-      }
-
-      await nftAPI.attachLiquidityPool(network, nft.itemId, {
-        liquidityContract: addrs.nftLiquidity,
-        liquidityPieceId: pieceId,
-      });
-
-      SuccessToast("Liquidity pool created and attached to this NFT.");
-      toast.dismiss("manual-create-pool");
-    } catch (err) {
-      console.error("Add liquidity error:", err);
-      toast.dismiss("manual-create-pool");
-      ErrorToast(
-        err?.response?.data?.error ||
-          err?.reason ||
-          err?.message ||
-          "Failed to create liquidity pool"
-      );
-    } finally {
-      setAddLiquidityNFTId(null);
-    }
-  };
-
-  // Auto-fetch sell-to-liquidity quote when modal is open so price is populated (user only picks quantity)
-  useEffect(() => {
-    if (!sellPiecesModal?.nft || !sellPiecesQty) {
-      setSellPiecesQuote(null);
-      return;
-    }
-    const nft = sellPiecesModal.nft;
-    const qty = Math.max(1, parseInt(sellPiecesQty, 10));
-    let cancelled = false;
-    nftAPI.quoteSellToLiquidity({ network: nft.network, itemId: nft.itemId, quantity: qty })
-      .then((quote) => { if (!cancelled) setSellPiecesQuote({ pricePerPiece: quote.pricePerPiece, totalProceeds: quote.totalProceeds }); })
-      .catch(() => { if (!cancelled) setSellPiecesQuote(null); });
-    return () => { cancelled = true; };
-  }, [sellPiecesModal?.nft?.network, sellPiecesModal?.nft?.itemId, sellPiecesQty]);
-
-  // Fetch on-chain piece balance when sell modal opens (sell requires wallet balance, not just DB)
-  useEffect(() => {
-    if (!sellPiecesModal?.nft || !address) {
-      setSellPiecesOnChainBalance(null);
-      return;
-    }
-    const nft = sellPiecesModal.nft;
-    if (!nft.liquidityContract || nft.liquidityPieceId == null) {
-      setSellPiecesOnChainBalance(0);
-      return;
-    }
-    setSellPiecesOnChainBalance(null);
-    let cancelled = false;
-    getPiecesBalanceOnChain(
-      (nft.network || "polygon").toLowerCase(),
-      address,
-      nft.liquidityContract,
-      nft.liquidityPieceId
-    ).then((bal) => {
-      if (!cancelled) {
-        setSellPiecesOnChainBalance(bal);
-        setSellPiecesQty((q) => Math.min(q, Math.max(1, bal)));
-      }
-    });
-    return () => { cancelled = true; };
-  }, [sellPiecesModal?.nft, address]);
 
   const handleEditNFT = async (nft) => {
     setEditingNFT(nft.itemId);
@@ -310,109 +179,6 @@ function MyMintedNFTs() {
     setEditForm({ name: '', description: '', price: '' });
   };
 
-  const handleSellPieces = async () => {
-    if (!sellPiecesModal?.nft || !address) return;
-    const nft = sellPiecesModal.nft;
-    const qty = Math.max(1, parseInt(sellPiecesQty, 10));
-    const onChain = sellPiecesOnChainBalance ?? 0;
-    if (qty > onChain && onChain !== null) {
-      ErrorToast("Quantity exceeds your on-chain balance. You have " + onChain + " piece(s) in your wallet for this pool.");
-      return;
-    }
-    if (qty > (sellPiecesModal.myPieces || 0)) {
-      ErrorToast("Quantity exceeds your pieces");
-      return;
-    }
-    try {
-      setSellPiecesSubmitting(true);
-
-      // 1. Get quote (creator = liquidity pool; optional on-chain NftLiquidity contract for instant on-chain payment)
-      const quote = await nftAPI.quoteSellToLiquidity({
-        network: nft.network,
-        itemId: nft.itemId,
-        quantity: qty,
-      });
-
-      const hasOnChainPool = quote.liquidityContract && quote.liquidityPieceId != null;
-      if (!hasOnChainPool) {
-        ErrorToast("Sell requires an on-chain liquidity pool. This NFT has no pool; connect your wallet to sell when a pool is available.");
-        setSellPiecesSubmitting(false);
-        return;
-      }
-
-      // Sell always goes through the wallet (on-chain): approve then sellPieces
-      let transactionHash = null;
-      let pricePerPiece = quote.pricePerPiece;
-      let totalAmount = quote.totalProceeds;
-
-      await changeNetwork(nft.network);
-      const liquidityContract = await getNftLiquidityContractWithSigner(nft.network, quote.liquidityContract);
-      const liquidityAddress = quote.liquidityContract || getContractAddresses(nft.network)?.nftLiquidity;
-      if (!liquidityContract || !liquidityAddress) {
-        ErrorToast("Could not connect to liquidity contract. Check network and try again.");
-        setSellPiecesSubmitting(false);
-        return;
-      }
-
-      const pieceIdWei = quote.liquidityPieceId;
-      const quantityWei = String(qty);
-      const [netProceedsWei] = await liquidityContract.getSellQuote(pieceIdWei, quantityWei);
-      const netBn = ethers.BigNumber.from(netProceedsWei);
-      pricePerPiece = ethers.utils.formatEther(netBn.div(qty));
-      totalAmount = ethers.utils.formatEther(netBn);
-
-      // Enforced: wallet must open for approval first; if user rejects, sale does not proceed
-      try {
-        if (window.ethereum) await window.ethereum.request({ method: "eth_requestAccounts" });
-        await ensurePiecesApprovalForLiquidity(nft.network, address, liquidityAddress, {
-          onApproving: () => toast.loading("Open your wallet and approve to allow the sale.", { id: "approve-pieces" }),
-          onApproved: () => toast.success("Approval confirmed. Selling…", { id: "approve-pieces" }),
-        });
-      } catch (approvalErr) {
-        toast.dismiss("approve-pieces");
-        if (approvalErr?.message === "APPROVAL_REJECTED") {
-          ErrorToast("Sale failed. Approval was required; none was given.");
-        } else {
-          ErrorToast(approvalErr?.message || "Sale failed. Approval is required to sell.");
-        }
-        setSellPiecesSubmitting(false);
-        return;
-      }
-
-      // Sell pieces (wallet prompt — transfers pieces out, credits seller)
-      const tx = await liquidityContract.sellPieces(pieceIdWei, quantityWei);
-      const receipt = await tx.wait();
-      transactionHash = receipt?.transactionHash || receipt?.hash || null;
-
-      // Sync backend after on-chain sell
-      await nftAPI.pieceSellBackToLiquidity({
-        network: nft.network,
-        itemId: nft.itemId,
-        seller: address,
-        quantity: qty,
-        pricePerPiece,
-        totalAmount,
-        transactionHash,
-      });
-
-      SuccessToast("Pieces sold. You received payment from the liquidity pool.");
-      setSellPiecesModal(null);
-      setSellPiecesQty(1);
-      setSellPiecesQuote(null);
-      const holdings = await nftAPI.getPieceHoldingsByWallet(address);
-      setPieceHoldings(holdings);
-    } catch (err) {
-      console.error("Sell pieces error:", err);
-      const msg = String(err?.message || err?.reason || "");
-      if (msg.includes("Insufficient pieces") || (err?.data?.message && String(err.data.message).includes("Insufficient pieces"))) {
-        ErrorToast("You don't have enough pieces in your wallet for this pool. Buy pieces from the market first.");
-      } else {
-        ErrorToast(msg || "Failed to sell pieces");
-      }
-    } finally {
-      setSellPiecesSubmitting(false);
-    }
-  };
 
   const handlePlaceSellOrder = async () => {
     if (!placeOrderModal?.nft || !address) return;
@@ -912,21 +678,10 @@ function MyMintedNFTs() {
                                       </button>
                                       {getMyPieces(nft) > 0 && (
                                         <button
-                                          onClick={() => setSellPiecesModal({ nft, myPieces: getMyPieces(nft) })}
+                                          onClick={() => setPlaceOrderModal({ nft, myPieces: getMyPieces(nft) })}
                                           className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
                                         >
                                           Sell pieces
-                                        </button>
-                                      )}
-                                      {!nft.liquidityContract && (
-                                        <button
-                                          onClick={() => handleAddLiquidity(nft)}
-                                          disabled={addLiquidityNFTId === nft.itemId}
-                                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm disabled:opacity-50"
-                                        >
-                                          {addLiquidityNFTId === nft.itemId
-                                            ? "Creating pool…"
-                                            : "Add liquidity"}
                                         </button>
                                       )}
                                     </div>
@@ -1001,30 +756,13 @@ function MyMintedNFTs() {
                                         </button>
                                       )}
 
-                                      {/* Sell at market price — pieces leave wallet, payment to your wallet (no sell order needed) */}
-                                      {nft.liquidityContract && nft.liquidityPieceId != null && (
-                                        <div>
-                                          <button
-                                            onClick={() => setSellPiecesModal({ nft, myPieces: pieces })}
-                                            className="w-full bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded font-semibold text-sm"
-                                          >
-                                            Sell to liquidity
-                                          </button>
-                                          <p className="text-xs text-gray-400 mt-1">Sell at market price — payment to your wallet</p>
-                                        </div>
-                                      )}
-                                      {/* Place order to sell (list at your price for others to buy) */}
+                                      {/* Place a sell order (list at your price for another buyer to fill) */}
                                       <button
                                         onClick={() => setPlaceOrderModal({ nft, myPieces: pieces })}
                                         className="w-full bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded font-semibold text-sm"
                                       >
                                         Place sell order
                                       </button>
-                                      {!nft.liquidityContract && (
-                                        <p className="text-xs text-gray-400">
-                                          No on-chain liquidity pool yet. Use a sell order, or create a pool for this NFT.
-                                        </p>
-                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -1047,66 +785,6 @@ function MyMintedNFTs() {
         nft={sellModalNft}
       />
 
-      {/* Sell pieces: only quantity; price auto from market (no form field) */}
-      {sellPiecesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !sellPiecesSubmitting && setSellPiecesModal(null)}>
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-2">Sell to liquidity</h3>
-            <p className="text-gray-400 text-sm mb-4">&quot;{sellPiecesModal.nft?.name}&quot; — Sell at current market price; pieces leave your wallet and payment goes to your wallet.</p>
-            {sellPiecesOnChainBalance === null ? (
-              <p className="text-gray-500 text-sm mb-3">Loading wallet balance…</p>
-            ) : sellPiecesOnChainBalance === 0 ? (
-              <p className="text-amber-400 text-sm mb-3">You have 0 pieces in your wallet for this pool. Buy pieces from the market first, then you can sell here.</p>
-            ) : (
-              <p className="text-gray-400 text-sm mb-2">You have <span className="text-white font-medium">{sellPiecesOnChainBalance}</span> piece{sellPiecesOnChainBalance !== 1 ? "s" : ""} in your wallet (on-chain).</p>
-            )}
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">Quantity</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={Math.max(1, sellPiecesOnChainBalance ?? sellPiecesModal.myPieces ?? 1)}
-                  value={sellPiecesQty}
-                  onChange={(e) => setSellPiecesQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                  disabled={sellPiecesOnChainBalance === 0}
-                />
-              </div>
-              {sellPiecesQuote && (
-                <>
-                  {sellPiecesQuote.insufficientReserve ? (
-                    <p className="text-sm text-red-400 font-semibold">
-                      ⚠️ Pool Error: {sellPiecesQuote.warning}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-300">
-                      You will receive ~<span className="font-semibold text-white">{Number(sellPiecesQuote.totalProceeds).toFixed(4)}</span> {getCurrencySymbol(sellPiecesModal.nft?.network || "ethereum")}
-                      <span className="text-gray-500 text-xs ml-1">(at {Number(sellPiecesQuote.pricePerPiece).toFixed(4)} per piece; pool reserve: {sellPiecesQuote.onChainReserve})</span>
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setSellPiecesModal(null); setSellPiecesQty(1); setSellPiecesQuote(null); }}
-                disabled={sellPiecesSubmitting}
-                className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSellPieces}
-                disabled={sellPiecesSubmitting || sellPiecesOnChainBalance === null || sellPiecesOnChainBalance === 0 || sellPiecesQuote?.insufficientReserve}
-                className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm disabled:opacity-50"
-              >
-                {sellPiecesSubmitting ? "Selling…" : "Sell to liquidity"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Place sell order: list pieces at your price for others to buy */}
       {placeOrderModal && (

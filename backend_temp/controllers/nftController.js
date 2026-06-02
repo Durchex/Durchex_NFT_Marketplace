@@ -89,9 +89,17 @@ function formatLazyNFTAsNFT(lazyNFT, network = 'polygon') {
       : lazyNFT.buyer
         ? { lastBuyer: lazyNFT.buyer }
         : {}),
-    liquidityContract: lazyNFT.liquidityContract || null,
-    liquidityPieceId: lazyNFT.liquidityPieceId != null ? String(lazyNFT.liquidityPieceId) : null,
   };
+}
+
+/**
+ * Validate that a price string is a finite non-negative decimal or wei value.
+ * Returns true if valid. Rejects NaN, Infinity, negative, and non-numeric strings.
+ */
+function isValidPrice(value) {
+  if (value == null) return true; // optional field
+  const n = parseFloat(String(value));
+  return Number.isFinite(n) && n >= 0;
 }
 
 function encryptUnlockableContent(content) {
@@ -210,59 +218,6 @@ export const createCollection = async (req, res) => {
   }
 };
 
-/**
- * POST /nfts/:network/:itemId/liquidity
- * Attach or update on-chain liquidity pool info for an NFT (regular or LazyNFT).
- * Body: { liquidityContract: string, liquidityPieceId: string | number }
- */
-export const attachLiquidityPool = async (req, res) => {
-  try {
-    const { network, itemId } = req.params;
-    const { liquidityContract, liquidityPieceId } = req.body || {};
-
-    if (!network || !itemId || !liquidityContract || liquidityPieceId === undefined || liquidityPieceId === null) {
-      return res.status(400).json({
-        error: "network, itemId, liquidityContract, and liquidityPieceId are required",
-      });
-    }
-
-    const net = String(network).toLowerCase();
-    const itemIdStr = String(itemId);
-    const pieceIdStr = String(liquidityPieceId);
-
-    // Try regular nftModel first
-    let updated = await nftModel.findOneAndUpdate(
-      { network: net, itemId: itemIdStr },
-      { $set: { liquidityContract, liquidityPieceId: pieceIdStr } },
-      { new: true }
-    ).lean();
-
-    if (!updated && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      // Fallback to LazyNFT by Mongo _id
-      updated = await LazyNFT.findByIdAndUpdate(
-        itemIdStr,
-        { $set: { liquidityContract, liquidityPieceId: pieceIdStr } },
-        { new: true }
-      ).lean();
-    }
-
-    if (!updated) {
-      return res.status(404).json({ error: "NFT not found for attaching liquidity" });
-    }
-
-    return res.json({
-      success: true,
-      network: net,
-      itemId: itemIdStr,
-      liquidityContract,
-      liquidityPieceId: pieceIdStr,
-      nft: updated,
-    });
-  } catch (error) {
-    console.error("Error attaching liquidity pool:", error);
-    return res.status(500).json({ error: error.message });
-  }
-};
 
 export const getCollection = async (req, res) => {
   try {
@@ -484,6 +439,10 @@ export const updateNftOwner = async (req, res) => {
     }
     const net = String(network).toLowerCase();
     const buyerNorm = String(newOwner).toLowerCase();
+    // Verify authenticated caller is the claimed buyer
+    if (req.user && req.user.address !== buyerNorm) {
+      return res.status(403).json({ error: "Forbidden: newOwner must match your wallet address" });
+    }
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
 
     // 1. Find NFT — token owner stays creator; we only update remainingPieces and piece holdings
@@ -509,6 +468,34 @@ export const updateNftOwner = async (req, res) => {
         { new: true }
       );
       if (nft) {
+        // On-chain verification: if txHash provided, confirm the tx sent an NFT to the buyer.
+        if (transactionHash) {
+          const rpcUrl = process.env[`${net.toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.BASE_RPC_URL || null;
+          if (rpcUrl) {
+            try {
+              const { ethers: _ethers } = await import('ethers');
+              const provider = new _ethers.providers.JsonRpcProvider(rpcUrl);
+              const receipt = await provider.getTransactionReceipt(transactionHash);
+              if (!receipt || receipt.status !== 1) {
+                return res.status(400).json({ error: 'Transaction not confirmed on-chain.' });
+              }
+              const ifaceERC1155 = new _ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
+              const ifaceERC721  = new _ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
+              let transferSeen = false;
+              for (const log of receipt.logs) {
+                try { if (String(ifaceERC1155.parseLog(log).args.to).toLowerCase() === buyerNorm) { transferSeen = true; break; } } catch (_) {}
+                try { if (String(ifaceERC721.parseLog(log).args.to).toLowerCase() === buyerNorm) { transferSeen = true; break; } } catch (_) {}
+              }
+              if (!transferSeen) {
+                return res.status(400).json({ error: 'No NFT transfer to buyer found in transaction.' });
+              }
+            } catch (e) {
+              // RPC error — fall through and trust the client (degraded mode)
+              console.warn('[updateNftOwner] on-chain verify failed (proceeding):', e.message);
+            }
+          }
+        }
+
         // Add piece holding for buyer (creator/owner of token unchanged)
         const holding = await pieceHoldingModel.findOneAndUpdate(
           { network: net, itemId: String(itemId), wallet: buyerNorm },
@@ -596,6 +583,13 @@ export const createPieceSellOrder = async (req, res) => {
     const { network, itemId, seller, quantity, pricePerPiece } = req.body;
     if (!network || !itemId || !seller || quantity == null || quantity < 1 || !pricePerPiece) {
       return res.status(400).json({ error: "network, itemId, seller, quantity (>=1), and pricePerPiece are required" });
+    }
+    if (!isValidPrice(pricePerPiece) || parseFloat(pricePerPiece) <= 0) {
+      return res.status(400).json({ error: "pricePerPiece must be a positive number" });
+    }
+    // Verify authenticated caller is the claimed seller
+    if (req.user && req.user.address !== String(seller).toLowerCase()) {
+      return res.status(403).json({ error: "Forbidden: seller must match your wallet address" });
     }
     const net = String(network).toLowerCase();
     const sellerNorm = String(seller).toLowerCase();
@@ -712,36 +706,27 @@ export const recordLazyMintPurchase = async (req, res) => {
       return res.status(202).json({ success: true, pending: true, message: 'Transaction not confirmed; recorded pending intent.' });
     }
 
-    // Verify TransferSingle present in receipt logs for this lazy NFT (if liquidity info present)
+    // Verify the transaction contains a Transfer to the buyer (ERC721 or ERC1155).
+    // We no longer depend on a specific tokenId — we just confirm this tx sent an NFT to the buyer.
     let verified = false;
     try {
-      const iface = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
-      const liquidityContract = lazy.liquidityContract || null;
-      const liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
-      if (liquidityContract && liquidityPieceId) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = iface.parseLog(log);
-            if (parsed && parsed.name === 'TransferSingle') {
-              const to = String(parsed.args.to).toLowerCase();
-              const id = parsed.args.id.toString();
-              if (to === buyerNorm && id === String(liquidityPieceId)) {
-                verified = true;
-                break;
-              }
-            }
-          } catch (e) {
-            // ignore logs that don't match iface
-          }
-        }
+      const ifaceERC1155 = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
+      const ifaceERC721  = new ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
+      for (const log of receipt.logs) {
+        try {
+          const p = ifaceERC1155.parseLog(log);
+          if (p && String(p.args.to).toLowerCase() === buyerNorm) { verified = true; break; }
+        } catch (_) {}
+        try {
+          const p = ifaceERC721.parseLog(log);
+          if (p && String(p.args.to).toLowerCase() === buyerNorm) { verified = true; break; }
+        } catch (_) {}
       }
-    } catch (e) {
-      // ignore parse errors
-    }
+    } catch (_) {}
 
     if (!verified) {
       await PendingTransfer.create({ type: 'lazy_purchase', network: net, itemId: String(lazy._id), buyer: buyerNorm, quantity: qty, transactionHash: txHash });
-      return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but TransferSingle not observed yet; recorded pending intent.' });
+      return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but NFT transfer to buyer not yet observed; recorded pending intent.' });
     }
     // Verified on-chain TransferSingle observed: update DB
     // Add piece holding for buyer (creator/owner of token unchanged)
@@ -828,46 +813,57 @@ export const fillPieceSellOrder = async (req, res) => {
     }
     const buyQty = Math.max(1, parseInt(quantity, 10) || 1);
     const buyerNorm = String(buyer).toLowerCase();
-
-    const order = await pieceSellOrderModel.findById(orderId);
-    if (!order || order.status !== "active") {
-      return res.status(404).json({ error: "Order not found or not active" });
+    // Verify authenticated caller is the claimed buyer
+    if (req.user && req.user.address !== buyerNorm) {
+      return res.status(403).json({ error: "Forbidden: buyer must match your wallet address" });
     }
-    // Prevent buyer from filling their own sell order
+
+    // Atomic fill — prevents two concurrent buyers from over-filling the same order.
+    // The $expr condition ensures filledQuantity + buyQty <= quantity in a single operation.
+    const order = await pieceSellOrderModel.findOneAndUpdate(
+      {
+        _id: orderId,
+        status: "active",
+        $expr: { $lte: [{ $add: ["$filledQuantity", buyQty] }, "$quantity"] },
+      },
+      { $inc: { filledQuantity: buyQty } },
+      { new: true }
+    );
+    if (!order) {
+      // Either not found, not active, or not enough remaining — distinguish for caller.
+      const existing = await pieceSellOrderModel.findById(orderId).lean();
+      if (!existing) return res.status(404).json({ error: "Order not found" });
+      if (existing.status !== "active") return res.status(400).json({ error: "Order is no longer active" });
+      const remaining = existing.quantity - (existing.filledQuantity || 0);
+      return res.status(409).json({ error: `Only ${remaining} pieces available in this order.` });
+    }
+    // Prevent buyer from filling their own sell order (check after fetch for efficiency)
     if (String(order.seller).toLowerCase() === buyerNorm) {
+      // Undo the atomic increment and bail
+      await pieceSellOrderModel.findByIdAndUpdate(orderId, { $inc: { filledQuantity: -buyQty } });
       return res.status(400).json({ error: "Buyer cannot fill their own sell order" });
     }
-    const remaining = order.quantity - (order.filledQuantity || 0);
-    if (buyQty > remaining) {
-      return res.status(400).json({ error: `Only ${remaining} pieces available in this order.` });
-    }
 
-    const sellerHolding = await pieceHoldingModel.findOne({
-      network: order.network,
-      itemId: order.itemId,
-      wallet: order.seller,
-    });
-    if (!sellerHolding || Number(sellerHolding.pieces) < buyQty) {
-      return res.status(400).json({ error: "Seller no longer has enough pieces." });
-    }
-
-    await pieceHoldingModel.findOneAndUpdate(
-      { network: order.network, itemId: order.itemId, wallet: order.seller },
+    // Atomically decrement seller's holdings — reject if they no longer have enough.
+    const sellerHolding = await pieceHoldingModel.findOneAndUpdate(
+      { network: order.network, itemId: order.itemId, wallet: order.seller, pieces: { $gte: buyQty } },
       { $inc: { pieces: -buyQty } },
       { new: true }
     );
+    if (!sellerHolding) {
+      // Undo the order fill and return error
+      await pieceSellOrderModel.findByIdAndUpdate(orderId, { $inc: { filledQuantity: -buyQty } });
+      return res.status(400).json({ error: "Seller no longer has enough pieces." });
+    }
     await pieceHoldingModel.findOneAndUpdate(
       { network: order.network, itemId: order.itemId, wallet: buyerNorm },
       { $inc: { pieces: buyQty } },
       { new: true, upsert: true }
     );
 
-    const newFilled = (order.filledQuantity || 0) + buyQty;
+    const newFilled = order.filledQuantity; // already incremented by findOneAndUpdate
     const newStatus = newFilled >= order.quantity ? "filled" : "partially_filled";
-    await pieceSellOrderModel.findByIdAndUpdate(orderId, {
-      filledQuantity: newFilled,
-      status: newStatus,
-    });
+    await pieceSellOrderModel.findByIdAndUpdate(orderId, { status: newStatus });
 
     const pricePerPiece = order.pricePerPiece;
     const totalAmount = (parseFloat(pricePerPiece) * buyQty).toFixed(18);
@@ -916,107 +912,14 @@ export const fillPieceSellOrder = async (req, res) => {
   }
 };
 
-/** GET /liquidity/quote-sell — Quote net proceeds for selling pieces back to liquidity at current market price. Supports nftModel and LazyNFT (itemId = lazy _id). */
-export const quoteSellToLiquidity = async (req, res) => {
-  try {
-    const { network, itemId, quantity } = req.query;
-    if (!network || !itemId || !quantity) {
-      return res
-        .status(400)
-        .json({ error: "network, itemId, and quantity are required" });
-    }
-    const net = String(network).toLowerCase();
-    const qty = Math.max(1, parseInt(quantity, 10) || 1);
-    const itemIdStr = String(itemId);
+/** @deprecated Liquidity pool removed — keeping stub so old imports don't crash. */
+export const quoteSellToLiquidity = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
 
-    let pricePerPiece = 0;
-    let liquidityContract = null;
-    let liquidityPieceId = null;
 
-    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
-    if (nft) {
-      pricePerPiece = parseFloat(nft.lastPrice || nft.price || "0");
-      liquidityContract = nft.liquidityContract || null;
-      liquidityPieceId = nft.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
-    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      const lazy = await LazyNFT.findById(itemIdStr).lean();
-      if (!lazy) {
-        return res.status(404).json({ error: "NFT not found" });
-      }
-      // Creator is the liquidity pool; use last traded or listing price
-      pricePerPiece = parseFloat(lazy.lastPrice || lazy.price || lazy.floorPrice || "0");
-      liquidityContract = lazy.liquidityContract || null;
-      liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
-    } else {
-      return res.status(404).json({ error: "NFT not found" });
-    }
-
-    const totalProceeds = (pricePerPiece * qty).toFixed(18);
-
-    // Check on-chain reserve
-    let onChainReserve = 0;
-    let reserveCheckError = null;
-    if (liquidityContract && liquidityPieceId != null) {
-      try {
-        const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
-        if (rpcUrl) {
-          const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-          const erc1155Abi = ['function balanceOf(address,uint256) view returns (uint256)'];
-          const contract = new ethers.Contract(liquidityContract, erc1155Abi, provider);
-          const bn = await contract.balanceOf(liquidityContract, liquidityPieceId);
-          onChainReserve = bn.toNumber();
-        }
-      } catch (e) {
-        reserveCheckError = `Could not verify reserve: ${e.message}`;
-      }
-    }
-
-    const payload = {
-      success: true,
-      network: net,
-      itemId: itemIdStr,
-      quantity: qty,
-      pricePerPiece: String(pricePerPiece),
-      totalProceeds,
-      onChainReserve,
-    };
-    if (liquidityContract && liquidityPieceId != null) {
-      payload.liquidityContract = liquidityContract;
-      payload.liquidityPieceId = liquidityPieceId;
-    }
-    if (reserveCheckError) {
-      payload.reserveCheckWarning = reserveCheckError;
-    }
-    if (onChainReserve < qty) {
-      payload.insufficientReserve = true;
-      payload.warning = `Liquidity pool has ${onChainReserve} pieces, but you are trying to sell ${qty}`;
-    }
-    return res.json(payload);
-  } catch (error) {
-    console.error("Error quoting sell to liquidity:", error);
-    return res.status(500).json({ error: error.message });
-  }
-};
-
-/** POST /nfts/piece-buy-from-pool — Post-chain sync: buyer bought pieces from liquidity pool; update holdings and trades. */
-export const recordPoolPurchase = async (req, res) => {
-  try {
-    const { network, itemId, buyer, quantity, pricePerPiece, totalAmount, transactionHash } =
-      req.body || {};
-    if (!network || !itemId || !buyer || !quantity || !pricePerPiece) {
-      return res.status(400).json({
-        error: "network, itemId, buyer, quantity, and pricePerPiece are required",
-      });
-    }
-    const net = String(network).toLowerCase();
-    const buyerNorm = String(buyer).toLowerCase();
-    const qty = Math.max(1, parseInt(quantity, 10) || 1);
-    const itemIdStr = String(itemId);
-
-    let creatorWallet = "";
-    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
-    if (nft) {
-      creatorWallet = (nft.creator || nft.owner || nft.seller || "").toLowerCase();
+/** @deprecated Liquidity pool removed. */
+export const recordPoolPurchase = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+if (false) { // dead code tombstone — never executed
+    const creatorWallet = "";
     } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
       const lazy = await LazyNFT.findById(itemIdStr).lean();
       if (!lazy) {
@@ -1155,8 +1058,11 @@ export const recordPoolPurchase = async (req, res) => {
   }
 };
 
-/** POST /nfts/piece-sell-back — Post-chain sync: seller sold pieces back to liquidity; update holdings and trades. Supports nftModel and LazyNFT (itemId = lazy _id). */
-export const pieceSellBackToLiquidity = async (req, res) => {
+/** @deprecated Liquidity pool removed. */
+export const pieceSellBackToLiquidity = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+/** @deprecated */
+export const attachLiquidityPool = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+const _pieceSellBackToLiquidity_REMOVED = async (req, res) => {
   try {
     const { network, itemId, seller, quantity, pricePerPiece, totalAmount, transactionHash } =
       req.body || {};
@@ -1165,8 +1071,15 @@ export const pieceSellBackToLiquidity = async (req, res) => {
         error: "network, itemId, seller, quantity, and pricePerPiece are required",
       });
     }
+    if (!isValidPrice(pricePerPiece) || parseFloat(pricePerPiece) <= 0) {
+      return res.status(400).json({ error: "pricePerPiece must be a positive number" });
+    }
     const net = String(network).toLowerCase();
     const sellerNorm = String(seller).toLowerCase();
+    // Verify authenticated caller is the claimed seller
+    if (req.user && req.user.address !== sellerNorm) {
+      return res.status(403).json({ error: "Forbidden: seller must match your wallet address" });
+    }
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
     const itemIdStr = String(itemId);
 
@@ -1213,12 +1126,17 @@ export const pieceSellBackToLiquidity = async (req, res) => {
       }
     }
 
-    // Decrease seller's piece holdings
+    // Atomically decrement seller's holdings — only succeeds if they have enough pieces.
     const sellerHolding = await pieceHoldingModel.findOneAndUpdate(
-      { network: net, itemId: itemIdStr, wallet: sellerNorm },
+      { network: net, itemId: itemIdStr, wallet: sellerNorm, pieces: { $gte: qty } },
       { $inc: { pieces: -qty } },
       { new: true }
     );
+    if (!sellerHolding) {
+      const holding = await pieceHoldingModel.findOne({ network: net, itemId: itemIdStr, wallet: sellerNorm }).lean();
+      const available = holding ? Number(holding.pieces) : 0;
+      return res.status(400).json({ error: `Insufficient pieces. You hold ${available}, tried to sell ${qty}.` });
+    }
 
     // Increase creator/liquidity wallet's holdings. DO NOT change LazyNFT.remainingPieces (once sold out, stays sold out).
     if (creatorWallet) {
@@ -1300,13 +1218,9 @@ export const pieceSellBackToLiquidity = async (req, res) => {
       seller: sellerNorm,
       remainingPieces: sellerHolding?.pieces ?? 0,
     });
-  } catch (error) {
-    console.error("Error in pieceSellBackToLiquidity:", error);
-    return res.status(500).json({ error: error.message });
-  }
-};
+} // end dead code tombstone
 
-/** GET /nfts/:network/:itemId/trades — Transaction history for NFT (buy/sell — liquidity in/out). */
+/** GET /nfts/:network/:itemId/trades — Transaction history for NFT (buy/sell). */
 export const getNftTrades = async (req, res) => {
   try {
     const { network, itemId } = req.params;

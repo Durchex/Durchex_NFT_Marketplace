@@ -143,18 +143,6 @@ const lazyNFTSchema = new mongoose.Schema(
             index: true,
         },
 
-        // Optional: on-chain liquidity pool (NftLiquidity) for selling pieces back
-        liquidityContract: {
-            type: String,
-            default: null,
-            index: true,
-        },
-        liquidityPieceId: {
-            type: String,
-            default: null,
-            index: true,
-        },
-
         collection: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Collection',
