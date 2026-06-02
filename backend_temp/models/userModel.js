@@ -99,7 +99,7 @@ async function ensureUniqueGameCode() {
 }
 
 // Utility functions
-export const getUsers = () => nftUserModel.find();
+export const getUsers = () => nftUserModel.find().lean();
 export const getUserByWalletAddress = (walletAddress) => nftUserModel.findOne({ walletAddress: walletAddress?.toLowerCase?.() || walletAddress });
 export const getUserByGameCode = (code) => nftUserModel.findOne({ gameCode: (code || "").trim().toUpperCase() });
 

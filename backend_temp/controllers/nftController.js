@@ -313,10 +313,17 @@ export const getUserCollections = async (req, res) => {
 
 export const getAllCollections = async (req, res) => {
   try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(200, parseInt(req.query.limit) || 100);
+    const skip  = (page - 1) * limit;
+
     const collections = await Collection.find({})
+      .select('-contractABI -chainContracts') // exclude large/internal fields
       .sort({ createdAt: -1 })
-      .limit(100); // Limit for performance
-    
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
     res.status(200).json(collections);
   } catch (error) {
     res.status(500).json({ error: error.message });

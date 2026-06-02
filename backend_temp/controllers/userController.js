@@ -1,4 +1,4 @@
-import { createUser, deleteUserByWalletAddress, getUserByWalletAddress, getUserByGameCode, getUsers, updateUserByWalletAddress, ensureUniqueGameCode } from "../models/userModel.js";
+import { createUser, deleteUserByWalletAddress, getUserByWalletAddress, getUserByGameCode, updateUserByWalletAddress, ensureUniqueGameCode, nftUserModel } from "../models/userModel.js";
 
 // Create or update user profile
 export const createOrUpdateUserProfile = async (req, res) => {
@@ -39,11 +39,25 @@ export const createUserProfile = async (req, res) => {
     }
 };
 
-// Get all users
+// Get all users — public fields only, paginated
 export const getAllUsers = async (req, res) => {
     try {
-        const users = await getUsers();
-        res.status(200).json(users);
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, parseInt(req.query.limit) || 50);
+        const skip  = (page - 1) * limit;
+
+        const [users, total] = await Promise.all([
+            nftUserModel
+                .find({})
+                .select('walletAddress username image coverPhoto bio isVerified verificationStatus socialLinks createdAt')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            nftUserModel.countDocuments(),
+        ]);
+
+        res.status(200).json({ users, total, page, pages: Math.ceil(total / limit) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

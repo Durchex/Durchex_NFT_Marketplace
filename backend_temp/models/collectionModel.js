@@ -145,6 +145,7 @@ const collectionSchema = new mongoose.Schema(
 // Indexes for efficient queries
 collectionSchema.index({ creatorWallet: 1, network: 1 });
 collectionSchema.index({ network: 1, name: 1 });
+collectionSchema.index({ createdAt: -1 }); // for default sort on getAllCollections
 
 const Collection = mongoose.model('Collection', collectionSchema);
 
