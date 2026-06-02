@@ -1,4 +1,4 @@
-import Collection from "../models/collectionModel.js";
+﻿import Collection from "../models/collectionModel.js";
 import { nftModel } from "../models/nftModel.js";
 import LazyNFT from "../models/lazyNFTModel.js";
 import { pieceHoldingModel } from "../models/pieceHoldingModel.js";
@@ -154,7 +154,7 @@ export const createCollection = async (req, res) => {
 
     // If smart contract deployment requested
     if (deployContract && factoryAddress) {
-      console.log(`🔗 Smart contract deployment requested for collection: ${data.name}`);
+      console.log(`ðŸ”— Smart contract deployment requested for collection: ${data.name}`);
 
       try {
         // Deploy collection contract via factory
@@ -191,9 +191,9 @@ export const createCollection = async (req, res) => {
         };
         collectionData.isContractVerified = false;
 
-        console.log(`✅ Collection deployed to: ${deploymentResult.collectionAddress}`);
+        console.log(`âœ… Collection deployed to: ${deploymentResult.collectionAddress}`);
       } catch (error) {
-        console.error(`❌ Smart contract deployment failed: ${error.message}`);
+        console.error(`âŒ Smart contract deployment failed: ${error.message}`);
         return res.status(500).json({
           error: "Smart contract deployment failed",
           details: error.message
@@ -222,32 +222,32 @@ export const createCollection = async (req, res) => {
 export const getCollection = async (req, res) => {
   try {
     const { collectionId } = req.params;
-    console.log('🔍 getCollection called');
+    console.log('ðŸ” getCollection called');
     console.log('   collectionId type:', typeof collectionId);
     console.log('   collectionId value:', JSON.stringify(collectionId));
     console.log('   collectionId length:', collectionId?.length);
     
     // Try to find by custom collectionId first, then by MongoDB _id
-    console.log('📊 Searching Collection.findOne({ collectionId:' + collectionId + ' })');
+    console.log('ðŸ“Š Searching Collection.findOne({ collectionId:' + collectionId + ' })');
     let collection = await Collection.findOne({ collectionId: String(collectionId) });
-    console.log('📊 findOne result:', collection ? `Found: ${collection.name}` : 'Not found');
+    console.log('ðŸ“Š findOne result:', collection ? `Found: ${collection.name}` : 'Not found');
     
     if (!collection) {
-      console.log('📊 Trying findById with:', collectionId);
+      console.log('ðŸ“Š Trying findById with:', collectionId);
       collection = await Collection.findById(collectionId);
-      console.log('📊 findById result:', collection ? `Found: ${collection.name}` : 'Not found');
+      console.log('ðŸ“Š findById result:', collection ? `Found: ${collection.name}` : 'Not found');
     }
     
     if (!collection) {
-      console.log('❌ Collection not found for:', collectionId);
+      console.log('âŒ Collection not found for:', collectionId);
       // Don't return 404, return 200 with empty array to match current behavior
       return res.status(200).json([]);
     }
     
-    console.log('✅ Returning collection:', collection.name);
+    console.log('âœ… Returning collection:', collection.name);
     res.status(200).json(collection);
   } catch (error) {
-    console.error('💥 Error in getCollection:', error);
+    console.error('ðŸ’¥ Error in getCollection:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -323,7 +323,7 @@ export const getCollectionNFTs = async (req, res) => {
       }
     });
     
-    // Query lazy NFTs in the same collection — no expiresAt filter so all survive.
+    // Query lazy NFTs in the same collection â€” no expiresAt filter so all survive.
     const lazyNfts = await LazyNFT.find({
       $or: [
         { collection: collectionDoc._id },
@@ -430,7 +430,7 @@ export const checkNftExists = async (req, res) => {
 
 // pendingTransfersStore is imported from services/pendingStore (shared)
 
-/** POST /nfts/update-owner — Post-buy sync: decrement remainingPieces, add piece holding for buyer, record trade (price/market cap). Creator/owner of token is never changed. */
+/** POST /nfts/update-owner â€” Post-buy sync: decrement remainingPieces, add piece holding for buyer, record trade (price/market cap). Creator/owner of token is never changed. */
 export const updateNftOwner = async (req, res) => {
   try {
     const { network, itemId, tokenId, newOwner, listed, quantity = 1, price, transactionHash, seller } = req.body;
@@ -445,7 +445,7 @@ export const updateNftOwner = async (req, res) => {
     }
     const qty = Math.max(1, parseInt(quantity, 10) || 1);
 
-    // 1. Find NFT — token owner stays creator; we only update remainingPieces and piece holdings
+    // 1. Find NFT â€” token owner stays creator; we only update remainingPieces and piece holdings
     const existing = await nftModel.findOne({ network: net, itemId: String(itemId) });
     if (!existing) {
       // Fall through to LazyNFT check below
@@ -490,7 +490,7 @@ export const updateNftOwner = async (req, res) => {
                 return res.status(400).json({ error: 'No NFT transfer to buyer found in transaction.' });
               }
             } catch (e) {
-              // RPC error — fall through and trust the client (degraded mode)
+              // RPC error â€” fall through and trust the client (degraded mode)
               console.warn('[updateNftOwner] on-chain verify failed (proceeding):', e.message);
             }
           }
@@ -553,7 +553,7 @@ export const updateNftOwner = async (req, res) => {
   }
 };
 
-/** POST /pending-transfers — Store pending transfer record (buyer/seller/txHash) */
+/** POST /pending-transfers â€” Store pending transfer record (buyer/seller/txHash) */
 export const createPendingTransfer = async (req, res) => {
   try {
     const { network, itemId, nftContract, buyerAddress, sellerAddress, transactionHash } = req.body;
@@ -575,9 +575,9 @@ export const createPendingTransfer = async (req, res) => {
   }
 };
 
-// ——— Piece sell orders (collectors sell pieces back into liquidity) ———
+// â€”â€”â€” Piece sell orders (collectors sell pieces back into liquidity) â€”â€”â€”
 
-/** POST /nfts/piece-sell-orders — Collector lists pieces for sale (sell back liquidity). */
+/** POST /nfts/piece-sell-orders â€” Collector lists pieces for sale (sell back liquidity). */
 export const createPieceSellOrder = async (req, res) => {
   try {
     const { network, itemId, seller, quantity, pricePerPiece } = req.body;
@@ -616,7 +616,7 @@ export const createPieceSellOrder = async (req, res) => {
   }
 };
 
-/** GET /nfts/piece-sell-orders/:network/:itemId — Active sell orders for an NFT (liquidity pool). */
+/** GET /nfts/piece-sell-orders/:network/:itemId â€” Active sell orders for an NFT (liquidity pool). */
 export const getPieceSellOrdersByNft = async (req, res) => {
   try {
     const { network, itemId } = req.params;
@@ -632,7 +632,7 @@ export const getPieceSellOrdersByNft = async (req, res) => {
   }
 };
 
-/** GET /nfts/piece-holdings/:wallet — Holdings by wallet (for My NFTs). */
+/** GET /nfts/piece-holdings/:wallet â€” Holdings by wallet (for My NFTs). */
 export const getPieceHoldingsByWallet = async (req, res) => {
   try {
     const { wallet } = req.params;
@@ -646,7 +646,7 @@ export const getPieceHoldingsByWallet = async (req, res) => {
   }
 };
 
-/** POST /nfts/lazy/:id/record-purchase — Post-mint sync for lazy-mint (MultiPieceLazyMintNFT): decrement remainingPieces, add piece holding, record trade. */
+/** POST /nfts/lazy/:id/record-purchase â€” Post-mint sync for lazy-mint (MultiPieceLazyMintNFT): decrement remainingPieces, add piece holding, record trade. */
 export const recordLazyMintPurchase = async (req, res) => {
   try {
     const { id } = req.params;
@@ -707,7 +707,7 @@ export const recordLazyMintPurchase = async (req, res) => {
     }
 
     // Verify the transaction contains a Transfer to the buyer (ERC721 or ERC1155).
-    // We no longer depend on a specific tokenId — we just confirm this tx sent an NFT to the buyer.
+    // We no longer depend on a specific tokenId â€” we just confirm this tx sent an NFT to the buyer.
     let verified = false;
     try {
       const ifaceERC1155 = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
@@ -803,7 +803,7 @@ export const recordLazyMintPurchase = async (req, res) => {
   }
 };
 
-/** POST /nfts/piece-sell-orders/:orderId/fill — Buy from a collector's sell order (fill order). */
+/** POST /nfts/piece-sell-orders/:orderId/fill â€” Buy from a collector's sell order (fill order). */
 export const fillPieceSellOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -818,7 +818,7 @@ export const fillPieceSellOrder = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: buyer must match your wallet address" });
     }
 
-    // Atomic fill — prevents two concurrent buyers from over-filling the same order.
+    // Atomic fill â€” prevents two concurrent buyers from over-filling the same order.
     // The $expr condition ensures filledQuantity + buyQty <= quantity in a single operation.
     const order = await pieceSellOrderModel.findOneAndUpdate(
       {
@@ -830,7 +830,7 @@ export const fillPieceSellOrder = async (req, res) => {
       { new: true }
     );
     if (!order) {
-      // Either not found, not active, or not enough remaining — distinguish for caller.
+      // Either not found, not active, or not enough remaining â€” distinguish for caller.
       const existing = await pieceSellOrderModel.findById(orderId).lean();
       if (!existing) return res.status(404).json({ error: "Order not found" });
       if (existing.status !== "active") return res.status(400).json({ error: "Order is no longer active" });
@@ -844,7 +844,7 @@ export const fillPieceSellOrder = async (req, res) => {
       return res.status(400).json({ error: "Buyer cannot fill their own sell order" });
     }
 
-    // Atomically decrement seller's holdings — reject if they no longer have enough.
+    // Atomically decrement seller's holdings â€” reject if they no longer have enough.
     const sellerHolding = await pieceHoldingModel.findOneAndUpdate(
       { network: order.network, itemId: order.itemId, wallet: order.seller, pieces: { $gte: buyQty } },
       { $inc: { pieces: -buyQty } },
@@ -912,315 +912,14 @@ export const fillPieceSellOrder = async (req, res) => {
   }
 };
 
-/** @deprecated Liquidity pool removed — keeping stub so old imports don't crash. */
-export const quoteSellToLiquidity = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+/** @deprecated â€” liquidity pool feature removed. */
+export const quoteSellToLiquidity        = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+export const recordPoolPurchase          = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+export const pieceSellBackToLiquidity    = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
+export const attachLiquidityPool         = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
 
 
-/** @deprecated Liquidity pool removed. */
-export const recordPoolPurchase = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
-if (false) { // dead code tombstone — never executed
-    const creatorWallet = "";
-    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      const lazy = await LazyNFT.findById(itemIdStr).lean();
-      if (!lazy) {
-        return res.status(404).json({ error: "NFT not found" });
-      }
-      creatorWallet = (lazy.creator || "").toLowerCase();
-    }
-
-    // Prevent creator from buying their own listing
-    if (creatorWallet && buyerNorm === creatorWallet) {
-      return res.status(400).json({ error: "Creator cannot buy their own listing" });
-    }
-
-    // Require transactionHash and verify on-chain TransferSingle before updating DB
-    const txHash = transactionHash || req.body.txHash || null;
-    if (!txHash) {
-      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, pricePerPiece: String(pricePerPiece), transactionHash: null });
-      return res.status(202).json({ success: true, pending: true, message: 'Transaction hash required for immediate DB sync; recorded pending intent.' });
-    }
-
-    const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
-    if (!rpcUrl) {
-      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
-      return res.status(202).json({ success: true, pending: true, message: 'No RPC configured to verify transaction; recorded pending intent.' });
-    }
-    const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-
-    let receipt;
-    try {
-      receipt = await provider.getTransactionReceipt(txHash);
-    } catch (e) {
-      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
-      return res.status(202).json({ success: true, pending: true, message: 'Transaction receipt not available yet; recorded pending intent.' });
-    }
-    if (!receipt || receipt.status !== 1) {
-      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
-      return res.status(202).json({ success: true, pending: true, message: 'Transaction not confirmed; recorded pending intent.' });
-    }
-
-    // Verify TransferSingle present in receipt logs for this pool purchase (if liquidity info present)
-    let verified = false;
-    try {
-      const iface = new ethers.utils.Interface(['event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)']);
-      let liquidityAddress = nft?.liquidityContract || null;
-      let liquidityPieceId = nft?.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
-      if ((!liquidityAddress || !liquidityPieceId) && /^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-        const lazy = await LazyNFT.findById(itemIdStr).lean();
-        if (lazy) {
-          liquidityAddress = liquidityAddress || lazy.liquidityContract;
-          liquidityPieceId = liquidityPieceId || (lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null);
-        }
-      }
-      if (liquidityAddress && liquidityPieceId) {
-        for (const log of receipt.logs) {
-          try {
-            const parsed = iface.parseLog(log);
-            if (parsed && parsed.name === 'TransferSingle') {
-              const to = String(parsed.args.to).toLowerCase();
-              const id = parsed.args.id.toString();
-              if (to === buyerNorm && id === String(liquidityPieceId)) {
-                verified = true;
-                break;
-              }
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    if (!verified) {
-      await PendingTransfer.create({ type: 'pool_purchase', network: net, itemId: itemIdStr, buyer: buyerNorm, quantity: qty, transactionHash: txHash });
-      return res.status(202).json({ success: true, pending: true, message: 'Transaction confirmed but TransferSingle not observed yet; recorded pending intent.' });
-    }
-
-    await pieceHoldingModel.findOneAndUpdate(
-      { network: net, itemId: itemIdStr, wallet: buyerNorm },
-      { $inc: { pieces: qty } },
-      { new: true, upsert: true }
-    );
-
-    const priceStr = String(pricePerPiece);
-    const totalStr =
-      totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
-
-    // Attempt to record royalty information from known NFT or lazy NFT doc
-    let royaltyPct = 0;
-    if (nft && nft.royaltyPercentage != null) royaltyPct = Number(nft.royaltyPercentage);
-    else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      const lazyDoc = await LazyNFT.findById(itemIdStr).lean();
-      if (lazyDoc && lazyDoc.royaltyPercentage != null) royaltyPct = Number(lazyDoc.royaltyPercentage);
-    }
-    const royaltyAmountPool = royaltyPct ? ((parseFloat(totalStr) * royaltyPct) / 100).toFixed(18) : "0";
-    await nftTradeModel.create({
-      network: net,
-      itemId: itemIdStr,
-      transactionType: "primary_buy",
-      seller: creatorWallet || null,
-      buyer: buyerNorm,
-      quantity: qty,
-      pricePerPiece: priceStr,
-      totalAmount: totalStr,
-      royaltyPercentage: String(royaltyPct),
-      royaltyAmount: String(royaltyAmountPool),
-      transactionHash: transactionHash || null,
-    });
-
-    const nftDoc = await nftModel.findOne({ network: net, itemId: itemIdStr });
-    if (nftDoc) {
-      const totalPieces = Math.max(1, Number(nftDoc.pieces ?? 1));
-      const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
-      await nftModel.updateOne(
-        { network: net, itemId: itemIdStr },
-        { $set: { lastPrice: priceStr, marketCap } }
-      );
-    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      await LazyNFT.updateOne(
-        { _id: itemIdStr },
-        { $set: { lastPrice: priceStr } }
-      );
-    }
-
-    return res.json({
-      success: true,
-      network: net,
-      itemId: itemIdStr,
-      buyer: buyerNorm,
-      quantity: qty,
-    });
-  } catch (error) {
-    console.error("Error in recordPoolPurchase:", error);
-    return res.status(500).json({ error: error.message });
-  }
-};
-
-/** @deprecated Liquidity pool removed. */
-export const pieceSellBackToLiquidity = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
-/** @deprecated */
-export const attachLiquidityPool = async (_req, res) => res.status(410).json({ error: 'Liquidity pool feature removed' });
-const _pieceSellBackToLiquidity_REMOVED = async (req, res) => {
-  try {
-    const { network, itemId, seller, quantity, pricePerPiece, totalAmount, transactionHash } =
-      req.body || {};
-    if (!network || !itemId || !seller || !quantity || !pricePerPiece) {
-      return res.status(400).json({
-        error: "network, itemId, seller, quantity, and pricePerPiece are required",
-      });
-    }
-    if (!isValidPrice(pricePerPiece) || parseFloat(pricePerPiece) <= 0) {
-      return res.status(400).json({ error: "pricePerPiece must be a positive number" });
-    }
-    const net = String(network).toLowerCase();
-    const sellerNorm = String(seller).toLowerCase();
-    // Verify authenticated caller is the claimed seller
-    if (req.user && req.user.address !== sellerNorm) {
-      return res.status(403).json({ error: "Forbidden: seller must match your wallet address" });
-    }
-    const qty = Math.max(1, parseInt(quantity, 10) || 1);
-    const itemIdStr = String(itemId);
-
-    let creatorWallet = "";
-    let liquidityContract = null;
-    let liquidityPieceId = null;
-    const nft = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
-    if (nft) {
-      creatorWallet = (nft.creator || nft.owner || nft.seller || "").toLowerCase();
-      liquidityContract = nft.liquidityContract || null;
-      liquidityPieceId = nft.liquidityPieceId != null ? String(nft.liquidityPieceId) : null;
-    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      const lazy = await LazyNFT.findById(itemIdStr).lean();
-      if (!lazy) {
-        return res.status(404).json({ error: "NFT not found" });
-      }
-      creatorWallet = (lazy.creator || "").toLowerCase();
-      liquidityContract = lazy.liquidityContract || null;
-      liquidityPieceId = lazy.liquidityPieceId != null ? String(lazy.liquidityPieceId) : null;
-    } else {
-      return res.status(404).json({ error: "NFT not found" });
-    }
-
-    // Check on-chain reserve before allowing sell
-    if (liquidityContract && liquidityPieceId != null) {
-      try {
-        const rpcUrl = process.env[`${String(net).toUpperCase()}_RPC_URL`] || process.env.RPC_URL || process.env.VITE_APP_WEB3_PROVIDER || process.env.BASE_RPC_URL || null;
-        if (rpcUrl) {
-          const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-          const erc1155Abi = ['function balanceOf(address,uint256) view returns (uint256)'];
-          const contract = new ethers.Contract(liquidityContract, erc1155Abi, provider);
-          const bn = await contract.balanceOf(liquidityContract, liquidityPieceId);
-          const reserve = bn.toNumber();
-          if (reserve < qty) {
-            return res.status(400).json({
-              error: `Insufficient liquidity pool reserve. Pool has ${reserve} pieces, you are selling ${qty}. Transaction would fail on-chain.`,
-              reserve,
-              requested: qty
-            });
-          }
-        }
-      } catch (e) {
-        console.warn(`Reserve check failed (proceeding anyway): ${e.message}`);
-      }
-    }
-
-    // Atomically decrement seller's holdings — only succeeds if they have enough pieces.
-    const sellerHolding = await pieceHoldingModel.findOneAndUpdate(
-      { network: net, itemId: itemIdStr, wallet: sellerNorm, pieces: { $gte: qty } },
-      { $inc: { pieces: -qty } },
-      { new: true }
-    );
-    if (!sellerHolding) {
-      const holding = await pieceHoldingModel.findOne({ network: net, itemId: itemIdStr, wallet: sellerNorm }).lean();
-      const available = holding ? Number(holding.pieces) : 0;
-      return res.status(400).json({ error: `Insufficient pieces. You hold ${available}, tried to sell ${qty}.` });
-    }
-
-    // Increase creator/liquidity wallet's holdings. DO NOT change LazyNFT.remainingPieces (once sold out, stays sold out).
-    if (creatorWallet) {
-      await pieceHoldingModel.findOneAndUpdate(
-        { network: net, itemId: String(itemId), wallet: creatorWallet },
-        { $inc: { pieces: qty } },
-        { new: true, upsert: true }
-      );
-    }
-
-    const priceStr = String(pricePerPiece);
-    const totalStr =
-      totalAmount != null ? String(totalAmount) : (parseFloat(priceStr) * qty).toFixed(18);
-
-    // Attempt to capture royalty percentage from nft or lazy doc
-    let royaltyPctSellBack = 0;
-    const nftDocForRoyalty = await nftModel.findOne({ network: net, itemId: itemIdStr }).lean();
-    if (nftDocForRoyalty && nftDocForRoyalty.royaltyPercentage != null) royaltyPctSellBack = Number(nftDocForRoyalty.royaltyPercentage);
-    else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      const lazyDocSellBack = await LazyNFT.findById(itemIdStr).lean();
-      if (lazyDocSellBack && lazyDocSellBack.royaltyPercentage != null) royaltyPctSellBack = Number(lazyDocSellBack.royaltyPercentage);
-    }
-    const royaltyAmtSellBack = royaltyPctSellBack ? ((parseFloat(totalStr) * royaltyPctSellBack) / 100).toFixed(18) : "0";
-
-    await nftTradeModel.create({
-      network: net,
-      itemId: String(itemId),
-      transactionType: "secondary_sell_to_liquidity",
-      seller: sellerNorm,
-      buyer: creatorWallet || null,
-      quantity: qty,
-      pricePerPiece: priceStr,
-      totalAmount: totalStr,
-      royaltyPercentage: String(royaltyPctSellBack),
-      royaltyAmount: String(royaltyAmtSellBack),
-      transactionHash: transactionHash || null,
-    });
-
-    // Emit socket event for UI updates
-    try {
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('user_activity_update', {
-          type: 'sell_to_liquidity',
-          network: net,
-          itemId: String(itemId),
-          seller: sellerNorm,
-          buyer: creatorWallet || null,
-          quantity: qty,
-          pricePerPiece: priceStr,
-          transactionType: 'secondary_sell_to_liquidity',
-          timestamp: new Date(),
-        });
-      }
-    } catch (e) {
-      // ignore socket errors
-    }
-
-    // Update last traded price so market price moves with sell-backs
-    const nftDoc = await nftModel.findOne({ network: net, itemId: itemIdStr });
-    if (nftDoc) {
-      const totalPieces = Math.max(1, Number(nftDoc.pieces ?? 1));
-      const marketCap = (parseFloat(priceStr) * totalPieces).toFixed(18);
-      await nftModel.updateOne(
-        { network: net, itemId: itemIdStr },
-        { $set: { lastPrice: priceStr, marketCap } }
-      );
-    } else if (/^[a-fA-F0-9]{24}$/.test(itemIdStr)) {
-      await LazyNFT.updateOne(
-        { _id: itemIdStr },
-        { $set: { lastPrice: priceStr } }
-      );
-    }
-
-    return res.json({
-      success: true,
-      network: net,
-      itemId: String(itemId),
-      seller: sellerNorm,
-      remainingPieces: sellerHolding?.pieces ?? 0,
-    });
-} // end dead code tombstone
-
-/** GET /nfts/:network/:itemId/trades — Transaction history for NFT (buy/sell). */
+/** GET /nfts/:network/:itemId/trades â€” Transaction history for NFT (buy/sell). */
 export const getNftTrades = async (req, res) => {
   try {
     const { network, itemId } = req.params;
@@ -1238,7 +937,7 @@ export const getNftTrades = async (req, res) => {
   }
 };
 
-/** GET /nfts/:network/:itemId/analytics — Price history, volume, market cap, price movement from trades. Supports nftModel and LazyNFT (itemId = lazy _id). */
+/** GET /nfts/:network/:itemId/analytics â€” Price history, volume, market cap, price movement from trades. Supports nftModel and LazyNFT (itemId = lazy _id). */
 export const getNftAnalytics = async (req, res) => {
   try {
     const { network, itemId } = req.params;
@@ -1325,7 +1024,7 @@ export const getNftAnalytics = async (req, res) => {
   }
 };
 
-/** GET /nfts/:network/:itemId/rarity — Rarity score and rank (live from attributes / collection). */
+/** GET /nfts/:network/:itemId/rarity â€” Rarity score and rank (live from attributes / collection). */
 export const getNftRarityRank = async (req, res) => {
   try {
     const { network, itemId } = req.params;
@@ -1430,7 +1129,7 @@ export const createNft = async (req, res) => {
 
     // If deployContract is requested, mint on blockchain
     if (deployContract && metadataURI) {
-      console.log(`🔗 Smart contract deployment requested for NFT`);
+      console.log(`ðŸ”— Smart contract deployment requested for NFT`);
 
       // Get collection contract from database
       const collection = await Collection.findOne({
@@ -1476,9 +1175,9 @@ export const createNft = async (req, res) => {
           }
         };
 
-        console.log(`✅ NFT minted with token ID: ${mintResult.tokenId}`);
+        console.log(`âœ… NFT minted with token ID: ${mintResult.tokenId}`);
       } catch (error) {
-        console.error(`❌ Smart contract minting failed: ${error.message}`);
+        console.error(`âŒ Smart contract minting failed: ${error.message}`);
         return res.status(500).json({
           error: "Smart contract minting failed",
           details: error.message
@@ -1573,7 +1272,7 @@ export const createUpcomingNft = async (req, res) => {
         error: 'Whitelist voucher signature missing. Sign the listing with the creator wallet at creation.',
       });
     }
-    // Public voucher is optional — only present when publicPrice is set.
+    // Public voucher is optional â€” only present when publicPrice is set.
     if (nftData.publicPrice && !nftData.publicVoucher?.signature) {
       return res.status(400).json({
         error: 'Public price was set but public voucher is missing. Sign the public listing too.',
@@ -1723,7 +1422,7 @@ export const updateUpcomingNft = async (req, res) => {
     }
 
     // If the price changed, the previously stored vouchers no longer match the
-    // listing parameters — they'd fail signature verification on-chain. Caller
+    // listing parameters â€” they'd fail signature verification on-chain. Caller
     // must re-sign and pass new vouchers when changing whitelistPrice / publicPrice / mintingFee.
     if (priceFieldsChanged) {
       if (req.body.whitelistVoucher?.signature) {
@@ -1941,7 +1640,7 @@ export const previewNftMetadata = async (req, res) => {
 // 1. Fetch all collections grouped by network and collection separately
 export const fetchCollectionsGroupedByNetwork = async (req, res) => {
   const { network } = req.params; // assuming route like /collections/:network
-  console.log("🚀 ~ fetchCollectionsGroupedByNetwork ~ network:", network);
+  console.log("ðŸš€ ~ fetchCollectionsGroupedByNetwork ~ network:", network);
 
   try {
     // Add network filtering in $match
@@ -1992,7 +1691,7 @@ export const fetchCollectionsGroupedByNetwork = async (req, res) => {
   }
 };
 
-/** GET /nfts/by-id/:id — Get a single NFT by id (works for lazy-mint _id or regular itemId). Sold-out lazy mints still findable. */
+/** GET /nfts/by-id/:id â€” Get a single NFT by id (works for lazy-mint _id or regular itemId). Sold-out lazy mints still findable. */
 export const getNftByAnyId = async (req, res) => {
   const { id } = req.params;
   try {
@@ -2047,7 +1746,7 @@ export const fetchAllNftsByNetwork = async (req, res) => {
     // IMPORTANT: We include both actively selling AND sold-out lazy mints so they
     // remain visible on the marketplace (sold-out == "no pieces left" but still discoverable).
     // Actual "can mint/buy more pieces" logic is handled on the frontend using remainingPieces.
-    // No expiresAt filter — we show all lazy NFTs regardless of expiry so nothing disappears.
+    // No expiresAt filter â€” we show all lazy NFTs regardless of expiry so nothing disappears.
     const lazyNfts = await LazyNFT.find({
       network: net,
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
@@ -2085,7 +1784,7 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
     });
 
     // Fetch lazy NFTs from lazy_nfts table: same network, any status (pending/redeemed/fully_redeemed)
-    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
+    // No expiresAt filter â€” show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: net,
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
@@ -2111,7 +1810,7 @@ export const fetchAllNftsByNetworkForExplore = async (req, res) => {
   }
 };
 
-// 2c. Fetch ALL NFTs across all networks (listed only) – single query.
+// 2c. Fetch ALL NFTs across all networks (listed only) â€“ single query.
 export const fetchAllNftsAllNetworks = async (req, res) => {
   try {
     const networks = ['polygon', 'ethereum', 'bsc', 'arbitrum', 'base', 'solana'];
@@ -2126,7 +1825,7 @@ export const fetchAllNftsAllNetworks = async (req, res) => {
     }).lean();
 
     // Lazy NFTs from all networks, any active status (pending/redeemed/fully_redeemed)
-    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
+    // No expiresAt filter â€” show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: { $in: networks },
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
@@ -2167,7 +1866,7 @@ export const fetchAllNftsAllNetworksForExplore = async (req, res) => {
       adminStatus: { $ne: 'delisted' },
     }).lean();
 
-    // No expiresAt filter — show all lazy NFTs in the DB regardless of expiry.
+    // No expiresAt filter â€” show all lazy NFTs in the DB regardless of expiry.
     const lazyNfts = await LazyNFT.find({
       network: { $in: networks },
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
@@ -2389,7 +2088,7 @@ export const deleteNftInCollection = async (req, res) => {
   }
 };
 
-// ✅ ISSUE #4: Fetch user's owned NFTs by wallet address
+// âœ… ISSUE #4: Fetch user's owned NFTs by wallet address
 export const fetchUserNFTs = async (req, res) => {
   const { walletAddress } = req.params;
 
@@ -2407,7 +2106,7 @@ export const fetchUserNFTs = async (req, res) => {
 
     // Find lazy NFTs:
     // 1. Lazy NFTs owned by user (redeemed and bought by user)
-    // 2. Lazy NFTs created by user (pending or fully_redeemed — show all they created)
+    // 2. Lazy NFTs created by user (pending or fully_redeemed â€” show all they created)
     const lazyNFTsOwned = await LazyNFT.find({
       buyer: normalizedAddress,
       status: 'redeemed'
