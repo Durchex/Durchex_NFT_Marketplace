@@ -111,6 +111,14 @@ export default function Explore() {
   const [category,   setCategory]   = useState('all');
   const [search,     setSearch]     = useState('');
   const [heroNfts,   setHeroNfts]   = useState([]);
+  const [heroIndex,  setHeroIndex]  = useState(0);
+
+  /* ── Auto-advance hero every 4 s ── */
+  useEffect(() => {
+    if (heroNfts.length <= 1) return;
+    const t = setInterval(() => setHeroIndex(i => (i + 1) % heroNfts.length), 4000);
+    return () => clearInterval(t);
+  }, [heroNfts.length]);
 
   /* ── Boot data ── */
   const loadData = useCallback(async () => {
@@ -129,8 +137,9 @@ export default function Explore() {
       setNfts(nftList);
       setCols(colList.slice(0, 10));
       setStats(statsData);
-      // Hero: pick up to 3 with images
-      setHeroNfts(nftList.filter(n => n.image || n.imageURL).slice(0, 3));
+      // Hero carousel: pick up to 8 NFTs with images
+      setHeroNfts(nftList.filter(n => n.image || n.imageURL).slice(0, 8));
+      setHeroIndex(0);
     } catch (_) {}
     setLoading(false);
   }, []);
@@ -146,8 +155,8 @@ export default function Explore() {
     return matchCat && matchQ;
   });
 
-  /* ── Hero section (top 3 NFTs) ── */
-  const hero = heroNfts[0];
+  /* ── Hero carousel ── */
+  const hero = heroNfts[heroIndex] || null;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -211,28 +220,72 @@ export default function Explore() {
               </div>
             </div>
 
-            {/* Right: hero NFT + carousel */}
-            <div className="hidden lg:block animate-fade-up" style={{ animationDelay: '0.15s' }}>
-              {hero ? (
+            {/* Right: auto-sliding hero carousel */}
+            <div className="hidden lg:block" style={{ animationDelay: '0.15s' }}>
+              {heroNfts.length > 0 ? (
                 <div className="relative">
                   {/* Glow */}
-                  <div className="absolute inset-8 blur-3xl opacity-40 rounded-3xl"
+                  <div className="absolute inset-8 blur-3xl opacity-35 rounded-3xl pointer-events-none"
                     style={{ background: 'var(--g-orbital)' }} />
-                  {/* Main card */}
-                  <div className="relative">
-                    <NFTCard nft={hero} variant="featured" />
+
+                  {/* Carousel frame */}
+                  <div className="relative overflow-hidden rounded-3xl" style={{ aspectRatio: '4/5' }}>
+                    {heroNfts.map((nft, i) => {
+                      const img = nft.image || nft.imageURL || '';
+                      return (
+                        <Link
+                          key={nft.itemId || nft._id || i}
+                          to={`/nft/${nft.itemId || nft._id}`}
+                          className="absolute inset-0 transition-opacity duration-700"
+                          style={{ opacity: i === heroIndex ? 1 : 0, zIndex: i === heroIndex ? 1 : 0 }}
+                        >
+                          {img && (
+                            <img src={img} alt={nft.name}
+                              className="w-full h-full object-cover" />
+                          )}
+                          {/* Gradient overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                          {/* Card info */}
+                          <div className="absolute bottom-0 left-0 right-0 p-6">
+                            {nft.collection && (
+                              <p className="text-xs text-cyan-400 font-medium mb-1 truncate">{nft.collection}</p>
+                            )}
+                            <h3 className="text-xl font-bold text-white truncate mb-3">{nft.name}</h3>
+                            {nft.price && (
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-[10px] text-white/50 mb-0.5">Price</p>
+                                  <p className="text-lg font-bold text-white">
+                                    {parseFloat(nft.price) > 1e9
+                                      ? (parseFloat(nft.price)/1e18).toFixed(4)
+                                      : parseFloat(nft.price).toFixed(4)
+                                    } <span className="text-sm text-white/60">ETH</span>
+                                  </p>
+                                </div>
+                                <span className="btn-primary btn-sm gap-1.5">
+                                  <Zap size={13} /> View
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  {/* Floating mini cards */}
-                  {heroNfts[1] && (
-                    <div className="absolute -right-8 top-8 w-40 animate-fade-up"
-                      style={{ animationDelay: '0.3s' }}>
-                      <NFTCard nft={heroNfts[1]} variant="compact" />
-                    </div>
-                  )}
-                  {heroNfts[2] && (
-                    <div className="absolute -left-8 bottom-8 w-40 animate-fade-up"
-                      style={{ animationDelay: '0.45s' }}>
-                      <NFTCard nft={heroNfts[2]} variant="compact" />
+
+                  {/* Dot indicators */}
+                  {heroNfts.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      {heroNfts.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setHeroIndex(i)}
+                          className={`transition-all duration-300 rounded-full
+                            ${i === heroIndex
+                              ? 'w-6 h-2 bg-violet-400'
+                              : 'w-2 h-2 bg-ink-600 hover:bg-ink-400'}`}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

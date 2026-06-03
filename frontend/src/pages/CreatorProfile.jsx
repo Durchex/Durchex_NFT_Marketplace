@@ -12,6 +12,7 @@ import NFTImageHoverOverlay from '../components/NFTImageHoverOverlay';
 import CoverPhotoUploader from '../components/CoverPhotoUploader';
 import ListingRequestForm from '../components/ListingRequestForm';
 import { getVerificationBadge } from '../utils/verificationUtils';
+import VerificationBadgeIcon from '../utils/VerificationBadgeIcon';
 import { ethers } from 'ethers';
 import { useMarketplace } from '../hooks/useMarketplace';
 
@@ -472,14 +473,10 @@ const CreatorProfile = () => {
               />
               {(() => {
                 const status = creator.verificationStatus || (creator.isVerified ? 'premium' : null);
-                const badge = status ? getVerificationBadge(status) : null;
-                return badge ? (
-                  <img
-                    src={badge.imageUrl}
-                    alt={badge.label}
-                    title={badge.title}
-                    className="absolute bottom-1 right-1 w-8 h-8 rounded-full pointer-events-none drop-shadow-lg"
-                  />
+                return status ? (
+                  <span className="absolute bottom-1 right-1 pointer-events-none">
+                    <VerificationBadgeIcon status={status} size={28} />
+                  </span>
                 ) : null;
               })()}
             </div>

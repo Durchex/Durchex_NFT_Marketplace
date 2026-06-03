@@ -12,14 +12,22 @@ import AntiScreenshotWarning from "./components/AntiScreenshotWarning";
 import Sidebar from "./components/Sidebar/Sidebar";
 import { SidebarProvider } from "./Context/SidebarContext";
 
+// Retry wrapper: if the dynamic import fails (network timeout / stale chunk),
+// wait 1 second and try once more before giving up.
+function retryLazy(fn) {
+  return lazy(() =>
+    fn().catch(() => new Promise((res) => setTimeout(() => res(fn()), 1000)))
+  );
+}
+
 // Lazy-loaded components
-const Hero = lazy(() => import("./pages/Hero"));
-const CreateNFTForm = lazy(() => import("./components/CreateNFTForm"));
-const Explore = lazy(() => import("./pages/Explore"));
-const Collections = lazy(() => import("./pages/Collections"));
-const Marketplace = lazy(() => import("./pages/Marketplace"));
-const NftDetailsPage = lazy(() => import("./pages/NftDetailsPage"));
-const BuyMintPage = lazy(() => import("./pages/BuyMintPage"));
+const Hero = retryLazy(() => import("./pages/Hero"));
+const CreateNFTForm = retryLazy(() => import("./components/CreateNFTForm"));
+const Explore = retryLazy(() => import("./pages/Explore"));
+const Collections = retryLazy(() => import("./pages/Collections"));
+const Marketplace = retryLazy(() => import("./pages/Marketplace"));
+const NftDetailsPage = retryLazy(() => import("./pages/NftDetailsPage"));
+const BuyMintPage = retryLazy(() => import("./pages/BuyMintPage"));
 const NftCreatorForm = lazy(() => import("./components/NftCreatorForm"));
 const CreateNFTCollection = lazy(() =>
   import("./components/CreateNFTCollection")

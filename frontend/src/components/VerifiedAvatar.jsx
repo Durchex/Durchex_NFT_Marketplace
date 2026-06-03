@@ -1,10 +1,10 @@
-import React from 'react';
+/**
+ * VerifiedAvatar — avatar + SVG verification badge (Orbital design).
+ * Badge is rendered as an SVG checkmark on a purple (verified) or gold (super-premium) circle.
+ * No external image dependency.
+ */
 import { getVerificationBadge } from '../utils/verificationUtils';
 
-/**
- * Resolve a user/creator's verification status from whatever shape the caller has.
- * Tries (in order): explicit verificationStatus → legacy isVerified bool → mock verificationType.
- */
 function resolveVerificationStatus(user) {
   if (!user) return null;
   if (user.verificationStatus) return user.verificationStatus;
@@ -14,80 +14,87 @@ function resolveVerificationStatus(user) {
   return null;
 }
 
-/**
- * Resolve the avatar image URL from whatever field the caller has.
- */
 function resolveAvatarUrl(user) {
   if (!user) return null;
   return user.image || user.avatar || user.avatarUrl || user.profileImage || null;
 }
 
-const sizeMap = {
-  xs: { wrap: 24, badge: 10, badgeOffset: -2 },
-  sm: { wrap: 32, badge: 12, badgeOffset: -2 },
-  md: { wrap: 48, badge: 16, badgeOffset: -3 },
-  lg: { wrap: 72, badge: 22, badgeOffset: -4 },
-  xl: { wrap: 120, badge: 32, badgeOffset: -4 },
+const SIZE = {
+  xs: { wrap: 24,  badge: 11,  offset: -2 },
+  sm: { wrap: 32,  badge: 13,  offset: -2 },
+  md: { wrap: 48,  badge: 18,  offset: -3 },
+  lg: { wrap: 72,  badge: 22,  offset: -4 },
+  xl: { wrap: 120, badge: 32,  offset: -5 },
 };
 
-/**
- * Avatar with a verification badge overlay in the bottom-right corner.
- *
- * Props:
- *   user      — object holding image/avatar + verificationStatus/isVerified
- *   size      — 'xs' | 'sm' | 'md' | 'lg' | 'xl' (default 'md')
- *   className — extra classes for the wrapper
- *   alt       — alt text for the image (default user.username || 'avatar')
- *   fallback  — element shown when no avatar URL (default emoji placeholder)
- */
-const VerifiedAvatar = ({
+/* Checkmark SVG path */
+const CHECK = 'M20 6 9 17l-5-5';
+
+function BadgeIcon({ badge, size }) {
+  const s = size;
+  return (
+    <span
+      title={badge.title}
+      aria-label={badge.label}
+      className="absolute pointer-events-none flex items-center justify-center rounded-full"
+      style={{
+        width:      s,
+        height:     s,
+        background: badge.color,
+        right:      -(s * 0.15),
+        bottom:     -(s * 0.15),
+        boxShadow:  `0 0 0 2px var(--c-void,#05050d), 0 0 ${s*0.4}px ${badge.color}60`,
+      }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={badge.textColor}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ width: s * 0.58, height: s * 0.58 }}
+      >
+        <path d={CHECK} />
+      </svg>
+    </span>
+  );
+}
+
+export default function VerifiedAvatar({
   user,
   size = 'md',
   className = '',
   alt,
   fallback,
   imgClassName = '',
-}) => {
-  const dims = sizeMap[size] || sizeMap.md;
+}) {
+  const dims   = SIZE[size] || SIZE.md;
   const status = resolveVerificationStatus(user);
-  const badge = status ? getVerificationBadge(status) : null;
-  const src = resolveAvatarUrl(user);
-  const altText = alt || user?.username || user?.name || 'avatar';
+  const badge  = status ? getVerificationBadge(status) : null;
+  const src    = resolveAvatarUrl(user);
+  const altTxt = alt || user?.username || user?.name || 'avatar';
 
   return (
     <span
-      className={`relative inline-block ${className}`}
+      className={`relative inline-block shrink-0 ${className}`}
       style={{ width: dims.wrap, height: dims.wrap }}
     >
       {src ? (
         <img
           src={src}
-          alt={altText}
+          alt={altTxt}
           className={`w-full h-full rounded-full object-cover ${imgClassName}`}
+          onError={e => { e.currentTarget.style.display = 'none'; }}
         />
       ) : (
         fallback || (
-          <span className="w-full h-full rounded-full bg-gray-700 flex items-center justify-center text-gray-300">
+          <span className="w-full h-full rounded-full bg-raised border border-border flex items-center justify-center text-ink-500 text-sm">
             👤
           </span>
         )
       )}
-      {badge && (
-        <img
-          src={badge.imageUrl}
-          alt={badge.label}
-          title={badge.title}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            width: dims.badge,
-            height: dims.badge,
-            right: dims.badgeOffset,
-            bottom: dims.badgeOffset,
-          }}
-        />
-      )}
+      {badge && <BadgeIcon badge={badge} size={dims.badge} />}
     </span>
   );
-};
-
-export default VerifiedAvatar;
+}

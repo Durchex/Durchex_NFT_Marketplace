@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+﻿import { useContext, useEffect, useState } from "react";
 // import RealTimeData from "../components/RealTimeData"; // Removed - not used
 // import NFTCard from "../components/NFTCard"; // Removed - not used
 // import LOGO from "../assets/logo.png"; // Removed - no longer needed
@@ -437,7 +437,7 @@ function MyMintedNFTs() {
               );
 
               const mintedCreatedNFTs = mintedNFTs.filter((nft) => isCreator(nft));
-              // Owned = not creator and still have at least 1 piece (if they sold all, they no longer own any — card removed)
+              // Owned = not creator and still have at least 1 piece (if they sold all, they no longer own any â€” card removed)
               const mintedOwnedNFTs = mintedNFTs.filter((nft) => !isCreator(nft) && getMyPieces(nft) > 0);
 
               return (
@@ -445,16 +445,16 @@ function MyMintedNFTs() {
                   {/* Unminted NFTs Section */}
                   {unmintedNFTs.length > 0 && (
                     <div className="mb-12">
-                      <h3 className="text-2xl font-bold mb-4 text-yellow-400">Unminted NFTs</h3>
-                      <p className="text-gray-400 mb-6">These NFTs need to be minted on the blockchain to get token IDs.</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                      <h3 className="section-title mb-3">Unminted NFTs</h3>
+                      <p className="text-ink-400 text-sm mb-6">These NFTs need to be minted on the blockchain to get token IDs.</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                         {unmintedNFTs.map((nft, index) => (
-                    <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-yellow-500">
+                    <div key={nft._id || index} className="card nft-card group">
                       <div className="mb-4">
                         <img
                           src={nft.image}
                           alt={nft.name}
-                          className="w-full h-48 object-cover rounded-lg"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       </div>
                       
@@ -464,32 +464,32 @@ function MyMintedNFTs() {
                             type="text"
                             value={editForm.name}
                             onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                            className="input text-sm"
                             placeholder="NFT Name"
                           />
                           <textarea
                             value={editForm.description}
                             onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white h-20"
+                            className="input text-sm h-20 resize-none"
                             placeholder="Description"
                           />
                           <input
                             type="number"
                             value={editForm.price}
                             onChange={(e) => setEditForm({...editForm, price: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                            className="input text-sm"
                             placeholder="Price"
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleSaveEdit(nft)}
-                              className="flex-1 bg-green-600 hover:bg-green-700 px-3 py-2 rounded font-semibold text-sm"
+                              className="btn-primary btn-sm flex-1 justify-center"
                             >
                               Save
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="flex-1 bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded font-semibold text-sm"
+                              className="btn-secondary btn-sm flex-1 justify-center"
                             >
                               Cancel
                             </button>
@@ -499,21 +499,21 @@ function MyMintedNFTs() {
                         <>
                           <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
                           <div className="space-y-2 text-sm mb-4">
-                            <p><span className="text-gray-400">Status:</span> <span className="text-yellow-400">Not Minted</span></p>
+                            <p><span className="text-ink-400 text-xs">Status:</span> <span className="text-amber-400">Not Minted</span></p>
                             <p><span className="text-gray-400">Created:</span> {new Date(nft.createdAt || nft._id?.getTimestamp?.() || Date.now()).toLocaleDateString()}</p>
-                            <p><span className="text-gray-400">Network:</span> {nft.network}</p>
+                            <p><span className="text-ink-400 text-xs">Network:</span> {nft.network}</p>
                           </div>
                           
                           <div className="flex gap-2 mb-3">
                             <button
                               onClick={() => handleEditNFT(nft)}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                              className="btn-primary btn-sm flex-1 justify-center"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteNFT(nft)}
-                              className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-semibold text-sm"
+                              className="btn-danger btn-sm flex-1 justify-center"
                             >
                               Delete
                             </button>
@@ -538,20 +538,20 @@ function MyMintedNFTs() {
                   {mintedNFTs.length > 0 && (
                     <div>
                       <h3 className="text-2xl font-bold mb-4 text-green-400">Minted NFTs</h3>
-                      <p className="text-gray-400 mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
+                      <p className="text-ink-400 text-sm mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
                       
                       {/* Created NFTs (you are the creator) */}
                       {mintedCreatedNFTs.length > 0 && (
                         <>
-                          <h4 className="text-xl font-semibold mb-2 text-white">Created by you</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                          <h4 className="text-base font-semibold text-ink-200 mb-3">Created by you</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                             {mintedCreatedNFTs.map((nft, index) => (
-                              <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
-                                <div className="mb-4 relative group overflow-hidden rounded-lg">
+                              <div key={nft._id || index} className="card nft-card group">
+                                <div className="nft-card-image">
                                   <img
                                     src={nft.image}
                                     alt={nft.name}
-                                    className="w-full h-48 object-cover rounded-lg"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                   />
                                   {/* Hover Overlay */}
                                   <NFTImageHoverOverlay
@@ -609,32 +609,32 @@ function MyMintedNFTs() {
                                       type="text"
                                       value={editForm.name}
                                       onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                                      className="input text-sm"
                                       placeholder="NFT Name"
                                     />
                                     <textarea
                                       value={editForm.description}
                                       onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white h-20"
+                                      className="input text-sm h-20 resize-none"
                                       placeholder="Description"
                                     />
                                     <input
                                       type="number"
                                       value={editForm.price}
                                       onChange={(e) => setEditForm({...editForm, price: e.target.value})}
-                                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                                      className="input text-sm"
                                       placeholder="Price"
                                     />
                                     <div className="flex gap-2">
                                       <button
                                         onClick={() => handleSaveEdit(nft)}
-                                        className="flex-1 bg-green-600 hover:bg-green-700 px-3 py-2 rounded font-semibold text-sm"
+                                        className="btn-primary btn-sm flex-1 justify-center"
                                       >
                                         Save
                                       </button>
                                       <button
                                         onClick={handleCancelEdit}
-                                        className="flex-1 bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded font-semibold text-sm"
+                                        className="btn-secondary btn-sm flex-1 justify-center"
                                       >
                                         Cancel
                                       </button>
@@ -644,10 +644,10 @@ function MyMintedNFTs() {
                                   <>
                                     <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
                                     <div className="space-y-2 text-sm mb-4">
-                                      <p><span className="text-gray-400">Status:</span> <span className="text-green-400">Minted</span></p>
-                                      <p><span className="text-gray-400">Token ID:</span> {nft.tokenId}</p>
-                                      <p><span className="text-gray-400">Network:</span> {nft.network}</p>
-                                      <p><span className="text-gray-400">Minted:</span> {new Date(nft.mintedAt).toLocaleDateString()}</p>
+                                      <p><span className="text-ink-400 text-xs">Status:</span> <span className="text-emerald-400">Minted</span></p>
+                                      <p><span className="text-ink-400 text-xs">Token ID:</span> {nft.tokenId}</p>
+                                      <p><span className="text-ink-400 text-xs">Network:</span> {nft.network}</p>
+                                      <p><span className="text-ink-400 text-xs">Minted:</span> {new Date(nft.mintedAt).toLocaleDateString()}</p>
                                       {nft.mintTxHash && (
                                         <p>
                                           <span className="text-gray-400">Tx Hash:</span>{" "}
@@ -666,13 +666,13 @@ function MyMintedNFTs() {
                                     <div className="flex gap-2 mb-3 flex-wrap">
                                       <button
                                         onClick={() => handleEditNFT(nft)}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                                        className="btn-primary btn-sm flex-1 justify-center"
                                       >
                                         Edit
                                       </button>
                                       <button
                                         onClick={() => handleDeleteNFT(nft)}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-semibold text-sm"
+                                        className="btn-danger btn-sm flex-1 justify-center"
                                       >
                                         Delete
                                       </button>
@@ -705,41 +705,41 @@ function MyMintedNFTs() {
                       {/* Owned NFTs (you are a collector, not creator) */}
                       {mintedOwnedNFTs.length > 0 && (
                         <>
-                          <h4 className="text-xl font-semibold mb-2 text-white">Owned NFTs</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                          <h4 className="text-base font-semibold text-ink-200 mb-3">Owned NFTs</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                             {mintedOwnedNFTs.map((nft, index) => {
                               const pieces = getMyPieces(nft);
                               const mintedDate = new Date(
                                 nft.mintedAt || nft.redeemedAt || nft.createdAt || Date.now()
                               ).toLocaleDateString();
                               return (
-                                <div key={nft._id || index} className="bg-gray-800 rounded-lg p-4 border border-green-500">
-                                  <div className="mb-4 relative group overflow-hidden rounded-lg">
+                                <div key={nft._id || index} className="card nft-card group">
+                                  <div className="nft-card-image">
                                     <img
                                       src={nft.image}
                                       alt={nft.name}
-                                      className="w-full h-48 object-cover rounded-lg"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                   </div>
 
                                   <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
                                   <div className="space-y-2 text-sm mb-4">
                                     <p>
-                                      <span className="text-gray-400">Pieces:</span>{" "}
+                                      <span className="text-ink-400 text-xs">Pieces:</span>{" "}
                                       <span className="text-white">{pieces || 0}</span>
                                     </p>
                                     <p>
-                                      <span className="text-gray-400">Minted At:</span>{" "}
+                                      <span className="text-ink-400 text-xs">Minted At:</span>{" "}
                                       <span className="text-white">{mintedDate}</span>
                                     </p>
                                     <p>
-                                      <span className="text-gray-400">Network:</span>{" "}
-                                      <span className="text-white">{nft.network || "—"}</span>
+                                      <span className="text-ink-400 text-xs">Network:</span>{" "}
+                                      <span className="text-white">{nft.network || "â€”"}</span>
                                     </p>
                                     <p>
-                                      <span className="text-gray-400">Collection:</span>{" "}
+                                      <span className="text-ink-400 text-xs">Collection:</span>{" "}
                                       <span className="text-white">
-                                        {nft.collectionName || nft.collection || "—"}
+                                        {nft.collectionName || nft.collection || "â€”"}
                                       </span>
                                     </p>
                                   </div>
@@ -750,7 +750,7 @@ function MyMintedNFTs() {
                                       {Number(nft.remainingPieces ?? 0) > 0 && (
                                         <button
                                           onClick={() => window.location.assign(`/mint/${nft._id || nft.itemId}`)}
-                                          className="w-full bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-semibold text-sm"
+                                          className="btn-primary btn-sm w-full justify-center"
                                         >
                                           Buy more pieces
                                         </button>
@@ -759,7 +759,7 @@ function MyMintedNFTs() {
                                       {/* Place a sell order (list at your price for another buyer to fill) */}
                                       <button
                                         onClick={() => setPlaceOrderModal({ nft, myPieces: pieces })}
-                                        className="w-full bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded font-semibold text-sm"
+                                        className="btn-secondary btn-sm w-full justify-center"
                                       >
                                         Place sell order
                                       </button>
@@ -789,9 +789,9 @@ function MyMintedNFTs() {
       {/* Place sell order: list pieces at your price for others to buy */}
       {placeOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !placeOrderSubmitting && setPlaceOrderModal(null)}>
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-600" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-panel max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-2">Place sell order</h3>
-            <p className="text-gray-400 text-sm mb-4">&quot;{placeOrderModal.nft?.name}&quot; — You have {placeOrderModal.myPieces} piece{placeOrderModal.myPieces !== 1 ? "s" : ""}. Set quantity and price for buyers.</p>
+            <p className="text-ink-400 text-sm mb-4">&quot;{placeOrderModal.nft?.name}&quot; â€” You have {placeOrderModal.myPieces} piece{placeOrderModal.myPieces !== 1 ? "s" : ""}. Set quantity and price for buyers.</p>
             <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Quantity</label>
@@ -801,7 +801,7 @@ function MyMintedNFTs() {
                   max={placeOrderModal.myPieces || 1}
                   value={placeOrderQty}
                   onChange={(e) => setPlaceOrderQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="input text-sm"
                 />
               </div>
               <div>
@@ -812,7 +812,7 @@ function MyMintedNFTs() {
                   placeholder="0.00"
                   value={placeOrderPrice}
                   onChange={(e) => setPlaceOrderPrice(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="input text-sm"
                 />
               </div>
             </div>
@@ -829,7 +829,7 @@ function MyMintedNFTs() {
                 disabled={placeOrderSubmitting}
                 className="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm disabled:opacity-50"
               >
-                {placeOrderSubmitting ? "Placing…" : "Place order"}
+                {placeOrderSubmitting ? "Placingâ€¦" : "Place order"}
               </button>
             </div>
           </div>
@@ -840,3 +840,5 @@ function MyMintedNFTs() {
 }
 
 export default MyMintedNFTs;
+
+
