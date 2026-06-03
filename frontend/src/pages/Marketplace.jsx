@@ -100,8 +100,8 @@ export default function Marketplace() {
   /* ── Apply filters ── */
   const filtered = sortNfts(
     allNfts.filter(n => {
-      if (network !== 'all' && String(n.network||'').toLowerCase() !== network) return false;
-      if (category !== 'All' && (n.category||'').toLowerCase() !== category.toLowerCase()) return false;
+      if (network !== 'all' && String(n.network || '').toLowerCase() !== network) return false;
+      if (category !== 'All' && String(n.category || '').toLowerCase() !== category.toLowerCase()) return false;
       const q = search.toLowerCase();
       if (q && !(n.name||'').toLowerCase().includes(q) && !(n.collection||'').toLowerCase().includes(q)) return false;
       if (!showLazy && n.isLazyMint) return false;

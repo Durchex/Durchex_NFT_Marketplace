@@ -108,8 +108,12 @@ export default function Header() {
   const cartCount = getCartItemCount?.() || 0;
   const isActive  = (href) => location.pathname === href || location.pathname.startsWith(href + '/');
 
+  // selectedNetwork may be a string ID or an object — normalise to string first
+  const selectedNetworkId = selectedNetwork
+    ? (typeof selectedNetwork === 'string' ? selectedNetwork : (selectedNetwork?.id || selectedNetwork?.name || ''))
+    : '';
   const currentNetwork = networks?.find(n =>
-    n.id?.toLowerCase() === selectedNetwork?.toLowerCase()
+    String(n.id || '').toLowerCase() === selectedNetworkId.toLowerCase()
   ) || networks?.[0];
 
   return (
@@ -222,12 +226,12 @@ export default function Header() {
                   <p className="section-label px-4 py-2">Switch Network</p>
                   {(networks || []).map(net => (
                     <button key={net.id}
-                      onClick={() => { switchNetwork?.(net.id); setNetOpen(false); }}
+                      onClick={() => { switchNetwork?.(String(net.id || '')); setNetOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm
                                  text-ink-200 hover:text-ink-100 hover:bg-raised transition-colors">
                       <span className="text-base">{CHAIN_ICONS[net.id?.toLowerCase()] || '🌐'}</span>
                       <span className="flex-1 text-left">{net.name}</span>
-                      {currentNetwork?.id === net.id && <Check size={14} className="text-cyan-400" />}
+                      {String(currentNetwork?.id||'') === String(net.id||'') && <Check size={14} className="text-cyan-400" />}
                     </button>
                   ))}
                 </div>

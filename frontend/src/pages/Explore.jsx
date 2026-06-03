@@ -139,7 +139,7 @@ export default function Explore() {
 
   /* ── Filtered NFTs ── */
   const filtered = nfts.filter(n => {
-    const matchCat = category === 'all' || (n.category || '').toLowerCase() === category;
+    const matchCat = category === 'all' || String(n.category || '').toLowerCase() === category;
     const q = search.toLowerCase();
     const matchQ = !q || (n.name || '').toLowerCase().includes(q)
                       || (n.collection || '').toLowerCase().includes(q);
