@@ -165,7 +165,7 @@ export default function Explore() {
           style={{ background: 'radial-gradient(circle, #00c8ff 0%, #7c3aed 50%, transparent 70%)' }} />
 
         <div className="page-container pt-12 pb-10 md:pt-20 md:pb-16 relative">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left: copy */}
             <div className="animate-fade-up">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-400/25
@@ -247,7 +247,7 @@ export default function Explore() {
 
       {/* ════ STATS ROW ════ */}
       <section className="page-container pb-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             icon={BarChart2}
             value={stats?.volume24h ? `${Number(stats.volume24h).toLocaleString()} ETH` : '—'}
@@ -299,7 +299,7 @@ export default function Explore() {
               cta="View all"
               ctaHref="/collections"
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               {collections.map((col, i) => (
                 <CollectionCard key={col._id || i} col={col} rank={i + 1} />
               ))}
@@ -317,7 +317,7 @@ export default function Explore() {
           />
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {Array.from({ length: 10 }).map((_, i) => (
                 <NFTCardSkeleton key={i} />
               ))}
@@ -334,7 +334,7 @@ export default function Explore() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {filtered.slice(0, 20).map((nft, i) => (
                 <NFTCard key={nft.itemId || nft._id || i} nft={nft} />
               ))}

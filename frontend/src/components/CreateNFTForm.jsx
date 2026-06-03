@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, useMemo } from "react";
+﻿import { useContext, useState, useEffect, useMemo } from "react";
 import { ICOContent } from "../Context";
 import { Toaster, toast } from "react-hot-toast";
 import { nftAPI } from "../services/api";
@@ -10,21 +10,21 @@ const ACCEPTED_FILE_PREFIXES = ["image/", "video/", "audio/"];
 const ACCEPTED_FILE_EXTENSIONS = [".glb", ".gltf", ".fbx", ".stl", ".zip", ".obj"];
 
 const cardStyle = {
-  background: '#0f172a',
-  border: '1px solid #334155',
+  background: 'var(--c-surface,#0d0d1a)',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: '22px',
   padding: 'clamp(16px, 3.5vw, 24px)',
-  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
 };
 
 const fieldStyle = {
   width: '100%',
-  border: '1px solid #475569',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: '14px',
   padding: '14px 16px',
   fontSize: '1rem',
-  background: '#111827',
-  color: '#e2e8f0',
+  background: 'var(--c-raised,#13131f)',
+  color: '#f0f0ff',
   boxSizing: 'border-box',
 };
 
@@ -32,10 +32,10 @@ const labelStyle = {
   display: 'block',
   fontWeight: 600,
   marginBottom: '10px',
-  color: '#cbd5e1',
+  color: '#c8c8e8',
 };
 
-// Auto-wrapping grids — collapse to one column when there isn't room for the minimum.
+// Auto-wrapping grids â€” collapse to one column when there isn't room for the minimum.
 const twoColGrid = {
   display: 'grid',
   gap: '12px',
@@ -159,7 +159,7 @@ export default function CreateNFTForm() {
 
   const fetchCollections = async (wallet, network) => {
     if (!wallet) {
-      // No connected wallet — no collections to show.
+      // No connected wallet â€” no collections to show.
       setCollections([]);
       return;
     }
@@ -437,12 +437,12 @@ export default function CreateNFTForm() {
       const metadata = buildMetadataForMint(fileCID);
       const metadataCID = await uploadMetadataToIPFS(metadata);
       const metadataURI = `ipfs://${metadataCID}`;
-      // Use a gateway URL for the DB-backed image so the standard <img src=…>
+      // Use a gateway URL for the DB-backed image so the standard <img src=â€¦>
       // tag can render it directly. The metadata JSON uploaded to IPFS still
       // holds the canonical ipfs:// form (set in buildMetadataForMint).
       const imageURI = `https://gateway.pinata.cloud/ipfs/${fileCID}`;
 
-      // For unminted drafts the chain hasn't issued a tokenId yet — generate
+      // For unminted drafts the chain hasn't issued a tokenId yet â€” generate
       // a unique itemId so the Mongoose required check passes. Once the
       // collection contract deploys, mintNFT will fill in tokenId.
       const generateId = () =>
@@ -533,7 +533,7 @@ export default function CreateNFTForm() {
       return <audio controls src={form.filePreview} style={{ width: '100%' }} />;
     }
     return (
-      <div style={{ padding: '18px', borderRadius: '16px', background: '#111827', color: '#cbd5e1' }}>
+      <div style={{ padding: '18px', borderRadius: '16px', background: 'var(--c-raised,#13131f)', color: '#c8c8e8' }}>
         <strong>{form.file?.name || 'Uploaded file'}</strong>
         <div>{form.file?.type || 'Preview unavailable for this file type'}</div>
       </div>
@@ -541,13 +541,13 @@ export default function CreateNFTForm() {
   }, [form.filePreview, form.file]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
+    <div>
       <Toaster position="top-right" />
-      <main style={{ maxWidth: '1140px', margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 20px) 40px' }}>
+      <>
         <section style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', margin: 0, color: '#e2e8f0' }}>Create new NFT</h1>
-            <p style={{ margin: 0, color: '#4b5563', maxWidth: '760px' }}>
+            <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', margin: 0, color: '#f0f0ff' }}>Create new NFT</h1>
+            <p style={{ margin: 0, color: '#5c5b7a', maxWidth: '760px' }}>
               Upload your artwork, select a collection, add traits, stats, and metadata, then mint your NFT with a live metadata preview.
             </p>
           </div>
@@ -556,28 +556,28 @@ export default function CreateNFTForm() {
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '22px' }}>
           <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>1. File Upload</h2>
-            <p style={{ color: '#4b5563' }}>Supported image, video, audio, and 3D files. Max file size: 100MB.</p>
+            <p style={{ color: '#5c5b7a' }}>Supported image, video, audio, and 3D files. Max file size: 100MB.</p>
             <div
               onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
               onDrop={handleDrop}
               style={{
-                border: dragActive ? '2px dashed #3b82f6' : '2px dashed #d1d5db',
+                border: dragActive ? '2px dashed rgba(192,132,252,0.7)' : '2px dashed rgba(192,132,252,0.25)',
                 borderRadius: '18px',
                 padding: '32px',
                 textAlign: 'center',
-                background: dragActive ? '#0f172a' : '#111827',
+                background: dragActive ? 'var(--c-surface,#0d0d1a)' : 'var(--c-raised,#13131f)',
                 transition: 'border-color 150ms ease',
               }}
             >
-              <p style={{ margin: 0, color: '#374151', fontWeight: 600 }}>Drag and drop your file here</p>
-              <p style={{ margin: '10px 0 0', color: '#6b7280' }}>or</p>
-              <label htmlFor="nft-file" style={{ display: 'inline-block', marginTop: '12px', padding: '12px 22px', borderRadius: '12px', background: '#2563eb', color: '#fff', cursor: 'pointer' }}>
+              <p style={{ margin: 0, color: '#8888aa', fontWeight: 600 }}>Drag and drop your file here</p>
+              <p style={{ margin: '10px 0 0', color: '#5c5b7a' }}>or</p>
+              <label htmlFor="nft-file" style={{ display: 'inline-block', marginTop: '12px', padding: '12px 22px', borderRadius: '12px', background: '#7c3aed', color: '#fff', cursor: 'pointer' }}>
                 Choose file
               </label>
               <input id="nft-file" type="file" accept="image/*,video/*,audio/*,.glb,.gltf,.fbx,.stl,.zip,.obj" onChange={handleFileInput} style={{ display: 'none' }} />
-              {errors.file && <div style={{ marginTop: '14px', color: '#dc2626' }}>{errors.file}</div>}
+              {errors.file && <div style={{ marginTop: '14px', color: '#f87171' }}>{errors.file}</div>}
             </div>
             {form.filePreview && (
               <div style={{ marginTop: '18px' }}>
@@ -585,9 +585,9 @@ export default function CreateNFTForm() {
                 {fileUploadProgress > 0 && fileUploadProgress < 100 && (
                   <div style={{ marginTop: '14px' }}>
                     <div style={{ width: '100%', height: '10px', background: '#e5e7eb', borderRadius: '999px' }}>
-                      <div style={{ width: `${fileUploadProgress}%`, height: '100%', background: '#2563eb', borderRadius: '999px' }} />
+                      <div style={{ width: `${fileUploadProgress}%`, height: '100%', background: '#7c3aed', borderRadius: '999px' }} />
                     </div>
-                    <div style={{ marginTop: '6px', color: '#4b5563' }}>{fileUploadProgress}% uploaded</div>
+                    <div style={{ marginTop: '6px', color: '#5c5b7a' }}>{fileUploadProgress}% uploaded</div>
                   </div>
                 )}
               </div>
@@ -606,7 +606,7 @@ export default function CreateNFTForm() {
                   onChange={(event) => updateField('name', event.target.value)}
                   placeholder="Enter NFT title"
                 />
-                {errors.name && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.name}</div>}
+                {errors.name && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.name}</div>}
               </div>
 
               <div>
@@ -617,7 +617,7 @@ export default function CreateNFTForm() {
                   onChange={(event) => updateField('externalUrl', event.target.value)}
                   placeholder="https://" 
                 />
-                {errors.externalUrl && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.externalUrl}</div>}
+                {errors.externalUrl && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.externalUrl}</div>}
               </div>
 
               <div>
@@ -661,7 +661,7 @@ export default function CreateNFTForm() {
                     {!address
                       ? 'Connect your wallet to see your collections'
                       : collections.length === 0
-                        ? `No collections on ${form.network} yet — create one below`
+                        ? `No collections on ${form.network} yet â€” create one below`
                         : 'Select one of your collections'}
                   </option>
                   {collections.map((collection) => (
@@ -670,7 +670,7 @@ export default function CreateNFTForm() {
                     </option>
                   ))}
                 </select>
-                {errors.collection && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.collection}</div>}
+                {errors.collection && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.collection}</div>}
               </div>
 
               <button
@@ -680,10 +680,10 @@ export default function CreateNFTForm() {
                   width: 'fit-content',
                   padding: '12px 18px',
                   borderRadius: '12px',
-                  background: '#1f2937',
+                  background: 'var(--c-raised,#13131f)',
                   cursor: 'pointer',
-                  border: '1px solid #475569',
-                  color: '#e2e8f0',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: '#f0f0ff',
                 }}
               >
                 {showNewCollectionForm ? 'Hide new collection' : 'Create a new collection'}
@@ -702,7 +702,7 @@ export default function CreateNFTForm() {
                       }}
                       placeholder="New collection title"
                     />
-                    {errors.newCollectionName && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.newCollectionName}</div>}
+                    {errors.newCollectionName && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.newCollectionName}</div>}
                   </div>
 
                   <div>
@@ -712,14 +712,14 @@ export default function CreateNFTForm() {
                         <img
                           src={newCollectionImagePreview}
                           alt="collection preview"
-                          style={{ width: '88px', height: '88px', borderRadius: '14px', objectFit: 'cover', border: '1px solid #475569' }}
+                          style={{ width: '88px', height: '88px', borderRadius: '14px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.07)' }}
                         />
                       ) : (
-                        <div style={{ width: '88px', height: '88px', borderRadius: '14px', border: '1px dashed #475569', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.75rem', textAlign: 'center', padding: '6px' }}>
+                        <div style={{ width: '88px', height: '88px', borderRadius: '14px', border: '1px dashed rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5c5b7a', fontSize: '0.75rem', textAlign: 'center', padding: '6px' }}>
                           No image
                         </div>
                       )}
-                      <label htmlFor="collection-image" style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                      <label htmlFor="collection-image" style={{ padding: '12px 18px', borderRadius: '12px', background: 'var(--c-raised,#13131f)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', color: '#f0f0ff' }}>
                         {newCollectionImage ? 'Replace image' : 'Choose image'}
                       </label>
                       <input
@@ -764,13 +764,13 @@ export default function CreateNFTForm() {
                       width: 'fit-content',
                       padding: '12px 20px',
                       borderRadius: '12px',
-                      background: '#2563eb',
+                      background: '#7c3aed',
                       color: '#ffffff',
                       border: 'none',
                       cursor: uploadingCollection ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {uploadingCollection ? 'Creating collection…' : 'Create collection'}
+                    {uploadingCollection ? 'Creating collectionâ€¦' : 'Create collection'}
                   </button>
                 </div>
               )}
@@ -813,7 +813,7 @@ export default function CreateNFTForm() {
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addProperty} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                <button type="button" onClick={addProperty} style={{ padding: '12px 18px', borderRadius: '12px', background: 'var(--c-raised,#13131f)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', color: '#f0f0ff' }}>
                   Add trait
                 </button>
               </div>
@@ -857,7 +857,7 @@ export default function CreateNFTForm() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ width: '100%', height: '8px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, (Number(level.value) / Math.max(1, Number(level.max))) * 100)}%`, height: '100%', background: '#2563eb' }} />
+                        <div style={{ width: `${Math.min(100, (Number(level.value) / Math.max(1, Number(level.max))) * 100)}%`, height: '100%', background: '#7c3aed' }} />
                       </div>
                       <button type="button" onClick={() => removeLevel(index)} style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                         Remove
@@ -865,7 +865,7 @@ export default function CreateNFTForm() {
                     </div>
                   </div>
                 ))}
-                <button type="button" onClick={addLevel} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                <button type="button" onClick={addLevel} style={{ padding: '12px 18px', borderRadius: '12px', background: 'var(--c-raised,#13131f)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', color: '#f0f0ff' }}>
                   Add level
                 </button>
               </div>
@@ -901,7 +901,7 @@ export default function CreateNFTForm() {
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={addStat} style={{ padding: '12px 18px', borderRadius: '12px', background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                <button type="button" onClick={addStat} style={{ padding: '12px 18px', borderRadius: '12px', background: 'var(--c-raised,#13131f)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', color: '#f0f0ff' }}>
                   Add stat
                 </button>
               </div>
@@ -922,7 +922,7 @@ export default function CreateNFTForm() {
                   onChange={(event) => updateField('price', event.target.value)}
                   placeholder="0.05"
                 />
-                <div style={{ marginTop: '6px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                <div style={{ marginTop: '6px', color: '#8888aa', fontSize: '0.85rem' }}>
                   Leave blank or 0 to mint without listing. Any positive value lists the NFT for sale at that price.
                 </div>
               </div>
@@ -948,7 +948,7 @@ export default function CreateNFTForm() {
                     placeholder="Secret content only visible to the owner"
                   />
                 )}
-                {errors.unlockableContent && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.unlockableContent}</div>}
+                {errors.unlockableContent && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.unlockableContent}</div>}
               </div>
 
               <div>
@@ -973,7 +973,7 @@ export default function CreateNFTForm() {
                     value={form.supply}
                     onChange={(event) => updateField('supply', Number(event.target.value) || 1)}
                   />
-                  {errors.supply && <div style={{ marginTop: '8px', color: '#dc2626' }}>{errors.supply}</div>}
+                  {errors.supply && <div style={{ marginTop: '8px', color: '#f87171' }}>{errors.supply}</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>Blockchain</label>
@@ -995,8 +995,8 @@ export default function CreateNFTForm() {
 
           <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>6. Metadata preview</h2>
-            <p style={{ color: '#4b5563', marginBottom: '16px' }}>Review the NFT metadata JSON before submitting. The image field will point to the IPFS file CID after upload.</p>
-            <pre style={{ background: '#111827', color: '#f9fafb', borderRadius: '18px', padding: '18px', overflowX: 'auto', maxHeight: '420px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.85rem' }}>
+            <p style={{ color: '#5c5b7a', marginBottom: '16px' }}>Review the NFT metadata JSON before submitting. The image field will point to the IPFS file CID after upload.</p>
+            <pre style={{ background: 'var(--c-raised,#13131f)', color: '#f9fafb', borderRadius: '18px', padding: '18px', overflowX: 'auto', maxHeight: '420px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.85rem' }}>
               {JSON.stringify(getMetadataForPreview, null, 2)}
             </pre>
           </div>
@@ -1012,18 +1012,22 @@ export default function CreateNFTForm() {
                 padding: '16px 0',
                 borderRadius: '16px',
                 border: 'none',
-                background: submitting ? '#93c5fd' : '#2563eb',
+                background: submitting ? '#93c5fd' : '#7c3aed',
                 color: '#ffffff',
                 cursor: submitting ? 'not-allowed' : 'pointer',
                 fontWeight: 700,
                 fontSize: '1rem',
               }}
             >
-              {submitting ? 'Processing your NFT…' : 'Mint NFT'}
+              {submitting ? 'Processing your NFTâ€¦' : 'Mint NFT'}
             </button>
           </div>
         </form>
-      </main>
+      </>
     </div>
   );
 }
+
+
+
+

@@ -151,7 +151,7 @@ export default function Marketplace() {
 
       <div className="page-container pb-20 flex gap-6 min-h-0">
 
-        {/* ═════ FILTER SIDEBAR ═════ */}
+        {/* ═════ FILTER SIDEBAR — desktop only ═════ */}
         {sidebarOpen && (
           <aside className="hidden md:block w-60 shrink-0">
             <div className="card p-5 sticky top-28">
@@ -327,7 +327,7 @@ export default function Marketplace() {
           {/* Grid / List */}
           {loading ? (
             <div className={viewMode === 'grid'
-              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
+              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'
               : 'space-y-2'}>
               {Array.from({ length: 12 }).map((_, i) => (
                 <NFTCardSkeleton key={i} variant={viewMode === 'list' ? 'compact' : 'default'} />
@@ -349,7 +349,7 @@ export default function Marketplace() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {filtered.map((nft, i) => (
                 <NFTCard key={nft.itemId || nft._id || i} nft={nft} />
               ))}

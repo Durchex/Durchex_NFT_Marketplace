@@ -1,271 +1,202 @@
-import React, { useContext, useState, useEffect } from "react";
+/**
+ * Profile — user dashboard with Orbital design system.
+ * Tabs: My NFTs · Collections · Points · List NFT · Withdrawals · Settings · Verification
+ */
+import { useContext, useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Edit3,
-  Share2,
-  MoreVertical,
-  X,
+  Wallet, Copy, Check, Share2, ExternalLink,
+  Image, Layers, Star, Tag, ArrowDownToLine,
+  Settings, ShieldCheck, ChevronRight,
 } from "lucide-react";
-import { FiHeart, FiCheck, FiCopy, FiShoppingCart } from "react-icons/fi";
 import Header from "../components/Header";
+import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context/index.jsx";
 import { Toaster } from "react-hot-toast";
-import { BsStars } from "react-icons/bs";
 import { engagementAPI } from "../services/api.js";
-import NFTImageHoverOverlay from "../components/NFTImageHoverOverlay.jsx";
 import toast from "react-hot-toast";
-
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ErrorToast } from "../app/Toast/Error.jsx";
 import { SuccessToast } from "../app/Toast/Success";
-import ListNft from "../components/ListNft.jsx";
+import { ErrorToast } from "../app/Toast/Error.jsx";
 import ListNftForm from "../components/ListNftForm.jsx";
 import ListingRequestForm from "../components/ListingRequestForm.jsx";
 import MyCollections from "../components/MyCollections.jsx";
 import MyPoints from "../components/MyPoints.jsx";
 import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
-import MyGiveawayNFTs from "./user/MyGiveawayNFTs.jsx";
 import MyMintedNFTs from "./MyMintedNFTs.jsx";
 import WithdrawalSystem from "./WithdrawalSystem.jsx";
 
-// import { Grid, List } from "lucide-react";
+/* ─── Tab definitions ─── */
+const TABS = [
+  { id: "My NFTs",      label: "My NFTs",       icon: Image      },
+  { id: "My Collections",label:"Collections",   icon: Layers     },
+  { id: "My Points",    label: "Points",         icon: Star       },
+  { id: "List NFT",     label: "List NFT",       icon: Tag        },
+  { id: "Withdrawals",  label: "Withdrawals",    icon: ArrowDownToLine },
+  { id: "MyProfile",    label: "Settings",       icon: Settings   },
+  { id: "Verification", label: "Verification",   icon: ShieldCheck},
+];
 
-function App() {
+/* ─── Short address ─── */
+const shorten = (addr) => addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
+
+export default function Profile() {
+  const { address, getUserStatu } = useContext(ICOContent) || {};
   const [activeTab, setActiveTab] = useState("My NFTs");
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileName, setProfileName] = useState("WELCOME USER");
-  const [tempName, setTempName] = useState("Welcome User");
-  const [nameError, setNameError] = useState("");
-  const [showShareOptions, setShowShareOptions] = useState(false);
-  const [userPoints, setUserPoints] = useState(0);
-  const [isEligible, setIsEligible] = useState(false);
-  const [userAddress, setUserAddress] = useState(null);
-  const [cartItems, setCartItems] = useState(new Set());
-  const [likedItems, setLikedItems] = useState(new Set());
-  const contexts = useContext(ICOContent);
-  const { getUserStatu, address } = contexts || {};
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [copied,    setCopied]    = useState(false);
+  const [userPoints,setUserPoints]= useState("0");
+  const [isEligible,setIsEligible]= useState(false);
+  const tabRef = useRef(null);
+  const navigate = useNavigate();
 
-  const tabs = [
-    "MyProfile",
-    "My NFTs",
-    "Giveaway NFTs",
-    "My Points",
-    "My Collections",
-    "List NFT",
-    "Withdrawals",
-    "Verification",
-  ];
-
-  const getUserPoints = async () => {
-    if (!getUserStatu || !address) {
-      console.warn("getUserStatu not available or address not connected");
-      return;
-    }
-
-    try {
-      const response = await getUserStatu(address);
-      console.log("🚀 ~ getUserPoints ~ response:", response);
-
-      if (response && response.length >= 2) {
-        const points = response[0];
-        const eligible = response[1];
-
-        // Update state
-        setUserPoints(points.toString());
-        setIsEligible(eligible);
-      }
-    } catch (error) {
-      console.error("Error getting user points:", error);
-      // Set default values on error
-      setUserPoints("0");
-      setIsEligible(false);
-    }
-  };
-
+  /* ── Points loader ── */
   useEffect(() => {
-    if (address) {
-      setUserAddress(address);
+    if (activeTab !== "My Points" || !address || !getUserStatu) return;
+    getUserStatu(address)
+      .then(res => {
+        if (res?.length >= 2) { setUserPoints(String(res[0])); setIsEligible(res[1]); }
+      })
+      .catch(() => {});
+  }, [activeTab, address, getUserStatu]);
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(address).then(() => {
+      setCopied(true);
+      toast.success("Address copied!");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const shareProfile = () => {
+    const url = `${window.location.origin}/creator/${address}`;
+    if (navigator.share) {
+      navigator.share({ title: 'My Durchex Profile', url });
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success("Profile link copied!");
     }
-  }, [address]);
-
-  useEffect(() => {
-    if (activeTab === "My Points" && address && getUserStatu) {
-      getUserPoints();
-    }
-  }, [activeTab, address]);
-
-  const validateName = (name) => {
-    if (!name.trim()) return "Name cannot be empty";
-    if (name.length < 3) return "Name must be at least 3 characters";
-    if (name.length > 30) return "Name must be less than 30 characters";
-    return "";
   };
 
-  const handleEditProfile = () => {
-    if (isEditing) {
-      const error = validateName(tempName);
-      if (error) {
-        setNameError(error);
-        return;
-      }
-      setProfileName(tempName);
-      setNameError("");
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleShare = (type) => {
-    const currentUrl = window.location.href;
-    switch (type) {
-      case "copy":
-        navigator.clipboard
-          .writeText(currentUrl)
-          .then(() => SuccessToast("Profile URL copied to clipboard!"))
-          .catch(() => ErrorToast("Failed to copy URL"));
-        break;
-      case "twitter":
-        window.open(
-          `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-            currentUrl
-          )}&text=Check out my NFT profile!`
-        );
-        break;
-      case "facebook":
-        window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            currentUrl
-          )}`
-        );
-        break;
-    }
-    setShowShareOptions(false);
-  };
-
-  const handleViewItem = (item) => {
-    setSelectedNFT(item);
-  };
-
-  const closeModal = () => {
-    setSelectedNFT(null);
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  // Require wallet connection to access profile
+  /* ── Require wallet ── */
   if (!address) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-void)' }}>
         <Header />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-          <div className="text-center max-w-md">
-            <div className="mb-6">
-              <svg className="w-24 h-24 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">Wallet Not Connected</h2>
-            <p className="text-gray-400 mb-6">
-              Please connect your wallet to access your profile and manage your account settings.
-            </p>
-            <p className="text-sm text-gray-500">
-              Use the wallet connect button in the header to get started.
-            </p>
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-20 text-center">
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 mx-auto"
+            style={{ background: 'linear-gradient(135deg,rgba(192,132,252,0.15),rgba(124,58,237,0.15))' }}>
+            <Wallet size={36} className="text-violet-400" />
           </div>
+          <h2 className="text-2xl font-bold text-ink-100 mb-3">Connect Your Wallet</h2>
+          <p className="text-ink-400 max-w-sm mb-6">
+            Connect your wallet to access your profile, NFTs, collections and account settings.
+          </p>
+          <p className="text-sm text-ink-600">Use the wallet button in the header to get started.</p>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Navigation Bar */}
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-void)' }}>
       <Header />
-      {/* Mobile Tabs Dropdown */}
-      <div className="px-4 md:hidden">
-        <button
-          onClick={toggleMobileMenu}
-          className="flex justify-between items-center w-full py-3 px-4 bg-[#222] rounded-lg my-2"
-        >
-          <span>{activeTab}</span>
-          <span
-            className="transform transition-transform duration-200"
-            style={{
-              transform: isMobileMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          >
-            ▼
-          </span>
-        </button>
+      <Toaster />
 
-        {isMobileMenuOpen && (
-          <div className="bg-[#222] rounded-lg mt-1 shadow-lg mb-4">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                className={`block w-full text-left px-4 py-3 hover:bg-[#333] ${
-                  activeTab === tab ? "text-white font-medium" : "text-gray-400"
-                }`}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                {tab}
+      {/* ── Profile hero ── */}
+      <div className="relative">
+        {/* Banner */}
+        <div className="h-36 md:h-48 w-full overflow-hidden"
+          style={{ background: 'linear-gradient(135deg,rgba(192,132,252,0.18),rgba(124,58,237,0.22))' }}>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 30% 50%,rgba(192,132,252,0.12),transparent 60%)' }} />
+        </div>
+
+        {/* Avatar row */}
+        <div className="page-container">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-10 pb-6">
+            <div className="flex items-end gap-4">
+              {/* Avatar */}
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 overflow-hidden shrink-0"
+                style={{ borderColor: 'var(--c-void)', background: 'var(--c-surface)' }}>
+                <img
+                  src={`https://api.dicebear.com/7.x/identicon/svg?seed=${address}`}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="pb-1">
+                <h1 className="text-xl md:text-2xl font-extrabold text-ink-100 mb-1">
+                  My Profile
+                </h1>
+                <button onClick={copyAddress}
+                  className="flex items-center gap-2 text-sm text-ink-400 hover:text-ink-100 transition-colors font-mono">
+                  {shorten(address)}
+                  {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pb-1">
+              <button onClick={shareProfile}
+                className="btn-secondary gap-2 text-sm">
+                <Share2 size={14} /> Share
               </button>
-            ))}
+              <Link to={`/creator/${address}`}
+                className="btn-secondary gap-2 text-sm">
+                <ExternalLink size={14} /> Public page
+              </Link>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Desktop Tabs */}
-      <div className="min-h-screen flex bg-black text-white">
-        {/* Sidebar */}
-        <aside className="w-64 bg-[#111] p-6 space-y-4 hidden md:block">
-          <h2 className="text-2xl font-bold mb-8">Dashboard</h2>
-          {tabs.map((tab) => (
+      {/* ── Tab bar (horizontal scroll on mobile) ── */}
+      <div className="page-container border-b border-border sticky top-[68px] sm:top-[104px] z-30"
+        style={{ background: 'rgba(5,5,13,0.95)', backdropFilter: 'blur(16px)' }}>
+        <div ref={tabRef}
+          className="flex gap-0.5 overflow-x-auto"
+          style={{ scrollbarWidth: 'none' }}>
+          {TABS.map(({ id, label, icon: Icon }) => (
             <button
-              key={tab}
-              className={`block w-full text-left px-4 py-2 rounded-lg ${
-                activeTab === tab ? "bg-purple-600" : "hover:bg-[#222]"
-              }`}
-              onClick={() => setActiveTab(tab)}
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-2 px-4 py-4 text-sm font-medium whitespace-nowrap
+                border-b-2 transition-all duration-200 shrink-0
+                ${activeTab === id
+                  ? 'border-violet-400 text-violet-300'
+                  : 'border-transparent text-ink-400 hover:text-ink-200 hover:border-border'
+                }`}
             >
-              {tab}
+              <Icon size={15} />
+              <span>{label}</span>
             </button>
           ))}
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 p-8 overflow-y-auto">
-          {activeTab === "MyProfile" && <MyProfile />}
-          {activeTab === "My NFTs" && <MyMintedNFTs />}
-          {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
-          {activeTab === "Giveaway NFTs" && <MyGiveawayNFTs />}
-          {activeTab === "My Points" && (
-            <MyPoints userPoints={userPoints} isEligible={isEligible} />
-          )}
-          {activeTab === "My Collections" && (
-            <MyCollections placeholder={"Collection"} />
-          )}
-          {activeTab === "List NFT" && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <ListNftForm />
-              <ListingRequestForm />
-            </div>
-          )}
-          {activeTab === "Withdrawals" && <WithdrawalSystem />}
-          {activeTab === "Verification" && (
-            <div className="max-w-4xl mx-auto">
-              <VerificationSubmission />
-            </div>
-          )}
-        </main>
+        </div>
       </div>
+
+      {/* ── Tab content ── */}
+      <main className="flex-1 page-container py-6 md:py-8">
+        {activeTab === "MyProfile"      && <MyProfile />}
+        {activeTab === "My NFTs"        && <MyMintedNFTs />}
+        {activeTab === "My Collections" && <MyCollections placeholder="Collection" />}
+        {activeTab === "My Points"      && <MyPoints userPoints={userPoints} isEligible={isEligible} />}
+        {activeTab === "List NFT"       && (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <ListNftForm />
+            <ListingRequestForm />
+          </div>
+        )}
+        {activeTab === "Withdrawals"    && <WithdrawalSystem />}
+        {activeTab === "Verification"   && (
+          <div className="max-w-2xl mx-auto">
+            <VerificationSubmission />
+          </div>
+        )}
+      </main>
+
+      <Footer />
     </div>
   );
 }
-
-export default App;

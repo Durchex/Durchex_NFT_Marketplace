@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+﻿import { useContext, useEffect, useState } from 'react';
 import { ICOContent } from '../Context';
 import { Toaster, toast } from 'react-hot-toast';
 import { nftAPI } from '../services/api';
@@ -32,21 +32,21 @@ const NFT_CATEGORIES = [
 ];
 
 const cardStyle = {
-  background: '#0f172a',
-  border: '1px solid #334155',
+  background: 'var(--c-surface,#0d0d1a)',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: '22px',
   padding: 'clamp(16px, 3.5vw, 24px)',
-  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.35)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
 };
 
 const fieldStyle = {
   width: '100%',
-  border: '1px solid #475569',
+  border: '1px solid rgba(255,255,255,0.07)',
   borderRadius: '14px',
   padding: '14px 16px',
   fontSize: '1rem',
-  background: '#111827',
-  color: '#e2e8f0',
+  background: 'var(--c-raised,#13131f)',
+  color: '#f0f0ff',
   boxSizing: 'border-box',
 };
 
@@ -54,7 +54,7 @@ const labelStyle = {
   display: 'block',
   fontWeight: 600,
   marginBottom: '10px',
-  color: '#cbd5e1',
+  color: '#c8c8e8',
 };
 
 const generateDraftId = () =>
@@ -200,7 +200,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
       const whitelistPriceWei = ethers.utils.parseEther(whitelistEffectiveEth.toString()).toString();
 
       // 4. Sign whitelist voucher with creator wallet.
-      toast('Sign the whitelist voucher in your wallet…');
+      toast('Sign the whitelist voucher in your walletâ€¦');
       let whitelistVoucher;
       try {
         const sig = await signLazyMintVoucher({
@@ -231,7 +231,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
       if (form.publicPrice && Number(form.publicPrice) >= 0) {
         const publicEffectiveEth = Number(form.publicPrice) + mintingFeeEth;
         const publicPriceWei = ethers.utils.parseEther(publicEffectiveEth.toString()).toString();
-        toast('Sign the public voucher in your wallet…');
+        toast('Sign the public voucher in your walletâ€¦');
         try {
           const sig2 = await signLazyMintVoucher({
             creator: address,
@@ -310,12 +310,12 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
+    <div>
       <Toaster position="top-right" />
-      <main style={{ maxWidth: '860px', margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(12px, 3vw, 20px) 40px' }}>
+      <>
         <section style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', margin: 0, color: '#e2e8f0' }}>Create upcoming NFT</h1>
-          <p style={{ margin: '12px 0 0', color: '#94a3b8' }}>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', margin: 0, color: '#f0f0ff' }}>Create upcoming NFT</h1>
+          <p style={{ margin: '12px 0 0', color: '#8888aa' }}>
             Schedule a launch. Whitelisted collectors can mint early at your whitelist price (free or paid).
             At your chosen launch time, the NFT auto-flips to public pricing.
           </p>
@@ -324,31 +324,31 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '22px' }}>
           {/* DETAILS */}
           <div style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: '#e2e8f0' }}>NFT details</h2>
+            <h2 style={{ marginTop: 0, color: '#f0f0ff' }}>NFT details</h2>
             <div style={{ display: 'grid', gap: '18px' }}>
               <div>
                 <label style={labelStyle}>Name *</label>
                 <input style={fieldStyle} value={form.name}
                   onChange={(e) => setField('name', e.target.value)} placeholder="My Drop" maxLength={120} />
-                {errors.name && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.name}</div>}
+                {errors.name && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.name}</div>}
               </div>
 
               <div>
                 <label style={labelStyle}>Image *</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   {imagePreview ? (
-                    <img src={imagePreview} alt="preview" style={{ width: 130, height: 130, borderRadius: 14, objectFit: 'cover', border: '1px solid #475569' }} />
+                    <img src={imagePreview} alt="preview" style={{ width: 130, height: 130, borderRadius: 14, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.07)' }} />
                   ) : (
-                    <div style={{ width: 130, height: 130, borderRadius: 14, border: '1px dashed #475569', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    <div style={{ width: 130, height: 130, borderRadius: 14, border: '1px dashed rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5c5b7a' }}>
                       No image
                     </div>
                   )}
-                  <label htmlFor="upcoming-nft-image" style={{ padding: '12px 18px', borderRadius: 12, background: '#1f2937', border: '1px solid #475569', cursor: 'pointer', color: '#e2e8f0' }}>
+                  <label htmlFor="upcoming-nft-image" style={{ padding: '12px 18px', borderRadius: 12, background: 'var(--c-raised,#13131f)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', color: '#f0f0ff' }}>
                     {imageFile ? 'Replace image' : 'Choose image'}
                   </label>
                   <input id="upcoming-nft-image" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
                 </div>
-                {errors.image && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.image}</div>}
+                {errors.image && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.image}</div>}
               </div>
 
               <div>
@@ -372,13 +372,13 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
                       <option key={n.id} value={n.id}>{n.name}{!n.isEVM ? ' (non-EVM)' : ''}</option>
                     ))}
                   </select>
-                  {errors.network && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.network}</div>}
+                  {errors.network && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.network}</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>Supply</label>
                   <input style={fieldStyle} type="number" min={1} value={form.supply}
                     onChange={(e) => setField('supply', e.target.value)} />
-                  {errors.supply && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.supply}</div>}
+                  {errors.supply && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.supply}</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>External URL</label>
@@ -391,7 +391,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
 
           {/* WHITELIST + PRICING */}
           <div style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: '#e2e8f0' }}>Whitelist phase</h2>
+            <h2 style={{ marginTop: 0, color: '#f0f0ff' }}>Whitelist phase</h2>
             <div style={{ display: 'grid', gap: 18 }}>
               <div>
                 <label style={labelStyle}>Who can mint during whitelist?</label>
@@ -400,9 +400,9 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
                     <button key={mode} type="button" onClick={() => setField('whitelistMode', mode)}
                       style={{
                         padding: '12px 18px', borderRadius: 12,
-                        background: form.whitelistMode === mode ? '#2563eb' : '#1f2937',
-                        border: form.whitelistMode === mode ? '1px solid #3b82f6' : '1px solid #475569',
-                        color: '#e2e8f0', cursor: 'pointer', fontWeight: 600,
+                        background: form.whitelistMode === mode ? '#7c3aed' : 'var(--c-raised,#13131f)',
+                        border: form.whitelistMode === mode ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.07)',
+                        color: '#f0f0ff', cursor: 'pointer', fontWeight: 600,
                       }}>
                       {mode === 'open' ? 'Open pre-sale (any wallet)' : 'Restricted allowlist'}
                     </button>
@@ -417,7 +417,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
                     value={form.whitelistAddressesText}
                     onChange={(e) => setField('whitelistAddressesText', e.target.value)}
                     placeholder={'0x1234...abcd\n0xabcd...5678'} />
-                  {errors.whitelistAddressesText && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.whitelistAddressesText}</div>}
+                  {errors.whitelistAddressesText && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.whitelistAddressesText}</div>}
                 </div>
               )}
 
@@ -435,13 +435,13 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
                   <input style={fieldStyle} type="number" step="0.000001" min={0}
                     disabled={form.whitelistFree} value={form.whitelistFree ? '0' : form.whitelistPrice}
                     onChange={(e) => setField('whitelistPrice', e.target.value)} placeholder="0.0" />
-                  {errors.whitelistPrice && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.whitelistPrice}</div>}
+                  {errors.whitelistPrice && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.whitelistPrice}</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>Minting fee (paid to creator, on top of price)</label>
                   <input style={fieldStyle} type="number" step="0.000001" min={0} value={form.mintingFee}
                     onChange={(e) => setField('mintingFee', e.target.value)} placeholder="0.0" />
-                  {errors.mintingFee && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.mintingFee}</div>}
+                  {errors.mintingFee && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.mintingFee}</div>}
                 </div>
               </div>
             </div>
@@ -449,8 +449,8 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
 
           {/* PUBLIC LAUNCH */}
           <div style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: '#e2e8f0' }}>Public launch (optional)</h2>
-            <p style={{ margin: '0 0 16px', color: '#94a3b8', fontSize: '0.92rem' }}>
+            <h2 style={{ marginTop: 0, color: '#f0f0ff' }}>Public launch (optional)</h2>
+            <p style={{ margin: '0 0 16px', color: '#8888aa', fontSize: '0.92rem' }}>
               When the launch time passes AND a public price is set, the NFT auto-flips to public mint pricing.
               You can leave these blank now and edit later from your profile's Upcoming NFTs section.
             </p>
@@ -464,7 +464,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
                 <label style={labelStyle}>Public mint price (native token)</label>
                 <input style={fieldStyle} type="number" step="0.000001" min={0} value={form.publicPrice}
                   onChange={(e) => setField('publicPrice', e.target.value)} placeholder="0.0 (optional)" />
-                {errors.publicPrice && <div style={{ marginTop: 8, color: '#dc2626' }}>{errors.publicPrice}</div>}
+                {errors.publicPrice && <div style={{ marginTop: 8, color: '#f87171' }}>{errors.publicPrice}</div>}
               </div>
             </div>
           </div>
@@ -474,14 +474,18 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
           <button type="submit" disabled={submitting}
             style={{
               width: '100%', padding: '16px 0', borderRadius: 16, border: 'none',
-              background: submitting ? '#93c5fd' : '#2563eb',
+              background: submitting ? '#93c5fd' : '#7c3aed',
               color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer',
               fontWeight: 700, fontSize: '1rem',
             }}>
-            {submitting ? 'Creating…' : 'Create upcoming NFT'}
+            {submitting ? 'Creatingâ€¦' : 'Create upcoming NFT'}
           </button>
         </form>
-      </main>
+      </>
     </div>
   );
 }
+
+
+
+

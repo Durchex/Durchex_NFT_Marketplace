@@ -334,7 +334,7 @@ const NftDetailsPage = () => {
         </button>
 
         {/* NFT Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-10">
           {/* â”€â”€ Left: Image + mini stats â”€â”€ */}
           <div className="flex flex-col gap-4">
             <div className="card overflow-hidden">

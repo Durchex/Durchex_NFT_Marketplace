@@ -118,8 +118,9 @@ export default function Header() {
 
   return (
     <>
-      {/* ── Ticker Bar ── */}
-      <div className="h-9 bg-raised border-b border-border overflow-hidden flex items-center text-xs text-ink-400">
+    <div className="sticky top-0 z-40 w-full">
+      {/* ── Ticker Bar — hidden on xs screens to save space ── */}
+      <div className="hidden sm:flex h-9 bg-raised border-b border-border overflow-hidden items-center text-xs text-ink-400">
         <div className="ticker-track whitespace-nowrap flex gap-8 px-4">
           {['ETH Floor: 0.08Ξ ↑2.4%', 'BAYC: 12.5Ξ ↑0.8%', 'Azuki: 4.2Ξ ↓1.1%',
             '24h Volume: 1,240Ξ', 'Traders: 8,420', 'Listings: 24,100',
@@ -144,8 +145,9 @@ export default function Header() {
       </div>
 
       {/* ── Main header ── */}
-      <header className="sticky top-9 z-40 w-full"
-        style={{ background: 'rgba(5,5,13,0.85)', backdropFilter: 'blur(20px)',
+      <header className="w-full"
+        style={{ background: 'rgba(5,5,13,0.92)', backdropFilter: 'blur(20px)',
+                 WebkitBackdropFilter: 'blur(20px)',
                  borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="page-container h-[68px] flex items-center gap-4">
 
@@ -320,8 +322,10 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Cart drawer */}
-      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+    </div>
+
+    {/* Cart drawer — outside sticky wrapper so it overlays correctly */}
+    <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }

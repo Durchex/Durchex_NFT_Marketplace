@@ -86,7 +86,8 @@ const NFTCard = ({
   const priceDisplay = fmtPrice(_price);
   const symbol = NETWORK_SYMBOL[String(_network).toLowerCase()] || 'ETH';
 
-  const href = _isLazyMint ? `/mint/${_itemId}` : `/nft/${_itemId}`;
+  // Always go to NFT details first — user can mint/buy from there
+  const href = `/nft/${_itemId}`;
   const imgSrc = imgError ? '' : _image;
 
   /* ── Handlers ── */
@@ -134,7 +135,7 @@ const NFTCard = ({
      ═══════════════════════════════════════ */
   if (variant === 'featured') {
     return (
-      <Link to={href} onClick={onClick}
+      <Link to={`/nft/${_itemId}`} onClick={onClick}
         className="group relative block rounded-3xl overflow-hidden cursor-pointer"
         style={{ aspectRatio: '4/5' }}>
         {imgSrc

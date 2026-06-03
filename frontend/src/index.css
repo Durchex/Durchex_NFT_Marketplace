@@ -12,14 +12,15 @@
   --c-raised:  #13131f;
   --c-border:  rgba(255,255,255,0.06);
 
-  /* Accents */
-  --c-cyan:    #00c8ff;
+  /* Accents — purple only */
+  --c-cyan:    #a855f7;   /* renamed but kept as --c-cyan for compat; is now purple */
+  --c-primary: #a855f7;
   --c-violet:  #7c3aed;
   --c-gold:    #fbbf24;
 
-  /* Gradients */
-  --g-orbital: linear-gradient(135deg, #00c8ff 0%, #7c3aed 100%);
-  --g-orbital-r: linear-gradient(135deg, #7c3aed 0%, #00c8ff 100%);
+  /* Gradients — purple palette */
+  --g-orbital:   linear-gradient(135deg, #c084fc 0%, #7c3aed 100%);
+  --g-orbital-r: linear-gradient(135deg, #7c3aed 0%, #c084fc 100%);
 
   /* Text */
   --t-primary:   #f0f0ff;
@@ -27,8 +28,8 @@
   --t-muted:     #8888aa;
 
   /* Glows */
-  --glow-cyan:   0 0 30px rgba(0,200,255,0.20);
-  --glow-violet: 0 0 30px rgba(124,58,237,0.20);
+  --glow-cyan:   0 0 30px rgba(168,85,247,0.30);
+  --glow-violet: 0 0 30px rgba(124,58,237,0.28);
 
   /* Header height (used by layout calculations) */
   --header-h: 68px;
@@ -57,7 +58,7 @@
 
   body {
     background: var(--c-void);
-    background-image: radial-gradient(ellipse 120% 60% at 50% -10%, #0d0d2a 0%, transparent 60%);
+    background-image: radial-gradient(ellipse 120% 60% at 50% -10%, #120820 0%, transparent 60%);
     overflow-x: hidden;
     max-width: 100vw;
     position: relative;
@@ -298,8 +299,11 @@
 
   /* ── Page container ── */
   .page-container {
-    @apply max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 w-full;
   }
+
+  /* ── Mobile-safe full bleed ── */
+  .bleed { @apply w-full overflow-x-hidden; }
 }
 
 /* ════════════════════════════════════════════════
@@ -353,7 +357,7 @@
    ════════════════════════════════════════════════ */
 .verified-dot {
   @apply inline-flex items-center justify-center w-4 h-4 rounded-full
-         bg-cyan-400 text-void;
+         bg-violet-500 text-white;
   font-size: 9px;
 }
 

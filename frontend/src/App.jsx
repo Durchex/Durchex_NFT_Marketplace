@@ -108,19 +108,12 @@ export default function App() {
     <BrowserRouter>
       <SidebarProvider>
         <AntiScreenshotWarning />
-        <div className="flex min-h-screen bg-black">
-          {/* Fixed Sidebar */}
-          <Sidebar />
+        {/* Mobile-only drawer — renders as overlay, no desktop offset needed */}
+        <Sidebar />
 
-          {/* Main Column: Header (sticky) + Scrollable Content */}
-          <div className="flex-1 md:ml-20 flex flex-col min-h-screen">
-            {/* Global Header: connects visually with sidebar and stays fixed while scrolling */}
-            <header className="sticky top-0 z-40">
-              {/* You can render a global Header component here if desired */}
-            </header>
-
+        <div className="flex flex-col min-h-screen w-full" style={{ background: 'var(--c-void)' }}>
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1">
               <Suspense fallback={<Loading />}>
                 <Routes>
           <Route
@@ -237,7 +230,6 @@ export default function App() {
               </Suspense>
             </main>
           </div>
-        </div>
       </SidebarProvider>
     </BrowserRouter>
   );
