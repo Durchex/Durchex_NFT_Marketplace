@@ -44,6 +44,11 @@ import {
   getNftTrades,
   getNftAnalytics,
   getNftRarityRank,
+  // 410 stubs for removed liquidity pool endpoints
+  quoteSellToLiquidity,
+  pieceSellBackToLiquidity,
+  recordPoolPurchase,
+  attachLiquidityPool,
 } from "../controllers/nftController.js";
 // import { createNft } from "../models/nftModel.js";
 
@@ -61,6 +66,12 @@ router.get("/nfts/upcoming/user/:walletAddress", listUserUpcomingNfts);
 router.patch("/nfts/upcoming/:id", updateUpcomingNft);
 router.post("/nfts/upcoming/:id/redeem", redeemUpcomingNft);
 router.post("/nfts/upcoming/:id/record-mint", recordUpcomingMint);
+
+// Removed liquidity-pool endpoints — return 410 Gone so clients know they're retired.
+router.get("/liquidity/quote-sell",        quoteSellToLiquidity);
+router.post("/nfts/piece-sell-back",       pieceSellBackToLiquidity);
+router.post("/nfts/piece-buy-from-pool",   recordPoolPurchase);
+router.post("/nfts/:network/:itemId/liquidity", attachLiquidityPool);
 
 // Piece sell orders — P2P secondary market (collector lists pieces, another buyer fills)
 router.post("/nfts/piece-sell-orders", auth, createPieceSellOrder);

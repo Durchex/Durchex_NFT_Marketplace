@@ -323,12 +323,10 @@ export const getCollectionNFTs = async (req, res) => {
       }
     });
     
-    // Query lazy NFTs in the same collection â€” no expiresAt filter so all survive.
+    // Query lazy NFTs by collection ObjectId only — collectionId is a string and can't be
+    // cast to ObjectId, which would throw a CastError on the collection field.
     const lazyNfts = await LazyNFT.find({
-      $or: [
-        { collection: collectionDoc._id },
-        { collection: collectionDoc.collectionId }
-      ],
+      collection: collectionDoc._id,
       status: { $in: ['pending', 'redeemed', 'fully_redeemed'] },
     }).populate('collection');
     
@@ -350,6 +348,10 @@ export const getCollectionNFTs = async (req, res) => {
     res.status(200).json(allNfts);
   } catch (error) {
     console.error('Error fetching collection NFTs:', error);
+    // Cast errors (e.g. invalid ObjectId) should be a 400, not a 500
+    if (error.name === 'CastError' || error.message?.includes('Cast to ObjectId')) {
+      return res.status(400).json({ error: 'Invalid collection ID format' });
+    }
     res.status(500).json({ error: error.message });
   }
 };
