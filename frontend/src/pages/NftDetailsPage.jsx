@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2, FiShoppingCart } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -165,7 +165,7 @@ const NftDetailsPage = () => {
       const net = (nftData.network || 'ethereum').toLowerCase();
       const itemIdStr = String(nftData.itemId || nftData.tokenId || id);
 
-      // Fire-and-forget aggregator lookup — never blocks page render.
+      // Fire-and-forget aggregator lookup â€” never blocks page render.
       // Only meaningful for NFTs with both a contract address and tokenId.
       const aggContract = nftData.contractAddress || nftData.nftContract;
       if (aggContract && nftData.tokenId) {
@@ -287,10 +287,11 @@ const NftDetailsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen" style={{ background: 'var(--c-void)' }}>
         <Header />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-purple-500"></div>
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <div className="w-12 h-12 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+          <p className="text-ink-400 text-sm animate-pulse">Loading NFTâ€¦</p>
         </div>
       </div>
     );
@@ -298,20 +299,21 @@ const NftDetailsPage = () => {
 
   if (error || !nft) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen" style={{ background: 'var(--c-void)' }}>
         <Header />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6"
-          >
-            <FiArrowLeft /> Go Back
+        <main className="page-container py-12">
+          <button onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-8 text-sm font-medium transition-colors">
+            <FiArrowLeft size={16} /> Go Back
           </button>
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-2">{error || 'NFT Not Found'}</h2>
-            <p className="text-gray-400 mb-6">The NFT you're looking for doesn't exist or has been removed.</p>
-            <Link to="/explore" className="text-purple-400 hover:text-purple-300">
-              Browse Other NFTs →
+          <div className="text-center py-16">
+            <div className="w-16 h-16 rounded-2xl bg-raised border border-border flex items-center justify-center mx-auto mb-6">
+              <FiArrowLeft size={28} className="text-ink-600 rotate-[135deg]" />
+            </div>
+            <h2 className="text-2xl font-bold text-ink-100 mb-3">{error || 'NFT Not Found'}</h2>
+            <p className="text-ink-400 mb-8">The NFT you're looking for doesn't exist or has been removed.</p>
+            <Link to="/explore" className="btn-primary gap-2 inline-flex">
+              Browse Marketplace â†’
             </Link>
           </div>
         </main>
@@ -320,110 +322,93 @@ const NftDetailsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen" style={{ background: 'var(--c-void)' }}>
       <Header />
 
-      <main className="max-w-7xl mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-4 xs:py-6 sm:py-8">
+      <main className="page-container py-6 md:py-10">
         {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-4 xs:mb-5 sm:mb-6 transition-colors text-sm xs:text-base"
-        >
-          <FiArrowLeft /> Go Back
+        <button onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-ink-400 hover:text-ink-100 mb-6 text-sm font-medium
+                     transition-colors">
+          <FiArrowLeft size={16} /> Back
         </button>
 
         {/* NFT Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xs:gap-5 sm:gap-6 md:gap-8">
-          {/* Left: NFT Image */}
-          <div className="flex flex-col">
-            <div className="bg-gray-900 rounded-xl overflow-hidden mb-3 xs:mb-4 border border-gray-800">
-              <img
-                src={resolveIpfsUrl(nft.image || nft.imageURL)}
-                alt={nft.name}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-48 xs:h-64 sm:h-80 md:h-96 object-cover"
-              />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
+          {/* â”€â”€ Left: Image + mini stats â”€â”€ */}
+          <div className="flex flex-col gap-4">
+            <div className="card overflow-hidden">
+              <div className="relative aspect-square bg-raised">
+                <img
+                  src={resolveIpfsUrl(nft.image || nft.imageURL)}
+                  alt={nft.name}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
 
-            {/* NFT Stats */}
-            <div className="grid grid-cols-3 gap-2 xs:gap-3">
-              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
-                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
-                  <FiEye className="w-3 h-3 xs:w-4 xs:h-4" />
-                  <span className="hidden xs:inline">Views</span>
+            {/* Mini stats row */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { icon: FiEye,       label: 'Views',  value: (views||0).toLocaleString() },
+                { icon: FiHeart,     label: 'Likes',  value: (likes||0).toLocaleString() },
+                { icon: FiBarChart2, label: 'Volume', value: analytics?.volume24h ? `${Number(analytics.volume24h).toFixed(2)}Îž` : 'â€”' },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="stat-card text-center">
+                  <Icon className="w-4 h-4 text-cyan-400 mx-auto mb-2" />
+                  <p className="stat-value text-lg">{value}</p>
+                  <p className="stat-label">{label}</p>
                 </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">{(views || 0).toLocaleString()}</div>
-              </div>
-              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
-                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
-                  <FiHeart className="w-3 h-3 xs:w-4 xs:h-4" />
-                  <span className="hidden xs:inline">Likes</span>
-                </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">{(likes || 0).toLocaleString()}</div>
-              </div>
-              <div className="bg-gray-800/50 rounded-lg p-2 xs:p-3 sm:p-4">
-                <div className="flex items-center gap-1 xs:gap-2 text-gray-400 text-xs xs:text-sm mb-1 xs:mb-2">
-                  <FiDollarSign className="w-3 h-3 xs:w-4 xs:h-4" />
-                  <span className="hidden xs:inline">Price</span>
-                </div>
-                <div className="text-base xs:text-lg sm:text-xl font-bold">
-                  {nft.price ? (
-                    <>
-                      {parseFloat(nft.price).toFixed(4)}{' '}
-                      {getCurrencySymbol(nft.network || 'ethereum')}
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: NFT Info */}
+          {/* â”€â”€ Right: Info + actions â”€â”€ */}
           <div>
-            {/* Header */}
-            <div className="mb-4 xs:mb-5 sm:mb-6">
-              <div className="flex items-start justify-between mb-3 xs:mb-4 gap-2 xs:gap-3">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl xs:text-2xl sm:text-3xl font-bold mb-1 xs:mb-2 break-words">{nft.name}</h1>
-                  {nft.collection && (
-                    <Link
-                      to={`/collection/${nft.collection}`}
-                      className="text-purple-400 hover:text-purple-300 transition-colors text-sm xs:text-base"
-                    >
-                      {nft.collection} →
-                    </Link>
-                  )}
-                </div>
-                <div className="flex gap-1.5 xs:gap-2 flex-shrink-0">
-                  <button className="p-2 xs:p-2.5 sm:p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors" title="Share">
-                    <FiShare2 className="w-4 h-4 xs:w-5 xs:h-5" />
-                  </button>
-                  <button
-                    onClick={handleToggleLike}
-                    className="p-2 xs:p-2.5 sm:p-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-                    title="Like"
-                  >
-                    <FiHeart className={`w-4 h-4 xs:w-5 xs:h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
-                  </button>
-                </div>
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-4 gap-4">
+              <div className="flex-1 min-w-0">
+                {nft.collection && (
+                  <Link to={`/collection/${nft.collection}`}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-medium mb-2 flex items-center gap-1 transition-colors">
+                    {nft.collection} <FiArrowLeft className="rotate-180" size={11} />
+                  </Link>
+                )}
+                <h1 className="text-2xl md:text-3xl font-extrabold text-ink-100 break-words mb-1">
+                  {nft.name}
+                </h1>
+                {nft.network && (
+                  <span className="badge-cyan text-xs capitalize mt-2 inline-flex">{nft.network}</span>
+                )}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={handleToggleLike}
+                  className={`btn-icon transition-all duration-200
+                    ${liked ? 'bg-red-500/15 text-red-400' : 'text-ink-400 hover:text-red-400'}`}
+                  title="Like">
+                  <FiHeart className={liked ? 'fill-current' : ''} size={18} />
+                </button>
+                <button className="btn-icon text-ink-400 hover:text-ink-100" title="Share">
+                  <FiShare2 size={18} />
+                </button>
               </div>
             </div>
 
             {/* Description */}
             {nft.description && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">DESCRIPTION</h3>
-                <p className="text-gray-300">{nft.description}</p>
+              <div className="mb-5">
+                <p className="section-label mb-2">Description</p>
+                <p className="text-ink-300 text-sm leading-relaxed">{nft.description}</p>
               </div>
             )}
 
             {/* Also available on (external marketplaces) */}
             {externalListings.length > 0 && (
-              <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-gray-400 mb-3">ALSO LISTED ON</h3>
+              <div className="card p-4 mb-5">
+                <p className="section-label mb-3">Also Listed On</p>
                 <div className="space-y-2">
                   {externalListings.slice(0, 5).map((l, i) => {
                     const priceEth = (() => {
@@ -431,52 +416,49 @@ const NftDetailsPage = () => {
                       catch { return l.priceWei; }
                     })();
                     const sourceLabel = {
-                      opensea: 'OpenSea',
-                      blur: 'Blur',
-                      magiceden: 'Magic Eden',
+                      opensea: 'OpenSea', blur: 'Blur', magiceden: 'Magic Eden',
                     }[l.source] || l.source;
                     return (
                       <a key={i} href={l.externalUrl || '#'} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 bg-gray-900/50 hover:bg-gray-900 rounded-lg transition group">
+                        className="flex items-center justify-between p-3 rounded-2xl bg-raised hover:bg-border
+                                   transition-colors group">
                         <div className="flex items-center gap-3">
-                          <span className="px-2 py-1 text-xs font-bold rounded bg-purple-600/20 text-purple-300 uppercase">
-                            {sourceLabel}
-                          </span>
-                          <span className="text-xs text-gray-500 font-mono">{shortenAddress(l.seller)}</span>
+                          <span className="badge-violet text-[10px] uppercase">{sourceLabel}</span>
+                          <span className="text-xs text-ink-500 font-mono">{shortenAddress(l.seller)}</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-white font-semibold">{Number(priceEth).toFixed(4)}</span>
-                          <FiArrowLeft className="text-gray-400 group-hover:text-white rotate-[135deg]" />
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-ink-100">{Number(priceEth).toFixed(4)} Îž</span>
+                          <FiArrowLeft className="text-ink-600 group-hover:text-ink-200 rotate-180" size={14} />
                         </div>
                       </a>
                     );
                   })}
                 </div>
                 {externalListings.length > 5 && (
-                  <div className="text-xs text-gray-500 mt-2">+ {externalListings.length - 5} more</div>
+                  <div className="text-xs text-ink-500 mt-2">+ {externalListings.length - 5} more</div>
                 )}
               </div>
             )}
 
             {/* Details */}
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-400 mb-4">DETAILS</h3>
+              <h3 className="text-sm font-semibold text-ink-400 mb-4">DETAILS</h3>
               <div className="space-y-3">
                 {nft.itemId && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Item ID</span>
-                    <span className="font-mono text-gray-300">{nft.itemId}</span>
+                    <span className="text-ink-400">Item ID</span>
+                    <span className="font-mono text-ink-200">{nft.itemId}</span>
                   </div>
                 )}
                 {nft.network && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Network</span>
+                    <span className="text-ink-400">Network</span>
                     <span className="font-semibold capitalize">{nft.network}</span>
                   </div>
                 )}
                 {nft.metadataURI && (
                   <div className="flex justify-between items-start gap-2">
-                    <span className="text-gray-400 shrink-0">Metadata (EIP-721)</span>
+                    <span className="text-ink-400 shrink-0">Metadata (EIP-721)</span>
                     <a
                       href={nft.metadataURI.startsWith("http") ? nft.metadataURI : `https://ipfs.io/ipfs/${nft.metadataURI.replace(/^ipfs:\/\//, "")}`}
                       target="_blank"
@@ -484,38 +466,40 @@ const NftDetailsPage = () => {
                       className="font-mono text-sm text-blue-400 hover:underline truncate max-w-[180px]"
                       title={nft.metadataURI}
                     >
-                      {nft.metadataURI.slice(0, 24)}…
+                      {nft.metadataURI.slice(0, 24)}â€¦
                     </a>
                   </div>
                 )}
                 {(nft.creator || nft.creatorWallet) && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Creator</span>
-                    <span className="font-semibold">{creatorDisplayName ?? '…'}</span>
+                    <span className="text-ink-400">Creator</span>
+                    <span className="font-semibold">{creatorDisplayName ?? 'â€¦'}</span>
                   </div>
                 )}
                 {nft.category && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Category</span>
+                    <span className="text-ink-400">Category</span>
                     <span className="font-semibold capitalize">{nft.category}</span>
                   </div>
                 )}
                 {nft.price && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Price</span>
-                    <span className="font-bold text-lg">
-                      {parseFloat(nft.price).toFixed(4)}{' '}
-                      {getCurrencySymbol(nft.network || 'ethereum')}
+                  <div className="flex justify-between items-center">
+                    <span className="text-ink-400 text-sm">Price</span>
+                    <span className="font-bold text-lg text-ink-100">
+                      {parseFloat(nft.price) > 1e9
+                        ? (parseFloat(nft.price)/1e18).toFixed(4)
+                        : parseFloat(nft.price).toFixed(4)
+                      } {getCurrencySymbol(nft.network || 'ethereum')}
                     </span>
                   </div>
                 )}
                 {((nft.pieces != null && nft.pieces > 1) || (nft.remainingPieces != null)) && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Stock</span>
-                    <span className="font-semibold">
-                      {Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)} pieces
+                  <div className="flex justify-between items-center">
+                    <span className="text-ink-400 text-sm">Editions</span>
+                    <span className="font-semibold text-ink-100 text-sm">
+                      {Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)} remaining
                       {(nft.remainingPieces === 0 || (nft.remainingPieces != null && nft.remainingPieces <= 0)) && (
-                        <span className="ml-2 text-red-400 text-sm">Sold Out</span>
+                        <span className="ml-2 badge-red">Sold Out</span>
                       )}
                     </span>
                   </div>
@@ -523,22 +507,22 @@ const NftDetailsPage = () => {
               </div>
             </div>
 
-            {/* Properties */}
+            {/* Properties / Traits */}
             {nft.properties && Object.keys(nft.properties).length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-400 mb-4">PROPERTIES</h3>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="mb-5">
+                <p className="section-label mb-3">Traits</p>
+                <div className="grid grid-cols-2 gap-2">
                   {Object.entries(nft.properties).map(([key, value]) => (
-                    <div key={key} className="bg-gray-800/50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500 capitalize mb-1">{key}</div>
-                      <div className="font-semibold text-gray-200">{String(value)}</div>
+                    <div key={key} className="bg-raised rounded-2xl p-3 border border-border">
+                      <p className="text-[10px] text-cyan-400 uppercase font-semibold mb-1 tracking-wide">{key}</p>
+                      <p className="text-sm font-semibold text-ink-100">{String(value)}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Action Buttons: Sold Out when no pieces; Sell when owner; Buy/Mint when non-owner and pieces left */}
+            {/* Action Buttons */}
             <div className="space-y-3">
               {(() => {
                 const remainingPieces = nft.remainingPieces ?? nft.pieces ?? 0;
@@ -548,10 +532,11 @@ const NftDetailsPage = () => {
                 if (!hasPieces) {
                   return (
                     <>
-                      <button disabled className="w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
+                      <button disabled className="btn-secondary w-full opacity-50 cursor-not-allowed justify-center py-3">
                         Sold Out
                       </button>
-                      <button onClick={() => setOfferModalOpen(true)} className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <button onClick={() => setOfferModalOpen(true)}
+                        className="btn-secondary w-full justify-center py-3 gap-2">
                         <FiDollarSign /> Make Offer
                       </button>
                     </>
@@ -559,25 +544,29 @@ const NftDetailsPage = () => {
                 }
                 if (isOwner) {
                   const totalPieces = Number(nft?.pieces ?? nft?.supply ?? 1) || 1;
-                  const remainingPieces = Number(nft?.remainingPieces ?? 0);
-                  const primarySaleComplete = totalPieces <= 1 || remainingPieces <= 0;
+                  const remPieces = Number(nft?.remainingPieces ?? 0);
+                  const primarySaleComplete = totalPieces <= 1 || remPieces <= 0;
                   if (!primarySaleComplete) {
                     return (
-                      <div className="w-full bg-gray-800 border border-gray-700 text-gray-400 font-semibold py-3 rounded-lg flex flex-col items-center justify-center gap-1 px-3 text-center">
-                        <div className="flex items-center gap-2"><FiDollarSign /> Resale locked</div>
-                        <div className="text-xs text-gray-500">{remainingPieces} of {totalPieces} pieces still unminted</div>
+                      <div className="card p-4 text-center">
+                        <div className="flex items-center justify-center gap-2 text-ink-400 text-sm mb-1">
+                          <FiDollarSign /> Resale locked
+                        </div>
+                        <p className="text-xs text-ink-600">{remPieces} of {totalPieces} editions still unminted</p>
                       </div>
                     );
                   }
                   return (
-                    <button onClick={() => setSellModalOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                      <FiDollarSign /> Sell
+                    <button onClick={() => setSellModalOpen(true)}
+                      className="btn-primary w-full justify-center py-3.5 gap-2">
+                      <FiDollarSign /> List for Sale
                     </button>
                   );
                 }
                 return (
-                  <button onClick={() => navigate(`/mint/${mintId}`)} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
-                    <FiDollarSign /> Mint
+                  <button onClick={() => navigate(`/mint/${mintId}`)}
+                    className="btn-primary w-full justify-center py-3.5 gap-2">
+                    <FiDollarSign /> Mint Now
                   </button>
                 );
               })()}
@@ -587,59 +576,53 @@ const NftDetailsPage = () => {
                 return (
                   <button
                     onClick={inCart ? undefined : async () => {
-                      try {
-                        await addToCart(nft, address);
-                      } catch (e) {
-                        toast.error(e.message || 'Could not add to cart');
-                      }
+                      try { await addToCart(nft, address); }
+                      catch (e) { toast.error(e.message || 'Could not add to cart'); }
                     }}
                     disabled={inCart}
-                    className={`w-full font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${inCart ? 'bg-gray-600 text-gray-400 cursor-default' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
-                  >
-                    <FiShoppingCart /> {inCart ? 'In cart' : 'Add to cart'}
+                    className={`btn-secondary w-full justify-center py-3 gap-2
+                      ${inCart ? 'opacity-50 cursor-default border-cyan-400/30 text-cyan-400' : ''}`}>
+                    <FiShoppingCart /> {inCart ? 'In Cart' : 'Add to Cart'}
                   </button>
                 );
               })()}
 
               {/* Marketplace Listings */}
               {marketplaceListings.length > 0 && (
-                <div className="border-t border-gray-700 pt-4 mt-4">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-3">Marketplace Listings</h4>
+                <div className="divider">
+                  <p className="section-label mb-3">Listings</p>
                   <div className="space-y-2">
                     {marketplaceListings.slice(0, 3).map((listing) => (
-                      <div key={listing._id} className="bg-gray-800/50 rounded-lg p-3 flex items-center justify-between">
+                      <div key={listing._id}
+                        className="flex items-center justify-between p-3 rounded-2xl bg-raised border border-border">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            listing.listingType === 'auction' ? 'bg-blue-500' : 'bg-emerald-500'
+                          <div className={`w-2.5 h-2.5 rounded-full ${
+                            listing.listingType === 'auction' ? 'bg-cyan-400' : 'bg-emerald-400'
                           }`} />
                           <div>
-                            <div className="text-sm font-medium text-white">
+                            <p className="text-sm font-bold text-ink-100">
                               {listing.price} {getCurrencySymbol(listing.network)}
-                            </div>
-                            <div className="text-xs text-gray-400 capitalize">
+                            </p>
+                            <p className="text-xs text-ink-400 capitalize">
                               {listing.listingType}
                               {listing.listingType === 'auction' && listing.endTime && (
                                 <span className="ml-1">
-                                  • Ends {new Date(listing.endTime * 1000).toLocaleDateString()}
+                                  Â· Ends {new Date(listing.endTime * 1000).toLocaleDateString()}
                                 </span>
                               )}
-                            </div>
+                            </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleMarketplaceBuy(listing)}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded transition-colors"
-                        >
+                        <button onClick={() => handleMarketplaceBuy(listing)}
+                          className="btn-primary btn-sm">
                           Buy
                         </button>
                       </div>
                     ))}
                     {marketplaceListings.length > 3 && (
-                      <button
-                        onClick={() => navigate('/marketplace')}
-                        className="w-full text-center text-sm text-emerald-400 hover:text-emerald-300 py-2"
-                      >
-                        View all {marketplaceListings.length} listings →
+                      <button onClick={() => navigate('/marketplace')}
+                        className="w-full text-center text-sm text-cyan-400 hover:text-cyan-300 py-2">
+                        View all {marketplaceListings.length} listings â†’
                       </button>
                     )}
                   </div>
@@ -647,10 +630,10 @@ const NftDetailsPage = () => {
               )}
 
               {/* Marketplace Actions */}
-              <div className="border-t border-gray-700 pt-4 mt-4 space-y-2">
+              <div className="border-t border-border pt-4 mt-4 space-y-2">
                 <button
                   onClick={() => navigate('/marketplace')}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-raised hover:bg-gray-600 text-ink-200 hover:text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   <FiShoppingCart className="text-sm" /> Browse Marketplace
                 </button>
@@ -664,84 +647,59 @@ const NftDetailsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-5 sm:gap-6 md:gap-8">
             {/* Left: Market Analytics */}
             <div className="lg:col-span-1">
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6">
-                <h2 className="text-lg xs:text-xl font-bold mb-4 xs:mb-5 sm:mb-6 flex items-center gap-2">
-                  <FiBarChart2 className="text-purple-400 w-4 h-4 xs:w-5 xs:h-5" />
+              <div className="card p-5">
+                <h2 className="text-base font-bold text-ink-100 mb-5 flex items-center gap-2">
+                  <FiBarChart2 className="text-cyan-400" />
                   Market Analytics
                 </h2>
 
-                {/* Last Price & Price Movement */}
-                <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
-                  <div className="text-xs xs:text-sm text-gray-400 mb-1 xs:mb-2">Last Price</div>
+                {/* Last Price */}
+                <div className="mb-5 pb-5 divider">
+                  <p className="text-xs text-ink-400 mb-1">Last Price</p>
                   <div className="flex items-end gap-2">
-                    <div className="text-xl xs:text-2xl font-bold text-green-400">
-                      {parseFloat(nft.lastPrice || nft.floorPrice || nft.price || 0).toFixed(4)}{' '}
-                      {getCurrencySymbol(nft.network || 'ethereum')}
-                    </div>
+                    <p className="text-2xl font-extrabold text-ink-100">
+                      {parseFloat(nft.lastPrice || nft.floorPrice || nft.price || 0).toFixed(4)}
+                      <span className="text-base text-ink-400 font-normal ml-1">
+                        {getCurrencySymbol(nft.network || 'ethereum')}
+                      </span>
+                    </p>
                     {analytics?.priceChangePercent != null && (
-                      <div className={`flex items-center gap-1 text-xs xs:text-sm mb-1 ${parseFloat(analytics.priceChangePercent) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {parseFloat(analytics.priceChangePercent) >= 0 ? <FiTrendingUp className="w-3 h-3 xs:w-4 xs:h-4" /> : <FiTrendingDown className="w-3 h-3 xs:w-4 xs:h-4" />}
+                      <div className={`flex items-center gap-1 text-sm mb-0.5 font-semibold
+                        ${parseFloat(analytics.priceChangePercent) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {parseFloat(analytics.priceChangePercent) >= 0 ? <FiTrendingUp size={14} /> : <FiTrendingDown size={14} />}
                         {parseFloat(analytics.priceChangePercent) >= 0 ? '+' : ''}{analytics.priceChangePercent}%
                       </div>
                     )}
                   </div>
-                  {(nft.lastPrice || nft.price) && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      ≈ $
-                      {getUsdValueFromCrypto(
-                        nft.lastPrice || nft.price,
-                        nft.network || 'ethereum'
-                      ).toFixed(2)}{' '}
-                      USD
-                    </div>
-                  )}
                 </div>
 
-                {/* Market Cap & Volume (from trades — live) */}
-                <div className="mb-4 xs:mb-5 sm:mb-6 pb-4 xs:pb-5 sm:pb-6 border-b border-gray-700">
-                  <div className="text-xs xs:text-sm text-gray-400 mb-2 xs:mb-3">Market Data</div>
-                  <div className="space-y-2 xs:space-y-3">
-                    <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">Market Cap</span>
-                      <span className="font-semibold">
-                        {(() => {
-                          const cap = nft.marketCap ? parseFloat(nft.marketCap) : (analytics?.marketCap ?? (analytics?.lastPrice != null && (nft.pieces ?? 1) ? analytics.lastPrice * (nft.pieces ?? 1) : null));
-                          return cap != null ? cap.toFixed(4) : '—';
-                        })()}{' '}
-                        {getCurrencySymbol(nft.network || 'ethereum')}
-                      </span>
+                {/* Market data */}
+                <div className="mb-5 pb-5 divider space-y-3">
+                  {[
+                    ['Market Cap',  (() => { const c = nft.marketCap ? parseFloat(nft.marketCap) : analytics?.marketCap; return c ? c.toFixed(4) + ' ' + getCurrencySymbol(nft.network) : 'â€”'; })()],
+                    ['24h Volume',  (analytics?.volume24h != null ? parseFloat(analytics.volume24h).toFixed(4) : '0') + ' ' + getCurrencySymbol(nft.network)],
+                    ['Trades',      String(analytics?.tradesCount ?? tradeData.length)],
+                    ['Editions',    `${Number(nft.remainingPieces ?? nft.pieces ?? 0)} / ${Number(nft.pieces ?? 1)}`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex justify-between items-center text-sm">
+                      <span className="text-ink-400">{label}</span>
+                      <span className="font-semibold text-ink-100">{value}</span>
                     </div>
-                    <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">24h Volume</span>
-                      <span className="font-semibold">
-                        {analytics?.volume24h != null ? parseFloat(analytics.volume24h).toFixed(4) : (nft.volume24h ? parseFloat(nft.volume24h).toFixed(4) : '0')}{' '}
-                        {getCurrencySymbol(nft.network || 'ethereum')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">Trades</span>
-                      <span className="font-semibold">{analytics?.tradesCount ?? tradeData.length}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs xs:text-sm">
-                      <span className="text-gray-400">Pieces</span>
-                      <span className="font-semibold">{Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)}</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
-                {/* Rarity Rank (live from API) */}
+                {/* Rarity */}
                 <div>
-                  <div className="text-sm text-gray-400 mb-3">Rarity Rank</div>
-                  <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-lg p-4 border border-purple-500/30">
-                    <div className="text-3xl font-bold text-purple-400 mb-1">
-                      #{rarity?.rarityRank ?? '—'}
+                  <p className="text-xs text-ink-400 mb-3">Rarity Rank</p>
+                  <div className="gradient-border rounded-2xl p-4 text-center"
+                    style={{ background: 'linear-gradient(135deg,rgba(0,200,255,0.06),rgba(124,58,237,0.06))' }}>
+                    <p className="text-3xl font-extrabold text-gradient mb-1">
+                      #{rarity?.rarityRank ?? 'â€”'}
                       {rarity?.totalInCollection > 0 && (
-                        <span className="text-sm font-normal text-gray-400 ml-1">/ {rarity.totalInCollection}</span>
+                        <span className="text-base font-normal text-ink-400 ml-1">/ {rarity.totalInCollection}</span>
                       )}
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      Ranking Score: {(rarity?.rarityScore ?? rarity?.rankingScore ?? '—')}/100
-                    </div>
+                    </p>
+                    <p className="text-xs text-ink-400">Score: {(rarity?.rarityScore ?? rarity?.rankingScore ?? 'â€”')}/100</p>
                   </div>
                 </div>
               </div>
@@ -750,7 +708,7 @@ const NftDetailsPage = () => {
             {/* Right: Price Chart & Trading Activity */}
             <div className="lg:col-span-2">
               {/* Price Movement Chart (live from trades) */}
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6 mb-4 xs:mb-5 sm:mb-6">
+              <div className="bg-gray-900/50 rounded-2xl border border-border p-4 xs:p-5 sm:p-6 mb-4 xs:mb-5 sm:mb-6">
                 <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
                   <FiTrendingUp className="text-blue-400 w-4 h-4 xs:w-5 xs:h-5" />
                   Price Movement
@@ -779,37 +737,39 @@ const NftDetailsPage = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Transaction History (from blockchain-style trades — liquidity in/out) */}
-              <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4 xs:p-5 sm:p-6">
+              {/* Transaction History (from blockchain-style trades â€” liquidity in/out) */}
+              <div className="bg-gray-900/50 rounded-2xl border border-border p-4 xs:p-5 sm:p-6">
                 <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
                   <FiUser className="text-green-400 w-4 h-4 xs:w-5 xs:h-5" />
                   Transaction History
                 </h2>
                 <div className="space-y-2 xs:space-y-3">
                   {tradeData.length === 0 ? (
-                    <p className="text-gray-500 text-sm py-4 text-center">No trades yet. Buy/sell activity will appear here.</p>
+                    <p className="text-ink-500 text-sm py-8 text-center">No trades yet</p>
                   ) : (
                     tradeData.map((trade, i) => {
                       const isSell = trade.transactionType === 'secondary_sell_to_liquidity';
                       const actor = isSell ? trade.seller : trade.buyer;
                       return (
-                      <div key={trade._id || trade.transactionHash || i} className="flex items-center justify-between p-2 xs:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors gap-2">
-                        <div className="flex items-center gap-2 xs:gap-3 flex-1 min-w-0">
-                          <div className={`px-2 xs:px-3 py-0.5 xs:py-1 rounded-lg text-[10px] xs:text-xs font-semibold flex-shrink-0 ${isSell ? 'bg-amber-500/20 text-amber-400' : 'bg-green-500/20 text-green-400'}`}>
+                      <div key={trade._id || trade.transactionHash || i}
+                        className="flex items-center justify-between px-4 py-3 rounded-2xl
+                                   hover:bg-raised transition-colors gap-3 border-b border-border/50 last:border-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex-shrink-0 ${isSell ? 'badge-gold' : 'badge-green'}`}>
                             {isSell ? 'Sell' : 'Buy'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs xs:text-sm font-medium text-gray-300 truncate" title={actor}>
-                              {actor ? `${actor.slice(0, 6)}...${actor.slice(-4)}` : (isSell ? 'Liquidity' : '—')}
+                            <div className="text-xs xs:text-sm font-medium text-ink-200 truncate" title={actor}>
+                              {actor ? `${actor.slice(0, 6)}...${actor.slice(-4)}` : (isSell ? 'Liquidity' : 'â€”')}
                             </div>
-                            <div className="text-[10px] xs:text-xs text-gray-500">
+                            <div className="text-[10px] xs:text-xs text-ink-500">
                               {trade.createdAt ? new Date(trade.createdAt).toLocaleString() : ''}
                               {trade.transactionHash && (
                                 <a
                                   href={`https://${nft?.network === 'polygon' ? 'polygonscan' : 'etherscan'}.com/tx/${trade.transactionHash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="ml-1 text-purple-400 hover:underline"
+                                  className="ml-1 text-cyan-400 hover:underline"
                                 >
                                   Tx
                                 </a>
@@ -821,7 +781,7 @@ const NftDetailsPage = () => {
                           <div className="text-xs xs:text-sm font-semibold text-white">
                             {parseFloat(trade.pricePerPiece || 0).toFixed(4)} {getCurrencySymbol(nft?.network || 'ethereum')}
                           </div>
-                          <div className="text-[10px] xs:text-xs text-gray-400">x{trade.quantity}</div>
+                          <div className="text-[10px] xs:text-xs text-ink-400">x{trade.quantity}</div>
                         </div>
                       </div>
                     ); })
@@ -835,7 +795,7 @@ const NftDetailsPage = () => {
 
       {/* Buy / Make Offer Modal */}
       <OfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} nft={nft} />
-      {/* Sell Modal – list for sale (owner only) */}
+      {/* Sell Modal â€“ list for sale (owner only) */}
       <SellModal isOpen={sellModalOpen} onClose={() => setSellModalOpen(false)} nft={nft} />
       {/* Marketplace Buy Modal */}
       <BuyModal
@@ -848,3 +808,4 @@ const NftDetailsPage = () => {
 };
 
 export default NftDetailsPage;
+

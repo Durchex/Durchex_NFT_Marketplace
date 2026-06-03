@@ -2,133 +2,373 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ════════════════════════════════════════════════
+   ORBITAL DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+   ════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --c-void:    #05050d;
+  --c-surface: #0d0d1a;
+  --c-raised:  #13131f;
+  --c-border:  rgba(255,255,255,0.06);
+
+  /* Accents */
+  --c-cyan:    #00c8ff;
+  --c-violet:  #7c3aed;
+  --c-gold:    #fbbf24;
+
+  /* Gradients */
+  --g-orbital: linear-gradient(135deg, #00c8ff 0%, #7c3aed 100%);
+  --g-orbital-r: linear-gradient(135deg, #7c3aed 0%, #00c8ff 100%);
+
+  /* Text */
+  --t-primary:   #f0f0ff;
+  --t-secondary: #c8c8e8;
+  --t-muted:     #8888aa;
+
+  /* Glows */
+  --glow-cyan:   0 0 30px rgba(0,200,255,0.20);
+  --glow-violet: 0 0 30px rgba(124,58,237,0.20);
+
+  /* Header height (used by layout calculations) */
+  --header-h: 68px;
+  --ticker-h: 36px;
+}
+
+/* ── Google Fonts import ── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ════════════════════════════════════════════════
+   BASE RESETS
+   ════════════════════════════════════════════════ */
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
   html {
-    @apply text-gray-100 bg-black font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', 'Space Grotesk', system-ui, sans-serif;
+    color: var(--t-primary);
+    background-color: var(--c-void);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     max-width: 100vw;
+    scroll-behavior: smooth;
   }
-  
+
   body {
+    background: var(--c-void);
+    background-image: radial-gradient(ellipse 120% 60% at 50% -10%, #0d0d2a 0%, transparent 60%);
     overflow-x: hidden;
     max-width: 100vw;
     position: relative;
+    /* prevent blue flash on touch devices */
+    -webkit-tap-highlight-color: transparent;
+    /* no user-select on interactive parts (override per-element if needed) */
+    user-select: none;
+    -webkit-user-select: none;
   }
-  
-  * {
-    box-sizing: border-box;
+
+  /* Allow text selection in readable content */
+  p, span, h1, h2, h3, h4, article, .selectable {
+    user-select: text;
+    -webkit-user-select: text;
   }
-  
-  /* Ensure all images and containers are flexible */
-  img {
-    max-width: 100%;
-    height: auto;
+
+  img { max-width: 100%; height: auto; display: block; }
+
+  /* Flexible flex/grid children */
+  .flex > *, .grid > * { min-width: 0; }
+
+  /* Hide scrollbars globally */
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+}
+
+/* ════════════════════════════════════════════════
+   DESIGN-SYSTEM COMPONENT CLASSES
+   ════════════════════════════════════════════════ */
+@layer components {
+
+  /* ── Buttons ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold
+           rounded-xl px-5 py-2.5 text-sm leading-none
+           transition-all duration-200 cursor-pointer select-none
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50;
   }
-  
-  /* Ensure flex and grid children can shrink */
-  .flex > *, .grid > * {
-    min-width: 0;
+  .btn-primary {
+    @apply btn;
+    background: var(--g-orbital);
+    color: #fff;
+    box-shadow: 0 0 0 0 rgba(0,200,255,0);
   }
-  
-  h1 {
-    @apply text-3xl md:text-5xl font-semibold tracking-tight;
+  .btn-primary:hover {
+    box-shadow: var(--glow-cyan);
+    filter: brightness(1.1);
   }
-  h2 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    @apply btn bg-raised text-ink-100 border border-border hover:border-cyan-400/40
+           hover:bg-surface;
   }
-  h3 {
-    @apply text-xl md:text-2xl font-semibold;
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-200 hover:text-ink-100 hover:bg-raised;
   }
-  p {
-    @apply text-gray-300;
+  .btn-danger {
+    @apply btn bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20;
   }
-  a {
-    @apply text-indigo-400 hover:text-indigo-300;
+  .btn-sm  { @apply btn text-xs px-3.5 py-2; }
+  .btn-lg  { @apply btn text-base px-7 py-3.5; }
+  .btn-icon { @apply btn w-10 h-10 p-0 rounded-xl; }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-surface rounded-2xl border border-border overflow-hidden
+           transition-all duration-300;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .card:hover {
+    border-color: rgba(0,200,255,0.25);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,200,255,0.18);
+    transform: translateY(-2px);
+  }
+  .card-glass {
+    background: rgba(13,13,26,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    @apply rounded-2xl border border-border;
+  }
+
+  /* ── NFT Card ── */
+  .nft-card {
+    @apply card cursor-pointer relative;
+  }
+  .nft-card { /* group must be added inline in JSX: className="nft-card group" */ }
+  .nft-card-image {
+    @apply relative overflow-hidden aspect-square bg-raised;
+  }
+  .nft-card-image img {
+    @apply w-full h-full object-cover transition-transform duration-500 group-hover:scale-105;
+  }
+  .nft-card-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent
+           opacity-0 group-hover:opacity-100 transition-opacity duration-300
+           flex flex-col justify-end p-4 gap-2;
+  }
+  .nft-card-body {
+    @apply p-4;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .badge-cyan    { @apply badge bg-cyan-400/10 text-cyan-400 border border-cyan-400/20; }
+  .badge-violet  { @apply badge bg-violet-500/10 text-violet-400 border border-violet-500/20; }
+  .badge-green   { @apply badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20; }
+  .badge-gold    { @apply badge bg-amber-400/10 text-amber-400 border border-amber-400/20; }
+  .badge-red     { @apply badge bg-red-500/10 text-red-400 border border-red-500/20; }
+  .badge-gray    { @apply badge bg-ink-800/60 text-ink-400 border border-border; }
+
+  /* ── Inputs ── */
+  .input {
+    @apply w-full bg-raised border border-border rounded-xl px-4 py-3
+           text-ink-100 text-sm placeholder:text-ink-600
+           focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/30
+           transition-colors duration-200;
+  }
+  .input-search {
+    @apply input pl-10 pr-4;
+  }
+
+  /* ── Section headings ── */
+  .section-label {
+    @apply text-xs font-semibold tracking-widest uppercase text-ink-400;
+  }
+  .section-title {
+    @apply text-2xl md:text-3xl font-bold text-ink-100 tracking-tight;
+  }
+
+  /* ── Price display ── */
+  .price-eth {
+    @apply font-bold text-ink-100;
+  }
+  .price-usd {
+    @apply text-xs text-ink-400;
+  }
+
+  /* ── Gradient text ── */
+  .text-gradient {
+    background: var(--g-orbital);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-r {
+    background: var(--g-orbital-r);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Gradient border ── */
+  .gradient-border {
+    position: relative;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--g-orbital);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    @apply border-t border-border my-6;
+  }
+
+  /* ── Stat card ── */
+  .stat-card {
+    @apply card p-4 flex flex-col gap-1;
+  }
+  .stat-value {
+    @apply text-2xl font-bold text-ink-100;
+  }
+  .stat-label {
+    @apply text-xs text-ink-400;
+  }
+  .stat-change-up   { @apply text-xs text-emerald-400 font-medium; }
+  .stat-change-down { @apply text-xs text-red-400 font-medium; }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    @apply flex gap-1 bg-raised rounded-xl p-1 border border-border;
+  }
+  .tab-item {
+    @apply flex-1 text-center py-2 px-4 rounded-lg text-sm font-medium
+           text-ink-400 cursor-pointer transition-all duration-200
+           hover:text-ink-200;
+  }
+  .tab-item.active {
+    @apply bg-surface text-ink-100;
+    box-shadow: 0 0 0 1px rgba(0,200,255,0.15);
+  }
+
+  /* ── Category pill ── */
+  .category-pill {
+    @apply flex items-center gap-2 px-4 py-2 rounded-full border border-border
+           bg-raised text-sm font-medium text-ink-200 cursor-pointer
+           transition-all duration-200 hover:border-cyan-400/40 hover:text-ink-100
+           whitespace-nowrap select-none;
+  }
+  .category-pill.active {
+    background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(124,58,237,0.1));
+    border-color: rgba(0,200,255,0.4);
+    @apply text-ink-100;
+  }
+
+  /* ── Shimmer skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, #13131f 25%, #1e1e30 50%, #13131f 75%);
+    background-size: 400px 100%;
+    @apply animate-shimmer rounded-xl;
+  }
+
+  /* ── Scrollable row (no bar) ── */
+  .scroll-row {
+    @apply flex gap-4 overflow-x-auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-row > * { scroll-snap-align: start; }
+
+  /* ── Ticker strip ── */
+  .ticker-track {
+    @apply flex gap-8;
+    animation: ticker 35s linear infinite;
+  }
+  .ticker-track:hover { animation-play-state: paused; }
+
+  /* ── Page container ── */
+  .page-container {
+    @apply max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
 
-.stroke-text {
-  -webkit-text-stroke: 2px #9C6FF633; /* 2px border with semi-transparent color */
-}
-
-body::-webkit-scrollbar,
-html::-webkit-scrollbar {
-  display: none;
-}
-
-.sliding-container {
-  overflow: hidden; /* Hide overflow to create a clean sliding effect */
-  width: 100%;
-}
-
-.sliding-nfts {
-  display: flex; /* Horizontal sliding */
-  animation: slide 50s linear infinite; /* Infinite sliding animation */
-}
-
-.slide-item {
-  flex: 0 0 auto; /* Prevent items from shrinking or growing */
-  width: 25%; /* Adjust based on your grid (e.g., 25% for 4 columns) */
-}
-
-/* Infinite sliding animation to the right */
+/* ════════════════════════════════════════════════
+   LEGACY SLIDING (kept for backward compat)
+   ════════════════════════════════════════════════ */
+.sliding-container { overflow: hidden; width: 100%; }
+.sliding-nfts { display: flex; animation: slide 50s linear infinite; }
+.sliding-nfts:hover { animation-play-state: paused; }
+.slide-item { flex: 0 0 auto; width: 25%; }
 @keyframes slide {
-  0% {
-    transform: translateX(0); /* Start at the beginning */
-  }
-  100% {
-    transform: translateX(-50%); /* Move items off-screen to the left */
-  }
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@media (max-width:1024px) { .slide-item { width: 50%; } }
+@media (max-width:640px)  { .slide-item { width: 100%; } }
+
+/* ════════════════════════════════════════════════
+   CUSTOM SCROLLBAR (visible areas)
+   ════════════════════════════════════════════════ */
+.custom-scroll::-webkit-scrollbar { display: block; width: 4px; height: 4px; }
+.custom-scroll::-webkit-scrollbar-track { background: var(--c-surface); }
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0,200,255,0.25);
+  border-radius: 4px;
 }
 
-/* Optional: Pause animation on hover */
-.sliding-nfts:hover {
-  animation-play-state: paused;
+/* ════════════════════════════════════════════════
+   MODAL OVERLAY
+   ════════════════════════════════════════════════ */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  background: rgba(5,5,13,0.85);
+  backdrop-filter: blur(8px);
+}
+.modal-panel {
+  @apply card-glass w-full max-w-lg p-6 animate-fade-up;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .slide-item {
-    width: 50%; /* 2 columns for medium screens */
-  }
+/* ════════════════════════════════════════════════
+   GLOW EFFECTS
+   ════════════════════════════════════════════════ */
+.glow-cyan   { box-shadow: var(--glow-cyan); }
+.glow-violet { box-shadow: var(--glow-violet); }
+.glow-text-cyan {
+  text-shadow: 0 0 20px rgba(0,200,255,0.5);
 }
 
-@media (max-width: 640px) {
-  .slide-item {
-    width: 100%; /* 1 column for small screens */
-  }
+/* ════════════════════════════════════════════════
+   VERIFIED BADGE
+   ════════════════════════════════════════════════ */
+.verified-dot {
+  @apply inline-flex items-center justify-center w-4 h-4 rounded-full
+         bg-cyan-400 text-void;
+  font-size: 9px;
 }
 
+/* ════════════════════════════════════════════════
+   LAZY LOAD IMAGE FADE
+   ════════════════════════════════════════════════ */
+.img-lazy { opacity: 0; transition: opacity 0.4s ease; }
+.img-lazy.loaded { opacity: 1; }
 
-
-
-body {
-  margin: 0;
-  font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-    "Helvetica Neue", sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  overflow-x: hidden;
-  max-width: 100vw;
-  position: relative;
+/* ════════════════════════════════════════════════
+   RECHARTS OVERRIDES
+   ════════════════════════════════════════════════ */
+.recharts-cartesian-axis-tick text { fill: var(--t-muted) !important; font-size: 11px; }
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--c-raised) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: 12px !important;
 }
-
-
-.sliding-container {
-  overflow: hidden; /* Hide overflow to create a clean sliding effect */
-  width: 100%;
-}
-
-.sliding-nfts {
-  display: flex; /* Change to flex for horizontal sliding */
-  animation: slide 50s linear infinite; /* Infinite sliding animation */
-}
-/* Remove duplicated/typo class; use .sliding-nfts only */
-
-.slide-item {
-  flex: 0 0 auto; /* Prevent items from shrinking or growing */
-  width: 25%; /* Adjust based on your grid (e.g., 25% for 4 columns) */
-}
-

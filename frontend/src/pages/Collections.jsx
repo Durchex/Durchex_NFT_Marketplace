@@ -1,429 +1,309 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Collections page — Orbital design system.
+ */
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FiSearch, FiFilter, FiTrendingUp, FiUsers, FiBarChart2, FiEye, FiDollarSign } from 'react-icons/fi';
+import {
+  Search, Grid3x3, List, TrendingUp, Layers, Users,
+  BarChart2, ArrowUpDown, RefreshCw, ChevronDown, X,
+} from 'lucide-react';
 import Header from '../components/Header';
-import { nftAPI, userAPI } from '../services/api';
-import { getCurrencySymbol } from '../Context/constants';
-import axios from 'axios';
+import Footer from '../FooterComponents/Footer';
+import { nftAPI } from '../services/api';
 
-const Collections = () => {
-  const [collections, setCollections] = useState([]);
-  const [filteredCollections, setFilteredCollections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('volume');
-  const [filterNetwork, setFilterNetwork] = useState('all');
+const NETWORKS = ['All', 'Base', 'Ethereum', 'Polygon', 'Arbitrum', 'BSC'];
+const SORT_OPTIONS = [
+  { id: 'volume',    label: 'Volume'       },
+  { id: 'floor',     label: 'Floor Price'  },
+  { id: 'items',     label: 'Items'        },
+  { id: 'newest',    label: 'Newest'       },
+  { id: 'name',      label: 'Name A–Z'     },
+];
 
-  useEffect(() => {
-    fetchCollections();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, sortBy, filterNetwork, collections]);
-
-  const fetchCollections = async () => {
-    try {
-      setLoading(true);
-      // Fetch all collections from API
-      const allCollectionsData = await nftAPI.getCollections();
-      
-      if (Array.isArray(allCollectionsData) && allCollectionsData.length > 0) {
-        // Fetch ALL NFTs across all networks once to calculate stats.
-        const allNFTs = await nftAPI.getAllNftsAllNetworksForExplore(1000);
-        
-        // ✅ De-duplicate NFTs that may be returned for multiple networks
-        const uniqueMap = new Map();
-        allNFTs.forEach((nft) => {
-          const key =
-            nft._id ||
-            `${nft.network || nft.chain || 'unknown'}-${nft.itemId || nft.tokenId || nft.name || Math.random()}`;
-          if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, nft);
-          }
-        });
-        const uniqueNFTs = Array.from(uniqueMap.values());
-
-        console.log(`[Collections] Total NFTs across all networks (raw): ${allNFTs.length}`);
-        console.log(`[Collections] Total NFTs after de-duplication: ${uniqueNFTs.length}`);
-        if (allNFTs.length > 0) {
-          console.log(`[Collections] Sample NFT:`, {
-            name: allNFTs[0].name,
-            price: allNFTs[0].price,
-            floorPrice: allNFTs[0].floorPrice,
-            collection: allNFTs[0].collection
-          });
+function CollectionCard({ col }) {
+  const banner = col.banner || col.image || '';
+  const avatar = col.image || col.banner || '';
+  return (
+    <Link to={`/collection/${col._id || col.collectionId}`}
+      className="card group cursor-pointer overflow-visible">
+      {/* Banner */}
+      <div className="relative h-28 overflow-hidden rounded-t-2xl bg-raised">
+        {banner
+          ? <img src={banner} alt="" className="w-full h-full object-cover
+                                               group-hover:scale-105 transition-transform duration-500" />
+          : <div className="w-full h-full"
+              style={{ background: 'linear-gradient(135deg,rgba(0,200,255,0.15),rgba(124,58,237,0.15))' }} />
         }
-        
-        // Transform API response to match expected structure
-        const transformedCollections = await Promise.all(
-          allCollectionsData.map(async (col, index) => {
-            try {
-              // Fetch creator profile
-              let creatorInfo = {
-                name: col.creatorName || col.creatorWallet?.slice(0, 6) + '...' || 'Unknown',
-                avatar: null,
-                wallet: col.creatorWallet
-              };
-              
-              if (col.creatorWallet) {
-                try {
-                  const profile = await userAPI.getUserProfile(col.creatorWallet);
-                  if (profile) {
-                    creatorInfo.name = profile.userName || profile.creatorName || creatorInfo.name;
-                    creatorInfo.avatar = profile.profilePicture || profile.creatorAvatar;
-                  }
-                } catch (err) {
-                  console.warn(`Error fetching creator profile:`, err.message);
-                }
-              }
-              
-              // Find all NFTs in this collection
-              const collectionNFTs = uniqueNFTs.filter(nft => 
-                String(nft.collection || '').toLowerCase() === String(col.collectionId || col._id).toLowerCase()
-              );
-              
-              console.log(`[Collections] Collection "${col.name}":`, {
-                collectionId: col.collectionId || col._id,
-                nftCount: collectionNFTs.length,
-                nftSample: collectionNFTs.length > 0 ? {
-                  name: collectionNFTs[0].name,
-                  price: collectionNFTs[0].price,
-                  floorPrice: collectionNFTs[0].floorPrice,
-                  collection: collectionNFTs[0].collection
-                } : 'No NFTs'
-              });
-              
-              // Price per NFT (normalize wei); pieces per NFT for volume = sum(price × pieces)
-              const pricePerNft = (n) => {
-                const source = n.floorPrice != null && n.floorPrice !== '' ? n.floorPrice : n.price;
-                let v = parseFloat(source || '0');
-                if (v > 1000) v = v / 1e18;
-                return isNaN(v) || v < 0 ? 0 : v;
-              };
-              const piecesPerNft = (n) => Math.max(1, Number(n.pieces ?? n.remainingPieces ?? 1) || 1);
-              const prices = collectionNFTs.map(pricePerNft).filter(p => p > 0);
-              const floorPrice = prices.length > 0 ? Math.min(...prices) : 0;
-              const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-              const totalVolume = collectionNFTs.reduce((sum, n) => sum + pricePerNft(n) * piecesPerNft(n), 0);
-              
-              // Calculate unique owners
-              const owners = new Set(collectionNFTs.map(n => String(n.owner || '').toLowerCase())).size;
-              console.log(`[Collections] "${col.name}" stats (totalVolume = sum(price×pieces)):`, {
-                nftCount: collectionNFTs.length,
-                floorPrice: floorPrice.toFixed(4),
-                totalVolume: totalVolume.toFixed(4),
-                uniqueOwners: owners
-              });
-              
-              return {
-                _id: col._id,
-                id: col._id || col.collectionId || index,
-                name: col.name || 'Unnamed Collection',
-                creator: creatorInfo.name,
-                creatorAvatar: creatorInfo.avatar || `https://api.dicebear.com/7.x/identicon/svg?seed=${col.creatorWallet || col._id}`,
-                description: col.description || '',
-                image: col.image || `https://picsum.photos/seed/${col._id}/400/300`,
-                floorPrice: floorPrice > 0 ? floorPrice.toFixed(4) : '0.0000',
-                volume24h: totalVolume > 0 ? totalVolume.toFixed(2) : '0.00',
-                totalVolume: totalVolume > 0 ? totalVolume.toFixed(2) : '0.00',
-                volume7d: col.volume7d || 0,
-                percentChange24h: col.percentChange24h || 0,
-                items: collectionNFTs.length,
-                owners: owners,
-                views: col.views || 0,
-                likes: col.likes || 0,
-                verified: col.verified || false,
-                network: col.network || 'polygon',
-                collectionId: col.collectionId,
-                creatorWallet: col.creatorWallet,
-              };
-            } catch (error) {
-              console.error(`Error processing collection:`, error);
-              return null;
+        {/* Network badge */}
+        {col.network && (
+          <span className="absolute top-3 right-3 badge-cyan text-[10px] capitalize">
+            {col.network}
+          </span>
+        )}
+      </div>
+
+      {/* Avatar (overlapping) */}
+      <div className="relative px-4 pb-4">
+        <div className="-mt-6 mb-3 relative z-10 inline-block">
+          <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 bg-raised"
+            style={{ borderColor: 'var(--c-void)' }}>
+            {avatar
+              ? <img src={avatar} alt={col.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center">
+                  <Layers size={22} className="text-ink-600" />
+                </div>
             }
-          })
-        );
-        
-        // Filter out any null values
-        const validCollections = transformedCollections.filter(c => c !== null);
-        setCollections(validCollections);
-        console.log(`[Collections] Fetched ${transformedCollections.length} real collections from API`);
-      } else {
-        console.warn('[Collections] No collections found in API response, showing empty state');
-        setCollections([]);
-      }
-    } catch (error) {
-      console.error('[Collections] Error fetching collections from API:', error);
-      setCollections([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+          </div>
+          {col.isVerified && (
+            <div className="absolute -bottom-1 -right-1 verified-dot">✓</div>
+          )}
+        </div>
 
-  const applyFilters = () => {
-    let filtered = collections;
+        <h3 className="font-bold text-ink-100 truncate mb-1 group-hover:text-cyan-400 transition-colors">
+          {col.name}
+        </h3>
+        <p className="text-xs text-ink-400 mb-3 line-clamp-2">
+          {col.description || 'A collection on Durchex'}
+        </p>
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(col =>
-        col.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        col.creator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        col.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Network filter
-    if (filterNetwork !== 'all') {
-      filtered = filtered.filter(col => col.network === filterNetwork);
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'volume':
-        filtered.sort((a, b) => b.volume24h - a.volume24h);
-        break;
-      case 'floor':
-        filtered.sort((a, b) => b.floorPrice - a.floorPrice);
-        break;
-      case 'items':
-        filtered.sort((a, b) => b.items - a.items);
-        break;
-      case 'trending':
-        filtered.sort((a, b) => b.percentChange24h - a.percentChange24h);
-        break;
-      default:
-        break;
-    }
-
-    setFilteredCollections(filtered);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white">
-        <Header />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-purple-500"></div>
-          <span className="ml-4 text-gray-400">Loading collections...</span>
+        {/* Stats row */}
+        <div className="flex items-center justify-between text-xs">
+          <div>
+            <p className="text-ink-600 mb-0.5">Floor</p>
+            <p className="font-bold text-ink-100">
+              {col.floorPrice ? `${col.floorPrice} ETH` : '—'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-ink-600 mb-0.5">Items</p>
+            <p className="font-bold text-ink-100">
+              {col.totalItems ? Number(col.totalItems).toLocaleString() : '—'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-ink-600 mb-0.5">Vol.</p>
+            <p className="font-bold text-emerald-400">
+              {col.volume24h ? `${Number(col.volume24h).toFixed(1)} Ξ` : '—'}
+            </p>
+          </div>
         </div>
       </div>
-    );
-  }
+    </Link>
+  );
+}
+
+function CollectionRow({ col, rank }) {
+  return (
+    <Link to={`/collection/${col._id || col.collectionId}`}
+      className="flex items-center gap-4 p-4 rounded-2xl bg-surface border border-border
+                 hover:border-cyan-400/25 hover:bg-raised transition-all duration-200 cursor-pointer group">
+      <span className="w-8 text-sm font-bold text-ink-600 text-center shrink-0">{rank}</span>
+      <div className="w-12 h-12 rounded-xl overflow-hidden bg-raised shrink-0">
+        {(col.image || col.banner)
+          ? <img src={col.image || col.banner} alt={col.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          : <div className="w-full h-full flex items-center justify-center">
+              <Layers size={18} className="text-ink-600" />
+            </div>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-ink-100 truncate group-hover:text-cyan-400 transition-colors">
+          {col.name}
+        </p>
+        <p className="text-xs text-ink-400 capitalize">{col.network || 'Multi-chain'}</p>
+      </div>
+      <div className="hidden sm:block text-right w-24 shrink-0">
+        <p className="text-xs text-ink-600 mb-0.5">Floor</p>
+        <p className="text-sm font-bold text-ink-100">{col.floorPrice ? `${col.floorPrice} Ξ` : '—'}</p>
+      </div>
+      <div className="hidden md:block text-right w-24 shrink-0">
+        <p className="text-xs text-ink-600 mb-0.5">Volume</p>
+        <p className="text-sm font-bold text-emerald-400">{col.volume24h ? `${col.volume24h} Ξ` : '—'}</p>
+      </div>
+      <div className="hidden lg:block text-right w-20 shrink-0">
+        <p className="text-xs text-ink-600 mb-0.5">Items</p>
+        <p className="text-sm font-bold text-ink-100">{col.totalItems ? Number(col.totalItems).toLocaleString() : '—'}</p>
+      </div>
+    </Link>
+  );
+}
+
+export default function Collections() {
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [network, setNetwork] = useState('All');
+  const [sortBy, setSortBy] = useState('volume');
+  const [sortOpen, setSortOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('grid');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await nftAPI.getCollections();
+      setCollections(Array.isArray(data) ? data : []);
+    } catch (_) {}
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = collections
+    .filter(c => {
+      const matchNet = network === 'All' || (c.network || '').toLowerCase() === network.toLowerCase();
+      const q = search.toLowerCase();
+      const matchQ = !q || (c.name || '').toLowerCase().includes(q);
+      return matchNet && matchQ;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'floor')  return (parseFloat(b.floorPrice) || 0) - (parseFloat(a.floorPrice) || 0);
+      if (sortBy === 'items')  return (Number(b.totalItems) || 0) - (Number(a.totalItems) || 0);
+      if (sortBy === 'newest') return new Date(b.createdAt||0) - new Date(a.createdAt||0);
+      if (sortBy === 'name')   return (a.name||'').localeCompare(b.name||'');
+      return (parseFloat(b.volume24h) || 0) - (parseFloat(a.volume24h) || 0); // volume
+    });
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-void)' }}>
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-            <FiBarChart2 className="text-purple-400" />
-            NFT Collections
-          </h1>
-          <p className="text-gray-400">Browse and discover trending NFT collections</p>
-        </div>
+      {/* Page header */}
+      <div className="page-container pt-8 pb-6">
+        <p className="section-label mb-1.5">Browse</p>
+        <h1 className="section-title">Collections</h1>
+      </div>
 
-        {/* Filters & Search */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <main className="flex-1 page-container pb-20">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           {/* Search */}
-          <div className="lg:col-span-2">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search collections or creators..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-purple-500"
-              />
-            </div>
+          <div className="relative flex-1 min-w-48">
+            <Search size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-600 pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search collections…"
+              className="input pl-9 h-10 text-sm w-full"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-600 hover:text-ink-300">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Network filter */}
+          <div className="scroll-row gap-1.5">
+            {NETWORKS.map(net => (
+              <button key={net}
+                onClick={() => setNetwork(net)}
+                className={`category-pill ${network === net ? 'active' : ''}`}>
+                {net}
+              </button>
+            ))}
           </div>
 
           {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
-          >
-            <option value="volume">Sort by Volume</option>
-            <option value="floor">Sort by Floor Price</option>
-            <option value="items">Sort by Items</option>
-            <option value="trending">Sort by Trending</option>
-          </select>
-
-          {/* Network Filter */}
           <div className="relative">
-            <select
-              value={filterNetwork}
-              onChange={(e) => setFilterNetwork(e.target.value)}
-              className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 pl-10 text-white focus:outline-none focus:border-purple-500 appearance-none"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
-                backgroundPosition: 'right 0.5rem center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '1.5em 1.5em',
-              }}
-            >
-              <option value="all">All Networks</option>
-              <option value="ethereum">Ethereum</option>
-              <option value="polygon">Polygon</option>
-              <option value="bsc">BSC</option>
-              <option value="arbitrum">Arbitrum</option>
-              <option value="base">Base</option>
-              <option value="solana">Solana</option>
-            </select>
-            {filterNetwork !== 'all' && (
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                {filterNetwork === 'ethereum' && (
-                  <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png" alt="eth" className="w-4 h-4" />
-                )}
-                {filterNetwork === 'polygon' && (
-                  <img src="https://wallet-asset.matic.network/img/tokens/pol.svg" alt="polygon" className="w-4 h-4" />
-                )}
-                {filterNetwork === 'bsc' && (
-                  <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png" alt="bsc" className="w-4 h-4" />
-                )}
-                {filterNetwork === 'arbitrum' && (
-                  <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png" alt="arbitrum" className="w-4 h-4" />
-                )}
-                {filterNetwork === 'base' && (
-                  <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/info/logo.png" alt="base" className="w-4 h-4" />
-                )}
-                {filterNetwork === 'solana' && (
-                  <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png" alt="solana" className="w-4 h-4" />
-                )}
+            <button onClick={() => setSortOpen(p => !p)}
+              className="btn-secondary h-10 gap-2 text-sm px-4 shrink-0">
+              <ArrowUpDown size={14} />
+              <span className="hidden sm:inline">
+                {SORT_OPTIONS.find(o => o.id === sortBy)?.label}
+              </span>
+              <ChevronDown size={12} className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 top-full mt-1 w-44 card-glass z-10 py-1">
+                {SORT_OPTIONS.map(opt => (
+                  <button key={opt.id}
+                    onClick={() => { setSortBy(opt.id); setSortOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors
+                      ${sortBy === opt.id
+                        ? 'text-cyan-400 bg-cyan-400/10'
+                        : 'text-ink-300 hover:bg-raised hover:text-ink-100'}`}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
+
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-raised rounded-xl p-1 border border-border shrink-0">
+            <button onClick={() => setViewMode('grid')}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                ${viewMode === 'grid' ? 'bg-surface text-cyan-400' : 'text-ink-600 hover:text-ink-300'}`}>
+              <Grid3x3 size={15} />
+            </button>
+            <button onClick={() => setViewMode('list')}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                ${viewMode === 'list' ? 'bg-surface text-cyan-400' : 'text-ink-600 hover:text-ink-300'}`}>
+              <List size={15} />
+            </button>
+          </div>
+
+          <button onClick={load} disabled={loading}
+            className="btn-icon text-ink-400 hover:text-ink-100 disabled:opacity-50 shrink-0">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
 
-        {/* Collections Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCollections.map((collection) => (
-            <Link
-              key={collection.id}
-              to={`/collection/${collection._id || collection.id}`}
-              className="group bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/20"
-            >
-              {/* Collection Image */}
-              <div className="relative overflow-hidden h-48 bg-gray-800">
-                <img
-                  src={collection.image || `https://picsum.photos/seed/${collection.id}/400/300`}
-                  alt={collection.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  onError={(e) => {
-                    e.target.src = `https://picsum.photos/seed/${collection.id}/400/300`;
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
-                
-                {/* Network Badge */}
-                <div className="absolute top-3 right-3 bg-purple-600 px-3 py-1 rounded-full text-xs font-semibold capitalize">
-                  {collection.network}
-                </div>
+        {/* Results count */}
+        <p className="text-sm text-ink-400 mb-4">
+          {loading ? '…' : `${filtered.length} collection${filtered.length !== 1 ? 's' : ''}`}
+        </p>
 
-                {/* Verification Badge */}
-                {collection.verified && (
-                  <div className="absolute top-3 left-3 bg-green-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                    ✓ Verified
-                  </div>
-                )}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden bg-surface border border-border">
+                <div className="h-28 skeleton" />
+                <div className="p-4 space-y-3">
+                  <div className="-mt-6 w-14 h-14 rounded-2xl skeleton" />
+                  <div className="h-4 skeleton rounded w-2/3" />
+                  <div className="h-3 skeleton rounded w-full" />
+                </div>
               </div>
-
-              {/* Collection Info */}
-              <div className="p-4">
-                <h3 className="text-xl font-bold mb-1">{collection.name}</h3>
-
-                {/* Creator */}
-                <div className="flex items-center gap-2 mb-4">
-                  <img
-                    src={collection.creatorAvatar}
-                    alt={collection.creator}
-                    className="w-6 h-6 rounded-full"
-                    onError={(e) => {
-                      e.target.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${collection.creator}`;
-                    }}
-                  />
-                  <span className="text-sm text-gray-400">{collection.creator}</span>
-                </div>
-
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">{collection.description}</p>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-gray-800 rounded p-3">
-                    <div className="text-xs text-gray-500 mb-1">Floor Price</div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold">{collection.floorPrice}</span>
-                      <span className="text-xs text-gray-400">
-                        {getCurrencySymbol(collection.network || 'ethereum')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800 rounded p-3">
-                    <div className="text-xs text-gray-500 mb-1">Total Volume</div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold">{collection.totalVolume ?? collection.volume24h}</span>
-                      <span className="text-xs text-gray-400">
-                        {getCurrencySymbol(collection.network || 'ethereum')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800 rounded p-3 flex items-center gap-2">
-                    <FiBarChart2 className="text-purple-400" />
-                    <div>
-                      <div className="text-xs text-gray-500">Items</div>
-                      <div className="font-bold">{collection.items.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800 rounded p-3 flex items-center gap-2">
-                    <FiUsers className="text-purple-400" />
-                    <div>
-                      <div className="text-xs text-gray-500">Owners</div>
-                      <div className="font-bold">{collection.owners.toLocaleString()}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Engagement Stats */}
-                <div className="flex items-center gap-4 text-sm text-gray-400 pt-4 border-t border-gray-800">
-                  <div className="flex items-center gap-1">
-                    <FiEye className="text-gray-500" />
-                    <span>{(collection.views / 1000).toFixed(1)}k views</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <FiTrendingUp className="text-gray-500" />
-                    <span>{collection.likes.toLocaleString()} likes</span>
-                  </div>
-                </div>
-
-                {/* View Collection Button */}
-                <button className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition-colors">
-                  View Collection
-                </button>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredCollections.length === 0 && (
-          <div className="text-center py-12">
-            <FiFilter className="mx-auto w-12 h-12 text-gray-600 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">No collections found</h3>
-            <p className="text-gray-500">Try adjusting your search or filters</p>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-24 text-center">
+            <Layers size={52} className="text-ink-600 mx-auto mb-4" />
+            <p className="text-ink-300 text-lg font-medium mb-2">No collections found</p>
+            <button onClick={() => { setSearch(''); setNetwork('All'); }}
+              className="btn-secondary mt-4 gap-2">
+              <X size={15} /> Clear filters
+            </button>
+          </div>
+        ) : viewMode === 'list' ? (
+          <div className="space-y-2">
+            {/* List header */}
+            <div className="flex items-center gap-4 px-4 py-2 text-xs text-ink-600 font-medium">
+              <span className="w-8 text-center">#</span>
+              <span className="w-12 shrink-0" />
+              <span className="flex-1">Collection</span>
+              <span className="hidden sm:block w-24 text-right">Floor</span>
+              <span className="hidden md:block w-24 text-right">Volume</span>
+              <span className="hidden lg:block w-20 text-right">Items</span>
+            </div>
+            {filtered.map((col, i) => (
+              <CollectionRow key={col._id || i} col={col} rank={i + 1} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filtered.map((col, i) => (
+              <CollectionCard key={col._id || i} col={col} />
+            ))}
           </div>
         )}
       </main>
+
+      <Footer />
     </div>
   );
-};
-
-export default Collections;
+}

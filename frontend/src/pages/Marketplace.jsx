@@ -1,479 +1,364 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { FiFilter, FiSearch, FiGrid, FiList, FiClock, FiTag } from 'react-icons/fi';
+/**
+ * Marketplace — full-browse with sidebar filters, sort, grid/list toggle.
+ * Orbital design system.
+ */
+import { useState, useEffect, useCallback, useContext } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import {
+  Search, Filter, Grid3x3, List, ChevronDown, ChevronUp,
+  X, Sliders, LayoutGrid, Layers, Tag, TrendingUp, Clock,
+  ArrowUpDown, RefreshCw,
+} from 'lucide-react';
+import Header from '../components/Header';
+import Footer from '../FooterComponents/Footer';
+import NFTCard, { NFTCardSkeleton } from '../components/NFTCard';
+import { nftAPI } from '../services/api';
 import { ICOContent } from '../Context';
-import { marketplaceAPI, auctionAPI } from '../services/api';
-import { getCurrencySymbol } from '../Context/constants';
-import BuyModal from '../components/BuyModal';
-import Loader from '../components/Loader';
 
-const Marketplace = () => {
-  const { address } = useContext(ICOContent);
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedListing, setSelectedListing] = useState(null);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  const [filters, setFilters] = useState({
-    network: '',
-    collection: '',
-    minPrice: '',
-    maxPrice: '',
-    listingType: '',
-    sortBy: 'recent',
-    sortOrder: 'desc',
+/* ─── Network options ─── */
+const NETWORKS = [
+  { id: 'all',       label: 'All Chains' },
+  { id: 'base',      label: 'Base'       },
+  { id: 'ethereum',  label: 'Ethereum'   },
+  { id: 'polygon',   label: 'Polygon'    },
+  { id: 'arbitrum',  label: 'Arbitrum'   },
+  { id: 'bsc',       label: 'BSC'        },
+  { id: 'optimism',  label: 'Optimism'   },
+];
+
+const CATEGORIES = ['All', 'Art', 'Music', 'Gaming', 'Collectibles', 'Photography', 'Sports'];
+
+const SORT_OPTIONS = [
+  { id: 'newest',    label: 'Newest First'    },
+  { id: 'oldest',    label: 'Oldest First'    },
+  { id: 'price-asc', label: 'Price: Low → High'},
+  { id: 'price-desc',label: 'Price: High → Low'},
+];
+
+function normalizePrice(p) {
+  if (!p) return 0;
+  const n = parseFloat(p);
+  return n > 1e9 ? n / 1e18 : n;
+}
+
+function sortNfts(list, sort) {
+  return [...list].sort((a, b) => {
+    if (sort === 'newest')    return new Date(b.createdAt||0) - new Date(a.createdAt||0);
+    if (sort === 'oldest')    return new Date(a.createdAt||0) - new Date(b.createdAt||0);
+    if (sort === 'price-asc') return normalizePrice(a.price) - normalizePrice(b.price);
+    if (sort === 'price-desc')return normalizePrice(b.price) - normalizePrice(a.price);
+    return 0;
   });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
-  const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
-  const [searchQuery, setSearchQuery] = useState('');
+}
 
-  const normalizeAuctionListing = (auction) => {
-    const priceValue = auction.currentBid || auction.reservePrice || 0;
-    return {
-      _id: `auction-${auction.id}`,
-      nftName: auction.nftName || auction.name || `NFT #${auction.tokenId}`,
-      nftImage: auction.nftImage || auction.image || auction.thumbnail || auction.mediaUrl || '',
-      tokenId: auction.tokenId,
-      network: auction.network || 'ethereum',
-      listingType: 'auction',
-      price: priceValue,
-      currentBid: auction.currentBid,
-      reservePrice: auction.reservePrice,
-      endTime: auction.endTime,
-      auctionId: auction.id,
-      seller: auction.seller,
-      nftContract: auction.nftContract,
-    };
-  };
+/* ─── Collapsible filter section ─── */
+function FilterSection({ title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-border pb-4 mb-4 last:border-0 last:mb-0">
+      <button onClick={() => setOpen(p => !p)}
+        className="flex items-center justify-between w-full py-2 text-sm font-semibold
+                   text-ink-200 hover:text-ink-100 transition-colors">
+        {title}
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+      {open && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}
 
-  const isAuctionFilterActive = filters.listingType === 'auction';
-  const isFixedFilterActive = filters.listingType === 'fixed';
+export default function Marketplace() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [allNfts,    setAllNfts]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [viewMode,   setViewMode]   = useState('grid'); // grid | list
+  const [sidebarOpen,setSidebarOpen]= useState(true);
+  const [sortBy,     setSortBy]     = useState('newest');
+  const [sortOpen,   setSortOpen]   = useState(false);
 
-  const matchesAuctionFilter = (auction) => {
-    if (isFixedFilterActive) return false;
-    if (filters.network && auction.network !== filters.network) return false;
-    if (!searchQuery) return true;
+  /* Filters */
+  const [network,    setNetwork]    = useState('all');
+  const [category,   setCategory]   = useState('All');
+  const [search,     setSearch]     = useState(searchParams.get('q') || '');
+  const [minPrice,   setMinPrice]   = useState('');
+  const [maxPrice,   setMaxPrice]   = useState('');
+  const [showLazy,   setShowLazy]   = useState(true);
+  const [showListed, setShowListed] = useState(true);
 
-    const search = searchQuery.toLowerCase();
-    return [
-      auction.nftName,
-      auction.tokenId?.toString(),
-      auction.seller,
-      auction.nftContract,
-    ]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(search));
-  };
-
-  const fetchListings = async (page = 1) => {
+  /* ── Load data ── */
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const params = {
-        ...filters,
-        page,
-        limit: pagination.limit,
-        search: searchQuery,
-      };
+      const data = await nftAPI.getAllNftsAllNetworksForExplore(500);
+      setAllNfts(Array.isArray(data) ? data : []);
+    } catch (_) {}
+    setLoading(false);
+  }, []);
 
-      const [response, auctionData] = await Promise.all([
-        marketplaceAPI.getListings(params),
-        auctionAPI.list(),
-      ]);
+  useEffect(() => { load(); }, [load]);
 
-      const marketplaceListings = response.listings || [];
-      const auctions = Array.isArray(auctionData) ? auctionData : [];
-      const normalizedAuctions = auctions
-        .map(normalizeAuctionListing)
-        .filter(matchesAuctionFilter);
+  /* ── Apply filters ── */
+  const filtered = sortNfts(
+    allNfts.filter(n => {
+      if (network !== 'all' && String(n.network||'').toLowerCase() !== network) return false;
+      if (category !== 'All' && (n.category||'').toLowerCase() !== category.toLowerCase()) return false;
+      const q = search.toLowerCase();
+      if (q && !(n.name||'').toLowerCase().includes(q) && !(n.collection||'').toLowerCase().includes(q)) return false;
+      if (!showLazy && n.isLazyMint) return false;
+      if (!showListed && !n.isLazyMint && !n.currentlyListed) return false;
+      const p = normalizePrice(n.price);
+      if (minPrice && p < parseFloat(minPrice)) return false;
+      if (maxPrice && p > parseFloat(maxPrice)) return false;
+      return true;
+    }),
+    sortBy
+  );
 
-      const existingAuctionKeys = new Set(
-        marketplaceListings
-          .filter((item) => item.listingType === 'auction')
-          .map((item) => `${item.nftContract || ''}_${item.tokenId}`)
-      );
-
-      const uniqueAuctionListings = normalizedAuctions.filter(
-        (auction) => !existingAuctionKeys.has(`${auction.nftContract || ''}_${auction.tokenId}`)
-      );
-
-      const allListings = isFixedFilterActive
-        ? marketplaceListings.filter((item) => item.listingType !== 'auction')
-        : [...marketplaceListings, ...uniqueAuctionListings];
-
-      setListings(allListings);
-      setPagination({
-        ...pagination,
-        page: response.pagination?.page || 1,
-        total: (response.pagination?.total || marketplaceListings.length) + uniqueAuctionListings.length,
-        totalPages: response.pagination?.totalPages || Math.ceil(allListings.length / pagination.limit),
-      });
-      setError('');
-    } catch (error) {
-      console.error('Failed to fetch listings:', error);
-      setError(error?.message || 'Unable to load marketplace listings. Please try again.');
-      setListings([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchListings();
-  }, [filters, searchQuery]);
-
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchListings(1);
-  };
-
-  const handleBuyClick = (listing) => {
-    setSelectedListing(listing);
-    setShowBuyModal(true);
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-    fetchListings(newPage);
-  };
+  const activeFilterCount = [
+    network !== 'all', category !== 'All', search,
+    minPrice, maxPrice, !showLazy, !showListed,
+  ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setFilters({
-      network: '',
-      collection: '',
-      minPrice: '',
-      maxPrice: '',
-      listingType: '',
-      sortBy: 'recent',
-      sortOrder: 'desc',
-    });
-    setSearchQuery('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setNetwork('all'); setCategory('All'); setSearch('');
+    setMinPrice(''); setMaxPrice('');
+    setShowLazy(true); setShowListed(true);
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-white">NFT Marketplace</h1>
-              <p className="text-gray-400 mt-1">Discover and collect unique digital assets</p>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-void)' }}>
+      <Header />
+
+      {/* ── Page header ── */}
+      <div className="page-container pt-8 pb-6">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="section-label mb-1.5">Browse</p>
+            <h1 className="section-title">Marketplace</h1>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-ink-400">
+            <span>{loading ? '…' : filtered.length.toLocaleString()}</span>
+            <span>results</span>
+            {activeFilterCount > 0 && (
+              <button onClick={clearFilters}
+                className="ml-2 flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300">
+                <X size={12} /> Clear {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="page-container pb-20 flex gap-6 min-h-0">
+
+        {/* ═════ FILTER SIDEBAR ═════ */}
+        {sidebarOpen && (
+          <aside className="hidden md:block w-60 shrink-0">
+            <div className="card p-5 sticky top-28">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-bold text-ink-100 flex items-center gap-2">
+                  <Sliders size={15} className="text-cyan-400" /> Filters
+                </h3>
+                {activeFilterCount > 0 && (
+                  <button onClick={clearFilters}
+                    className="text-xs text-cyan-400 hover:text-cyan-300">
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* Status */}
+              <FilterSection title="Status">
+                <div className="space-y-2">
+                  {[
+                    { label: 'Listed',    state: showListed,  set: setShowListed },
+                    { label: 'Lazy Mint', state: showLazy,    set: setShowLazy },
+                  ].map(({ label, state, set }) => (
+                    <label key={label}
+                      className="flex items-center gap-2.5 cursor-pointer group">
+                      <div onClick={() => set(p => !p)}
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-all
+                          ${state
+                            ? 'bg-cyan-400 border-cyan-400'
+                            : 'border-border bg-raised group-hover:border-cyan-400/50'}`}>
+                        {state && <div className="w-2 h-2 bg-void rounded-sm" />}
+                      </div>
+                      <span className="text-sm text-ink-200">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </FilterSection>
+
+              {/* Network */}
+              <FilterSection title="Network">
+                <div className="space-y-1">
+                  {NETWORKS.map(n => (
+                    <button key={n.id}
+                      onClick={() => setNetwork(n.id)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all
+                        ${network === n.id
+                          ? 'bg-cyan-400/10 text-cyan-400 font-medium'
+                          : 'text-ink-300 hover:bg-raised hover:text-ink-100'}`}>
+                      {n.label}
+                    </button>
+                  ))}
+                </div>
+              </FilterSection>
+
+              {/* Category */}
+              <FilterSection title="Category">
+                <div className="space-y-1">
+                  {CATEGORIES.map(cat => (
+                    <button key={cat}
+                      onClick={() => setCategory(cat)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm transition-all
+                        ${category === cat
+                          ? 'bg-cyan-400/10 text-cyan-400 font-medium'
+                          : 'text-ink-300 hover:bg-raised hover:text-ink-100'}`}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </FilterSection>
+
+              {/* Price range */}
+              <FilterSection title="Price Range (ETH)" defaultOpen={false}>
+                <div className="flex gap-2">
+                  <input
+                    type="number" placeholder="Min"
+                    value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                    className="input text-sm py-2 px-3"
+                  />
+                  <input
+                    type="number" placeholder="Max"
+                    value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                    className="input text-sm py-2 px-3"
+                  />
+                </div>
+              </FilterSection>
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-              >
-                {viewMode === 'grid' ? <FiList className="text-xl" /> : <FiGrid className="text-xl" />}
+          </aside>
+        )}
+
+        {/* ═════ MAIN CONTENT ═════ */}
+        <div className="flex-1 min-w-0">
+          {/* Toolbar */}
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
+            {/* Sidebar toggle */}
+            <button onClick={() => setSidebarOpen(p => !p)}
+              className={`btn-icon hidden md:flex gap-2 transition-all
+                ${sidebarOpen ? 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30' : 'text-ink-400'}`}
+              style={{ width: 'auto', padding: '0 12px' }}>
+              <Filter size={15} />
+              <span className="text-sm">Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-5 h-5 rounded-full text-xs font-bold text-void flex items-center justify-center"
+                  style={{ background: 'var(--g-orbital)' }}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {/* Search */}
+            <div className="flex-1 relative min-w-48">
+              <Search size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-600 pointer-events-none" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or collection…"
+                className="input pl-9 h-10 text-sm w-full"
+              />
+              {search && (
+                <button onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-600 hover:text-ink-300">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Sort */}
+            <div className="relative">
+              <button onClick={() => setSortOpen(p => !p)}
+                className="btn-secondary h-10 gap-2 text-sm px-4">
+                <ArrowUpDown size={14} />
+                <span className="hidden sm:inline">
+                  {SORT_OPTIONS.find(o => o.id === sortBy)?.label || 'Sort'}
+                </span>
+                <ChevronDown size={12} className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {sortOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 card-glass z-10 py-1">
+                  {SORT_OPTIONS.map(opt => (
+                    <button key={opt.id}
+                      onClick={() => { setSortBy(opt.id); setSortOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors
+                        ${sortBy === opt.id
+                          ? 'text-cyan-400 bg-cyan-400/10'
+                          : 'text-ink-300 hover:bg-raised hover:text-ink-100'}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* View mode */}
+            <div className="flex items-center gap-1 bg-raised rounded-xl p-1 border border-border">
+              <button onClick={() => setViewMode('grid')}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                  ${viewMode === 'grid' ? 'bg-surface text-cyan-400' : 'text-ink-600 hover:text-ink-300'}`}>
+                <LayoutGrid size={15} />
+              </button>
+              <button onClick={() => setViewMode('list')}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all
+                  ${viewMode === 'list' ? 'bg-surface text-cyan-400' : 'text-ink-600 hover:text-ink-300'}`}>
+                <List size={15} />
               </button>
             </div>
-          </div>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex gap-4 mb-6">
-            <div className="flex-1 relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search NFTs, collections, or creators..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg font-semibold transition-colors"
-            >
-              Search
-            </button>
-          </form>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <FiFilter className="text-gray-400" />
-              <span className="text-sm font-medium text-gray-300">Filters:</span>
-            </div>
-
-            <select
-              value={filters.network}
-              onChange={(e) => handleFilterChange('network', e.target.value)}
-              className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">All Networks</option>
-              <option value="ethereum">Ethereum</option>
-              <option value="polygon">Polygon</option>
-              <option value="bsc">BSC</option>
-              <option value="arbitrum">Arbitrum</option>
-              <option value="base">Base</option>
-            </select>
-
-            <select
-              value={filters.listingType}
-              onChange={(e) => handleFilterChange('listingType', e.target.value)}
-              className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">All Types</option>
-              <option value="fixed">Fixed Price</option>
-              <option value="auction">Auction</option>
-            </select>
-
-            <select
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-              className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="recent">Recently Listed</option>
-              <option value="price_low">Price: Low to High</option>
-              <option value="price_high">Price: High to Low</option>
-              <option value="ending_soon">Ending Soon</option>
-            </select>
-
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-sm font-medium transition-colors"
-            >
-              Clear Filters
+            {/* Refresh */}
+            <button onClick={load} disabled={loading}
+              className="btn-icon text-ink-400 hover:text-ink-100 disabled:opacity-50">
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader />
-          </div>
-        ) : error ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-xl font-semibold text-white mb-2">Unable to load listings</h3>
-            <p className="text-gray-400 mb-6">{error}</p>
-            <button
-              onClick={() => fetchListings(pagination.page)}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white font-semibold"
-            >
-              Retry
-            </button>
-          </div>
-        ) : listings.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">🏪</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No listings found</h3>
-            <p className="text-gray-400">Try adjusting your filters or check back later for new listings.</p>
-          </div>
-        ) : (
-          <>
-            {/* Results count */}
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-400">
-                {pagination.total} listing{pagination.total !== 1 ? 's' : ''} found
-              </p>
-            </div>
-
-            {/* Listings Grid/List */}
-            <div className={
-              viewMode === 'grid'
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
-            }>
-              {listings.map((listing) => (
-                <MarketplaceListingCard
-                  key={listing._id}
-                  listing={listing}
-                  viewMode={viewMode}
-                  onBuyClick={handleBuyClick}
-                />
+          {/* Grid / List */}
+          {loading ? (
+            <div className={viewMode === 'grid'
+              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
+              : 'space-y-2'}>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <NFTCardSkeleton key={i} variant={viewMode === 'list' ? 'compact' : 'default'} />
               ))}
             </div>
-
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-12">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page <= 1}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-                >
-                  Previous
-                </button>
-
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, pagination.page - 2) + i;
-                  if (pageNum > pagination.totalPages) return null;
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        pageNum === pagination.page
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-gray-700 hover:bg-gray-600'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Buy Modal */}
-      <BuyModal
-        isOpen={showBuyModal}
-        onClose={() => setShowBuyModal(false)}
-        listing={selectedListing}
-      />
-    </div>
-  );
-};
-
-// Individual listing card component
-const MarketplaceListingCard = ({ listing, viewMode, onBuyClick }) => {
-  const symbol = getCurrencySymbol(listing.network || 'ethereum');
-  const isAuction = listing.listingType === 'auction';
-  const isEnded = isAuction && listing.endTime && Date.now() / 1000 > listing.endTime;
-  const endsLabel = listing.endTime ? formatEnds(listing.endTime) : 'No end date';
-  const displayPrice = isAuction
-    ? listing.currentBid || listing.reservePrice || listing.price || 0
-    : listing.price || 0;
-
-  const priceLabel = isAuction ? 'Current Bid' : 'Price';
-
-  if (viewMode === 'list') {
-    return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
-        <div className="flex items-center gap-4">
-          {listing.nftImage && (
-            <img
-              src={listing.nftImage}
-              alt={listing.nftName}
-              className="w-16 h-16 rounded-lg object-cover"
-            />
+          ) : filtered.length === 0 ? (
+            <div className="py-24 text-center">
+              <Layers size={52} className="text-ink-600 mx-auto mb-4" />
+              <p className="text-ink-300 text-lg font-medium mb-2">No NFTs found</p>
+              <p className="text-ink-500 text-sm mb-6">Try adjusting your filters</p>
+              <button onClick={clearFilters} className="btn-secondary gap-2">
+                <X size={15} /> Clear all filters
+              </button>
+            </div>
+          ) : viewMode === 'list' ? (
+            <div className="space-y-2">
+              {filtered.map((nft, i) => (
+                <NFTCard key={nft.itemId || nft._id || i} nft={nft} variant="compact" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filtered.map((nft, i) => (
+                <NFTCard key={nft.itemId || nft._id || i} nft={nft} />
+              ))}
+            </div>
           )}
-          <div className="flex-1">
-            <h3 className="font-semibold text-white">{listing.nftName || 'Unnamed NFT'}</h3>
-            <p className="text-sm text-gray-400">Token ID: {listing.tokenId}</p>
-            <p className="text-xs text-gray-500 capitalize">{listing.network}</p>
-            {isAuction && (
-              <p className="text-xs text-blue-300 mt-1">Ends in {endsLabel}</p>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2 mb-2">
-              {isAuction ? (
-                <FiClock className="text-blue-400" />
-              ) : (
-                <FiTag className="text-emerald-400" />
-              )}
-              <span className="text-lg font-bold text-white">
-                {displayPrice} {symbol}
-              </span>
-            </div>
-            <button
-              onClick={() => onBuyClick(listing)}
-              disabled={isAuction && isEnded}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-semibold transition-colors"
-            >
-              {isAuction ? (isEnded ? 'Ended' : 'Bid') : 'Buy'}
-            </button>
-          </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden hover:border-gray-600 transition-colors">
-      {listing.nftImage && (
-        <div className="aspect-square overflow-hidden">
-          <img
-            src={listing.nftImage}
-            alt={listing.nftName}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      )}
-
-      <div className="p-4">
-        <h3 className="font-semibold text-white mb-1 truncate">
-          {listing.nftName || 'Unnamed NFT'}
-        </h3>
-        <p className="text-sm text-gray-400 mb-2">Token ID: {listing.tokenId}</p>
-
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-1 mb-1">
-              {isAuction ? (
-                <FiClock className="text-blue-400 text-sm" />
-              ) : (
-                <FiTag className="text-emerald-400 text-sm" />
-              )}
-              <span className="text-sm text-gray-400 capitalize">
-                {isAuction ? 'Auction' : 'Fixed Price'}
-              </span>
-            </div>
-            {isAuction && (
-              <p className="text-xs text-blue-300">Ends in {endsLabel}</p>
-            )}
-          </div>
-          <span className="text-xs text-gray-500 capitalize">{listing.network}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-400 mb-1">{priceLabel}</p>
-            <span className="text-lg font-bold text-emerald-400">
-              {displayPrice} {symbol}
-            </span>
-          </div>
-          <button
-            onClick={() => onBuyClick(listing)}
-            disabled={isAuction && isEnded}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-semibold transition-colors"
-          >
-            {isAuction ? (isEnded ? 'Ended' : 'Bid') : 'Buy'}
-          </button>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
-};
-
-const formatEnds = (endTime) => {
-  if (!endTime) return 'TBD';
-  const timestamp = Number(endTime);
-  const seconds = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
-  const diff = seconds - Math.floor(Date.now() / 1000);
-  if (diff <= 0) return 'Ended';
-  const hours = Math.floor(diff / 3600);
-  const minutes = Math.floor((diff % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-};
-
-export default Marketplace;
+}

@@ -1,254 +1,348 @@
+/**
+ * NFTCard — Orbital design-system canonical card.
+ * Replaces NFTCard, NFTCard2, NFTCard3.
+ *
+ * Usage:
+ *   <NFTCard nft={nftObj} />
+ *   <NFTCard nft={nftObj} variant="compact" rank={1} />
+ *   <NFTCard nft={nftObj} variant="featured" />
+ *
+ * Legacy props (name, price, image, …) are also accepted for backward compat.
+ */
 import PropTypes from "prop-types";
+import { useState } from "react";
 import { useContext } from "react";
 import { Link } from "react-router-dom";
+import { Heart, ShoppingCart, Share2, Tag, Layers, Zap } from "lucide-react";
 import { ICOContent } from "../Context";
 import { useCart } from "../Context/CartContext";
 import { ethers } from "ethers";
 import { ErrorToast } from "../app/Toast/Error";
 import { SuccessToast } from "../app/Toast/Success";
 
-const NFTCard = ({ collectionName, currentlyListed,
-  itemId,
-  nftContract,
-  image,
-  metadata,
-  owner,
-  price,
-  seller,
-  tokenId, 
-  name,
-  network,
-  pieces = 1,
-  remainingPieces }) => {
-  const totalPieces = Math.max(1, Number(pieces) || 1);
-  const remaining = remainingPieces != null ? Number(remainingPieces) : totalPieces;
-  const isSoldOut = remaining <= 0;
+/* ── Network currency symbols ── */
+const NETWORK_SYMBOL = {
+  ethereum: 'ETH', polygon: 'MATIC', base: 'ETH',
+  bsc: 'BNB', arbitrum: 'ETH', optimism: 'ETH',
+  avalanche: 'AVAX', solana: 'SOL',
+};
 
-     const contexts = useContext(ICOContent);
-     const { addToCart, isInCart, removeFromCart } = useCart();
-      const {
-        getNFTById_,
-        buyNFT,
-        tokenURI,
-        fetchMetadataFromPinata,
-        getActiveListings,
-        setAccountBalance,
-        address,
-      } = contexts;
+/* ── Normalise price: if > 1e9 treat as wei ── */
+function fmtPrice(raw) {
+  if (raw == null || raw === '') return null;
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n) || n === 0) return null;
+  if (n > 1e9) {
+    try { return parseFloat(ethers.utils.formatEther(String(raw))).toFixed(4); } catch (_) {}
+  }
+  return n >= 1 ? n.toFixed(2) : n.toFixed(4);
+}
 
-      const prices =  ethers.utils.formatEther(price);
+/* ════════════════════════════════════════════════
+   NFTCard — Orbital design
+   ════════════════════════════════════════════════ */
+const NFTCard = ({
+  /* new unified prop */
+  nft,
+  /* legacy flat props (backward compat) */
+  collectionName, currentlyListed, itemId, nftContract, image, metadata,
+  owner, price, seller, tokenId, name, network, pieces, remainingPieces,
+  isLazyMint,
+  /* behaviour */
+  onClick, onLike, onAddToCart, isLiked = false, isInCart: isInCartProp,
+  variant = 'default', showBadge = true, rank,
+}) => {
+  /* ── Merge nft object + legacy flat props ── */
+  const n = nft || {};
+  const _itemId          = n.itemId   || itemId   || (n._id && String(n._id)) || '';
+  const _name            = n.name     || name     || 'Untitled NFT';
+  const _image           = n.image    || n.imageURL || image || '';
+  const _price           = n.price    || price;
+  const _network         = n.network  || network  || 'base';
+  const _collection      = n.collection || collectionName || '';
+  const _isLazyMint      = n.isLazyMint ?? isLazyMint ?? false;
+  const _pieces          = Number(n.pieces          ?? pieces ?? 1);
+  const _remainingPieces = n.remainingPieces != null ? Number(n.remainingPieces)
+                           : remainingPieces  != null ? Number(remainingPieces)
+                           : _pieces;
+  const _listed          = n.currentlyListed ?? currentlyListed ?? false;
+  const _tokenId         = n.tokenId || tokenId || _itemId;
+  const _nftContract     = n.nftContract || n.contractAddress || nftContract;
+  const _likes           = typeof n.likes === 'number' ? n.likes : (n.likes?.length ?? 0);
 
-    // Check if NFT is in cart
-    const inCart = isInCart(itemId, nftContract);
+  const soldOut = _isLazyMint && _remainingPieces <= 0;
+  const isListed = _listed || (_isLazyMint && !soldOut);
 
-    // Handle add to cart
-    const handleAddToCart = async () => {
-      if (!address) {
-        ErrorToast("Please connect your wallet first");
-        return;
-      }
+  /* ── Context + cart ── */
+  const contexts = useContext(ICOContent);
+  const { addToCart, isInCart: checkInCart, removeFromCart } = useCart();
+  const { buyNFT, address } = contexts || {};
 
-      const nftData = {
-        itemId,
-        tokenId,
-        nftContract,
-        price,
-        name,
-        image,
-        network: network || metadata?.network, // Include network property
-        metadata: { collectionName, currentlyListed, owner, seller }
-      };
+  const [imgError, setImgError] = useState(false);
+  const [liked, setLiked] = useState(isLiked);
+  const [buyLoading, setBuyLoading] = useState(false);
 
-      await addToCart(nftData, address);
-    };
+  const inCart = isInCartProp ?? checkInCart?.(_itemId, _nftContract) ?? false;
+  const priceDisplay = fmtPrice(_price);
+  const symbol = NETWORK_SYMBOL[String(_network).toLowerCase()] || 'ETH';
 
-    // Handle remove from cart
-    const handleRemoveFromCart = async () => {
-      await removeFromCart(address, itemId, nftContract);
-    };
+  const href = _isLazyMint ? `/mint/${_itemId}` : `/nft/${_itemId}`;
+  const imgSrc = imgError ? '' : _image;
 
-    const handleBuy = async () => {
-      if(!address) {
-        ErrorToast("Please connect your wallet first");
-        return;
-      }
+  /* ── Handlers ── */
+  const handleLike = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    setLiked(p => !p);
+    onLike?.();
+  };
 
-      if(!currentlyListed) {
-        ErrorToast("This NFT is not listed for sale");
-        return;
-      }
-      if (isSoldOut) {
-        ErrorToast("This NFT is sold out");
-        return;
-      }
+  const handleAddToCart = async (e) => {
+    e?.preventDefault(); e?.stopPropagation();
+    if (onAddToCart) { onAddToCart(); return; }
+    if (!address) { ErrorToast('Connect your wallet first'); return; }
+    const nftData = { itemId: _itemId, tokenId: _tokenId, nftContract: _nftContract,
+                      price: _price, name: _name, image: _image, network: _network };
+    if (inCart) {
+      await removeFromCart?.(address, _itemId, _nftContract);
+    } else {
+      await addToCart?.(nftData, address);
+    }
+  };
 
-      // Get the NFT's listing network (priority: explicit network > metadata.network > fallback)
-      const nftListingNetwork = network || metadata?.network;
-      
-      if(!nftListingNetwork) {
-        ErrorToast("Network information is missing for this NFT");
-        return;
-      }
+  const handleBuy = async (e) => {
+    e?.preventDefault(); e?.stopPropagation();
+    if (!address)  { ErrorToast('Connect your wallet first'); return; }
+    if (soldOut)   { ErrorToast('This NFT is sold out'); return; }
+    if (!_listed && !_isLazyMint) { ErrorToast('This NFT is not listed'); return; }
+    setBuyLoading(true);
+    try {
+      const resp = await buyNFT?.(_nftContract || _itemId, _itemId, priceDisplay, _network);
+      SuccessToast(<span>Purchased! Tx: {resp?.transactionHash?.slice(0, 10)}…</span>);
+      setTimeout(() => window.location.reload(), 1800);
+    } catch (err) {
+      ErrorToast(err?.message || 'Purchase failed');
+    } finally { setBuyLoading(false); }
+  };
 
-      console.log("🚀 ~ handleBuy ~ nftListingNetwork:", nftListingNetwork);
-      console.log("🚀 ~ handleBuy ~ itemId:", itemId);
-      console.log("🚀 ~ handleBuy ~ price:", price);
-    
-      try {
-        // buyNFT expects price in ETH; this card receives price in wei, so pass formatted ETH (prices)
-        await buyNFT(nftContract || itemId, itemId, prices, nftListingNetwork)
-          .then((response) => {
-            SuccessToast(
+  const handleShare = (e) => {
+    e?.preventDefault(); e?.stopPropagation();
+    navigator.clipboard?.writeText(window.location.origin + href).catch(() => {});
+  };
+
+  /* ═══════════════════════════════════════
+     FEATURED VARIANT
+     ═══════════════════════════════════════ */
+  if (variant === 'featured') {
+    return (
+      <Link to={href} onClick={onClick}
+        className="group relative block rounded-3xl overflow-hidden cursor-pointer"
+        style={{ aspectRatio: '4/5' }}>
+        {imgSrc
+          ? <img src={imgSrc} alt={_name} onError={() => setImgError(true)}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          : <div className="w-full h-full bg-raised flex items-center justify-center">
+              <Layers size={48} className="text-ink-600" />
+            </div>
+        }
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-6">
+          {_collection && <p className="text-xs text-cyan-400 font-medium mb-1 truncate">{_collection}</p>}
+          <h3 className="text-xl font-bold text-white mb-3 truncate">{_name}</h3>
+          <div className="flex items-center justify-between">
+            {priceDisplay && (
               <div>
-                NFT Purchased successfully 🎉 ! <br />
-                Transaction: {response.transactionHash?.slice(0, 10)}...
+                <p className="text-[10px] text-ink-400 mb-0.5">Price</p>
+                <p className="text-lg font-bold text-white">
+                  {priceDisplay} <span className="text-sm text-ink-300">{symbol}</span>
+                </p>
               </div>
-            );
-            // Refresh page or navigate after purchase
-            setTimeout(() => {
-              window.location.reload();
-            }, 2000);
-          })
-          .catch((error) => {
-            console.error("Buy NFT error:", error);
-            ErrorToast(<div>{error.message || "Failed to purchase NFT. Please try again 💔!"}</div>);
-          });
-      } catch (error) {
-        console.error("Buy NFT error:", error);
-        ErrorToast(<div>{error.message || "Something went wrong 💔!"}</div>);
-      }
-    };
+            )}
+            <button onClick={handleBuy} disabled={buyLoading || soldOut}
+              className="btn-primary btn-sm gap-1.5 disabled:opacity-50">
+              <Zap size={14} />
+              {buyLoading ? '…' : _isLazyMint ? 'Mint' : 'Buy'}
+            </button>
+          </div>
+        </div>
+        {showBadge && (
+          <div className="absolute top-4 left-4 flex flex-col gap-2">
+            {_isLazyMint && !soldOut && <span className="badge-violet"><Layers size={9}/> Lazy</span>}
+            {soldOut && <span className="badge-gray">Sold Out</span>}
+            {!_isLazyMint && isListed && <span className="badge-green"><Tag size={9}/> Listed</span>}
+          </div>
+        )}
+      </Link>
+    );
+  }
 
+  /* ═══════════════════════════════════════
+     COMPACT VARIANT
+     ═══════════════════════════════════════ */
+  if (variant === 'compact') {
+    return (
+      <Link to={href} onClick={onClick}
+        className="flex items-center gap-3 p-3 rounded-2xl bg-surface border border-border
+                   hover:border-cyan-400/25 hover:bg-raised transition-all duration-200 cursor-pointer group">
+        {rank && <span className="w-7 text-center text-sm font-bold text-ink-600 shrink-0">{rank}</span>}
+        <div className="w-12 h-12 rounded-xl overflow-hidden bg-raised shrink-0">
+          {imgSrc
+            ? <img src={imgSrc} alt={_name} onError={() => setImgError(true)}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            : <div className="w-full h-full flex items-center justify-center">
+                <Layers size={20} className="text-ink-600" />
+              </div>
+          }
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ink-100 truncate">{_name}</p>
+          {_collection && <p className="text-xs text-ink-400 truncate">{_collection}</p>}
+        </div>
+        {priceDisplay && (
+          <div className="text-right shrink-0">
+            <p className="text-sm font-bold text-ink-100">{priceDisplay}</p>
+            <p className="text-[10px] text-ink-400">{symbol}</p>
+          </div>
+        )}
+      </Link>
+    );
+  }
 
-
+  /* ═══════════════════════════════════════
+     DEFAULT VARIANT
+     ═══════════════════════════════════════ */
   return (
-    <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden relative border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 group">
-      {/* NFT Image */}
-      <div className="relative aspect-square overflow-hidden nft-image-container bg-gray-800">
-        <img 
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-          src={image} 
-          alt={name}
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
-        {/* Status Badge */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-          {isSoldOut ? (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/90 text-white">
-              Sold Out
-            </span>
-          ) : (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              currentlyListed ? 'bg-green-500/90 text-white' : 'bg-gray-500/90 text-gray-200'
-            }`}>
-              {currentlyListed ? 'Listed' : 'Not Listed'}
-            </span>
-          )}
-          {network && nftContract && (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-500/70 text-white" title={`On-chain • ${network}`}>
-              {String(network).slice(0, 6)}
-            </span>
-          )}
-        </div>
+    <Link to={href} onClick={onClick}
+      className="nft-card group block">
 
-        {/* Cart Button */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          {inCart ? (
-            <button
-              onClick={handleRemoveFromCart}
-              className="p-2 bg-red-500/90 hover:bg-red-600/90 text-white rounded-full transition-colors"
-              title="Remove from cart"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={handleAddToCart}
-              className="p-2 bg-blue-500/90 hover:bg-blue-600/90 text-white rounded-full transition-colors"
-              title="Add to cart"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* NFT Details */}
-      <div className="p-4">
-        <Link to={`nft/${tokenId}`} className="block">
-          <div className="mb-3">
-            <h3 className="text-white font-display font-semibold text-lg mb-1 line-clamp-1 group-hover:text-blue-400 transition-colors">
-              {name}
-            </h3>
-            <p className="text-gray-400 text-sm font-body">{collectionName}</p>
-          </div>
-        </Link>
-
-        {/* Price and Actions */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-green-400 font-display font-bold text-lg">{prices} ETH</p>
-            <p className="text-gray-500 text-xs">Current Price</p>
-          </div>
-          {totalPieces > 1 && (
-            <div className="text-right">
-              <p className="text-gray-300 font-medium text-sm">{remaining}/{totalPieces}</p>
-              <p className="text-gray-500 text-xs">pieces left</p>
+      {/* ── Image area ── */}
+      <div className="nft-card-image">
+        {imgSrc
+          ? <img src={imgSrc} alt={_name} onError={() => setImgError(true)} loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          : <div className="w-full h-full flex items-center justify-center bg-raised"
+              style={{ aspectRatio: '1' }}>
+              <Layers size={40} className="text-ink-600" />
             </div>
-          )}
-        </div>
+        }
 
-        {/* Action Buttons */}
-        <div className="space-y-2">
-          <button 
-            onClick={handleBuy}
-            disabled={isSoldOut}
-            className={`w-full font-medium py-2.5 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${
-              isSoldOut
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-white border-2 border-purple-600 hover:bg-purple-50 text-purple-600'
-            }`}
-          >
-            {isSoldOut ? 'Sold Out' : 'Buy Now'}
+        {/* Hover action overlay */}
+        <div className="nft-card-overlay">
+          <button onClick={_isLazyMint ? handleAddToCart : handleBuy}
+            disabled={buyLoading || soldOut}
+            className="btn-primary btn-sm w-full gap-1.5 disabled:opacity-50">
+            {buyLoading ? 'Processing…'
+              : _isLazyMint
+                ? (soldOut ? 'Sold Out' : `Mint · ${priceDisplay || '—'} ${symbol}`)
+                : `Buy · ${priceDisplay || '—'} ${symbol}`}
           </button>
-          
-          <Link to={`nft/${tokenId}`} className="block">
-            <button className="w-full bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 hover:text-white font-medium py-2.5 px-4 rounded-xl transition-all duration-200 border border-gray-600/50 hover:border-gray-500/50">
-              View Details
+          <div className="flex items-center gap-2">
+            <button onClick={handleLike}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center backdrop-blur-sm
+                          transition-all duration-200
+                          ${liked ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-ink-200 hover:text-red-400'}`}>
+              <Heart size={15} fill={liked ? 'currentColor' : 'none'} />
             </button>
-          </Link>
+            <button onClick={handleAddToCart}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center backdrop-blur-sm
+                          transition-all duration-200
+                          ${inCart ? 'bg-cyan-400/20 text-cyan-400' : 'bg-black/40 text-ink-200 hover:text-cyan-400'}`}>
+              <ShoppingCart size={15} />
+            </button>
+            <button onClick={handleShare}
+              className="w-9 h-9 rounded-lg flex items-center justify-center bg-black/40 backdrop-blur-sm
+                         text-ink-200 hover:text-ink-100 transition-colors">
+              <Share2 size={15} />
+            </button>
+          </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="mt-3 pt-3 border-t border-gray-700/50">
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-            <div>
-              <span className="text-gray-400">Token ID:</span>
-              <p className="font-mono">{tokenId}</p>
-            </div>
-            <div>
-              <span className="text-gray-400">Item ID:</span>
-              <p className="font-mono">{itemId}</p>
-            </div>
+        {/* Status badges */}
+        {showBadge && (
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
+            {_isLazyMint && !soldOut && (
+              <span className="badge-violet text-[10px]">
+                <Layers size={9}/> Lazy
+                {_pieces > 1 && ` · ${_remainingPieces}/${_pieces}`}
+              </span>
+            )}
+            {soldOut && <span className="badge-gray text-[10px]">Sold Out</span>}
+            {!_isLazyMint && isListed && <span className="badge-green text-[10px]"><Tag size={9}/> Listed</span>}
+          </div>
+        )}
+
+        {rank && (
+          <div className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center
+                          text-sm font-bold text-void pointer-events-none"
+            style={{ background: 'var(--g-orbital)' }}>
+            #{rank}
+          </div>
+        )}
+      </div>
+
+      {/* ── Card body ── */}
+      <div className="nft-card-body">
+        {_collection && (
+          <p className="text-[11px] text-ink-400 mb-1 truncate font-medium">{_collection}</p>
+        )}
+        <h3 className="text-sm font-semibold text-ink-100 mb-3 truncate
+                        group-hover:text-cyan-400 transition-colors duration-200">
+          {_name}
+        </h3>
+        <div className="flex items-end justify-between">
+          <div>
+            {priceDisplay
+              ? <>
+                  <p className="text-[10px] text-ink-600 mb-0.5">
+                    {_isLazyMint ? 'Mint Price' : 'Price'}
+                  </p>
+                  <p className="text-base font-bold text-ink-100">
+                    {priceDisplay}
+                    <span className="text-xs text-ink-400 ml-1 font-normal">{symbol}</span>
+                  </p>
+                </>
+              : <p className="text-sm text-ink-600">Not listed</p>
+            }
+          </div>
+          <div className="flex items-center gap-1 text-xs text-ink-600">
+            <Heart size={11} />
+            <span>{_likes}</span>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
+/* ── Skeleton ── */
+export function NFTCardSkeleton({ variant = 'default' }) {
+  if (variant === 'compact') {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface border border-border">
+        <div className="w-12 h-12 rounded-xl skeleton shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 skeleton rounded w-3/4" />
+          <div className="h-2.5 skeleton rounded w-1/2" />
+        </div>
+        <div className="h-4 w-16 skeleton rounded" />
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl overflow-hidden bg-surface border border-border">
+      <div className="skeleton" style={{ aspectRatio: '1' }} />
+      <div className="p-4 space-y-3">
+        <div className="h-2.5 skeleton rounded w-1/3" />
+        <div className="h-4 skeleton rounded w-2/3" />
+        <div className="h-3.5 skeleton rounded w-1/4" />
+      </div>
+    </div>
+  );
+}
 
 NFTCard.propTypes = {
-  // collectionName: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
+  nft: PropTypes.object,
+  name: PropTypes.string,
+  variant: PropTypes.oneOf(['default', 'compact', 'featured']),
 };
 
 export default NFTCard;
