@@ -236,14 +236,26 @@ const NFTCard = ({
 
         {/* Hover action overlay */}
         <div className="nft-card-overlay">
-          <button onClick={_isLazyMint ? handleAddToCart : handleBuy}
-            disabled={buyLoading || soldOut}
-            className="btn-primary btn-sm w-full gap-1.5 disabled:opacity-50">
-            {buyLoading ? 'Processing…'
-              : _isLazyMint
-                ? (soldOut ? 'Sold Out' : `Mint · ${priceDisplay || '—'} ${symbol}`)
-                : `Buy · ${priceDisplay || '—'} ${symbol}`}
-          </button>
+          {soldOut && !_isLazyMint ? (
+            <div className="w-full flex gap-2">
+              <Link to={href} className="btn-secondary btn-sm flex-1 gap-1.5 justify-center">
+                Make Offer
+              </Link>
+              <button onClick={handleBuy}
+                className="btn-primary btn-sm flex-1 gap-1.5">
+                Buy
+              </button>
+            </div>
+          ) : (
+            <button onClick={_isLazyMint ? handleAddToCart : handleBuy}
+              disabled={buyLoading || soldOut}
+              className="btn-primary btn-sm w-full gap-1.5 disabled:opacity-50">
+              {buyLoading ? 'Processing…'
+                : _isLazyMint
+                  ? (soldOut ? 'Minted Out' : `Mint · ${priceDisplay || '—'} ${symbol}`)
+                  : `Buy · ${priceDisplay || '—'} ${symbol}`}
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <button onClick={handleLike}
               className={`w-9 h-9 rounded-lg flex items-center justify-center backdrop-blur-sm
@@ -270,11 +282,11 @@ const NFTCard = ({
           <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
             {_isLazyMint && !soldOut && (
               <span className="badge-violet text-[10px]">
-                <Layers size={9}/> Lazy
+                <Layers size={9}/> Mint
                 {_pieces > 1 && ` · ${_remainingPieces}/${_pieces}`}
               </span>
             )}
-            {soldOut && <span className="badge-gray text-[10px]">Sold Out</span>}
+            {soldOut && <span className="badge-gray text-[10px]">Minted Out</span>}
             {!_isLazyMint && isListed && <span className="badge-green text-[10px]"><Tag size={9}/> Listed</span>}
           </div>
         )}

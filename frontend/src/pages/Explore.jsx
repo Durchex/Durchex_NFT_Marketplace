@@ -419,7 +419,7 @@ export default function Explore() {
             cta="Full activity"
             ctaHref="/marketplace"
           />
-          <div className="card p-1">
+          <div className="card p-1 space-y-0">
             {nfts.slice(0, 8).map((nft, i) => {
               // Generate mock price movement data
               const priceData = Array.from({ length: 7 }, (_, idx) => ({
@@ -434,11 +434,11 @@ export default function Explore() {
 
               return (
                 <div key={nft.itemId || i}
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 py-4 rounded-xl hover:bg-raised
-                             transition-colors border-b border-border/50 last:border-0">
+                  className="flex items-center gap-4 px-4 py-3 hover:bg-raised transition-colors
+                             border-b border-border/50 last:border-0">
                   {/* Image */}
                   <Link to={`/nft/${nft.itemId || nft._id}`}
-                    className="w-12 h-12 rounded-xl overflow-hidden bg-raised shrink-0 cursor-pointer hover:scale-105 transition-transform">
+                    className="w-10 h-10 rounded-xl overflow-hidden bg-raised shrink-0">
                     {(nft.image || nft.imageURL) && (
                       <img src={nft.image || nft.imageURL} alt={nft.name}
                         className="w-full h-full object-cover" />
@@ -447,17 +447,14 @@ export default function Explore() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <Link to={`/nft/${nft.itemId || nft._id}`}
-                      className="text-sm font-medium text-ink-100 truncate hover:text-cyan-400 transition-colors cursor-pointer">
-                      {nft.name}
-                    </Link>
+                    <p className="text-sm font-medium text-ink-100 truncate">{nft.name}</p>
                     <p className="text-xs text-ink-400 truncate">
                       {nft.isLazyMint ? '🟣 Mint' : '🔵 Listed'} · {nft.network || 'base'}
                     </p>
                   </div>
 
-                  {/* Price Chart - Hidden on mobile, visible on sm+ */}
-                  <div className="hidden sm:block w-32 h-10">
+                  {/* Price Chart - Hidden on mobile, visible on md+ */}
+                  <div className="hidden md:block w-24 h-8">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={priceData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                         <Line
@@ -472,25 +469,21 @@ export default function Explore() {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* Price & Volume Info */}
-                  <div className="w-full sm:w-auto flex items-center justify-between sm:flex-col sm:items-end gap-4 sm:gap-1">
-                    <div>
-                      <p className="text-xs text-ink-400">Price</p>
-                      <p className="text-sm font-bold text-ink-100">
-                        {currentPrice > 1e9 ? (currentPrice/1e18).toFixed(4) : currentPrice.toFixed(4)} ETH
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-ink-400">24h Vol</p>
-                      <p className="text-sm font-bold text-ink-100">{totalVolume} ETH</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`flex items-center gap-0.5 text-xs font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {priceChange >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                        {Math.abs(priceChange).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
+                  {/* Price */}
+                  {currentPrice && (
+                    <span className="text-sm font-bold text-ink-100 shrink-0">
+                      {currentPrice > 1e9 ? (currentPrice/1e18).toFixed(4) : currentPrice.toFixed(4)} ETH
+                    </span>
+                  )}
+
+                  {/* Volume */}
+                  <span className="text-xs text-ink-400 shrink-0">Vol: {totalVolume}</span>
+
+                  {/* Change % */}
+                  <span className={`flex items-center gap-0.5 text-xs font-medium shrink-0 ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {priceChange >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {Math.abs(priceChange).toFixed(1)}%
+                  </span>
                 </div>
               );
             })}
