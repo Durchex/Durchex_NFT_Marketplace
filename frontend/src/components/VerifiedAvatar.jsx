@@ -146,7 +146,7 @@ export default function VerifiedAvatar({
 }
 
 /**
- * Standalone badge chip — Star/seal style verification badge.
+ * Standalone badge chip — Star/seal style verification badge with rounded points.
  * Premium (verified) → White bg + purple checkmark
  * Super Premium (gold) → Purple bg + white checkmark
  */
@@ -170,6 +170,52 @@ export function VerifiedBadgeChip({ status, size = 'md' }) {
 
   const badgeSize = sizeMap[size] || 24;
 
+  // Generate rounded star/seal badge path with 12 soft points
+  const generateRoundedStarPath = () => {
+    const points = [];
+    const center = 50;
+    const outerRadius = 42;
+    const innerRadius = 28;
+    const pointCount = 12;
+    const cornerRadius = 3; // Rounded corner radius
+
+    for (let i = 0; i < pointCount; i++) {
+      const angle = (i * 360) / pointCount - 90;
+      const rad = (angle * Math.PI) / 180;
+
+      // Outer point (tip of star)
+      const outerX = center + outerRadius * Math.cos(rad);
+      const outerY = center + outerRadius * Math.sin(rad);
+
+      // Inner point (valley of star)
+      const nextAngle = ((i + 1) * 360) / pointCount - 90;
+      const nextRad = (nextAngle * Math.PI) / 180;
+      const innerX = center + innerRadius * Math.cos(nextRad - Math.PI / pointCount);
+      const innerY = center + innerRadius * Math.sin(nextRad - Math.PI / pointCount);
+
+      points.push({
+        outer: { x: outerX, y: outerY },
+        inner: { x: innerX, y: innerY }
+      });
+    }
+
+    // Build path with rounded corners using quadratic curves
+    let path = `M ${center} ${center - outerRadius}`;
+
+    for (let i = 0; i < points.length; i++) {
+      const current = points[i];
+      const next = points[(i + 1) % points.length];
+
+      // Curve to outer point
+      path += ` Q ${current.outer.x} ${current.outer.y} ${current.outer.x + (next.inner.x - current.outer.x) * 0.3} ${current.outer.y + (next.inner.y - current.outer.y) * 0.3}`;
+      // Curve to inner point
+      path += ` Q ${next.inner.x} ${next.inner.y} ${next.outer.x} ${next.outer.y}`;
+    }
+
+    path += ' Z';
+    return path;
+  };
+
   return (
     <svg
       width={badgeSize}
@@ -179,29 +225,11 @@ export function VerifiedBadgeChip({ status, size = 'md' }) {
       title={isPurple ? 'Verified Creator' : 'Premium Creator'}
       className="inline-block"
     >
-      {/* Rounded star/seal badge using circle with clipping */}
-      <defs>
-        <filter id={`blur-${isPurple ? 'purple' : 'white'}`}>
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
-        </filter>
-      </defs>
-
-      {/* Main badge circle base */}
-      <circle cx="50" cy="50" r="48" fill={badgeBg} filter={`url(#blur-${isPurple ? 'purple' : 'white'})`} />
-
-      {/* 12 rounded points around the badge */}
-      <circle cx="50" cy="10" r="8" fill={badgeBg} />
-      <circle cx="72" cy="16" r="8" fill={badgeBg} />
-      <circle cx="84" cy="28" r="8" fill={badgeBg} />
-      <circle cx="90" cy="50" r="8" fill={badgeBg} />
-      <circle cx="84" cy="72" r="8" fill={badgeBg} />
-      <circle cx="72" cy="84" r="8" fill={badgeBg} />
-      <circle cx="50" cy="90" r="8" fill={badgeBg} />
-      <circle cx="28" cy="84" r="8" fill={badgeBg} />
-      <circle cx="16" cy="72" r="8" fill={badgeBg} />
-      <circle cx="10" cy="50" r="8" fill={badgeBg} />
-      <circle cx="16" cy="28" r="8" fill={badgeBg} />
-      <circle cx="28" cy="16" r="8" fill={badgeBg} />
+      {/* Rounded star/seal badge shape */}
+      <path
+        d={generateRoundedStarPath()}
+        fill={badgeBg}
+      />
 
       {/* Checkmark in center */}
       <polyline

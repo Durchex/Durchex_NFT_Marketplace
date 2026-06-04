@@ -19,65 +19,8 @@ import { notificationsAPI } from "../services/api";
 import LOGO from "../assets/logo.png";
 import { useUser } from "../Context/UserContext";
 import CartDrawer from "./CartDrawer";
+import { getNetworkIcon } from "./NetworkIcons";
 
-/* ─── Network SVG Icons ─── */
-const ChainIcon = ({ chainId, size = 20 }) => {
-  const iconProps = { width: size, height: size, viewBox: '0 0 24 24', xmlns: 'http://www.w3.org/2000/svg' };
-
-  const icons = {
-    ethereum: (
-      <svg {...iconProps} fill="currentColor">
-        <path d="M12 2L2 12L12 22L22 12L12 2ZM12 5.7L18.3 12L12 18.3L5.7 12L12 5.7ZM12 8L10 12L12 16L14 12L12 8Z" />
-      </svg>
-    ),
-    polygon: (
-      <svg {...iconProps} fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11z" />
-      </svg>
-    ),
-    base: (
-      <svg {...iconProps} fill="currentColor">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="12" cy="12" r="6" fill="white" opacity="0.2" />
-      </svg>
-    ),
-    bsc: (
-      <svg {...iconProps} fill="currentColor">
-        <circle cx="12" cy="12" r="10" />
-        <text x="12" y="15" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">BNB</text>
-      </svg>
-    ),
-    arbitrum: (
-      <svg {...iconProps} fill="currentColor">
-        <rect x="2" y="2" width="20" height="20" rx="3" />
-        <path d="M12 6L18 10V14L12 18L6 14V10L12 6Z" fill="white" opacity="0.3" />
-      </svg>
-    ),
-    optimism: (
-      <svg {...iconProps} fill="currentColor">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 6C8.68 6 6 8.68 6 12s2.68 6 6 6 6-2.68 6-6-2.68-6-6-6z" fill="white" opacity="0.3" />
-      </svg>
-    ),
-    avalanche: (
-      <svg {...iconProps} fill="currentColor">
-        <polygon points="12,2 22,20 2,20" />
-      </svg>
-    ),
-    solana: (
-      <svg {...iconProps} fill="currentColor">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M8 12A4 4 0 1016 12A4 4 0 018 12" fill="white" opacity="0.3" />
-      </svg>
-    ),
-  };
-
-  return icons[chainId?.toLowerCase()] || (
-    <svg {...iconProps} fill="currentColor">
-      <circle cx="12" cy="12" r="9" />
-    </svg>
-  );
-};
 
 /* ─── Main nav links ─── */
 const NAV = [
@@ -362,8 +305,8 @@ export default function Header() {
                 className="hidden sm:flex items-center gap-1.5 h-10 px-3 rounded-xl
                            bg-raised border border-border text-sm font-medium text-ink-200
                            hover:border-cyan-400/40 hover:text-ink-100 transition-all duration-200">
-                <span className="text-base leading-none">
-                  <ChainIcon chainId={currentNetwork?.id} size={18} />
+                <span className="text-base leading-none text-ink-200">
+                  {getNetworkIcon(currentNetwork?.id, 18)}
                 </span>
                 <span className="hidden lg:block">
                   {currentNetwork?.name || 'Network'}
@@ -379,8 +322,8 @@ export default function Header() {
                       onClick={() => { switchNetwork?.(String(net.id || '')); setNetOpen(false); }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm
                                  text-ink-200 hover:text-ink-100 hover:bg-raised transition-colors">
-                      <span className="text-base text-ink-300">
-                        <ChainIcon chainId={net.id} size={18} />
+                      <span className="text-base">
+                        {getNetworkIcon(net.id, 18)}
                       </span>
                       <span className="flex-1 text-left">{net.name}</span>
                       {String(currentNetwork?.id||'') === String(net.id||'') && <Check size={14} className="text-violet-400" />}
