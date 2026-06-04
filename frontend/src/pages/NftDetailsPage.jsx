@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useContext } from 'react';
+﻿﻿import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft, FiShare2, FiHeart, FiEye, FiDollarSign, FiCheckCircle, FiTrendingUp, FiTrendingDown, FiUser, FiBarChart2, FiShoppingCart } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -165,7 +165,7 @@ const NftDetailsPage = () => {
       const net = (nftData.network || 'ethereum').toLowerCase();
       const itemIdStr = String(nftData.itemId || nftData.tokenId || id);
 
-      // Fire-and-forget aggregator lookup â€” never blocks page render.
+      // Fire-and-forget aggregator lookup â€" never blocks page render.
       // Only meaningful for NFTs with both a contract address and tokenId.
       const aggContract = nftData.contractAddress || nftData.nftContract;
       if (aggContract && nftData.tokenId) {
@@ -291,7 +291,7 @@ const NftDetailsPage = () => {
         <Header />
         <div className="flex flex-col items-center justify-center py-32 gap-4">
           <div className="w-12 h-12 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-          <p className="text-ink-400 text-sm animate-pulse">Loading NFTâ€¦</p>
+          <p className="text-ink-400 text-sm animate-pulse">Loading NFT...</p>
         </div>
       </div>
     );
@@ -313,7 +313,7 @@ const NftDetailsPage = () => {
             <h2 className="text-2xl font-bold text-ink-100 mb-3">{error || 'NFT Not Found'}</h2>
             <p className="text-ink-400 mb-8">The NFT you're looking for doesn't exist or has been removed.</p>
             <Link to="/explore" className="btn-primary gap-2 inline-flex">
-              Browse Marketplace â†’
+              Browse Marketplace →
             </Link>
           </div>
         </main>
@@ -335,7 +335,7 @@ const NftDetailsPage = () => {
 
         {/* NFT Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-10">
-          {/* â”€â”€ Left: Image + mini stats â”€â”€ */}
+          {/* Left: Image + mini stats */}
           <div className="flex flex-col gap-4">
             <div className="card overflow-hidden">
               <div className="relative aspect-square bg-raised">
@@ -354,7 +354,7 @@ const NftDetailsPage = () => {
               {[
                 { icon: FiEye,       label: 'Views',  value: (views||0).toLocaleString() },
                 { icon: FiHeart,     label: 'Likes',  value: (likes||0).toLocaleString() },
-                { icon: FiBarChart2, label: 'Volume', value: analytics?.volume24h ? `${Number(analytics.volume24h).toFixed(2)}Îž` : 'â€”' },
+                { icon: FiBarChart2, label: 'Volume', value: analytics?.volume24h ? `${Number(analytics.volume24h).toFixed(2)}Ξ` : '—' },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="stat-card text-center">
                   <Icon className="w-4 h-4 text-cyan-400 mx-auto mb-2" />
@@ -365,7 +365,7 @@ const NftDetailsPage = () => {
             </div>
           </div>
 
-          {/* â”€â”€ Right: Info + actions â”€â”€ */}
+          {/* â"€â"€ Right: Info + actions â"€â"€ */}
           <div>
             {/* Header row */}
             <div className="flex items-start justify-between mb-4 gap-4">
@@ -427,7 +427,7 @@ const NftDetailsPage = () => {
                           <span className="text-xs text-ink-500 font-mono">{shortenAddress(l.seller)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-ink-100">{Number(priceEth).toFixed(4)} Îž</span>
+                          <span className="text-sm font-bold text-ink-100">{Number(priceEth).toFixed(4)} Ξ</span>
                           <FiArrowLeft className="text-ink-600 group-hover:text-ink-200 rotate-180" size={14} />
                         </div>
                       </a>
@@ -466,14 +466,18 @@ const NftDetailsPage = () => {
                       className="font-mono text-sm text-blue-400 hover:underline truncate max-w-[180px]"
                       title={nft.metadataURI}
                     >
-                      {nft.metadataURI.slice(0, 24)}â€¦
+                      {nft.metadataURI.slice(0, 24)}...
                     </a>
                   </div>
                 )}
                 {(nft.creator || nft.creatorWallet) && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-ink-400">Creator</span>
-                    <span className="font-semibold">{creatorDisplayName ?? 'â€¦'}</span>
+                    <Link
+                      to={`/creator/${nft.creator || nft.creatorWallet}`}
+                      className="font-semibold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer">
+                      {creatorDisplayName ?? '...'}
+                    </Link>
                   </div>
                 )}
                 {nft.category && (
@@ -676,7 +680,7 @@ const NftDetailsPage = () => {
                 {/* Market data */}
                 <div className="mb-5 pb-5 divider space-y-3">
                   {[
-                    ['Market Cap',  (() => { const c = nft.marketCap ? parseFloat(nft.marketCap) : analytics?.marketCap; return c ? c.toFixed(4) + ' ' + getCurrencySymbol(nft.network) : 'â€”'; })()],
+                    ['Market Cap',  (() => { const c = nft.marketCap ? parseFloat(nft.marketCap) : analytics?.marketCap; return c ? c.toFixed(4) + ' ' + getCurrencySymbol(nft.network) : '—'; })()],
                     ['24h Volume',  (analytics?.volume24h != null ? parseFloat(analytics.volume24h).toFixed(4) : '0') + ' ' + getCurrencySymbol(nft.network)],
                     ['Trades',      String(analytics?.tradesCount ?? tradeData.length)],
                     ['Editions',    `${Number(nft.remainingPieces ?? nft.pieces ?? 0)} / ${Number(nft.pieces ?? 1)}`],
@@ -694,12 +698,12 @@ const NftDetailsPage = () => {
                   <div className="gradient-border rounded-2xl p-4 text-center"
                     style={{ background: 'linear-gradient(135deg,rgba(0,200,255,0.06),rgba(124,58,237,0.06))' }}>
                     <p className="text-3xl font-extrabold text-gradient mb-1">
-                      #{rarity?.rarityRank ?? 'â€”'}
+                      #{rarity?.rarityRank ?? '—'}
                       {rarity?.totalInCollection > 0 && (
                         <span className="text-base font-normal text-ink-400 ml-1">/ {rarity.totalInCollection}</span>
                       )}
                     </p>
-                    <p className="text-xs text-ink-400">Score: {(rarity?.rarityScore ?? rarity?.rankingScore ?? 'â€”')}/100</p>
+                    <p className="text-xs text-ink-400">Score: {(rarity?.rarityScore ?? rarity?.rankingScore ?? '—')}/100</p>
                   </div>
                 </div>
               </div>
@@ -737,7 +741,7 @@ const NftDetailsPage = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Transaction History (from blockchain-style trades â€” liquidity in/out) */}
+              {/* Transaction History (from blockchain-style trades â€" liquidity in/out) */}
               <div className="bg-gray-900/50 rounded-2xl border border-border p-4 xs:p-5 sm:p-6">
                 <h2 className="text-lg xs:text-xl font-bold mb-3 xs:mb-4 flex items-center gap-2">
                   <FiUser className="text-green-400 w-4 h-4 xs:w-5 xs:h-5" />
@@ -760,7 +764,7 @@ const NftDetailsPage = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs xs:text-sm font-medium text-ink-200 truncate" title={actor}>
-                              {actor ? `${actor.slice(0, 6)}...${actor.slice(-4)}` : (isSell ? 'Liquidity' : 'â€”')}
+                              {actor ? `${actor.slice(0, 6)}...${actor.slice(-4)}` : (isSell ? 'Liquidity' : 'â€"')}
                             </div>
                             <div className="text-[10px] xs:text-xs text-ink-500">
                               {trade.createdAt ? new Date(trade.createdAt).toLocaleString() : ''}
@@ -795,7 +799,7 @@ const NftDetailsPage = () => {
 
       {/* Buy / Make Offer Modal */}
       <OfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} nft={nft} />
-      {/* Sell Modal â€“ list for sale (owner only) */}
+      {/* Sell Modal â€" list for sale (owner only) */}
       <SellModal isOpen={sellModalOpen} onClose={() => setSellModalOpen(false)} nft={nft} />
       {/* Marketplace Buy Modal */}
       <BuyModal

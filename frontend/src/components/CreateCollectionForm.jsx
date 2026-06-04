@@ -98,7 +98,7 @@ export default function CreateCollectionForm({ onCreated }) {
           imageUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
         } catch (uploadError) {
           console.error('Collection image upload failed:', uploadError);
-          toast.error('Image upload failed â€” try again or skip the image.');
+          toast.error('Image upload failed – try again or skip the image.');
           setSubmitting(false);
           return;
         }
@@ -248,7 +248,7 @@ export default function CreateCollectionForm({ onCreated }) {
               fontSize: '1rem',
             }}
           >
-            {submitting ? 'Creatingâ€¦' : 'Create collection'}
+            {submitting ? 'Creating...' : 'Create collection'}
           </button>
         </form>
       </>

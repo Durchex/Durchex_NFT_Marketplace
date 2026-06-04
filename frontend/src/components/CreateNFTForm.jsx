@@ -437,7 +437,7 @@ export default function CreateNFTForm() {
       const metadata = buildMetadataForMint(fileCID);
       const metadataCID = await uploadMetadataToIPFS(metadata);
       const metadataURI = `ipfs://${metadataCID}`;
-      // Use a gateway URL for the DB-backed image so the standard <img src=â€¦>
+      // Use a gateway URL for the DB-backed image so the standard <img src=...>
       // tag can render it directly. The metadata JSON uploaded to IPFS still
       // holds the canonical ipfs:// form (set in buildMetadataForMint).
       const imageURI = `https://gateway.pinata.cloud/ipfs/${fileCID}`;
@@ -770,7 +770,7 @@ export default function CreateNFTForm() {
                       cursor: uploadingCollection ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {uploadingCollection ? 'Creating collectionâ€¦' : 'Create collection'}
+                    {uploadingCollection ? 'Creating collection...' : 'Create collection'}
                   </button>
                 </div>
               )}
@@ -1019,7 +1019,7 @@ export default function CreateNFTForm() {
                 fontSize: '1rem',
               }}
             >
-              {submitting ? 'Processing your NFTâ€¦' : 'Mint NFT'}
+              {submitting ? 'Processing your NFT...' : 'Mint NFT'}
             </button>
           </div>
         </form>

@@ -200,7 +200,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
       const whitelistPriceWei = ethers.utils.parseEther(whitelistEffectiveEth.toString()).toString();
 
       // 4. Sign whitelist voucher with creator wallet.
-      toast('Sign the whitelist voucher in your walletâ€¦');
+      toast('Sign the whitelist voucher in your wallet...');
       let whitelistVoucher;
       try {
         const sig = await signLazyMintVoucher({
@@ -231,7 +231,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
       if (form.publicPrice && Number(form.publicPrice) >= 0) {
         const publicEffectiveEth = Number(form.publicPrice) + mintingFeeEth;
         const publicPriceWei = ethers.utils.parseEther(publicEffectiveEth.toString()).toString();
-        toast('Sign the public voucher in your walletâ€¦');
+        toast('Sign the public voucher in your wallet...');
         try {
           const sig2 = await signLazyMintVoucher({
             creator: address,
@@ -478,7 +478,7 @@ export default function CreateUpcomingNFTForm({ onCreated }) {
               color: '#fff', cursor: submitting ? 'not-allowed' : 'pointer',
               fontWeight: 700, fontSize: '1rem',
             }}>
-            {submitting ? 'Creatingâ€¦' : 'Create upcoming NFT'}
+            {submitting ? 'Creating...' : 'Create upcoming NFT'}
           </button>
         </form>
       </>

@@ -829,7 +829,7 @@ function MyMintedNFTs() {
                 disabled={placeOrderSubmitting}
                 className="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm disabled:opacity-50"
               >
-                {placeOrderSubmitting ? "Placingâ€¦" : "Place order"}
+                {placeOrderSubmitting ? "Placing..." : "Place order"}
               </button>
             </div>
           </div>

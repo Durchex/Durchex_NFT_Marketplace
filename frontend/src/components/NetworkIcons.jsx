@@ -1,6 +1,7 @@
 /**
  * Official Network Icons
  * Uses actual PNG images from the network-icons folder
+ * All 9 networks: Base, Ethereum, BSC, Polygon, Avalanche, Arbitrum, Optimism, HyperLiquid, AssetChain
  */
 
 import baseIcon from '../assets/network-icons/base.png';
