@@ -181,25 +181,37 @@ function WalletButton({ compact = false }) {
               onClick={() => setIsOpen(false)}
             />
             <div
-              className="fixed z-[101] rounded-2xl card p-4 min-w-[240px]"
-              style={{
-                top: `${buttonRef.current?.getBoundingClientRect().bottom || 0 + 8}px`,
-                right: `16px`,
-              }}
+              className="fixed z-[101] rounded-2xl card p-4 min-w-[280px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:left-auto sm:right-6 sm:top-auto sm:translate-x-0 sm:translate-y-0"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Profile */}
               <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-surface">
-                <div
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
-                    flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-                  onClick={() => {
-                    setIsOpen(false);
-                    navigate('/profile');
-                  }}
-                >
-                  {shortenAddress(address).slice(0, 1).toUpperCase()}
-                </div>
+                {isLoadingProfile ? (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
+                    flex items-center justify-center text-white text-xs font-bold animate-pulse">
+                  </div>
+                ) : profile?.image ? (
+                  <img
+                    src={profile.image}
+                    alt="avatar"
+                    className="w-8 h-8 rounded-full object-cover border border-violet-400 cursor-pointer hover:border-violet-300"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/profile');
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
+                      flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    {profile?.username?.slice(0, 1).toUpperCase() || shortenAddress(address).slice(0, 1).toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-ink-100 truncate">
                     {profile?.username || shortenAddress(address)}

@@ -40,7 +40,9 @@ const SIZE = {
  * White/silver background + purple tick for "gold".
  */
 function VerifiedBadge({ tier, badgeSize, ringWidth }) {
-  const isPurple = tier !== 'gold';
+  // Premium (verified) → White bg + purple tick
+  // Super Premium (gold) → Purple bg + white tick
+  const isPurple = tier === 'gold';
 
   const bg        = isPurple ? '#7c3aed'  : '#f8fafc';   // purple or near-white
   const tick      = isPurple ? '#ffffff'  : '#7c3aed';   // white or purple tick
@@ -151,10 +153,12 @@ export function VerifiedBadgeChip({ status, size = 'sm' }) {
   const badge = status ? getVerificationBadge(status) : null;
   if (!badge) return null;
 
-  const isPurple = badge.type !== 'gold';
-  const textCls  = isPurple ? 'text-violet-300' : 'text-amber-300';
-  const bgCls    = isPurple ? 'bg-violet-500/15 border-violet-500/30' : 'bg-amber-400/10 border-amber-400/30';
-  const dotBg    = isPurple ? '#7c3aed' : '#fbbf24';
+  // Premium (verified) → White bg + purple text
+  // Super Premium (gold) → Purple bg + white text
+  const isPurple = badge.type === 'gold';
+  const textCls  = isPurple ? 'text-white' : 'text-violet-300';
+  const bgCls    = isPurple ? 'bg-violet-500/20 border-violet-500/40' : 'bg-white/10 border-white/20';
+  const dotBg    = isPurple ? '#7c3aed' : '#f8fafc';
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-semibold ${bgCls} ${textCls}`}>

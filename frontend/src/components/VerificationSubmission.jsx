@@ -270,28 +270,21 @@ const VerificationSubmission = () => {
       <div className="mb-6">
         <label className="block text-sm font-medium text-ink-300 mb-3">Verification Tier</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Premium - White Badge */}
+          {/* Premium - Purple Badge */}
           <button
             type="button"
             onClick={() => setTier('premium')}
-            className={`p-6 rounded-lg border-2 transition-all ${
+            className={`p-6 rounded-2xl border-2 transition-all ${
               tier === 'premium'
-                ? 'border-gray-400 bg-raised'
-                : 'border-border hover:border-border'
+                ? 'border-violet-400 bg-violet-500/10'
+                : 'border-border hover:border-violet-400/50'
             }`}
           >
             <div className="flex flex-col items-center text-center mb-4">
-              {/* White Badge Icon */}
-              <div className="w-16 h-16 mb-3 flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-14 h-14 bg-white rounded-full border-2 border-border flex items-center justify-center shadow-sm">
-                    <FiCheck className="w-8 h-8 text-ink-300" />
-                  </div>
-                </div>
-              </div>
-              <h3 className="font-semibold text-ink-100 text-lg">Premium</h3>
-              <p className="text-sm text-ink-400 mt-1">White Badge</p>
-              <p className="text-xs text-ink-500 mt-2">20+ NFTs required</p>
+              <VerifiedBadgeChip status="premium" />
+              <h3 className="font-semibold text-ink-100 text-lg mt-3">Verified</h3>
+              <p className="text-sm text-violet-300 mt-1">Purple Badge</p>
+              <p className="text-xs text-ink-500 mt-2">Basic verification</p>
             </div>
             <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
               <li className="flex items-center space-x-2">
@@ -309,30 +302,21 @@ const VerificationSubmission = () => {
             </ul>
           </button>
 
-          {/* Super Premium - Gold Badge */}
+          {/* Super Premium - White & Purple Badge */}
           <button
             type="button"
             onClick={() => setTier('super_premium')}
-            className={`p-6 rounded-lg border-2 transition-all ${
+            className={`p-6 rounded-2xl border-2 transition-all ${
               tier === 'super_premium'
                 ? 'border-amber-400 bg-amber-500/10'
-                : 'border-border hover:border-border'
+                : 'border-border hover:border-amber-400/50'
             }`}
           >
             <div className="flex flex-col items-center text-center mb-4">
-              {/* Gold Badge Icon */}
-              <div className="w-16 h-16 mb-3 flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 rounded-full border-2 border-yellow-600 flex items-center justify-center shadow-md">
-                    <FiCheck className="w-8 h-8 text-white" />
-                  </div>
-                  {/* Extra shine effect */}
-                  <div className="absolute top-2 left-3 w-3 h-3 bg-yellow-200 rounded-full opacity-60"></div>
-                </div>
-              </div>
-              <h3 className="font-semibold text-ink-100 text-lg">Super Premium</h3>
-              <p className="text-sm bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent font-semibold mt-1">Gold Badge</p>
-              <p className="text-xs text-ink-500 mt-2">100+ NFTs required</p>
+              <VerifiedBadgeChip status="super_premium" />
+              <h3 className="font-semibold text-ink-100 text-lg mt-3">Gold Verified</h3>
+              <p className="text-sm text-amber-300 mt-1">White & Purple Badge</p>
+              <p className="text-xs text-ink-500 mt-2">Premium verification</p>
             </div>
             <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
               <li className="flex items-center space-x-2">

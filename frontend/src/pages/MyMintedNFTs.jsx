@@ -496,15 +496,17 @@ function MyMintedNFTs() {
                           </div>
                         </div>
                       ) : (
-                        <>
-                          <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
-                          <div className="space-y-2 text-sm mb-4">
-                            <p><span className="text-ink-400 text-xs">Status:</span> <span className="text-amber-400">Not Minted</span></p>
-                            <p><span className="text-ink-400">Created:</span> {new Date(nft.createdAt || nft._id?.getTimestamp?.() || Date.now()).toLocaleDateString()}</p>
-                            <p><span className="text-ink-400 text-xs">Network:</span> {nft.network}</p>
+                        <div className="flex flex-col h-full">
+                          <div className="flex-1">
+                            <h3 className="text-base font-semibold mb-2 text-ink-100">{nft.name}</h3>
+                            <div className="space-y-1 text-xs">
+                              <p><span className="text-ink-500">Status:</span> <span className="text-amber-400">Not Minted</span></p>
+                              <p><span className="text-ink-500">Created:</span> <span className="text-ink-300">{new Date(nft.createdAt || nft._id?.getTimestamp?.() || Date.now()).toLocaleDateString()}</span></p>
+                              <p><span className="text-ink-500">Network:</span> <span className="text-ink-300">{nft.network}</span></p>
+                            </div>
                           </div>
-                          
-                          <div className="flex gap-2 mb-3">
+
+                          <div className="flex gap-2 items-center mt-4 pt-3 border-t border-border">
                             <button
                               onClick={() => handleEditNFT(nft)}
                               className="btn-primary btn-sm flex-1 justify-center"
@@ -512,21 +514,23 @@ function MyMintedNFTs() {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDeleteNFT(nft)}
-                              className="btn-danger btn-sm flex-1 justify-center"
+                              onClick={() => handleMintNFT(nft)}
+                              disabled={mintingNFT === nft.itemId}
+                              className="btn-primary btn-sm flex-1 justify-center"
                             >
-                              Delete
+                              {mintingNFT === nft.itemId ? "..." : "Mint"}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNFT(nft)}
+                              className="btn-icon text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                              title="Delete NFT"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
                           </div>
-                          
-                          <button
-                            onClick={() => handleMintNFT(nft)}
-                            disabled={mintingNFT === nft.itemId}
-                            className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-ink-800 px-4 py-2 rounded-lg font-semibold text-sm"
-                          >
-                            {mintingNFT === nft.itemId ? "Minting..." : "Mint NFT"}
-                          </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -641,60 +645,55 @@ function MyMintedNFTs() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <>
-                                    <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
-                                    <div className="space-y-2 text-sm mb-4">
-                                      <p><span className="text-ink-400 text-xs">Status:</span> <span className="text-emerald-400">Minted</span></p>
-                                      <p><span className="text-ink-400 text-xs">Token ID:</span> {nft.tokenId}</p>
-                                      <p><span className="text-ink-400 text-xs">Network:</span> {nft.network}</p>
-                                      <p><span className="text-ink-400 text-xs">Minted:</span> {new Date(nft.mintedAt).toLocaleDateString()}</p>
-                                      {nft.mintTxHash && (
-                                        <p>
-                                          <span className="text-ink-400">Tx Hash:</span>{" "}
-                                          <a
-                                            href={`https://${nft.network === 'polygon' ? 'polygonscan' : 'etherscan'}.com/tx/${nft.mintTxHash}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-400 hover:text-blue-300 underline"
-                                          >
-                                            {nft.mintTxHash.substring(0, 10)}...
-                                          </a>
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    <div className="flex gap-2 mb-3 flex-wrap">
-                                      <button
-                                        onClick={() => handleEditNFT(nft)}
-                                        className="btn-primary btn-sm flex-1 justify-center"
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteNFT(nft)}
-                                        className="btn-danger btn-sm flex-1 justify-center"
-                                      >
-                                        Delete
-                                      </button>
-                                      {getMyPieces(nft) > 0 && (
-                                        <button
-                                          onClick={() => setPlaceOrderModal({ nft, myPieces: getMyPieces(nft) })}
-                                          className="flex-1 btn-primary hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
-                                        >
-                                          Sell pieces
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    <div className="mt-4 pt-4 border-t border-border">
-                                      <p className="text-xs text-ink-400 mb-2">
-                                        Use this token ID to request admin listing:
-                                      </p>
-                                      <div className="bg-gray-900 p-2 rounded text-xs font-mono">
-                                        Token ID: {nft.tokenId}
+                                  <div className="flex flex-col h-full">
+                                    <div className="flex-1">
+                                      <h3 className="text-base font-semibold mb-2 text-ink-100">{nft.name}</h3>
+                                      <div className="space-y-1 text-xs">
+                                        <p><span className="text-ink-500">Status:</span> <span className="badge-violet">✓ Minted</span></p>
+                                        <p><span className="text-ink-500">Token ID:</span> <span className="text-ink-300 font-mono text-[10px]">{nft.tokenId?.slice(0, 8)}...</span></p>
+                                        <p><span className="text-ink-500">Network:</span> <span className="text-ink-300">{nft.network}</span></p>
+                                        <p><span className="text-ink-500">Minted:</span> <span className="text-ink-300">{new Date(nft.mintedAt).toLocaleDateString()}</span></p>
                                       </div>
                                     </div>
-                                  </>
+
+                                    <div className="mt-4 pt-3 border-t border-border space-y-2">
+                                      <div className="flex gap-2 items-center">
+                                        <button
+                                          onClick={() => handleEditNFT(nft)}
+                                          className="btn-primary btn-sm flex-1 justify-center"
+                                        >
+                                          Edit
+                                        </button>
+                                        {getMyPieces(nft) > 0 && (
+                                          <button
+                                            onClick={() => setPlaceOrderModal({ nft, myPieces: getMyPieces(nft) })}
+                                            className="btn-primary btn-sm flex-1 justify-center"
+                                          >
+                                            Sell
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleDeleteNFT(nft)}
+                                          className="btn-icon text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                                          title="Delete NFT"
+                                        >
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                      {nft.mintTxHash && (
+                                        <a
+                                          href={`https://basescan.org/tx/${nft.mintTxHash}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                                        >
+                                          View Transaction ↗
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -840,6 +839,7 @@ function MyMintedNFTs() {
 }
 
 export default MyMintedNFTs;
+
 
 
 
