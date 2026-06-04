@@ -158,17 +158,25 @@ const NFTCard = ({
                 </p>
               </div>
             )}
-            <button onClick={handleBuy} disabled={buyLoading || soldOut}
-              className="btn-primary btn-sm gap-1.5 disabled:opacity-50">
-              <Zap size={14} />
-              {buyLoading ? '…' : _isLazyMint ? 'Mint' : 'Buy'}
-            </button>
+            <div className="flex gap-2">
+              {soldOut && !_isLazyMint && (
+                <button onClick={handleAddToCart} disabled={buyLoading}
+                  className="btn-secondary btn-sm gap-1.5">
+                  Offer
+                </button>
+              )}
+              <button onClick={handleBuy} disabled={buyLoading || (soldOut && _isLazyMint)}
+                className="btn-primary btn-sm gap-1.5 disabled:opacity-50">
+                <Zap size={14} />
+                {buyLoading ? '…' : _isLazyMint && !soldOut ? 'Mint' : soldOut ? 'Buy' : 'Buy'}
+              </button>
+            </div>
           </div>
         </div>
         {showBadge && (
           <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {_isLazyMint && !soldOut && <span className="badge-violet"><Layers size={9}/> Lazy</span>}
-            {soldOut && <span className="badge-gray">Sold Out</span>}
+            {_isLazyMint && !soldOut && <span className="badge-violet"><Layers size={9}/> Mint</span>}
+            {soldOut && <span className="badge-gray">Minted Out</span>}
             {!_isLazyMint && isListed && <span className="badge-green"><Tag size={9}/> Listed</span>}
           </div>
         )}

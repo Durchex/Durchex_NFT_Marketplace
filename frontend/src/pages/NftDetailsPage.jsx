@@ -503,7 +503,7 @@ const NftDetailsPage = () => {
                     <span className="font-semibold text-ink-100 text-sm">
                       {Number(nft.remainingPieces ?? nft.pieces ?? 0)} / {Number(nft.pieces ?? 1)} remaining
                       {(nft.remainingPieces === 0 || (nft.remainingPieces != null && nft.remainingPieces <= 0)) && (
-                        <span className="ml-2 badge-red">Sold Out</span>
+                        <span className="ml-2 badge-red">Minted Out</span>
                       )}
                     </span>
                   </div>
@@ -537,12 +537,18 @@ const NftDetailsPage = () => {
                   return (
                     <>
                       <button disabled className="btn-secondary w-full opacity-50 cursor-not-allowed justify-center py-3">
-                        Sold Out
+                        Minted Out
                       </button>
                       <button onClick={() => setOfferModalOpen(true)}
                         className="btn-secondary w-full justify-center py-3 gap-2">
                         <FiDollarSign /> Make Offer
                       </button>
+                      {marketplaceListings.length > 0 && (
+                        <button onClick={() => setBuyModalOpen(true)}
+                          className="btn-primary w-full justify-center py-3 gap-2">
+                          <FiDollarSign /> Buy from Owner
+                        </button>
+                      )}
                     </>
                   );
                 }

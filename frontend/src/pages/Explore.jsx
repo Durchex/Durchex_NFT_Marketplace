@@ -7,8 +7,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Compass, TrendingUp, Zap, ArrowRight, Search,
   Layers, Clock, Users, BarChart2, Star,
-  ChevronRight, Activity, Globe, Sparkles,
+  ChevronRight, Activity, Globe, Sparkles, TrendingDown,
 } from 'lucide-react';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import Header from '../components/Header';
 import Footer from '../FooterComponents/Footer';
 import NFTCard, { NFTCardSkeleton } from '../components/NFTCard';
@@ -153,6 +154,13 @@ export default function Explore() {
     const matchQ = !q || (n.name || '').toLowerCase().includes(q)
                       || (n.collection || '').toLowerCase().includes(q);
     return matchCat && matchQ;
+  });
+
+  /* ── Trending NFTs (sorted by engagement) ── */
+  const trending = [...filtered].sort((a, b) => {
+    const scoreA = (a.views || 0) + (a.likes || 0) * 2 + (a.sales || 0) * 5;
+    const scoreB = (b.views || 0) + (b.likes || 0) * 2 + (b.sales || 0) * 5;
+    return scoreB - scoreA;
   });
 
   /* ── Hero carousel ── */
@@ -363,9 +371,9 @@ export default function Explore() {
         {/* ════ NFT GRID ════ */}
         <section>
           <SectionHeader
-            label="🔥 Explore"
-            title={category === 'all' ? 'All NFTs' : CATEGORIES.find(c => c.id === category)?.label + ' NFTs'}
-            cta="View all"
+            label="🔥 Trending"
+            title={category === 'all' ? 'Trending NFTs' : CATEGORIES.find(c => c.id === category)?.label + ' Trending'}
+            cta="Explore all"
             ctaHref="/marketplace"
           />
 
@@ -375,7 +383,7 @@ export default function Explore() {
                 <NFTCardSkeleton key={i} />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : trending.length === 0 ? (
             <div className="py-20 text-center">
               <Layers size={48} className="text-ink-600 mx-auto mb-4" />
               <p className="text-ink-400 text-lg">No NFTs found</p>
@@ -388,7 +396,7 @@ export default function Explore() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-              {filtered.slice(0, 20).map((nft, i) => (
+              {trending.slice(0, 20).map((nft, i) => (
                 <NFTCard key={nft.itemId || nft._id || i} nft={nft} />
               ))}
             </div>
@@ -411,35 +419,68 @@ export default function Explore() {
             cta="Full activity"
             ctaHref="/marketplace"
           />
-          <div className="card p-1">
-            {nfts.slice(0, 8).map((nft, i) => (
-              <div key={nft.itemId || i}
-                className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-raised
-                           transition-colors border-b border-border/50 last:border-0">
-                <div className="w-10 h-10 rounded-xl overflow-hidden bg-raised shrink-0">
-                  {(nft.image || nft.imageURL) && (
-                    <img src={nft.image || nft.imageURL} alt={nft.name}
-                      className="w-full h-full object-cover" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink-100 truncate">{nft.name}</p>
-                  <p className="text-xs text-ink-400 truncate">
-                    {nft.isLazyMint ? '🟣 Lazy Mint' : '🔵 Listed'} ·{' '}
-                    {nft.network || 'base'}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {nfts.slice(0, 8).map((nft, i) => {
+              // Generate mock price movement data
+              const priceData = Array.from({ length: 7 }, (_, idx) => ({
+                time: idx,
+                price: parseFloat(nft.price || 0) * (0.8 + Math.random() * 0.4),
+              }));
+              const currentPrice = parseFloat(nft.price || 0);
+              const prevPrice = priceData[0]?.price || currentPrice;
+              const priceChange = ((currentPrice - prevPrice) / prevPrice * 100) || 0;
+
+              return (
+                <Link key={nft.itemId || i} to={`/nft/${nft.itemId || nft._id}`}
+                  className="card p-4 hover:border-cyan-400/25 transition-all duration-200 group cursor-pointer">
+                  {/* NFT Image */}
+                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-raised mb-3">
+                    {(nft.image || nft.imageURL) && (
+                      <img src={nft.image || nft.imageURL} alt={nft.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    )}
+                  </div>
+
+                  {/* NFT Name & Status */}
+                  <p className="text-sm font-semibold text-ink-100 truncate mb-1">{nft.name}</p>
+                  <p className="text-xs text-ink-400 mb-3">
+                    {nft.isLazyMint ? '🟣 Mint' : '🔵 Listed'} · {nft.network || 'base'}
                   </p>
-                </div>
-                {nft.price && (
-                  <span className="text-sm font-bold text-ink-100 shrink-0">
-                    {parseFloat(nft.price) > 1e9
-                      ? (parseFloat(nft.price)/1e18).toFixed(4)
-                      : parseFloat(nft.price).toFixed(4)
-                    } ETH
-                  </span>
-                )}
-                <span className="badge-cyan text-[10px] shrink-0">New</span>
-              </div>
-            ))}
+
+                  {/* Price Chart */}
+                  <div className="w-full h-12 mb-3 -mx-4 px-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={priceData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                        <Line
+                          type="monotone"
+                          dataKey="price"
+                          stroke={priceChange >= 0 ? '#10b981' : '#ef4444'}
+                          dot={false}
+                          strokeWidth={1.5}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Price Info */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-ink-400 mb-0.5">Current Price</p>
+                      <p className="text-sm font-bold text-ink-100">
+                        {currentPrice > 1e9 ? (currentPrice/1e18).toFixed(4) : currentPrice.toFixed(4)} ETH
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`flex items-center gap-1 text-xs font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {priceChange >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {Math.abs(priceChange).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
