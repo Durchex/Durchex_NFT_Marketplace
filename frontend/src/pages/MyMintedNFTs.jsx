@@ -339,13 +339,13 @@ function MyMintedNFTs() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div>
       {/* Header removed - already exists in Profile page */}
 
       <main className="mx-auto mt-8 px-4">
         <div className="mb-6">
           <h2 className="text-3xl font-bold mb-2">My NFTs</h2>
-          <p className="text-gray-400">
+          <p className="text-ink-400">
             Create NFTs from the create page, then mint them here to get token IDs for listing requests.
           </p>
         </div>
@@ -355,7 +355,7 @@ function MyMintedNFTs() {
             <p className="text-xl mb-4">Please connect your wallet to view your NFTs</p>
             <button
               onClick={connectWallet}
-              className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold"
+              className="bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/20 px-6 py-3 rounded-lg font-semibold"
             >
               Connect Wallet
             </button>
@@ -371,7 +371,7 @@ function MyMintedNFTs() {
         ) : MyNFTs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-xl mb-4">You haven&apos;t created any NFTs yet</p>
-            <p className="text-gray-400">
+            <p className="text-ink-400">
               Create NFTs first, then come back here to mint them and get token IDs for listing.
             </p>
           </div>
@@ -380,11 +380,11 @@ function MyMintedNFTs() {
             {/* Filters */}
             <div className="flex flex-wrap gap-4 mb-6">
               <div className="flex items-center gap-2">
-                <label className="text-gray-300 text-sm font-medium">Status:</label>
+                <label className="text-ink-200 text-sm font-medium">Status:</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                  className="bg-gray-700 border border-border rounded px-3 py-1 text-white text-sm"
                 >
                   <option value="all">All NFTs</option>
                   <option value="minted">Minted Only</option>
@@ -392,11 +392,11 @@ function MyMintedNFTs() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-gray-300 text-sm font-medium">Category:</label>
+                <label className="text-ink-200 text-sm font-medium">Category:</label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-sm"
+                  className="bg-gray-700 border border-border rounded px-3 py-1 text-white text-sm"
                 >
                   <option value="all">All Categories</option>
                   <option value="art">Art</option>
@@ -449,8 +449,8 @@ function MyMintedNFTs() {
                       <p className="text-ink-400 text-sm mb-6">These NFTs need to be minted on the blockchain to get token IDs.</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                         {unmintedNFTs.map((nft, index) => (
-                    <div key={nft._id || index} className="card nft-card group">
-                      <div className="mb-4">
+                    <div key={nft._id || index} className="nft-card group">
+                      <div className="nft-card-image">
                         <img
                           src={nft.image}
                           alt={nft.name}
@@ -500,7 +500,7 @@ function MyMintedNFTs() {
                           <h3 className="text-lg font-semibold mb-2">{nft.name}</h3>
                           <div className="space-y-2 text-sm mb-4">
                             <p><span className="text-ink-400 text-xs">Status:</span> <span className="text-amber-400">Not Minted</span></p>
-                            <p><span className="text-gray-400">Created:</span> {new Date(nft.createdAt || nft._id?.getTimestamp?.() || Date.now()).toLocaleDateString()}</p>
+                            <p><span className="text-ink-400">Created:</span> {new Date(nft.createdAt || nft._id?.getTimestamp?.() || Date.now()).toLocaleDateString()}</p>
                             <p><span className="text-ink-400 text-xs">Network:</span> {nft.network}</p>
                           </div>
                           
@@ -522,7 +522,7 @@ function MyMintedNFTs() {
                           <button
                             onClick={() => handleMintNFT(nft)}
                             disabled={mintingNFT === nft.itemId}
-                            className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 px-4 py-2 rounded-lg font-semibold text-sm"
+                            className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-ink-800 px-4 py-2 rounded-lg font-semibold text-sm"
                           >
                             {mintingNFT === nft.itemId ? "Minting..." : "Mint NFT"}
                           </button>
@@ -537,7 +537,7 @@ function MyMintedNFTs() {
                   {/* Minted NFTs Section */}
                   {mintedNFTs.length > 0 && (
                     <div>
-                      <h3 className="text-2xl font-bold mb-4 text-green-400">Minted NFTs</h3>
+                      <h3 className="text-2xl font-bold mb-4 text-emerald-400">Minted NFTs</h3>
                       <p className="text-ink-400 text-sm mb-6">These NFTs are minted on the blockchain and ready for listing requests.</p>
                       
                       {/* Created NFTs (you are the creator) */}
@@ -650,7 +650,7 @@ function MyMintedNFTs() {
                                       <p><span className="text-ink-400 text-xs">Minted:</span> {new Date(nft.mintedAt).toLocaleDateString()}</p>
                                       {nft.mintTxHash && (
                                         <p>
-                                          <span className="text-gray-400">Tx Hash:</span>{" "}
+                                          <span className="text-ink-400">Tx Hash:</span>{" "}
                                           <a
                                             href={`https://${nft.network === 'polygon' ? 'polygonscan' : 'etherscan'}.com/tx/${nft.mintTxHash}`}
                                             target="_blank"
@@ -679,15 +679,15 @@ function MyMintedNFTs() {
                                       {getMyPieces(nft) > 0 && (
                                         <button
                                           onClick={() => setPlaceOrderModal({ nft, myPieces: getMyPieces(nft) })}
-                                          className="flex-1 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
+                                          className="flex-1 btn-primary hover:bg-purple-700 px-3 py-2 rounded font-semibold text-sm"
                                         >
                                           Sell pieces
                                         </button>
                                       )}
                                     </div>
 
-                                    <div className="mt-4 pt-4 border-t border-gray-700">
-                                      <p className="text-xs text-gray-400 mb-2">
+                                    <div className="mt-4 pt-4 border-t border-border">
+                                      <p className="text-xs text-ink-400 mb-2">
                                         Use this token ID to request admin listing:
                                       </p>
                                       <div className="bg-gray-900 p-2 rounded text-xs font-mono">
@@ -794,7 +794,7 @@ function MyMintedNFTs() {
             <p className="text-ink-400 text-sm mb-4">&quot;{placeOrderModal.nft?.name}&quot; â€” You have {placeOrderModal.myPieces} piece{placeOrderModal.myPieces !== 1 ? "s" : ""}. Set quantity and price for buyers.</p>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="block text-gray-400 text-sm mb-1">Quantity</label>
+                <label className="block text-ink-400 text-sm mb-1">Quantity</label>
                 <input
                   type="number"
                   min={1}
@@ -805,7 +805,7 @@ function MyMintedNFTs() {
                 />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-1">Price per piece ({getCurrencySymbol(placeOrderModal.nft?.network || "ethereum")})</label>
+                <label className="block text-ink-400 text-sm mb-1">Price per piece ({getCurrencySymbol(placeOrderModal.nft?.network || "ethereum")})</label>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -820,7 +820,7 @@ function MyMintedNFTs() {
               <button
                 onClick={() => { setPlaceOrderModal(null); setPlaceOrderQty(1); setPlaceOrderPrice(""); }}
                 disabled={placeOrderSubmitting}
-                className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 text-white font-medium text-sm"
+                className="px-4 py-2 rounded bg-ink-800 hover:bg-gray-500 text-white font-medium text-sm"
               >
                 Cancel
               </button>
@@ -840,5 +840,7 @@ function MyMintedNFTs() {
 }
 
 export default MyMintedNFTs;
+
+
 
 

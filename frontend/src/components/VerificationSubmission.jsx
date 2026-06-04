@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { ICOContent } from '../Context';
 import { verificationAPI } from '../services/verificationAPI';
 import pinataService from '../services/pinataService';
 import { FiCheck, FiX, FiAlertCircle, FiUpload, FiMail, FiMapPin, FiHome, FiGlobe, FiShield } from 'react-icons/fi';
+import { VerifiedBadgeChip } from './VerifiedAvatar';
 import toast from 'react-hot-toast';
 
 const VerificationSubmission = () => {
@@ -204,29 +205,29 @@ const VerificationSubmission = () => {
 
   if (!address) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <FiShield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">Connect Your Wallet</h3>
-        <p className="text-gray-600">Please connect your wallet to submit a verification request.</p>
+      <div className="bg-white rounded-xl shadow-sm border border-border p-8 text-center">
+        <FiShield className="w-16 h-16 text-ink-600 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-ink-100 mb-2">Connect Your Wallet</h3>
+        <p className="text-ink-400">Please connect your wallet to submit a verification request.</p>
       </div>
     );
   }
 
   if (status?.verificationStatus === 'premium' || status?.verificationStatus === 'super_premium') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <div className="card p-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Verification Status</h2>
-          {getStatusBadge()}
+          <h2 className="text-2xl font-bold text-ink-100">Verification Status</h2>
+          <VerifiedBadgeChip status={status.verificationStatus} />
         </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <FiCheck className="w-6 h-6 text-green-600" />
-            <h3 className="text-lg font-semibold text-green-900">
-              You are {status.verificationStatus === 'super_premium' ? 'Super Premium' : 'Premium'} Verified!
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-6 h-6 flex items-center justify-center text-emerald-400">âœ“</span>
+            <h3 className="text-lg font-semibold text-emerald-300">
+              You are {status.verificationStatus === 'super_premium' ? 'Gold Verified' : 'Verified'}!
             </h3>
           </div>
-          <p className="text-green-800">
+          <p className="text-emerald-200 text-sm">
             Your verification was approved on {status.verificationData?.verifiedAt ? new Date(status.verificationData.verifiedAt).toLocaleDateString() : 'N/A'}.
             You have access to all {status.verificationStatus === 'super_premium' ? 'Super Premium' : 'Premium'} features.
           </p>
@@ -237,20 +238,20 @@ const VerificationSubmission = () => {
 
   if (status?.verificationStatus === 'pending') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <div className="card p-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Verification Status</h2>
+          <h2 className="text-2xl font-bold text-ink-100">Verification Status</h2>
           {getStatusBadge()}
         </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
-            <FiAlertCircle className="w-6 h-6 text-yellow-600" />
-            <h3 className="text-lg font-semibold text-yellow-900">Verification Under Review</h3>
+            <FiAlertCircle className="w-6 h-6 text-amber-400" />
+            <h3 className="text-lg font-semibold text-amber-100">Verification Under Review</h3>
           </div>
-          <p className="text-yellow-800">
+          <p className="text-amber-200">
             Your verification request is being reviewed by our admin team. You will receive an email notification once the review is complete.
           </p>
-          <p className="text-yellow-800 mt-2 text-sm">
+          <p className="text-amber-200 mt-2 text-sm">
             Submitted on: {status.verificationData?.submittedAt ? new Date(status.verificationData.submittedAt).toLocaleDateString() : 'N/A'}
           </p>
         </div>
@@ -259,15 +260,15 @@ const VerificationSubmission = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div className="card p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Get Verified</h2>
-        <p className="text-gray-600">Choose your verification tier and submit your information for admin review.</p>
+        <h2 className="text-2xl font-bold text-ink-100 mb-2">Get Verified</h2>
+        <p className="text-ink-400">Choose your verification tier and submit your information for admin review.</p>
       </div>
 
       {/* Tier Selection */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Verification Tier</label>
+        <label className="block text-sm font-medium text-ink-300 mb-3">Verification Tier</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Premium - White Badge */}
           <button
@@ -275,34 +276,34 @@ const VerificationSubmission = () => {
             onClick={() => setTier('premium')}
             className={`p-6 rounded-lg border-2 transition-all ${
               tier === 'premium'
-                ? 'border-gray-400 bg-gray-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-gray-400 bg-raised'
+                : 'border-border hover:border-border'
             }`}
           >
             <div className="flex flex-col items-center text-center mb-4">
               {/* White Badge Icon */}
               <div className="w-16 h-16 mb-3 flex items-center justify-center">
                 <div className="relative">
-                  <div className="w-14 h-14 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center shadow-sm">
-                    <FiCheck className="w-8 h-8 text-gray-700" />
+                  <div className="w-14 h-14 bg-white rounded-full border-2 border-border flex items-center justify-center shadow-sm">
+                    <FiCheck className="w-8 h-8 text-ink-300" />
                   </div>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 text-lg">Premium</h3>
-              <p className="text-sm text-gray-600 mt-1">White Badge</p>
-              <p className="text-xs text-gray-500 mt-2">20+ NFTs required</p>
+              <h3 className="font-semibold text-ink-100 text-lg">Premium</h3>
+              <p className="text-sm text-ink-400 mt-1">White Badge</p>
+              <p className="text-xs text-ink-500 mt-2">20+ NFTs required</p>
             </div>
-            <ul className="text-sm text-gray-600 space-y-2 mt-4 border-t border-gray-200 pt-4">
+            <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
               <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4 text-gray-400" />
+                <FiMail className="w-4 h-4 text-ink-600" />
                 <span>Email registration</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiMapPin className="w-4 h-4 text-gray-400" />
+                <FiMapPin className="w-4 h-4 text-ink-600" />
                 <span>Location</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4 text-gray-400" />
+                <FiHome className="w-4 h-4 text-ink-600" />
                 <span>Address</span>
               </li>
             </ul>
@@ -314,8 +315,8 @@ const VerificationSubmission = () => {
             onClick={() => setTier('super_premium')}
             className={`p-6 rounded-lg border-2 transition-all ${
               tier === 'super_premium'
-                ? 'border-yellow-400 bg-yellow-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-amber-400 bg-amber-500/10'
+                : 'border-border hover:border-border'
             }`}
           >
             <div className="flex flex-col items-center text-center mb-4">
@@ -329,25 +330,25 @@ const VerificationSubmission = () => {
                   <div className="absolute top-2 left-3 w-3 h-3 bg-yellow-200 rounded-full opacity-60"></div>
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 text-lg">Super Premium</h3>
+              <h3 className="font-semibold text-ink-100 text-lg">Super Premium</h3>
               <p className="text-sm bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent font-semibold mt-1">Gold Badge</p>
-              <p className="text-xs text-gray-500 mt-2">100+ NFTs required</p>
+              <p className="text-xs text-ink-500 mt-2">100+ NFTs required</p>
             </div>
-            <ul className="text-sm text-gray-600 space-y-2 mt-4 border-t border-gray-200 pt-4">
+            <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
               <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4 text-yellow-600" />
+                <FiMail className="w-4 h-4 text-amber-400" />
                 <span>Email address</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiGlobe className="w-4 h-4 text-yellow-600" />
+                <FiGlobe className="w-4 h-4 text-amber-400" />
                 <span>Country location</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4 text-yellow-600" />
+                <FiHome className="w-4 h-4 text-amber-400" />
                 <span>House address</span>
               </li>
               <li className="flex items-center space-x-2">
-                <FiShield className="w-4 h-4 text-yellow-600" />
+                <FiShield className="w-4 h-4 text-amber-400" />
                 <span>ID verification</span>
               </li>
             </ul>
@@ -356,18 +357,18 @@ const VerificationSubmission = () => {
       </div>
 
       {/* NFT Count Info */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <p className="text-sm text-gray-700">
+      <div className="mb-6 p-4 bg-raised rounded-lg">
+        <p className="text-sm text-ink-300">
           <span className="font-medium">Your NFT Collection:</span> {nftCount} NFTs
         </p>
         {tier === 'premium' && (
-          <p className={`text-sm mt-1 ${nftCount >= 20 ? 'text-green-600' : 'text-red-600'}`}>
-            {nftCount >= 20 ? '✓' : '✗'} {nftCount >= 20 ? 'Eligible' : `Need ${20 - nftCount} more NFTs`}
+          <p className={`text-sm mt-1 ${nftCount >= 20 ? 'text-emerald-400' : 'text-red-600'}`}>
+            {nftCount >= 20 ? 'âœ“' : 'âœ—'} {nftCount >= 20 ? 'Eligible' : `Need ${20 - nftCount} more NFTs`}
           </p>
         )}
         {tier === 'super_premium' && (
-          <p className={`text-sm mt-1 ${nftCount >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-            {nftCount >= 100 ? '✓' : '✗'} {nftCount >= 100 ? 'Eligible' : `Need ${100 - nftCount} more NFTs`}
+          <p className={`text-sm mt-1 ${nftCount >= 100 ? 'text-emerald-400' : 'text-red-600'}`}>
+            {nftCount >= 100 ? 'âœ“' : 'âœ—'} {nftCount >= 100 ? 'Eligible' : `Need ${100 - nftCount} more NFTs`}
           </p>
         )}
       </div>
@@ -376,7 +377,7 @@ const VerificationSubmission = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email (required for both) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-300 mb-2">
             Email Address <span className="text-red-500">*</span>
           </label>
           <input
@@ -384,7 +385,7 @@ const VerificationSubmission = () => {
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="your@email.com"
           />
         </div>
@@ -393,7 +394,7 @@ const VerificationSubmission = () => {
         {tier === 'premium' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 Location <span className="text-red-500">*</span>
               </label>
               <input
@@ -401,12 +402,12 @@ const VerificationSubmission = () => {
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="City, State/Province"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 Address <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -414,7 +415,7 @@ const VerificationSubmission = () => {
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 required
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Your full address"
               />
             </div>
@@ -425,7 +426,7 @@ const VerificationSubmission = () => {
         {tier === 'super_premium' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 Country <span className="text-red-500">*</span>
               </label>
               <input
@@ -433,12 +434,12 @@ const VerificationSubmission = () => {
                 value={formData.country}
                 onChange={(e) => handleInputChange('country', e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 placeholder="Your country"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 House Address <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -446,19 +447,19 @@ const VerificationSubmission = () => {
                 onChange={(e) => handleInputChange('houseAddress', e.target.value)}
                 required
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 placeholder="Your house address"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 ID Document Type <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.idVerification.documentType}
                 onChange={(e) => handleInputChange('idVerification.documentType', e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
               >
                 <option value="">Select document type</option>
                 <option value="passport">Passport</option>
@@ -468,7 +469,7 @@ const VerificationSubmission = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 ID Document Number <span className="text-red-500">*</span>
               </label>
               <input
@@ -476,18 +477,18 @@ const VerificationSubmission = () => {
                 value={formData.idVerification.documentNumber}
                 onChange={(e) => handleInputChange('idVerification.documentNumber', e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 placeholder="Document number"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-300 mb-2">
                 ID Document Image <span className="text-red-500">*</span>
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-lg hover:border-gray-400 transition-colors">
                 <div className="space-y-1 text-center">
-                  <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
+                  <FiUpload className="mx-auto h-12 w-12 text-ink-600" />
+                  <div className="flex text-sm text-ink-400">
                     <label htmlFor="id-upload" className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500">
                       <span>Upload a file</span>
                       <input
@@ -502,9 +503,9 @@ const VerificationSubmission = () => {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                  <p className="text-xs text-ink-500">PNG, JPG, PDF up to 10MB</p>
                   {formData.idVerification.documentImage && (
-                    <p className="text-sm text-green-600 mt-2">
+                    <p className="text-sm text-emerald-400 mt-2">
                       File selected: {typeof formData.idVerification.documentImage === 'object' ? formData.idVerification.documentImage.name : 'Uploaded'}
                     </p>
                   )}
@@ -527,4 +528,5 @@ const VerificationSubmission = () => {
 };
 
 export default VerificationSubmission;
+
 

@@ -1,7 +1,14 @@
 /**
- * VerifiedAvatar — avatar + SVG verification badge (Orbital design).
- * Badge is rendered as an SVG checkmark on a purple (verified) or gold (super-premium) circle.
- * No external image dependency.
+ * VerifiedAvatar — avatar + verification badge (Orbital design).
+ *
+ * Badge tiers:
+ *  premium       → purple badge  (white tick)   "Verified"
+ *  super_premium → white/silver badge (purple tick)  "Gold Verified"
+ *
+ * The badge design matches the Twitter/Instagram style:
+ *  - Solid filled circle background
+ *  - Bold white checkmark inside
+ *  - Thin void-coloured outline ring to separate from the avatar
  */
 import { getVerificationBadge } from '../utils/verificationUtils';
 
@@ -20,42 +27,73 @@ function resolveAvatarUrl(user) {
 }
 
 const SIZE = {
-  xs: { wrap: 24,  badge: 11,  offset: -2 },
-  sm: { wrap: 32,  badge: 13,  offset: -2 },
-  md: { wrap: 48,  badge: 18,  offset: -3 },
-  lg: { wrap: 72,  badge: 22,  offset: -4 },
-  xl: { wrap: 120, badge: 32,  offset: -5 },
+  xs: { wrap: 24,  badge: 12,  ring: 1.5 },
+  sm: { wrap: 32,  badge: 14,  ring: 1.5 },
+  md: { wrap: 48,  badge: 18,  ring: 2   },
+  lg: { wrap: 72,  badge: 22,  ring: 2   },
+  xl: { wrap: 120, badge: 32,  ring: 2.5 },
 };
 
-/* Checkmark SVG path */
-const CHECK = 'M20 6 9 17l-5-5';
+/**
+ * Proper verified-tick badge — filled circle with bold checkmark.
+ * Purple background + white tick for "verified".
+ * White/silver background + purple tick for "gold".
+ */
+function VerifiedBadge({ tier, badgeSize, ringWidth }) {
+  const isPurple = tier !== 'gold';
 
-function BadgeIcon({ badge, size }) {
-  const s = size;
+  const bg        = isPurple ? '#7c3aed'  : '#f8fafc';   // purple or near-white
+  const tick      = isPurple ? '#ffffff'  : '#7c3aed';   // white or purple tick
+  const glow      = isPurple ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.3)';
+
+  const r = badgeSize / 2;
+
   return (
     <span
-      title={badge.title}
-      aria-label={badge.label}
-      className="absolute pointer-events-none flex items-center justify-center rounded-full"
+      title={isPurple ? 'Verified Creator' : 'Gold Verified Creator'}
+      aria-label={isPurple ? 'Verified' : 'Gold Verified'}
+      className="absolute pointer-events-none"
       style={{
-        width:      s,
-        height:     s,
-        background: badge.color,
-        right:      -(s * 0.15),
-        bottom:     -(s * 0.15),
-        boxShadow:  `0 0 0 2px var(--c-void,#05050d), 0 0 ${s*0.4}px ${badge.color}60`,
+        width:      badgeSize,
+        height:     badgeSize,
+        bottom:     -(ringWidth),
+        right:      -(ringWidth),
       }}
     >
       <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={badge.textColor}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ width: s * 0.58, height: s * 0.58 }}
+        viewBox={`0 0 ${badgeSize} ${badgeSize}`}
+        width={badgeSize}
+        height={badgeSize}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <path d={CHECK} />
+        {/* Void-coloured ring separating badge from avatar */}
+        <circle
+          cx={r}
+          cy={r}
+          r={r}
+          fill="var(--c-void, #05050d)"
+        />
+        {/* Filled badge circle */}
+        <circle
+          cx={r}
+          cy={r}
+          r={r - ringWidth * 0.6}
+          fill={bg}
+          filter={`drop-shadow(0 0 ${r * 0.35}px ${glow})`}
+        />
+        {/* Bold checkmark — scaled to badge size */}
+        <polyline
+          points={`
+            ${r * 0.32},${r * 0.98}
+            ${r * 0.65},${r * 1.32}
+            ${r * 1.55},${r * 0.55}
+          `}
+          fill="none"
+          stroke={tick}
+          strokeWidth={r * 0.26}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     </span>
   );
@@ -94,7 +132,45 @@ export default function VerifiedAvatar({
           </span>
         )
       )}
-      {badge && <BadgeIcon badge={badge} size={dims.badge} />}
+      {badge && (
+        <VerifiedBadge
+          tier={badge.type}
+          badgeSize={dims.badge}
+          ringWidth={dims.ring}
+        />
+      )}
+    </span>
+  );
+}
+
+/**
+ * Standalone badge chip — used in lists, cards, and profile headers.
+ * Shows as "✓ Verified" or "✓ Gold Verified" text pill.
+ */
+export function VerifiedBadgeChip({ status, size = 'sm' }) {
+  const badge = status ? getVerificationBadge(status) : null;
+  if (!badge) return null;
+
+  const isPurple = badge.type !== 'gold';
+  const textCls  = isPurple ? 'text-violet-300' : 'text-amber-300';
+  const bgCls    = isPurple ? 'bg-violet-500/15 border-violet-500/30' : 'bg-amber-400/10 border-amber-400/30';
+  const dotBg    = isPurple ? '#7c3aed' : '#fbbf24';
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-semibold ${bgCls} ${textCls}`}>
+      {/* Mini tick badge */}
+      <svg width="13" height="13" viewBox="0 0 13 13" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="6.5" cy="6.5" r="6.5" fill={dotBg} />
+        <polyline
+          points="3.2,6.4 5.5,8.7 9.8,4.2"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {badge.label}
     </span>
   );
 }

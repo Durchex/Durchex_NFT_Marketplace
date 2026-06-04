@@ -5,6 +5,9 @@ import {
   Search, Bell, ShoppingCart, Menu, X, ChevronDown,
   Layers, Compass, PlusCircle, BarChart2, Zap,
   Check, ExternalLink, Wallet, Grid, Tag,
+  TrendingUp, Gavel, Lock, Coins, Gift, Users,
+  Repeat2, Globe, MessageSquare, Gamepad2, Settings,
+  MoreHorizontal,
 } from "lucide-react";
 import { useCart } from "../Context/CartContext";
 import { ICOContent } from "../Context";
@@ -26,11 +29,46 @@ const CHAIN_ICONS = {
 
 /* ─── Main nav links ─── */
 const NAV = [
-  { label: 'Explore',     href: '/explore',      icon: Compass },
-  { label: 'Collections', href: '/collections',  icon: Grid },
-  { label: 'Create',      href: '/create',        icon: PlusCircle },
-  { label: 'Analytics',   href: '/features/analytics', icon: BarChart2 },
-  { label: 'Drops',       href: '/drops',         icon: Zap },
+  { label: 'Explore',     href: '/explore',            icon: Compass   },
+  { label: 'Marketplace', href: '/marketplace',        icon: Grid      },
+  { label: 'Collections', href: '/collections',        icon: Layers    },
+  { label: 'Create',      href: '/create',             icon: PlusCircle},
+  { label: 'Drops',       href: '/drops',              icon: Zap       },
+];
+
+/* ─── "More" mega-dropdown groups ─── */
+const MORE_GROUPS = [
+  {
+    label: 'Features',
+    items: [
+      { label: 'Trading',       href: '/features/trading',       icon: TrendingUp  },
+      { label: 'Auctions',      href: '/features/auction',       icon: Gavel       },
+      { label: 'Rental',        href: '/features/rental',        icon: Lock        },
+      { label: 'Staking',       href: '/features/staking',       icon: Gift        },
+      { label: 'Financing',     href: '/features/financing',     icon: Coins       },
+      { label: 'Governance',    href: '/features/governance',    icon: Users       },
+      { label: 'Bridge',        href: '/features/bridge',        icon: Globe       },
+      { label: 'Analytics',     href: '/features/analytics',     icon: BarChart2   },
+      { label: 'Monetization',  href: '/features/monetization',  icon: Repeat2     },
+      { label: 'Notifications', href: '/features/notifications', icon: Bell        },
+    ],
+  },
+  {
+    label: 'Community',
+    items: [
+      { label: 'Games',    href: '/games',    icon: Gamepad2      },
+      { label: 'Reviews',  href: '/reviews',  icon: MessageSquare },
+      { label: 'Minting',  href: '/minting',  icon: Layers        },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { label: 'My NFTs',  href: '/my-minted-nfts', icon: Grid     },
+      { label: 'Profile',  href: '/profile',         icon: Settings },
+      { label: 'Cart',     href: '/cart',            icon: ShoppingCart },
+    ],
+  },
 ];
 
 export default function Header() {
@@ -45,6 +83,7 @@ export default function Header() {
   const [cartOpen,  setCartOpen]  = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [netOpen,   setNetOpen]   = useState(false);
+  const [moreOpen,  setMoreOpen]  = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchVal,  setSearchVal]  = useState('');
   const [notifications, setNotifications] = useState([]);
@@ -52,6 +91,7 @@ export default function Header() {
 
   const notifRef = useRef(null);
   const netRef   = useRef(null);
+  const moreRef  = useRef(null);
   const searchRef = useRef(null);
 
   /* ── Init profile ── */
@@ -82,6 +122,7 @@ export default function Header() {
     const handler = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
       if (netRef.current   && !netRef.current.contains(e.target))   setNetOpen(false);
+      if (moreRef.current  && !moreRef.current.contains(e.target))  setMoreOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -170,18 +211,73 @@ export default function Header() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1 ml-2">
+          <nav className="hidden lg:flex items-center gap-0.5 ml-2">
             {NAV.map(({ label, href, icon: Icon }) => (
               <Link key={href} to={href}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium
                   transition-all duration-200
                   ${isActive(href)
-                    ? 'bg-cyan-400/10 text-cyan-400'
+                    ? 'bg-violet-500/15 text-violet-300'
                     : 'text-ink-400 hover:text-ink-100 hover:bg-raised'}`}>
-                <Icon size={15} />
+                <Icon size={14} />
                 {label}
               </Link>
             ))}
+
+            {/* ── More dropdown ── */}
+            <div ref={moreRef} className="relative">
+              <button
+                onClick={() => setMoreOpen(p => !p)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium
+                  transition-all duration-200
+                  ${moreOpen ? 'bg-violet-500/15 text-violet-300' : 'text-ink-400 hover:text-ink-100 hover:bg-raised'}`}
+              >
+                <MoreHorizontal size={14} />
+                More
+                <ChevronDown size={12} className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {moreOpen && (
+                <div
+                  className="absolute left-0 top-full mt-2 z-50 rounded-2xl overflow-hidden"
+                  style={{
+                    background: 'rgba(13,13,26,0.97)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.7)',
+                    width: '520px',
+                  }}
+                >
+                  <div className="grid grid-cols-3 gap-0 p-4">
+                    {MORE_GROUPS.map(group => (
+                      <div key={group.label}>
+                        <p className="section-label px-2 py-2">{group.label}</p>
+                        <div className="space-y-0.5">
+                          {group.items.map(({ label, href, icon: Icon }) => (
+                            <Link
+                              key={href}
+                              to={href}
+                              onClick={() => setMoreOpen(false)}
+                              className={`flex items-center gap-2.5 px-2 py-2 rounded-xl text-sm
+                                transition-all duration-150 group
+                                ${isActive(href)
+                                  ? 'bg-violet-500/15 text-violet-300'
+                                  : 'text-ink-400 hover:text-ink-100 hover:bg-raised'}`}
+                            >
+                              <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0
+                                ${isActive(href) ? 'bg-violet-500/20' : 'bg-raised group-hover:bg-violet-500/10'}`}>
+                                <Icon size={13} className={isActive(href) ? 'text-violet-400' : 'text-ink-500 group-hover:text-violet-400'} />
+                              </span>
+                              {label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Search bar — grows to fill space */}
