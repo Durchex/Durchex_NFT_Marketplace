@@ -190,8 +190,8 @@ export default function Explore() {
               </h1>
 
               <p className="text-ink-300 text-lg md:text-xl leading-relaxed mb-8 max-w-lg">
-                The next-generation marketplace combining the best of OpenSea,
-                Rarible and Magic Eden — all chains, one platform.
+                Where creators thrive and collectors discover. Durchex empowers the NFT community with seamless trading,
+                instant verification, and true cross-chain freedom. Own the future on your terms.
               </p>
 
               {/* Search */}

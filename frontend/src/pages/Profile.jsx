@@ -13,7 +13,7 @@ import Header from "../components/Header";
 import Footer from "../FooterComponents/Footer";
 import { ICOContent } from "../Context/index.jsx";
 import { Toaster } from "react-hot-toast";
-import { engagementAPI } from "../services/api.js";
+import { engagementAPI, userAPI } from "../services/api.js";
 import toast from "react-hot-toast";
 import { SuccessToast } from "../app/Toast/Success";
 import { ErrorToast } from "../app/Toast/Error.jsx";
@@ -25,6 +25,7 @@ import MyProfile from "../components/MyProfile.jsx";
 import VerificationSubmission from "../components/VerificationSubmission.jsx";
 import MyMintedNFTs from "./MyMintedNFTs.jsx";
 import WithdrawalSystem from "./WithdrawalSystem.jsx";
+import { VerifiedBadgeChip } from "../components/VerifiedAvatar.jsx";
 
 /* ─── Tab definitions ─── */
 const TABS = [
@@ -41,13 +42,32 @@ const TABS = [
 const shorten = (addr) => addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 
 export default function Profile() {
-  const { address, getUserStatu } = useContext(ICOContent) || {};
+  const { address, getUserStatu, shortenAddress } = useContext(ICOContent) || {};
   const [activeTab, setActiveTab] = useState("My NFTs");
   const [copied,    setCopied]    = useState(false);
   const [userPoints,setUserPoints]= useState("0");
   const [isEligible,setIsEligible]= useState(false);
+  const [profile, setProfile]     = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const tabRef = useRef(null);
   const navigate = useNavigate();
+
+  /* ── Profile loader ── */
+  useEffect(() => {
+    if (!address) return;
+    const load = async () => {
+      try {
+        setIsLoadingProfile(true);
+        const p = await userAPI.getUserProfile(address);
+        setProfile(p || null);
+      } catch (_) {
+        setProfile(null);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+    load();
+  }, [address]);
 
   /* ── Points loader ── */
   useEffect(() => {
@@ -119,16 +139,34 @@ export default function Profile() {
               {/* Avatar */}
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl border-4 overflow-hidden shrink-0"
                 style={{ borderColor: 'var(--c-void)', background: 'var(--c-surface)' }}>
-                <img
-                  src={`https://api.dicebear.com/7.x/identicon/svg?seed=${address}`}
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                />
+                {isLoadingProfile ? (
+                  <div className="w-full h-full bg-gradient-to-br from-violet-500/20 to-violet-600/20 flex items-center justify-center animate-pulse">
+                    <span className="text-ink-500">...</span>
+                  </div>
+                ) : profile?.image ? (
+                  <img
+                    src={profile.image}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  <img
+                    src={`https://api.dicebear.com/7.x/identicon/svg?seed=${address}`}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
               <div className="pb-1">
-                <h1 className="text-xl md:text-2xl font-extrabold text-ink-100 mb-1">
-                  My Profile
-                </h1>
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-xl md:text-2xl font-extrabold text-ink-100">
+                    {profile?.username || 'My Profile'}
+                  </h1>
+                  {profile?.verificationStatus && (
+                    <VerifiedBadgeChip status={profile.verificationStatus} size="sm" />
+                  )}
+                </div>
                 <button onClick={copyAddress}
                   className="flex items-center gap-2 text-sm text-ink-400 hover:text-ink-100 transition-colors font-mono">
                   {shorten(address)}

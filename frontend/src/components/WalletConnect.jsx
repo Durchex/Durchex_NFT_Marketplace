@@ -110,11 +110,12 @@ const WALLETS = [
 ];
 
 function WalletButton({ compact = false }) {
-  const { address, accountBalance, shortenAddress } = useContext(ICOContent) || {};
+  const { address, accountBalance, shortenAddress, disconnectWallet } = useContext(ICOContent) || {};
   const [isOpen, setIsOpen] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profile, setProfile] = useState(null);
   const buttonRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!address) return;
@@ -136,7 +137,6 @@ function WalletButton({ compact = false }) {
     return null; // ConnectModal handles display
   }
 
-  const navigate = useNavigate();
   const formatBal = accountBalance ? parseFloat(accountBalance).toFixed(4) : '0.0000';
 
   return (
@@ -181,7 +181,11 @@ function WalletButton({ compact = false }) {
               onClick={() => setIsOpen(false)}
             />
             <div
-              className="fixed z-[101] rounded-2xl card p-4 min-w-[280px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 sm:left-auto sm:right-6 sm:top-auto sm:translate-x-0 sm:translate-y-0"
+              className="fixed z-[101] rounded-2xl card p-4 min-w-[320px] max-h-[80vh] overflow-y-auto"
+              style={{
+                bottom: '20px',
+                right: '20px',
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Profile */}
@@ -269,7 +273,6 @@ function WalletButton({ compact = false }) {
 
               <button
                 onClick={() => {
-                  const { disconnectWallet } = useContext(ICOContent) || {};
                   disconnectWallet?.();
                   setIsOpen(false);
                   toast.success('Disconnected');
@@ -292,6 +295,18 @@ function ConnectModal({ isOpen, onClose }) {
   const { connectWallet, address } = useContext(ICOContent) || {};
   const [connecting, setConnecting] = useState(null);
   const [error, setError] = useState(null);
+
+  // Prevent scrollbar from appearing/disappearing
+  useEffect(() => {
+    if (isOpen) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (address) return null;
   if (!isOpen) return null;

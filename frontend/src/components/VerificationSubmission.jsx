@@ -268,71 +268,73 @@ const VerificationSubmission = () => {
 
       {/* Tier Selection */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-ink-300 mb-3">Verification Tier</label>
+        <label className="block text-sm font-medium text-ink-300 mb-3">Choose Your Tier</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Premium - Purple Badge */}
+          {/* Basic - White Badge */}
           <button
             type="button"
             onClick={() => setTier('premium')}
-            className={`p-6 rounded-2xl border-2 transition-all ${
+            className={`p-8 rounded-2xl border-2 transition-all flex flex-col items-center ${
               tier === 'premium'
-                ? 'border-violet-400 bg-violet-500/10'
-                : 'border-border hover:border-violet-400/50'
+                ? 'border-white/40 bg-white/5'
+                : 'border-border hover:border-white/20'
             }`}
           >
-            <div className="flex flex-col items-center text-center mb-4">
-              <VerifiedBadgeChip status="premium" />
-              <h3 className="font-semibold text-ink-100 text-lg mt-3">Verified</h3>
-              <p className="text-sm text-violet-300 mt-1">Purple Badge</p>
-              <p className="text-xs text-ink-500 mt-2">Basic verification</p>
+            {/* Large Badge Icon */}
+            <div className="mb-4 scale-150">
+              <VerifiedBadgeChip status="premium" size="lg" />
             </div>
-            <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
-              <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4 text-ink-600" />
-                <span>Email registration</span>
+            <h3 className="font-bold text-ink-100 text-lg">Verified</h3>
+            <p className="text-sm text-white/60 mt-1 mb-4">White Badge</p>
+
+            <ul className="text-sm text-ink-400 space-y-2 w-full text-left">
+              <li className="flex items-center gap-2">
+                <FiMail className="w-4 h-4 text-white/40 shrink-0" />
+                <span>Email verification</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <FiMapPin className="w-4 h-4 text-ink-600" />
-                <span>Location</span>
+              <li className="flex items-center gap-2">
+                <FiMapPin className="w-4 h-4 text-white/40 shrink-0" />
+                <span>Location info</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4 text-ink-600" />
+              <li className="flex items-center gap-2">
+                <FiHome className="w-4 h-4 text-white/40 shrink-0" />
                 <span>Address</span>
               </li>
             </ul>
           </button>
 
-          {/* Super Premium - White & Purple Badge */}
+          {/* Premium - Purple Badge */}
           <button
             type="button"
             onClick={() => setTier('super_premium')}
-            className={`p-6 rounded-2xl border-2 transition-all ${
+            className={`p-8 rounded-2xl border-2 transition-all flex flex-col items-center ${
               tier === 'super_premium'
-                ? 'border-amber-400 bg-amber-500/10'
-                : 'border-border hover:border-amber-400/50'
+                ? 'border-violet-400 bg-violet-500/10'
+                : 'border-border hover:border-violet-400/50'
             }`}
           >
-            <div className="flex flex-col items-center text-center mb-4">
-              <VerifiedBadgeChip status="super_premium" />
-              <h3 className="font-semibold text-ink-100 text-lg mt-3">Gold Verified</h3>
-              <p className="text-sm text-amber-300 mt-1">White & Purple Badge</p>
-              <p className="text-xs text-ink-500 mt-2">Premium verification</p>
+            {/* Large Badge Icon */}
+            <div className="mb-4 scale-150">
+              <VerifiedBadgeChip status="super_premium" size="lg" />
             </div>
-            <ul className="text-sm text-ink-400 space-y-2 mt-4 border-t border-border pt-4">
-              <li className="flex items-center space-x-2">
-                <FiMail className="w-4 h-4 text-amber-400" />
+            <h3 className="font-bold text-ink-100 text-lg">Premium</h3>
+            <p className="text-sm text-violet-300 mt-1 mb-4">Purple Badge</p>
+
+            <ul className="text-sm text-ink-400 space-y-2 w-full text-left">
+              <li className="flex items-center gap-2">
+                <FiMail className="w-4 h-4 text-violet-400 shrink-0" />
                 <span>Email address</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <FiGlobe className="w-4 h-4 text-amber-400" />
-                <span>Country location</span>
+              <li className="flex items-center gap-2">
+                <FiGlobe className="w-4 h-4 text-violet-400 shrink-0" />
+                <span>Country & location</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <FiHome className="w-4 h-4 text-amber-400" />
-                <span>House address</span>
+              <li className="flex items-center gap-2">
+                <FiHome className="w-4 h-4 text-violet-400 shrink-0" />
+                <span>Full address</span>
               </li>
-              <li className="flex items-center space-x-2">
-                <FiShield className="w-4 h-4 text-amber-400" />
+              <li className="flex items-center gap-2">
+                <FiShield className="w-4 h-4 text-violet-400 shrink-0" />
                 <span>ID verification</span>
               </li>
             </ul>
