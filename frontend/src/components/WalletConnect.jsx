@@ -114,6 +114,7 @@ function WalletButton({ compact = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const buttonRef = useRef(null);
   const navigate = useNavigate();
 
@@ -132,6 +133,17 @@ function WalletButton({ compact = false }) {
     };
     load();
   }, [address]);
+
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 8, // 8px gap below button
+      right: window.innerWidth - rect.right, // Align with right edge of button
+    });
+  }, [isOpen]);
 
   if (!address) {
     return null; // ConnectModal handles display
@@ -183,8 +195,8 @@ function WalletButton({ compact = false }) {
             <div
               className="fixed z-[101] rounded-2xl card p-4 min-w-[320px] max-h-[80vh] overflow-y-auto"
               style={{
-                bottom: '20px',
-                right: '20px',
+                top: `${dropdownPos.top}px`,
+                right: `${dropdownPos.right}px`,
               }}
               onClick={(e) => e.stopPropagation()}
             >

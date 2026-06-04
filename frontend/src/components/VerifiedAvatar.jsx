@@ -146,35 +146,51 @@ export default function VerifiedAvatar({
 }
 
 /**
- * Standalone badge chip — used in lists, cards, and profile headers.
- * Shows as "✓ Verified" or "✓ Gold Verified" text pill.
+ * Standalone badge chip — Instagram-style verification badge icon only.
+ * Premium (verified) → White bg + purple checkmark
+ * Super Premium (gold) → Purple bg + white checkmark
  */
-export function VerifiedBadgeChip({ status, size = 'sm' }) {
+export function VerifiedBadgeChip({ status, size = 'md' }) {
   const badge = status ? getVerificationBadge(status) : null;
   if (!badge) return null;
 
-  // Premium (verified) → White bg + purple text
-  // Super Premium (gold) → Purple bg + white text
+  // Premium (verified) → White bg + purple tick
+  // Super Premium (gold) → Purple bg + white tick
   const isPurple = badge.type === 'gold';
-  const textCls  = isPurple ? 'text-white' : 'text-violet-300';
-  const bgCls    = isPurple ? 'bg-violet-500/20 border-violet-500/40' : 'bg-white/10 border-white/20';
-  const dotBg    = isPurple ? '#7c3aed' : '#f8fafc';
+  const badgeBg  = isPurple ? '#7c3aed' : '#f8fafc';
+  const tickColor = isPurple ? '#ffffff' : '#7c3aed';
+
+  // Size mapping for badge icon
+  const sizeMap = {
+    xs: 16,
+    sm: 20,
+    md: 24,
+    lg: 32,
+  };
+
+  const badgeSize = sizeMap[size] || 24;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-semibold ${bgCls} ${textCls}`}>
-      {/* Mini tick badge */}
-      <svg width="13" height="13" viewBox="0 0 13 13" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="6.5" cy="6.5" r="6.5" fill={dotBg} />
-        <polyline
-          points="3.2,6.4 5.5,8.7 9.8,4.2"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      {badge.label}
-    </span>
+    <svg
+      width={badgeSize}
+      height={badgeSize}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      title={isPurple ? 'Verified Creator' : 'Premium Creator'}
+      className="inline-block"
+    >
+      {/* Badge circle background */}
+      <circle cx="12" cy="12" r="12" fill={badgeBg} />
+
+      {/* Checkmark */}
+      <polyline
+        points="7,12 10,15 17,8"
+        fill="none"
+        stroke={tickColor}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

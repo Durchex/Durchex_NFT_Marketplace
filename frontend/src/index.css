@@ -143,11 +143,10 @@
 
   /* ── NFT Card ── */
   .nft-card {
-    @apply card cursor-pointer relative;
+    @apply card cursor-pointer relative flex flex-col gap-3 p-4;
   }
-  .nft-card { /* group must be added inline in JSX: className="nft-card group" */ }
   .nft-card-image {
-    @apply relative overflow-hidden aspect-square bg-raised;
+    @apply relative overflow-hidden aspect-square bg-raised -mx-4 -mt-4;
   }
   .nft-card-image img {
     @apply w-full h-full object-cover transition-transform duration-500 group-hover:scale-105;

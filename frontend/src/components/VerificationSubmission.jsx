@@ -224,12 +224,12 @@ const VerificationSubmission = () => {
           <div className="flex items-center gap-3 mb-4">
             <span className="w-6 h-6 flex items-center justify-center text-emerald-400">âœ“</span>
             <h3 className="text-lg font-semibold text-emerald-300">
-              You are {status.verificationStatus === 'super_premium' ? 'Gold Verified' : 'Verified'}!
+              You are Verified!
             </h3>
           </div>
           <p className="text-emerald-200 text-sm">
             Your verification was approved on {status.verificationData?.verifiedAt ? new Date(status.verificationData.verifiedAt).toLocaleDateString() : 'N/A'}.
-            You have access to all {status.verificationStatus === 'super_premium' ? 'Super Premium' : 'Premium'} features.
+            You have access to all verified features and your badge is now displayed on your profile.
           </p>
         </div>
       </div>
@@ -514,5 +514,6 @@ const VerificationSubmission = () => {
 };
 
 export default VerificationSubmission;
+
 
 
