@@ -161,21 +161,37 @@ function WalletButton({ compact = false }) {
           font-medium text-sm
           ${compact ? '' : 'hidden sm:flex'}`}
       >
-        <div
-          className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
-            flex items-center justify-center text-white text-xs font-bold cursor-pointer
-            hover:from-violet-600 hover:to-cyan-600"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(false);
-            navigate(`/profile`);
-          }}
-          title="View Profile"
-        >
-          {shortenAddress(address).slice(0, 1).toUpperCase()}
-        </div>
+        {/* Avatar */}
+        {isLoadingProfile ? (
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 animate-pulse" />
+        ) : profile?.image ? (
+          <img
+            src={profile.image}
+            alt="avatar"
+            className="w-6 h-6 rounded-full object-cover border border-violet-400"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              navigate(`/profile`);
+            }}
+          />
+        ) : (
+          <div
+            className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
+              flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              navigate(`/profile`);
+            }}
+            title="View Profile"
+          >
+            {profile?.username?.slice(0, 1).toUpperCase() || shortenAddress(address).slice(0, 1).toUpperCase()}
+          </div>
+        )}
+
         <div className="hidden md:block">
-          <div className="text-xs text-ink-400">{shortenAddress(address)}</div>
+          <div className="text-xs text-ink-100 font-semibold">{profile?.username || shortenAddress(address)}</div>
           <div className="text-xs text-ink-500">{formatBal} ETH</div>
         </div>
         <ChevronDown

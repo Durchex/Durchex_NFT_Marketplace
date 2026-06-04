@@ -170,24 +170,6 @@ export function VerifiedBadgeChip({ status, size = 'md' }) {
 
   const badgeSize = sizeMap[size] || 24;
 
-  // Generate 12-point star badge
-  const generateStarPoints = () => {
-    const points = [];
-    const center = 50;
-    const outerRadius = 45;
-    const innerRadius = 28;
-
-    for (let i = 0; i < 24; i++) {
-      const angle = (i * 360) / 24 - 90;
-      const rad = (angle * Math.PI) / 180;
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const x = center + radius * Math.cos(rad);
-      const y = center + radius * Math.sin(rad);
-      points.push(`${x},${y}`);
-    }
-    return points.join(' ');
-  };
-
   return (
     <svg
       width={badgeSize}
@@ -197,11 +179,29 @@ export function VerifiedBadgeChip({ status, size = 'md' }) {
       title={isPurple ? 'Verified Creator' : 'Premium Creator'}
       className="inline-block"
     >
-      {/* Star/seal badge shape */}
-      <polygon
-        points={generateStarPoints()}
-        fill={badgeBg}
-      />
+      {/* Rounded star/seal badge using circle with clipping */}
+      <defs>
+        <filter id={`blur-${isPurple ? 'purple' : 'white'}`}>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
+        </filter>
+      </defs>
+
+      {/* Main badge circle base */}
+      <circle cx="50" cy="50" r="48" fill={badgeBg} filter={`url(#blur-${isPurple ? 'purple' : 'white'})`} />
+
+      {/* 12 rounded points around the badge */}
+      <circle cx="50" cy="10" r="8" fill={badgeBg} />
+      <circle cx="72" cy="16" r="8" fill={badgeBg} />
+      <circle cx="84" cy="28" r="8" fill={badgeBg} />
+      <circle cx="90" cy="50" r="8" fill={badgeBg} />
+      <circle cx="84" cy="72" r="8" fill={badgeBg} />
+      <circle cx="72" cy="84" r="8" fill={badgeBg} />
+      <circle cx="50" cy="90" r="8" fill={badgeBg} />
+      <circle cx="28" cy="84" r="8" fill={badgeBg} />
+      <circle cx="16" cy="72" r="8" fill={badgeBg} />
+      <circle cx="10" cy="50" r="8" fill={badgeBg} />
+      <circle cx="16" cy="28" r="8" fill={badgeBg} />
+      <circle cx="28" cy="16" r="8" fill={badgeBg} />
 
       {/* Checkmark in center */}
       <polyline
