@@ -419,36 +419,45 @@ export default function Explore() {
             cta="Full activity"
             ctaHref="/marketplace"
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="card p-1">
             {nfts.slice(0, 8).map((nft, i) => {
               // Generate mock price movement data
               const priceData = Array.from({ length: 7 }, (_, idx) => ({
                 time: idx,
                 price: parseFloat(nft.price || 0) * (0.8 + Math.random() * 0.4),
+                volume: Math.random() * 100,
               }));
               const currentPrice = parseFloat(nft.price || 0);
               const prevPrice = priceData[0]?.price || currentPrice;
               const priceChange = ((currentPrice - prevPrice) / prevPrice * 100) || 0;
+              const totalVolume = (Math.random() * 50).toFixed(2);
 
               return (
-                <Link key={nft.itemId || i} to={`/nft/${nft.itemId || nft._id}`}
-                  className="card p-4 hover:border-cyan-400/25 transition-all duration-200 group cursor-pointer">
-                  {/* NFT Image */}
-                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-raised mb-3">
+                <div key={nft.itemId || i}
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 py-4 rounded-xl hover:bg-raised
+                             transition-colors border-b border-border/50 last:border-0">
+                  {/* Image */}
+                  <Link to={`/nft/${nft.itemId || nft._id}`}
+                    className="w-12 h-12 rounded-xl overflow-hidden bg-raised shrink-0 cursor-pointer hover:scale-105 transition-transform">
                     {(nft.image || nft.imageURL) && (
                       <img src={nft.image || nft.imageURL} alt={nft.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        className="w-full h-full object-cover" />
                     )}
+                  </Link>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/nft/${nft.itemId || nft._id}`}
+                      className="text-sm font-medium text-ink-100 truncate hover:text-cyan-400 transition-colors cursor-pointer">
+                      {nft.name}
+                    </Link>
+                    <p className="text-xs text-ink-400 truncate">
+                      {nft.isLazyMint ? '🟣 Mint' : '🔵 Listed'} · {nft.network || 'base'}
+                    </p>
                   </div>
 
-                  {/* NFT Name & Status */}
-                  <p className="text-sm font-semibold text-ink-100 truncate mb-1">{nft.name}</p>
-                  <p className="text-xs text-ink-400 mb-3">
-                    {nft.isLazyMint ? '🟣 Mint' : '🔵 Listed'} · {nft.network || 'base'}
-                  </p>
-
-                  {/* Price Chart */}
-                  <div className="w-full h-12 mb-3 -mx-4 px-4">
+                  {/* Price Chart - Hidden on mobile, visible on sm+ */}
+                  <div className="hidden sm:block w-32 h-10">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={priceData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                         <Line
@@ -463,22 +472,26 @@ export default function Explore() {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* Price Info */}
-                  <div className="flex items-center justify-between">
+                  {/* Price & Volume Info */}
+                  <div className="w-full sm:w-auto flex items-center justify-between sm:flex-col sm:items-end gap-4 sm:gap-1">
                     <div>
-                      <p className="text-xs text-ink-400 mb-0.5">Current Price</p>
+                      <p className="text-xs text-ink-400">Price</p>
                       <p className="text-sm font-bold text-ink-100">
                         {currentPrice > 1e9 ? (currentPrice/1e18).toFixed(4) : currentPrice.toFixed(4)} ETH
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className={`flex items-center gap-1 text-xs font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <p className="text-xs text-ink-400">24h Vol</p>
+                      <p className="text-sm font-bold text-ink-100">{totalVolume} ETH</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`flex items-center gap-0.5 text-xs font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {priceChange >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                         {Math.abs(priceChange).toFixed(1)}%
                       </span>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
