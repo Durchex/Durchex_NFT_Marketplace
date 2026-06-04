@@ -146,7 +146,7 @@ export default function VerifiedAvatar({
 }
 
 /**
- * Standalone badge chip — Instagram-style verification badge icon only.
+ * Standalone badge chip — Star/seal style verification badge.
  * Premium (verified) → White bg + purple checkmark
  * Super Premium (gold) → Purple bg + white checkmark
  */
@@ -170,24 +170,45 @@ export function VerifiedBadgeChip({ status, size = 'md' }) {
 
   const badgeSize = sizeMap[size] || 24;
 
+  // Generate 12-point star badge
+  const generateStarPoints = () => {
+    const points = [];
+    const center = 50;
+    const outerRadius = 45;
+    const innerRadius = 28;
+
+    for (let i = 0; i < 24; i++) {
+      const angle = (i * 360) / 24 - 90;
+      const rad = (angle * Math.PI) / 180;
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const x = center + radius * Math.cos(rad);
+      const y = center + radius * Math.sin(rad);
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
+  };
+
   return (
     <svg
       width={badgeSize}
       height={badgeSize}
-      viewBox="0 0 24 24"
+      viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
       title={isPurple ? 'Verified Creator' : 'Premium Creator'}
       className="inline-block"
     >
-      {/* Badge circle background */}
-      <circle cx="12" cy="12" r="12" fill={badgeBg} />
+      {/* Star/seal badge shape */}
+      <polygon
+        points={generateStarPoints()}
+        fill={badgeBg}
+      />
 
-      {/* Checkmark */}
+      {/* Checkmark in center */}
       <polyline
-        points="7,12 10,15 17,8"
+        points="35,50 45,60 65,40"
         fill="none"
         stroke={tickColor}
-        strokeWidth="2.5"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

@@ -401,7 +401,12 @@ function ConnectModal({ isOpen, onClose }) {
       <div
         className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2
           sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-md
-          card rounded-2xl flex flex-col z-50 overflow-hidden"
+          card-no-hover rounded-2xl flex flex-col z-50 overflow-hidden"
+        style={{
+          background: 'var(--c-surface)',
+          border: '1px solid var(--c-border)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.03)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -414,7 +419,7 @@ function ConnectModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-raised rounded-lg transition-colors duration-150"
+            className="p-1 rounded-lg"
           >
             <X size={20} />
           </button>
