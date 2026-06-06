@@ -45,6 +45,9 @@ module.exports = {
         ARBITRUM_RPC_URL:  'https://arb1.arbitrum.io/rpc',
         OPTIMISM_RPC_URL:  'https://mainnet.optimism.io',
         AVALANCHE_RPC_URL: 'https://api.avax.network/ext/bc/C/rpc',
+        // Pinata IPFS — set your real keys here
+        PINATA_API_KEY:    '',
+        PINATA_SECRET_KEY: '',
       },
     },
 

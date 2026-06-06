@@ -4,7 +4,7 @@ import { ICOContent } from "../Context";
 import { Toaster, toast } from "react-hot-toast";
 import { nftAPI, lazyMintAPI } from "../services/api";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
-import { SUPPORTED_NETWORKS } from "../Context/constants";
+import { SUPPORTED_NETWORKS, getCurrencySymbol, getUsdValueFromCrypto } from "../Context/constants";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const ACCEPTED_FILE_PREFIXES = ["image/", "video/", "audio/"];
@@ -917,18 +917,34 @@ export default function CreateNFTForm() {
             <h2 style={{ marginTop: 0 }}>5. Pricing &amp; Settings</h2>
             <div style={{ display: 'grid', gap: '18px' }}>
               <div>
-                <label style={labelStyle}>Price per edition (in network token) *</label>
-                <input
-                  type="number"
-                  min={0.0001}
-                  step="0.0001"
-                  style={fieldStyle}
-                  value={form.price}
-                  onChange={(event) => updateField('price', event.target.value)}
-                  placeholder="0.05"
-                />
-                <div style={{ marginTop: '6px', color: '#8888aa', fontSize: '0.85rem' }}>
-                  This is what buyers pay to mint each edition of your NFT. Must be greater than 0.
+                <label style={labelStyle}>Price per edition *</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    style={{ ...fieldStyle, paddingRight: '70px' }}
+                    value={form.price}
+                    onChange={(event) => updateField('price', event.target.value)}
+                    placeholder="0.05"
+                  />
+                  <span style={{
+                    position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
+                    color: '#a78bfa', fontWeight: 700, fontSize: '0.9rem', pointerEvents: 'none',
+                  }}>
+                    {getCurrencySymbol(form.network)}
+                  </span>
+                </div>
+                {form.price && parseFloat(form.price) > 0 && (() => {
+                  const usd = getUsdValueFromCrypto(form.price, form.network);
+                  return usd > 0 ? (
+                    <div style={{ marginTop: '5px', color: '#6ee7b7', fontSize: '0.82rem' }}>
+                      ≈ ${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    </div>
+                  ) : null;
+                })()}
+                <div style={{ marginTop: '5px', color: '#8888aa', fontSize: '0.82rem' }}>
+                  Buyers pay this per edition when they mint. Must be greater than 0.
                 </div>
                 {errors.price && <div style={{ marginTop: '6px', color: '#f87171' }}>{errors.price}</div>}
               </div>

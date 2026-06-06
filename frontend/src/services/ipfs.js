@@ -1,87 +1,77 @@
-import pinataService from './pinataService';
-
 /**
- * IPFS Upload Service
- * Provides a simple interface for uploading files and metadata to IPFS
+ * IPFS Upload Service — proxied through the backend so Pinata API keys
+ * never leave the server. All uploads hit /api/v1/ipfs/* endpoints.
  */
+import axios from 'axios';
+
+function getBase() {
+  if (import.meta.env.DEV) return 'http://localhost:3001/api/v1';
+  const env = import.meta.env.VITE_API_BASE_URL;
+  if (env) return env.replace(/\/+$/, '');
+  return `${window.location.protocol}//${window.location.hostname}/api/v1`;
+}
 
 /**
- * Upload a file to IPFS
- * @param {File} file - The file to upload
- * @returns {Promise<string>} - IPFS CID (hash)
+ * Upload a file to IPFS via the backend proxy.
+ * @param {File} file
+ * @param {Function} [onUploadProgress]
+ * @returns {Promise<string>} IPFS CID
  */
 export async function uploadToIPFS(file, onUploadProgress = null) {
-  try {
-    if (!file) {
-      throw new Error('No file provided');
+  if (!file) throw new Error('No file provided');
+
+  const arrayBuffer = await file.arrayBuffer();
+
+  const response = await axios.post(
+    `${getBase()}/ipfs/upload-file`,
+    arrayBuffer,
+    {
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-File-Name': file.name || 'upload',
+        'X-File-Type': file.type || 'application/octet-stream',
+      },
+      onUploadProgress,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 120_000, // 2 min for large files
     }
+  );
 
-    // Upload image/file to IPFS with optional progress callback
-    const result = await pinataService.uploadImage(file, onUploadProgress);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to upload to IPFS');
-    }
-
-    // Return the IPFS hash (CID)
-    return result.ipfsHash;
-  } catch (error) {
-    console.error('Error uploading to IPFS:', error);
-    throw error;
-  }
+  const { ipfsHash } = response.data;
+  if (!ipfsHash) throw new Error('No IPFS hash returned from server');
+  return ipfsHash;
 }
 
 /**
- * Upload metadata JSON to IPFS
- * @param {Object} metadata - The metadata object to upload
- * @returns {Promise<string>} - IPFS CID (hash)
+ * Upload a metadata JSON object to IPFS via the backend proxy.
+ * @param {Object} metadata
+ * @returns {Promise<string>} IPFS CID
  */
 export async function uploadMetadataToIPFS(metadata) {
-  try {
-    if (!metadata) {
-      throw new Error('No metadata provided');
+  if (!metadata) throw new Error('No metadata provided');
+
+  const response = await axios.post(
+    `${getBase()}/ipfs/upload-json`,
+    metadata,
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30_000,
     }
+  );
 
-    // Upload metadata to IPFS
-    const result = await pinataService.uploadMetadata(metadata);
-
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to upload metadata to IPFS');
-    }
-
-    // Return the IPFS hash (CID)
-    return result.ipfsHash;
-  } catch (error) {
-    console.error('Error uploading metadata to IPFS:', error);
-    throw error;
-  }
+  const { ipfsHash } = response.data;
+  if (!ipfsHash) throw new Error('No IPFS hash returned from server');
+  return ipfsHash;
 }
 
-/**
- * Get IPFS URL from hash
- * @param {string} hash - IPFS hash (CID)
- * @returns {string} - Full IPFS URL
- */
+/** Convert an IPFS CID to a public gateway URL. */
 export function getIPFSUrl(hash) {
-  return pinataService.getIPFSUrl(hash);
+  return `https://gateway.pinata.cloud/ipfs/${hash}`;
 }
 
-/**
- * Fetch metadata from IPFS
- * @param {string} hash - IPFS hash (CID)
- * @returns {Promise<Object>} - Metadata object
- */
+/** Fetch NFT metadata from IPFS. */
 export async function fetchMetadataFromIPFS(hash) {
-  try {
-    const result = await pinataService.fetchMetadata(hash);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to fetch metadata from IPFS');
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error('Error fetching metadata from IPFS:', error);
-    throw error;
-  }
+  const response = await axios.get(getIPFSUrl(hash), { timeout: 15_000 });
+  return response.data;
 }
