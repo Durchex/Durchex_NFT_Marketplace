@@ -59,7 +59,7 @@ const Financing = lazy(() => import("./pages/Financing"));
 const GovernanceDAO = lazy(() => import("./pages/GovernanceDAO"));
 const MonetizationHub = lazy(() => import("./pages/MonetizationHub"));
 const AuctionNFT = lazy(() => import("./pages/AuctionNFT"));
-const LazyMintNFT = lazy(() => import("./pages/LazyMintNFT"));
+// LazyMintNFT merged into CreateNFTForm — route redirects to /create
 const BatchMintNFT = lazy(() => import("./pages/BatchMintNFT"));
 const BridgeNFT = lazy(() => import("./pages/BridgeNFT"));
 const Staking = lazy(() => import("./pages/Staking"));
@@ -200,7 +200,7 @@ export default function App() {
           <Route path="/features" element={<FeaturesHub />} />
           <Route path="/features/trading" element={<AdvancedTrading />} />
           <Route path="/features/auction" element={<AuctionNFT />} />
-          <Route path="/features/lazy-mint" element={<LazyMintNFT />} />
+          <Route path="/features/lazy-mint" element={<Navigate to="/create" replace />} />
           <Route path="/features/batch-mint" element={<BatchMintNFT />} />
           <Route path="/features/rental" element={<RentalNFT />} />
           <Route path="/features/staking" element={<Staking />} />

@@ -1129,64 +1129,6 @@ export const createNft = async (req, res) => {
       return res.status(409).json({ error: "NFT already exists" });
     }
 
-    // If deployContract is requested, mint on blockchain
-    if (deployContract && metadataURI) {
-      console.log(`ðŸ”— Smart contract deployment requested for NFT`);
-
-      // Get collection contract from database
-      const collection = await Collection.findOne({
-        collectionId: nftData.collection,
-        network: network
-      });
-
-      if (!collection || !collection.contractAddress) {
-        return res.status(400).json({
-          error: "Collection contract not found or not deployed"
-        });
-      }
-
-      try {
-        // Mint on blockchain
-        const mintResult = await nftContractService.mintNFT({
-          network,
-          collectionAddress: collection.contractAddress,
-          toAddress: nftData.owner,
-          metadataURI
-        });
-
-        if (!mintResult.success) {
-          return res.status(500).json({
-            error: "NFT minting failed",
-            details: mintResult.error
-          });
-        }
-
-        // Update NFT data with blockchain info
-        nftData.tokenId = mintResult.tokenId;
-        nftData.isMinted = true;
-        nftData.mintedAt = new Date();
-        nftData.mintTxHash = mintResult.mintTx;
-        nftData.deploymentStatus = 'deployed';
-        nftData.contractAddress = collection.contractAddress;
-        nftData.chainSpecificData = {
-          [network]: {
-            tokenId: mintResult.tokenId,
-            deploymentTx: mintResult.mintTx,
-            deploymentBlock: mintResult.mintBlock,
-            status: 'deployed'
-          }
-        };
-
-        console.log(`âœ… NFT minted with token ID: ${mintResult.tokenId}`);
-      } catch (error) {
-        console.error(`âŒ Smart contract minting failed: ${error.message}`);
-        return res.status(500).json({
-          error: "Smart contract minting failed",
-          details: error.message
-        });
-      }
-    }
-
     // Canonical owner/creator of the token (never overwritten by piece sales)
     if (!nftData.creator) nftData.creator = nftData.owner || nftData.seller;
 

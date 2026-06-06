@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 export default function BuyMintPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { address, buyNFT } = useContext(ICOContent);
+  const { address } = useContext(ICOContent);
   const [nft, setNft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [minting, setMinting] = useState(false);
@@ -73,21 +73,12 @@ export default function BuyMintPage() {
       .finally(() => setSellOrdersLoading(false));
   }, [nft?.network, nft?.itemId, nft?._id, id]);
 
+  // All NFTs are lazy mints — there is no direct-buy path.
   const isLazyMint = nft?.isLazyMint === true;
   const remainingPieces = Number(nft?.remainingPieces ?? nft?.pieces ?? 0);
   const maxQuantity = Math.max(1, remainingPieces);
   const hasPiecesToMint = isLazyMint && remainingPieces > 0;
   const lazyMintSoldOut = isLazyMint && remainingPieces <= 0;
-  const isListedNft = !isLazyMint;
-
-  const getVendorContractAddress = (network) => {
-    const networkUpper = String(network || 'polygon').toUpperCase();
-    return (
-      import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] ||
-      import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS ||
-      null
-    );
-  };
 
   const getMultiPieceLazyMintContractAddress = (network) => {
     const networkUpper = String(network || 'polygon').toUpperCase();
@@ -99,19 +90,13 @@ export default function BuyMintPage() {
   };
 
   const currentNetwork = (nft?.network || 'polygon').toLowerCase().trim();
-  const vendorContractAddress =
-    nft?.contractAddress || nft?.nftContract || getVendorContractAddress(currentNetwork);
   const multiPieceLazyMintContractAddress = getMultiPieceLazyMintContractAddress(currentNetwork);
   const mintContractMissing = hasPiecesToMint && !multiPieceLazyMintContractAddress;
-  const buyContractMissing = isListedNft && !vendorContractAddress;
   const contractMissingMessage = mintContractMissing
-    ? `Mint contract not configured for ${currentNetwork}. Deploy and set VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${currentNetwork}.`
-    : buyContractMissing
-    ? `Vendor contract not configured for ${currentNetwork}. Deploy and set VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${currentNetwork}.`
+    ? `Mint contract not configured for ${currentNetwork}. Set VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${currentNetwork.toUpperCase()} in your environment.`
     : null;
 
   const canMint = hasPiecesToMint && address && !mintContractMissing;
-  const canBuy = isListedNft && address && !buyContractMissing;
 
   const handleFillOrder = async (order, qty) => {
     if (!address || !order?._id) return;
@@ -252,41 +237,8 @@ export default function BuyMintPage() {
         navigate(`/nft/${id}`);
         return;
       }
-      // Listed NFT (not lazy-mint): marketplace buy — transfer from seller to buyer.
-      if (!isListedNft) {
-        toast.error('This item is not available to buy here. Use Make Offer on the NFT page.');
-        return;
-      }
-      const getVendorContractAddress = (network) => {
-        const networkUpper = String(network || 'polygon').toUpperCase();
-        return (
-          import.meta.env[`VITE_APP_VENDORNFT_CONTRACT_ADDRESS_${networkUpper}`] ||
-          import.meta.env.VITE_APP_VENDORNFT_CONTRACT_ADDRESS ||
-          null
-        );
-      };
-
-      const contractAddress =
-        nft.contractAddress ||
-        nft.nftContract ||
-        getVendorContractAddress(currentNetwork);
-      if (!contractAddress) {
-        toast.error('NFT contract not found for this network.');
-        return;
-      }
-      const itemIdStr = nft.itemId ?? nft.tokenId ?? nft._id;
-      if (typeof itemIdStr === 'string' && itemIdStr.startsWith('draft-')) {
-        toast.error('This NFT has not been minted yet. Ask the seller to mint it first, or convert it to a lazy mint.');
-        return;
-      }
-      const qtyNum = Math.max(1, Math.min(maxQuantity, quantity));
-      const totalEth = (parseFloat(priceInDecimalForBuy(nft.price)) * qtyNum).toFixed(18);
-      if (typeof buyNFT !== 'function') {
-        toast.error('Wallet purchase is not available. Please try again.');
-        return;
-      }
-      await buyNFT(contractAddress, itemIdStr, totalEth, currentNetwork);
-      toast.success('Purchase complete.');
+      // Non-lazy NFT — all NFTs should be lazy mints; redirect to NFT page for Make Offer.
+      toast.error('This NFT is not available to mint here. Use Make Offer on the NFT page.');
       navigate(`/nft/${id}`);
     } catch (err) {
       console.error('Mint error:', err);
@@ -423,15 +375,9 @@ export default function BuyMintPage() {
               </span>
             </div>
 
-            {/* Copy: Mint = new token(s), creator keeps listing. Buy = transfer from seller. */}
             {hasPiecesToMint && (
               <p className="text-gray-500 text-xs mb-4">
-                Minting gives you new token(s) on-chain. The creator keeps the listing; you are not buying the whole NFT from them.
-              </p>
-            )}
-            {isListedNft && (
-              <p className="text-gray-500 text-xs mb-4">
-                Buying transfers this listed NFT from the current owner to you.
+                Minting gives you new token(s) on-chain. The creator keeps the listing open; you are not buying the whole NFT.
               </p>
             )}
 
@@ -471,24 +417,14 @@ export default function BuyMintPage() {
               </button>
             )}
 
-            {/* Listed NFT (not lazy-mint): Buy + Make Offer */}
-            {isListedNft && (
-              <div className="space-y-3">
-                <button
-                  onClick={handlePrimaryAction}
-                  disabled={!canBuy || minting}
-                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <FiDollarSign />
-                  {minting ? 'Buying…' : `Buy — ${totalDisplay} ${currency}`}
-                </button>
-                <button
-                  onClick={() => navigate(`/nft/${id}`)}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <FiDollarSign /> Make Offer
-                </button>
-              </div>
+            {/* Non-lazy NFT: redirect to NFT page */}
+            {!isLazyMint && nft && (
+              <button
+                onClick={() => navigate(`/nft/${id}`)}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <FiDollarSign /> Make Offer
+              </button>
             )}
 
 

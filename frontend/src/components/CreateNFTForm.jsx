@@ -1,7 +1,8 @@
 ﻿import { useContext, useState, useEffect, useMemo } from "react";
+import { ethers } from "ethers";
 import { ICOContent } from "../Context";
 import { Toaster, toast } from "react-hot-toast";
-import { nftAPI } from "../services/api";
+import { nftAPI, lazyMintAPI } from "../services/api";
 import { uploadToIPFS, uploadMetadataToIPFS } from "../services/ipfs";
 import { SUPPORTED_NETWORKS } from "../Context/constants";
 
@@ -117,6 +118,7 @@ export default function CreateNFTForm() {
   const [errors, setErrors] = useState({});
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState(''); // progress label shown to user
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -360,6 +362,10 @@ export default function CreateNFTForm() {
     if (!form.supply || Number(form.supply) < 1) {
       nextErrors.supply = 'Supply must be at least 1.';
     }
+    const priceNum = parseFloat(form.price);
+    if (!form.price || isNaN(priceNum) || priceNum <= 0) {
+      nextErrors.price = 'Price is required and must be greater than 0 — this is what buyers pay to mint each edition.';
+    }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -426,74 +432,70 @@ export default function CreateNFTForm() {
         throw new Error('Please choose or create a collection before minting.');
       }
 
+      // ── Step 1: Upload media to IPFS ────────────────────────────────────────
+      setSubmitStep('Uploading media to IPFS…');
       setFileUploadProgress(0);
       const fileCID = await uploadToIPFS(form.file, (progressEvent) => {
         if (progressEvent?.loaded && progressEvent?.total) {
-          const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-          setFileUploadProgress(progress);
+          setFileUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
         }
       });
 
+      // ── Step 2: Upload metadata JSON to IPFS ────────────────────────────────
+      setSubmitStep('Uploading metadata to IPFS…');
       const metadata = buildMetadataForMint(fileCID);
       const metadataCID = await uploadMetadataToIPFS(metadata);
       const metadataURI = `ipfs://${metadataCID}`;
-      // Use a gateway URL for the DB-backed image so the standard <img src=...>
-      // tag can render it directly. The metadata JSON uploaded to IPFS still
-      // holds the canonical ipfs:// form (set in buildMetadataForMint).
-      const imageURI = `https://gateway.pinata.cloud/ipfs/${fileCID}`;
 
-      // For unminted drafts the chain hasn't issued a tokenId yet â€” generate
-      // a unique itemId so the Mongoose required check passes. Once the
-      // collection contract deploys, mintNFT will fill in tokenId.
-      const generateId = () =>
-        (typeof crypto !== 'undefined' && crypto.randomUUID)
-          ? `draft-${crypto.randomUUID()}`
-          : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      // ── Step 3: Sign the lazy-mint voucher with wallet ──────────────────────
+      setSubmitStep('Open your wallet to sign the listing…');
+      if (!window.ethereum) throw new Error('No wallet found. Install MetaMask and try again.');
 
-      const priceString = String(form.price ?? '').trim() || '0';
-      const isListed = priceString !== '0' && Number(priceString) > 0;
+      try {
+        await (connectWallet?.('metamask') || connectWallet?.());
+      } catch (walletErr) {
+        if (walletErr?.code === 4001) throw new Error('Wallet connection rejected.');
+        throw walletErr;
+      }
 
-      const nftPayload = {
-        // Required by nftModel.js
-        itemId: generateId(),
-        name: form.name.trim(),
-        description: form.description.trim(),
-        image: imageURI,
-        category: form.category || 'Art',
-        owner: address,
-        seller: address,
-        price: priceString,
-        currentlyListed: isListed,
-        network: form.network,
-        properties: {
-          attributes: metadata.attributes,
-          levels: metadata.levels,
-          stats: metadata.stats,
-        },
-        // Optional / extra context
-        creator: address,
-        collection: collectionId,
-        metadataURI,
-        supply: Number(form.supply),
-        pieces: Number(form.supply),
-        remainingPieces: Number(form.supply),
-        royaltyBps: Math.max(0, Math.min(5000, Math.round(Number(form.royaltyPercent || 0) * 100))),
-        attributes: metadata.attributes,
-        levels: metadata.levels,
-        stats: metadata.stats,
-        unlockableContent: form.unlockableEnabled ? form.unlockableContent.trim() : undefined,
-        explicitContent: form.explicitContent,
-        external_url: form.externalUrl.trim() || undefined,
-        blockchain: form.network,
-        // Lazy mint only: no upfront contract deploy, buyer mints + pays gas at redemption.
-        deployContract: false,
-        isLazyMint: true,
-      };
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer  = provider.getSigner();
+      const creator = await signer.getAddress();
 
-      const createResult = await nftAPI.createNft(nftPayload);
+      const piecesNum      = Math.max(1, Number(form.supply));
+      const royaltyBps     = Math.max(0, Math.min(5000, Math.round(Number(form.royaltyPercent || 0) * 100)));
+      const pricePerPieceWei = ethers.utils.parseEther(String(form.price));
 
-      const mintedId = createResult.nft?.tokenId || createResult.nft?._id || 'saved';
-      setSuccessMessage(`NFT created successfully (${mintedId})`);
+      // listingId + messageHash must match MultiPieceLazyMintNFT.getListingId /
+      // getListingMessageHash exactly — contract verifies this on redeem.
+      const listingId  = ethers.utils.solidityKeccak256(
+        ['address', 'string', 'uint256', 'uint256', 'uint256'],
+        [creator, metadataURI, royaltyBps, pricePerPieceWei, piecesNum]
+      );
+      const msgHash = ethers.utils.solidityKeccak256(['bytes32'], [listingId]);
+      const sig     = await signer.signMessage(ethers.utils.arrayify(msgHash));
+
+      // ── Step 4: Publish to marketplace (LazyNFT model) ──────────────────────
+      setSubmitStep('Publishing to marketplace…');
+      const submitResult = await lazyMintAPI.submitLazyMint({
+        name:              form.name.trim(),
+        description:       form.description.trim(),
+        ipfsURI:           metadataURI,
+        royaltyPercentage: Number(form.royaltyPercent || 0),
+        price:             String(form.price),
+        pieces:            piecesNum,
+        network:           form.network,
+        enableStraightBuy: true,
+        signature:         sig,
+        messageHash:       msgHash,
+        nonce:             0,
+        category:          form.category || 'Art',
+        collection:        collectionId || null,
+        attributes:        metadata.attributes,
+      });
+
+      const mintedId = submitResult?.lazyNFT?.id || submitResult?.lazyNFT?._id || 'saved';
+      setSuccessMessage(`NFT published! Buyers can now mint it on-chain.`);
       setForm({
         file: null,
         filePreview: '',
@@ -515,9 +517,12 @@ export default function CreateNFTForm() {
       setFileUploadProgress(0);
     } catch (error) {
       console.error('Create NFT failed:', error);
-      setSubmitError(error.message || 'Failed to create NFT.');
+      const msg = error?.response?.data?.error || error.message || 'Failed to create NFT.';
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
+      setSubmitStep('');
+      setFileUploadProgress(0);
     }
   };
 
@@ -912,10 +917,10 @@ export default function CreateNFTForm() {
             <h2 style={{ marginTop: 0 }}>5. Pricing &amp; Settings</h2>
             <div style={{ display: 'grid', gap: '18px' }}>
               <div>
-                <label style={labelStyle}>Price</label>
+                <label style={labelStyle}>Price per edition (in network token) *</label>
                 <input
                   type="number"
-                  min={0}
+                  min={0.0001}
                   step="0.0001"
                   style={fieldStyle}
                   value={form.price}
@@ -923,8 +928,9 @@ export default function CreateNFTForm() {
                   placeholder="0.05"
                 />
                 <div style={{ marginTop: '6px', color: '#8888aa', fontSize: '0.85rem' }}>
-                  Leave blank or 0 to mint without listing. Any positive value lists the NFT for sale at that price.
+                  This is what buyers pay to mint each edition of your NFT. Must be greater than 0.
                 </div>
+                {errors.price && <div style={{ marginTop: '6px', color: '#f87171' }}>{errors.price}</div>}
               </div>
 
               <div style={{ display: 'grid', gap: '12px' }}>
@@ -1004,6 +1010,12 @@ export default function CreateNFTForm() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {submitError && <div style={{ color: '#b91c1c', fontWeight: 600 }}>{submitError}</div>}
             {successMessage && <div style={{ color: '#047857', fontWeight: 600 }}>{successMessage}</div>}
+            {submitting && submitStep && (
+              <div style={{ marginBottom: '12px', color: '#a78bfa', fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ display: 'inline-block', width: 18, height: 18, border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                {submitStep}
+              </div>
+            )}
             <button
               type="submit"
               disabled={submitting}
@@ -1012,14 +1024,15 @@ export default function CreateNFTForm() {
                 padding: '16px 0',
                 borderRadius: '16px',
                 border: 'none',
-                background: submitting ? '#93c5fd' : '#7c3aed',
+                background: submitting ? '#4c1d95' : '#7c3aed',
                 color: '#ffffff',
                 cursor: submitting ? 'not-allowed' : 'pointer',
                 fontWeight: 700,
                 fontSize: '1rem',
+                opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? 'Creating NFT...' : 'Create NFT'}
+              {submitting ? '…' : 'Create & Publish NFT'}
             </button>
           </div>
         </form>
