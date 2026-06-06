@@ -1019,7 +1019,7 @@ export default function CreateNFTForm() {
                 fontSize: '1rem',
               }}
             >
-              {submitting ? 'Processing your NFT...' : 'Mint NFT'}
+              {submitting ? 'Creating NFT...' : 'Create NFT'}
             </button>
           </div>
         </form>
