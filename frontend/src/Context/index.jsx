@@ -499,6 +499,27 @@ export const Index = ({ children }) => {
       } else {
         // Request account access with proper error handling for other wallets
         try {
+          // If no provider yet, wait for window.ethereum to be available
+          if (!provider && typeof window !== 'undefined') {
+            console.log('[Context] Provider not set, waiting for window.ethereum...');
+            let retries = 0;
+            const maxRetries = 5;
+            while (!window.ethereum && retries < maxRetries) {
+              console.log(`[Context] Waiting for window.ethereum (retry ${retries + 1}/${maxRetries})...`);
+              await new Promise(r => setTimeout(r, 200));
+              retries++;
+            }
+            if (window.ethereum) {
+              provider = window.ethereum;
+              console.log('[Context] window.ethereum is now available, using it as provider');
+            }
+          }
+
+          // Validate provider exists and has the right methods
+          if (!provider) {
+            throw new Error('No provider available. Please make sure your wallet is installed and enabled.');
+          }
+
           // Ensure we're using the correct provider - if window.ethereum was set, use it
           if (typeof window !== 'undefined' && window.ethereum && provider !== window.ethereum) {
             // If we set window.ethereum to a specific provider, use that instead
@@ -507,24 +528,48 @@ export const Index = ({ children }) => {
               console.log('[Context] Using window.ethereum as the provider for wallet:', walletId);
             }
           }
-          
+
           console.log('[Context] Requesting accounts from provider:', provider);
           console.log('[Context] Provider has request method:', typeof provider.request === 'function');
           console.log('[Context] Provider has enable method:', typeof provider.enable === 'function');
-          
-          if (provider.request) {
+          console.log('[Context] Provider has send method:', typeof provider.send === 'function');
+
+          // Try request method first (EIP-1193)
+          if (provider.request && typeof provider.request === 'function') {
             console.log('[Context] Calling provider.request({ method: "eth_requestAccounts" })');
-            accounts = await provider.request({
-              method: "eth_requestAccounts",
-            });
-            console.log('[Context] Accounts received from request:', accounts);
-          } else if (provider.enable) {
+            try {
+              accounts = await provider.request({
+                method: "eth_requestAccounts",
+              });
+              console.log('[Context] Accounts received from request:', accounts);
+            } catch (err) {
+              console.warn('[Context] request() failed, trying enable()', err.message);
+              if (provider.enable) {
+                accounts = await provider.enable();
+              } else {
+                throw err;
+              }
+            }
+          } else if (provider.enable && typeof provider.enable === 'function') {
             // Legacy wallet support
             console.log('[Context] Calling provider.enable()');
             accounts = await provider.enable();
             console.log('[Context] Accounts received from enable:', accounts);
+          } else if (provider.send && typeof provider.send === 'function') {
+            // Fallback: use send method
+            console.log('[Context] Calling provider.send()');
+            accounts = await new Promise((resolve, reject) => {
+              provider.send('eth_requestAccounts', [], (err, result) => {
+                if (err) reject(err);
+                else resolve(result?.result || result);
+              });
+            });
           } else {
-            throw new Error("Wallet does not support connection");
+            throw new Error("Wallet does not support connection - no compatible method found");
+          }
+
+          if (!accounts || accounts.length === 0) {
+            throw new Error('No accounts returned from wallet');
           }
         } catch (requestError) {
           console.error('[Context] Error requesting accounts:', requestError);
@@ -538,6 +583,9 @@ export const Index = ({ children }) => {
             return null;
           } else if (requestError.code === -32002) {
             ErrorToast("Connection request already pending. Please check your wallet.");
+            return null;
+          } else if (requestError.message?.includes('No active wallet')) {
+            ErrorToast("No active wallet found. Please make sure MetaMask or your wallet is active.");
             return null;
           }
           throw requestError;
