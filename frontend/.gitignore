@@ -11,7 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Environment files — NEVER commit actual credentials
+# Only .env.example should be in git (as a template)
+.env
 .env.local
+.env.*.local
+.env.production
+.env.deployed
+.env.lazymint
+.env.siu
 
 # Editor directories and files
 .vscode/*

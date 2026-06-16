@@ -77,8 +77,11 @@ temp/
 # VS Code settings
 .vscode/
 
-# dotenv environment variables
+# dotenv environment variables — NEVER commit actual credentials
+# Only .env.example should be in git (as a template)
 .env
+.env.*
+!.env.example
 .env.test
 .env.*.local
 
