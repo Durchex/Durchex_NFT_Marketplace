@@ -27,24 +27,89 @@ const WALLETS = [
     icon: '🦊',
     description: 'Browser extension wallet',
     detect: () => {
-      if (typeof window === 'undefined' || !window.ethereum) return false;
-      const isReal = (p) =>
-        p?.isMetaMask && !p?.isCoinbaseWallet && !p?.isTrust &&
-        !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
-      if (isReal(window.ethereum)) return true;
-      return Array.isArray(window.ethereum.providers)
-        ? window.ethereum.providers.some(isReal)
-        : false;
+      if (typeof window === 'undefined' || !window.ethereum) {
+        console.log('[MetaMask] window.ethereum not available');
+        return false;
+      }
+      const isStrict = (p) => {
+        const isMetaMask = p?.isMetaMask === true;
+        const notOtherWallet = !p?.isCoinbaseWallet && !p?.isTrust &&
+          !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
+        return isMetaMask && notOtherWallet;
+      };
+      const isLoose = (p) => p?.isMetaMask === true; // Just check if it's marked as MetaMask
+
+      // Try strict check first
+      if (isStrict(window.ethereum)) {
+        console.log('[MetaMask] Found as window.ethereum (strict)');
+        return true;
+      }
+
+      if (Array.isArray(window.ethereum.providers)) {
+        const foundStrict = window.ethereum.providers.some(isStrict);
+        if (foundStrict) {
+          console.log('[MetaMask] Found in providers array (strict)');
+          return true;
+        }
+        // Fall back to loose check if strict failed
+        const foundLoose = window.ethereum.providers.some(isLoose);
+        if (foundLoose) {
+          console.log('[MetaMask] Found in providers array (loose - isMetaMask only)');
+          return true;
+        }
+      }
+
+      // Last resort: check if window.ethereum itself is loose-match
+      if (isLoose(window.ethereum)) {
+        console.log('[MetaMask] window.ethereum marked as isMetaMask (loose)');
+        return true;
+      }
+
+      console.log('[MetaMask] Detection failed. window.ethereum.isMetaMask:', window.ethereum?.isMetaMask, 'providers:', Array.isArray(window.ethereum.providers) ? window.ethereum.providers.length : 'N/A');
+      return false;
     },
     getProvider: () => {
-      const isReal = (p) =>
-        p?.isMetaMask && !p?.isCoinbaseWallet && !p?.isTrust &&
-        !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
-      if (!window.ethereum) return null;
-      if (isReal(window.ethereum)) return window.ethereum;
-      if (Array.isArray(window.ethereum.providers)) {
-        return window.ethereum.providers.find(isReal) || null;
+      const isStrict = (p) => {
+        const isMetaMask = p?.isMetaMask === true;
+        const notOtherWallet = !p?.isCoinbaseWallet && !p?.isTrust &&
+          !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
+        return isMetaMask && notOtherWallet;
+      };
+      const isLoose = (p) => p?.isMetaMask === true;
+
+      if (!window.ethereum) {
+        console.log('[MetaMask] getProvider: window.ethereum not available');
+        return null;
       }
+
+      // Try strict check first
+      if (isStrict(window.ethereum)) {
+        console.log('[MetaMask] getProvider: returning window.ethereum (strict)');
+        return window.ethereum;
+      }
+
+      // Check providers array
+      if (Array.isArray(window.ethereum.providers)) {
+        const providerStrict = window.ethereum.providers.find(isStrict);
+        if (providerStrict) {
+          console.log('[MetaMask] getProvider: found in providers array (strict)');
+          return providerStrict;
+        }
+        // Fall back to loose check
+        const providerLoose = window.ethereum.providers.find(isLoose);
+        if (providerLoose) {
+          console.log('[MetaMask] getProvider: found in providers array (loose)');
+          return providerLoose;
+        }
+      }
+
+      // Last resort: check if window.ethereum itself is loose-match
+      if (isLoose(window.ethereum)) {
+        console.log('[MetaMask] getProvider: returning window.ethereum (loose)');
+        return window.ethereum;
+      }
+
+      console.log('[MetaMask] getProvider: not found');
       return null;
     },
     install: 'https://metamask.io/download/',
