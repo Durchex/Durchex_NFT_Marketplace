@@ -6,7 +6,21 @@ let socket = null;
 
 export function getSocket() {
   if (!socket) {
-    socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    try {
+      socket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 3,
+        reconnectionDelay: 1000,
+      });
+      // Log connection errors silently (don't block operations)
+      socket.on('connect_error', (error) => {
+        console.warn('[Socket] Connection error:', error.message, '— operations will continue without real-time updates');
+      });
+    } catch (err) {
+      console.warn('[Socket] Failed to initialize:', err.message);
+      return null;
+    }
   }
   return socket;
 }
