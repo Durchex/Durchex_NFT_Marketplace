@@ -154,9 +154,12 @@ export default function BuyMintPage() {
         if (!window.ethereum) {
           throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
         }
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+          throw new Error('Wallet connection rejected. Please approve the connection in your wallet.');
+        }
         await changeNetwork(network);
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 800)); // Give wallet time to update
 
         // Upcoming NFTs use a phase-aware voucher endpoint that enforces allowlist
         // and serves whitelist vs public voucher based on publicLaunchAt.

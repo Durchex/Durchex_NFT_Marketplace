@@ -864,6 +864,11 @@ export const getMultiPieceLazyMintContractWithSigner = async (networkName) => {
     if (!contractAddress) return null;
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
+    // Verify signer has an address (wallet is connected)
+    const signerAddress = await signer.getAddress();
+    if (!signerAddress) {
+      throw new Error('Signer has no address — wallet not properly connected');
+    }
     return new ethers.Contract(contractAddress, MultiPieceLazyMintNFT_ABI, signer);
   } catch (error) {
     console.error(`Error fetching MultiPieceLazyMint contract (signer) for ${networkName}:`, error);
