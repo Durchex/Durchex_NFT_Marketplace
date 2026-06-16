@@ -477,6 +477,8 @@ export default function CreateNFTForm() {
 
       // ── Step 4: Publish to marketplace (LazyNFT model) ──────────────────────
       setSubmitStep('Publishing to marketplace…');
+      // Only send collection if it's a valid MongoDB ObjectId (24-char hex string)
+      const validCollection = collectionId && /^[0-9a-f]{24}$/i.test(collectionId) ? collectionId : null;
       const submitResult = await lazyMintAPI.submitLazyMint({
         name:              form.name.trim(),
         description:       form.description.trim(),
@@ -490,7 +492,7 @@ export default function CreateNFTForm() {
         messageHash:       msgHash,
         nonce:             0,
         category:          form.category || 'Art',
-        collection:        collectionId || null,
+        collection:        validCollection,
         attributes:        metadata.attributes,
       });
 

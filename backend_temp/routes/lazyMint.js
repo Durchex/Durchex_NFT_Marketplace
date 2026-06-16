@@ -164,6 +164,20 @@ router.post('/submit', authMiddleware, async (req, res) => {
             console.log('[lazy-mint/submit] network from body:', networkFromBody, '-> saved as:', network);
         }
 
+        // Validate collection ID if provided
+        let collectionId = null;
+        if (collection) {
+          try {
+            if (typeof collection === 'string' && collection.match(/^[0-9a-f]{24}$/i)) {
+              collectionId = collection;
+            } else {
+              console.warn('[lazy-mint] Invalid collection ID format (not a 24-char hex string), ignoring:', collection);
+            }
+          } catch (err) {
+            console.warn('[lazy-mint] Failed to parse collection ID:', err.message);
+          }
+        }
+
         // Store in database (including selected network for marketplace display)
         const lazyNFT = new LazyNFT({
             creator: creatorAddress.toLowerCase(),
@@ -180,7 +194,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             price: price || null,
             floorPrice: floorPrice || null,
             category: category || '',
-            collection: collection || null,
+            collection: collectionId,
             network,
             enableStraightBuy: enableStraightBuy !== undefined ? enableStraightBuy : true,
             status: 'pending',
