@@ -55,8 +55,17 @@ export const Index = ({ children }) => {
     try {
       // Get the wallet provider - check for multiple providers
       let provider = null;
-      
+
       if (typeof window !== "undefined") {
+        // On Chrome, wallets inject into window slowly. Retry a few times.
+        let retries = 0;
+        const maxRetries = 5;
+        while (!window.ethereum && !window.BinanceChain && !window.okxwallet && !window.tokenpocket && !window.safepal && retries < maxRetries) {
+          console.log(`[Context] Waiting for wallet provider (retry ${retries + 1}/${maxRetries})...`);
+          await new Promise(r => setTimeout(r, 200));
+          retries++;
+        }
+
         if (window.ethereum) {
           provider = window.ethereum;
         } else if (window.BinanceChain) {
@@ -230,6 +239,15 @@ export const Index = ({ children }) => {
     let provider = null;
     console.log('[Context] connectWallet called with walletId:', walletId);
     if (typeof window !== "undefined") {
+      // On Chrome, MetaMask takes time to inject window.ethereum. Retry with delays.
+      let retries = 0;
+      const maxRetries = 5;
+      while (!window.ethereum && retries < maxRetries) {
+        console.log(`[Context] Waiting for window.ethereum (retry ${retries + 1}/${maxRetries})...`);
+        await new Promise(r => setTimeout(r, 200));
+        retries++;
+      }
+
       // If a specific wallet is requested, try to find that specific provider
       if (walletId === 'metamask' && window.ethereum) {
         // First check if window.ethereum itself is MetaMask (might have been set by WalletConnect component)

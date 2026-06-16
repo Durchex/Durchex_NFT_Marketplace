@@ -345,14 +345,24 @@ function ConnectModal({ isOpen, onClose }) {
 
     try {
       // Check if wallet is installed (except WalletConnect)
-      if (
-        wallet.id !== WALLET_TYPES.WALLETCONNECT &&
-        typeof wallet.detect === 'function' &&
-        !wallet.detect()
-      ) {
-        setError(`${wallet.name} is not installed`);
-        setConnecting(null);
-        return;
+      // On Chrome, wallets inject slowly — retry a few times before giving up
+      if (wallet.id !== WALLET_TYPES.WALLETCONNECT && typeof wallet.detect === 'function') {
+        let isDetected = wallet.detect();
+        let retries = 0;
+        const maxRetries = 5;
+
+        while (!isDetected && retries < maxRetries) {
+          console.log(`[WalletConnect] Waiting for ${wallet.name} (retry ${retries + 1}/${maxRetries})...`);
+          await new Promise(r => setTimeout(r, 200));
+          isDetected = wallet.detect();
+          retries++;
+        }
+
+        if (!isDetected) {
+          setError(`${wallet.name} is not installed`);
+          setConnecting(null);
+          return;
+        }
       }
 
       // Use context connectWallet function
