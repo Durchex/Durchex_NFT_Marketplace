@@ -154,12 +154,25 @@ export default function BuyMintPage() {
         if (!window.ethereum) {
           throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
         }
+
+        // Request accounts and wait for confirmation
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (!accounts || accounts.length === 0) {
           throw new Error('Wallet connection rejected. Please approve the connection in your wallet.');
         }
+
+        // Switch to the correct network
         await changeNetwork(network);
-        await new Promise((r) => setTimeout(r, 800)); // Give wallet time to update
+
+        // Create a fresh provider AFTER wallet is connected
+        const freshProvider = new ethers.providers.Web3Provider(window.ethereum);
+        await new Promise((r) => setTimeout(r, 500)); // Let network switch settle
+
+        // Verify wallet is actually connected
+        const walletAccounts = await freshProvider.listAccounts();
+        if (!walletAccounts || walletAccounts.length === 0) {
+          throw new Error('Wallet still not connected. Please try again.');
+        }
 
         // Upcoming NFTs use a phase-aware voucher endpoint that enforces allowlist
         // and serves whitelist vs public voucher based on publicLaunchAt.
@@ -177,10 +190,12 @@ export default function BuyMintPage() {
 
         const contract = await getMultiPieceLazyMintContractWithSigner(network);
         if (!contract) {
+          console.error('[Mint] Contract is null. Check contract address config and wallet connection.');
           throw new Error(
             `Lazy mint contract not configured for ${network}. Add VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS_${network.toUpperCase()} or VITE_APP_MULTI_LAZY_MINT_CONTRACT_ADDRESS.`
           );
         }
+        console.log('[Mint] Contract ready, attempting redeemListing call...');
 
         const sig = redemptionData.signature?.startsWith('0x')
           ? redemptionData.signature
@@ -254,7 +269,9 @@ export default function BuyMintPage() {
 
       const isHexOnly = /^0x[0-9a-fA-F]+$/.test(msg.trim());
 
-      if (code === -32603 || msg.includes('Internal JSON-RPC')) {
+      if (msg.includes('No active wallet') || msg.includes('not connected')) {
+        toast.error('Wallet disconnected or not properly connected. Please connect your wallet and try again.');
+      } else if (code === -32603 || msg.includes('Internal JSON-RPC')) {
         toast.error(
           'Network RPC error. The listing may already have been redeemed, or the network is busy. Try again in a moment or try another listing.'
         );
@@ -266,9 +283,9 @@ export default function BuyMintPage() {
         toast.error(
           `Insufficient funds on ${errNetwork}. Your wallet has 0 ${token} on this network. Add ${token} for the purchase and gas, then try again.`
         );
-      } else if (code === -32603 || msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
+      } else if (msg.includes('Response has no error or result') || msg.includes('JsonRpcEngine')) {
         toast.error(
-          "Wallet didn't respond. Click Buy & Mint again and approve the transaction when your wallet opens."
+          "Wallet didn't respond. Click Mint again and approve the transaction when your wallet opens."
         );
       } else if (code === 4001 || code === 'ACTION_REJECTED' || msg.includes('rejected')) {
         toast.error('Transaction was rejected.');
