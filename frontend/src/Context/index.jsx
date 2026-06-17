@@ -271,29 +271,38 @@ export const Index = ({ children }) => {
 
       // If a specific wallet is requested, try to find that specific provider
       if (walletId === 'metamask' && window.ethereum) {
+        // Helper function to check if a provider is real MetaMask (not Trust Wallet or other fakes)
+        const isRealMetaMask = (p) => {
+          return p?.isMetaMask === true &&
+                 !p?.isCoinbaseWallet &&
+                 !p?.isTrust &&
+                 !p?.isTrustWallet &&
+                 !p?.isBraveWallet &&
+                 !p?.isPhantom;
+        };
+
         // First check if window.ethereum itself is MetaMask (might have been set by WalletConnect component)
-        if (window.ethereum.isMetaMask && !window.ethereum.isCoinbaseWallet) {
+        if (isRealMetaMask(window.ethereum)) {
           provider = window.ethereum;
           console.log('[Context] Using window.ethereum as MetaMask provider (already set)');
         } else if (Array.isArray(window.ethereum.providers)) {
           // Look for MetaMask in providers array
-          provider = window.ethereum.providers.find(p => p.isMetaMask && !p.isCoinbaseWallet);
+          provider = window.ethereum.providers.find(isRealMetaMask);
           if (provider) {
             console.log('[Context] Found MetaMask in providers array');
             // Make it the primary provider
             const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
             if (providerIndex > 0) {
-              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] = 
+              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] =
                 [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
             }
             window.ethereum = window.ethereum.providers[0];
             provider = window.ethereum;
           }
         }
-        // If still no provider, check if window.ethereum was set directly (from WalletConnect component)
-        if (!provider && window.ethereum.isMetaMask) {
-          provider = window.ethereum;
-          console.log('[Context] Using window.ethereum as MetaMask provider (fallback)');
+        // If still no provider, we've exhausted options
+        if (!provider) {
+          console.warn('[Context] MetaMask provider not found after all checks');
         }
         console.log('[Context] MetaMask provider selected:', provider);
       } else if (walletId === 'coinbase' && window.ethereum) {
