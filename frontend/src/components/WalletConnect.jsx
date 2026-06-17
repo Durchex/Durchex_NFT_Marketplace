@@ -45,19 +45,37 @@ const WALLETS = [
           return false;
         }
 
-        const isReal = (p) => {
-          // MetaMask is isMetaMask=true AND NOT any other wallet
-          // Trust Wallet also sets isMetaMask=true, so we must exclude it explicitly
-          return p?.isMetaMask === true &&
-                 !p?.isCoinbaseWallet &&
-                 !p?.isTrust &&
-                 !p?.isTrustWallet &&
-                 !p?.isBraveWallet &&
-                 !p?.isPhantom;
+        const isRealMetaMask = (p) => {
+          if (!p) return false;
+
+          // MetaMask-specific properties that Trust Wallet doesn't have
+          const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
+                                      p._events?.hasOwnProperty('accountsChanged') ||
+                                      p.constructor?.name === 'MetaMaskInpageProvider';
+
+          // Basic checks
+          const isMetaMask = p?.isMetaMask === true;
+          const notOther = !p?.isCoinbaseWallet &&
+                          !p?.isTrust &&
+                          !p?.isTrustWallet &&
+                          !p?.isBraveWallet &&
+                          !p?.isPhantom;
+
+          // If has MetaMask-specific methods, trust it
+          if (hasMetaMaskMethods) {
+            console.log('[MetaMask] Found MetaMask-specific properties:', {
+              _metamask_isUnlocked: p._metamask_isUnlocked,
+              className: p.constructor?.name
+            });
+            return true;
+          }
+
+          // Otherwise use heuristic check
+          return isMetaMask && notOther;
         };
 
         // Check window.ethereum directly first
-        if (isReal(window.ethereum)) {
+        if (isRealMetaMask(window.ethereum)) {
           console.log('[MetaMask] Found as window.ethereum');
           cached = true;
           cacheTime = now;
@@ -66,7 +84,7 @@ const WALLETS = [
 
         // Check providers array
         if (Array.isArray(window.ethereum.providers)) {
-          const found = window.ethereum.providers.some(isReal);
+          const found = window.ethereum.providers.find(isRealMetaMask);
           if (found) {
             console.log('[MetaMask] Found in providers array');
             cached = true;
@@ -75,11 +93,14 @@ const WALLETS = [
           }
         }
 
-        console.log('[MetaMask] Detection failed. window.ethereum props:', {
+        console.log('[MetaMask] Detection failed. window.ethereum inspection:', {
           isMetaMask: window.ethereum?.isMetaMask,
           isTrust: window.ethereum?.isTrust,
           isTrustWallet: window.ethereum?.isTrustWallet,
           isCoinbaseWallet: window.ethereum?.isCoinbaseWallet,
+          _metamask_isUnlocked: window.ethereum?._metamask_isUnlocked,
+          className: window.ethereum?.constructor?.name,
+          hasEvents: !!window.ethereum?._events,
           providersCount: Array.isArray(window.ethereum?.providers) ? window.ethereum.providers.length : 0
         });
         cached = false;
@@ -88,14 +109,24 @@ const WALLETS = [
       };
     })(),
     getProvider: () => {
-      const isReal = (p) => {
-        // MetaMask is isMetaMask=true AND NOT any other wallet
-        return p?.isMetaMask === true &&
-               !p?.isCoinbaseWallet &&
-               !p?.isTrust &&
-               !p?.isTrustWallet &&
-               !p?.isBraveWallet &&
-               !p?.isPhantom;
+      const isRealMetaMask = (p) => {
+        if (!p) return false;
+
+        // MetaMask-specific properties
+        const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
+                                    p._events?.hasOwnProperty('accountsChanged') ||
+                                    p.constructor?.name === 'MetaMaskInpageProvider';
+
+        // Basic checks
+        const isMetaMask = p?.isMetaMask === true;
+        const notOther = !p?.isCoinbaseWallet &&
+                        !p?.isTrust &&
+                        !p?.isTrustWallet &&
+                        !p?.isBraveWallet &&
+                        !p?.isPhantom;
+
+        if (hasMetaMaskMethods) return true;
+        return isMetaMask && notOther;
       };
 
       if (!window.ethereum) {
@@ -104,14 +135,14 @@ const WALLETS = [
       }
 
       // Check window.ethereum directly
-      if (isReal(window.ethereum)) {
+      if (isRealMetaMask(window.ethereum)) {
         console.log('[MetaMask] getProvider: returning window.ethereum');
         return window.ethereum;
       }
 
       // Check providers array
       if (Array.isArray(window.ethereum.providers)) {
-        const provider = window.ethereum.providers.find(isReal);
+        const provider = window.ethereum.providers.find(isRealMetaMask);
         if (provider) {
           console.log('[MetaMask] getProvider: found in providers array');
           return provider;
@@ -462,7 +493,18 @@ function ConnectModal({ isOpen, onClose }) {
         console.log(`[ConnectModal] Provider found:`, !!provider);
 
         if (!provider) {
-          setError(`Could not find ${wallet.name}`);
+          // If MetaMask fails, suggest checking if it's enabled
+          if (wallet.id === WALLET_TYPES.METAMASK) {
+            const trustWallet = WALLETS.find(w => w.id === WALLET_TYPES.TRUST);
+            const trustAvailable = trustWallet && trustWallet.detect?.();
+            if (trustAvailable) {
+              setError(`MetaMask not found. Trust Wallet is available - try that instead.`);
+            } else {
+              setError(`MetaMask not found. Enable it in chrome://extensions/ and refresh.`);
+            }
+          } else {
+            setError(`Could not find ${wallet.name}`);
+          }
           setConnecting(null);
           return;
         }

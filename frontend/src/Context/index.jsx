@@ -271,20 +271,34 @@ export const Index = ({ children }) => {
 
       // If a specific wallet is requested, try to find that specific provider
       if (walletId === 'metamask' && window.ethereum) {
-        // Helper function to check if a provider is real MetaMask (not Trust Wallet or other fakes)
+        // Helper function to check if a provider is real MetaMask
         const isRealMetaMask = (p) => {
-          return p?.isMetaMask === true &&
-                 !p?.isCoinbaseWallet &&
-                 !p?.isTrust &&
-                 !p?.isTrustWallet &&
-                 !p?.isBraveWallet &&
-                 !p?.isPhantom;
+          if (!p) return false;
+
+          // MetaMask-specific properties that Trust Wallet doesn't have
+          const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
+                                      p._events?.hasOwnProperty('accountsChanged') ||
+                                      p.constructor?.name === 'MetaMaskInpageProvider';
+
+          // Basic checks
+          const isMetaMask = p?.isMetaMask === true;
+          const notOther = !p?.isCoinbaseWallet &&
+                          !p?.isTrust &&
+                          !p?.isTrustWallet &&
+                          !p?.isBraveWallet &&
+                          !p?.isPhantom;
+
+          if (hasMetaMaskMethods) {
+            console.log('[Context] Found MetaMask-specific properties');
+            return true;
+          }
+          return isMetaMask && notOther;
         };
 
-        // First check if window.ethereum itself is MetaMask (might have been set by WalletConnect component)
+        // First check if window.ethereum itself is MetaMask
         if (isRealMetaMask(window.ethereum)) {
           provider = window.ethereum;
-          console.log('[Context] Using window.ethereum as MetaMask provider (already set)');
+          console.log('[Context] Using window.ethereum as MetaMask provider');
         } else if (Array.isArray(window.ethereum.providers)) {
           // Look for MetaMask in providers array
           provider = window.ethereum.providers.find(isRealMetaMask);
