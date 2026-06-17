@@ -471,8 +471,10 @@ function ConnectModal({ isOpen, onClose }) {
         } catch (err) {
           if (err.code === 4001) {
             setError('Connection rejected');
+          } else if (err.message?.includes('No active wallet')) {
+            setError(`${wallet.name} is not available. Try enabling it in chrome://extensions or refresh the page.`);
           } else {
-            setError(err.message || `Failed to connect`);
+            setError(err.message || `Failed to connect to ${wallet.name}`);
           }
         }
       }
@@ -483,11 +485,15 @@ function ConnectModal({ isOpen, onClose }) {
     }
   };
 
-  const installed = WALLETS.filter((w) =>
-    w.id === WALLET_TYPES.WALLETCONNECT ? true : w.detect?.()
-  );
+  // Always show MetaMask + WalletConnect, plus any other detected wallets
+  const installed = WALLETS.filter((w) => {
+    if (w.id === WALLET_TYPES.METAMASK || w.id === WALLET_TYPES.WALLETCONNECT) {
+      return true; // Always show MetaMask and WalletConnect
+    }
+    return w.detect?.();
+  });
   const notInstalled = WALLETS.filter(
-    (w) => w.id !== WALLET_TYPES.WALLETCONNECT && !w.detect?.()
+    (w) => w.id !== WALLET_TYPES.METAMASK && w.id !== WALLET_TYPES.WALLETCONNECT && !w.detect?.()
   );
 
   return createPortal(
