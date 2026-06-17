@@ -414,10 +414,14 @@ function ConnectModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleConnect = async (wallet) => {
+    console.log(`[ConnectModal] Button clicked for ${wallet.name}`);
     setError(null);
     setConnecting(wallet.id);
 
     try {
+      console.log(`[ConnectModal] Connecting to ${wallet.name}...`);
+      console.log(`[ConnectModal] connectWallet available: ${!!connectWallet}`);
+
       // Check if wallet is installed (except WalletConnect)
       // On Chrome, wallets inject slowly — wait up to 2 seconds before giving up
       if (wallet.id !== WALLET_TYPES.WALLETCONNECT && typeof wallet.detect === 'function') {
@@ -426,30 +430,37 @@ function ConnectModal({ isOpen, onClose }) {
         const maxRetries = 10; // 10 × 200ms = 2 seconds total
 
         while (!isDetected && retries < maxRetries) {
-          console.log(`[WalletConnect] Waiting for ${wallet.name} (${(retries + 1) * 200}ms / 2000ms)...`);
+          console.log(`[ConnectModal] Waiting for ${wallet.name} (${(retries + 1) * 200}ms / 2000ms)...`);
           await new Promise(r => setTimeout(r, 200));
           isDetected = wallet.detect();
           retries++;
         }
 
         if (!isDetected) {
-          console.warn(`[WalletConnect] ${wallet.name} not detected after 2 seconds. Attempting connection anyway...`);
+          console.warn(`[ConnectModal] ${wallet.name} not detected after 2 seconds. Attempting connection anyway...`);
         }
       }
 
       // Use context connectWallet function
       if (connectWallet) {
+        console.log(`[ConnectModal] Calling connectWallet from context with ${wallet.id}...`);
         const result = await connectWallet(wallet.id);
+        console.log(`[ConnectModal] connectWallet returned:`, result);
         if (result) {
           toast.success(`Connected to ${wallet.name}`);
           onClose();
           return;
         }
+      } else {
+        console.warn(`[ConnectModal] connectWallet not available in context!`);
       }
 
       // Fallback: direct provider connection
       if (wallet.id !== WALLET_TYPES.WALLETCONNECT && wallet.getProvider) {
+        console.log(`[ConnectModal] Using fallback direct provider connection...`);
         const provider = wallet.getProvider();
+        console.log(`[ConnectModal] Provider found:`, !!provider);
+
         if (!provider) {
           setError(`Could not find ${wallet.name}`);
           setConnecting(null);
@@ -457,9 +468,11 @@ function ConnectModal({ isOpen, onClose }) {
         }
 
         try {
+          console.log(`[ConnectModal] Calling provider.request(eth_requestAccounts)...`);
           const accounts = await provider.request({
             method: 'eth_requestAccounts',
           });
+          console.log(`[ConnectModal] Got accounts:`, accounts);
 
           if (accounts?.length > 0) {
             // Store in localStorage for persistence
@@ -469,6 +482,7 @@ function ConnectModal({ isOpen, onClose }) {
             return;
           }
         } catch (err) {
+          console.error(`[ConnectModal] provider.request failed:`, err);
           if (err.code === 4001) {
             setError('Connection rejected');
           } else if (err.message?.includes('No active wallet')) {
@@ -479,6 +493,7 @@ function ConnectModal({ isOpen, onClose }) {
         }
       }
     } catch (err) {
+      console.error(`[ConnectModal] Unexpected error:`, err);
       setError(err.message || 'Connection failed');
     } finally {
       setConnecting(null);
