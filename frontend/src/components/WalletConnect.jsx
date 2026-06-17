@@ -26,46 +26,67 @@ const WALLETS = [
     name: 'MetaMask',
     icon: '🦊',
     description: 'Browser extension wallet',
-    detect: () => {
-      if (typeof window === 'undefined' || !window.ethereum) {
-        console.log('[MetaMask] window.ethereum not available');
-        return false;
-      }
-      const isReal = (p) => {
-        // MetaMask is isMetaMask=true AND NOT any other wallet
-        // Trust Wallet also sets isMetaMask=true, so we must exclude it explicitly
-        return p?.isMetaMask === true &&
-               !p?.isCoinbaseWallet &&
-               !p?.isTrust &&
-               !p?.isTrustWallet &&
-               !p?.isBraveWallet &&
-               !p?.isPhantom;
-      };
+    detect: (() => {
+      // Cache result so we don't repeatedly log
+      let cached = null;
+      let cacheTime = 0;
+      const CACHE_DURATION = 2000; // Cache for 2 seconds
 
-      // Check window.ethereum directly first
-      if (isReal(window.ethereum)) {
-        console.log('[MetaMask] Found as window.ethereum');
-        return true;
-      }
+      return () => {
+        const now = Date.now();
+        if (cached !== null && now - cacheTime < CACHE_DURATION) {
+          return cached;
+        }
 
-      // Check providers array
-      if (Array.isArray(window.ethereum.providers)) {
-        const found = window.ethereum.providers.some(isReal);
-        if (found) {
-          console.log('[MetaMask] Found in providers array');
+        if (typeof window === 'undefined' || !window.ethereum) {
+          console.log('[MetaMask] window.ethereum not available');
+          cached = false;
+          cacheTime = now;
+          return false;
+        }
+
+        const isReal = (p) => {
+          // MetaMask is isMetaMask=true AND NOT any other wallet
+          // Trust Wallet also sets isMetaMask=true, so we must exclude it explicitly
+          return p?.isMetaMask === true &&
+                 !p?.isCoinbaseWallet &&
+                 !p?.isTrust &&
+                 !p?.isTrustWallet &&
+                 !p?.isBraveWallet &&
+                 !p?.isPhantom;
+        };
+
+        // Check window.ethereum directly first
+        if (isReal(window.ethereum)) {
+          console.log('[MetaMask] Found as window.ethereum');
+          cached = true;
+          cacheTime = now;
           return true;
         }
-      }
 
-      console.log('[MetaMask] Detection failed. window.ethereum props:', {
-        isMetaMask: window.ethereum?.isMetaMask,
-        isTrust: window.ethereum?.isTrust,
-        isTrustWallet: window.ethereum?.isTrustWallet,
-        isCoinbaseWallet: window.ethereum?.isCoinbaseWallet,
-        providersCount: Array.isArray(window.ethereum?.providers) ? window.ethereum.providers.length : 0
-      });
-      return false;
-    },
+        // Check providers array
+        if (Array.isArray(window.ethereum.providers)) {
+          const found = window.ethereum.providers.some(isReal);
+          if (found) {
+            console.log('[MetaMask] Found in providers array');
+            cached = true;
+            cacheTime = now;
+            return true;
+          }
+        }
+
+        console.log('[MetaMask] Detection failed. window.ethereum props:', {
+          isMetaMask: window.ethereum?.isMetaMask,
+          isTrust: window.ethereum?.isTrust,
+          isTrustWallet: window.ethereum?.isTrustWallet,
+          isCoinbaseWallet: window.ethereum?.isCoinbaseWallet,
+          providersCount: Array.isArray(window.ethereum?.providers) ? window.ethereum.providers.length : 0
+        });
+        cached = false;
+        cacheTime = now;
+        return false;
+      };
+    })(),
     getProvider: () => {
       const isReal = (p) => {
         // MetaMask is isMetaMask=true AND NOT any other wallet
@@ -398,23 +419,21 @@ function ConnectModal({ isOpen, onClose }) {
 
     try {
       // Check if wallet is installed (except WalletConnect)
-      // On Chrome, wallets inject slowly — retry a few times before giving up
+      // On Chrome, wallets inject slowly — wait up to 2 seconds before giving up
       if (wallet.id !== WALLET_TYPES.WALLETCONNECT && typeof wallet.detect === 'function') {
         let isDetected = wallet.detect();
         let retries = 0;
-        const maxRetries = 5;
+        const maxRetries = 10; // 10 × 200ms = 2 seconds total
 
         while (!isDetected && retries < maxRetries) {
-          console.log(`[WalletConnect] Waiting for ${wallet.name} (retry ${retries + 1}/${maxRetries})...`);
+          console.log(`[WalletConnect] Waiting for ${wallet.name} (${(retries + 1) * 200}ms / 2000ms)...`);
           await new Promise(r => setTimeout(r, 200));
           isDetected = wallet.detect();
           retries++;
         }
 
         if (!isDetected) {
-          setError(`${wallet.name} is not installed`);
-          setConnecting(null);
-          return;
+          console.warn(`[WalletConnect] ${wallet.name} not detected after 2 seconds. Attempting connection anyway...`);
         }
       }
 
