@@ -31,82 +31,70 @@ const WALLETS = [
         console.log('[MetaMask] window.ethereum not available');
         return false;
       }
-      const isStrict = (p) => {
-        const isMetaMask = p?.isMetaMask === true;
-        const notOtherWallet = !p?.isCoinbaseWallet && !p?.isTrust &&
-          !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
-        return isMetaMask && notOtherWallet;
+      const isReal = (p) => {
+        // MetaMask is isMetaMask=true AND NOT any other wallet
+        // Trust Wallet also sets isMetaMask=true, so we must exclude it explicitly
+        return p?.isMetaMask === true &&
+               !p?.isCoinbaseWallet &&
+               !p?.isTrust &&
+               !p?.isTrustWallet &&
+               !p?.isBraveWallet &&
+               !p?.isPhantom;
       };
-      const isLoose = (p) => p?.isMetaMask === true; // Just check if it's marked as MetaMask
 
-      // Try strict check first
-      if (isStrict(window.ethereum)) {
-        console.log('[MetaMask] Found as window.ethereum (strict)');
+      // Check window.ethereum directly first
+      if (isReal(window.ethereum)) {
+        console.log('[MetaMask] Found as window.ethereum');
         return true;
       }
 
+      // Check providers array
       if (Array.isArray(window.ethereum.providers)) {
-        const foundStrict = window.ethereum.providers.some(isStrict);
-        if (foundStrict) {
-          console.log('[MetaMask] Found in providers array (strict)');
-          return true;
-        }
-        // Fall back to loose check if strict failed
-        const foundLoose = window.ethereum.providers.some(isLoose);
-        if (foundLoose) {
-          console.log('[MetaMask] Found in providers array (loose - isMetaMask only)');
+        const found = window.ethereum.providers.some(isReal);
+        if (found) {
+          console.log('[MetaMask] Found in providers array');
           return true;
         }
       }
 
-      // Last resort: check if window.ethereum itself is loose-match
-      if (isLoose(window.ethereum)) {
-        console.log('[MetaMask] window.ethereum marked as isMetaMask (loose)');
-        return true;
-      }
-
-      console.log('[MetaMask] Detection failed. window.ethereum.isMetaMask:', window.ethereum?.isMetaMask, 'providers:', Array.isArray(window.ethereum.providers) ? window.ethereum.providers.length : 'N/A');
+      console.log('[MetaMask] Detection failed. window.ethereum props:', {
+        isMetaMask: window.ethereum?.isMetaMask,
+        isTrust: window.ethereum?.isTrust,
+        isTrustWallet: window.ethereum?.isTrustWallet,
+        isCoinbaseWallet: window.ethereum?.isCoinbaseWallet,
+        providersCount: Array.isArray(window.ethereum?.providers) ? window.ethereum.providers.length : 0
+      });
       return false;
     },
     getProvider: () => {
-      const isStrict = (p) => {
-        const isMetaMask = p?.isMetaMask === true;
-        const notOtherWallet = !p?.isCoinbaseWallet && !p?.isTrust &&
-          !p?.isTrustWallet && !p?.isBraveWallet && !p?.isPhantom;
-        return isMetaMask && notOtherWallet;
+      const isReal = (p) => {
+        // MetaMask is isMetaMask=true AND NOT any other wallet
+        return p?.isMetaMask === true &&
+               !p?.isCoinbaseWallet &&
+               !p?.isTrust &&
+               !p?.isTrustWallet &&
+               !p?.isBraveWallet &&
+               !p?.isPhantom;
       };
-      const isLoose = (p) => p?.isMetaMask === true;
 
       if (!window.ethereum) {
         console.log('[MetaMask] getProvider: window.ethereum not available');
         return null;
       }
 
-      // Try strict check first
-      if (isStrict(window.ethereum)) {
-        console.log('[MetaMask] getProvider: returning window.ethereum (strict)');
+      // Check window.ethereum directly
+      if (isReal(window.ethereum)) {
+        console.log('[MetaMask] getProvider: returning window.ethereum');
         return window.ethereum;
       }
 
       // Check providers array
       if (Array.isArray(window.ethereum.providers)) {
-        const providerStrict = window.ethereum.providers.find(isStrict);
-        if (providerStrict) {
-          console.log('[MetaMask] getProvider: found in providers array (strict)');
-          return providerStrict;
+        const provider = window.ethereum.providers.find(isReal);
+        if (provider) {
+          console.log('[MetaMask] getProvider: found in providers array');
+          return provider;
         }
-        // Fall back to loose check
-        const providerLoose = window.ethereum.providers.find(isLoose);
-        if (providerLoose) {
-          console.log('[MetaMask] getProvider: found in providers array (loose)');
-          return providerLoose;
-        }
-      }
-
-      // Last resort: check if window.ethereum itself is loose-match
-      if (isLoose(window.ethereum)) {
-        console.log('[MetaMask] getProvider: returning window.ethereum (loose)');
-        return window.ethereum;
       }
 
       console.log('[MetaMask] getProvider: not found');
