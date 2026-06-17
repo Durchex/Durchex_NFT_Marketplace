@@ -233,6 +233,21 @@ export const Index = ({ children }) => {
   }, []);
 
   const connectWallet = async (walletId = null) => {
+    // Wrap entire operation with a timeout to prevent infinite hanging
+    const connectionTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Wallet connection timed out after 15 seconds. Please check that your wallet is installed and enabled.')), 15000)
+    );
+
+    try {
+      return await Promise.race([connectionTimeoutImpl(walletId), connectionTimeout]);
+    } catch (err) {
+      console.error('[Context] Connection timeout or error:', err.message);
+      ErrorToast(err.message);
+      return null;
+    }
+  };
+
+  const connectionTimeoutImpl = async (walletId) => {
     // Support calling with a specific wallet id (e.g. 'metamask', 'coinbase', 'walletconnect')
     // If a wallet id is passed, the caller can rely on UI detection to ensure the right provider is available.
     // Get the wallet provider - check for multiple providers
@@ -241,11 +256,17 @@ export const Index = ({ children }) => {
     if (typeof window !== "undefined") {
       // On Chrome, MetaMask takes time to inject window.ethereum. Retry with delays.
       let retries = 0;
-      const maxRetries = 5;
+      const maxRetries = 10; // Increased retries since we have a timeout now
       while (!window.ethereum && retries < maxRetries) {
         console.log(`[Context] Waiting for window.ethereum (retry ${retries + 1}/${maxRetries})...`);
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 300)); // Increased delay slightly
         retries++;
+      }
+
+      if (!window.ethereum && walletId === 'metamask') {
+        console.error('[Context] MetaMask not found after retries');
+        ErrorToast('MetaMask not found. Make sure it is installed and enabled.');
+        return null;
       }
 
       // If a specific wallet is requested, try to find that specific provider
