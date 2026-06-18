@@ -275,6 +275,7 @@ export const userAPI = {
         return null; // Don't throw error for profile loading
       }
       if (error.response?.status === 404) {
+        userProfileCache.set(String(walletAddress || '').toLowerCase(), { data: null, fetchedAt: Date.now() });
         return null; // User not found
       }
       // For other errors, log but don't throw - return null to allow UI to continue
