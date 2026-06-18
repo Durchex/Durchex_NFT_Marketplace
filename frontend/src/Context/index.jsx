@@ -277,7 +277,7 @@ export const Index = ({ children }) => {
 
           // MetaMask-specific properties that Trust Wallet doesn't have
           const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
-                                      p._events?.hasOwnProperty('accountsChanged') ||
+                                      (p._events && 'accountsChanged' in p._events) ||
                                       p.constructor?.name === 'MetaMaskInpageProvider';
 
           // Basic checks
@@ -304,14 +304,6 @@ export const Index = ({ children }) => {
           provider = window.ethereum.providers.find(isRealMetaMask);
           if (provider) {
             console.log('[Context] Found MetaMask in providers array');
-            // Make it the primary provider
-            const providerIndex = window.ethereum.providers.findIndex(p => p === provider);
-            if (providerIndex > 0) {
-              [window.ethereum.providers[0], window.ethereum.providers[providerIndex]] =
-                [window.ethereum.providers[providerIndex], window.ethereum.providers[0]];
-            }
-            window.ethereum = window.ethereum.providers[0];
-            provider = window.ethereum;
           }
         }
         // If still no provider, we've exhausted options
