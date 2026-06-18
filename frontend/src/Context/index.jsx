@@ -165,8 +165,8 @@ export const Index = ({ children }) => {
         provider = window.tokenpocket;
       } else if (window.safepal) {
         provider = window.safepal;
-      } else if (window.__wc_provider__) {
-        provider = window.__wc_provider__;
+      } else if (wcProviderRef.current) {
+        provider = wcProviderRef.current;
       }
     }
 
@@ -458,12 +458,6 @@ export const Index = ({ children }) => {
         }
 
         provider = wprovider;
-        if (typeof window !== 'undefined') {
-          window.__wc_provider__ = wprovider;
-          if (!window.ethereum) {
-            window.ethereum = wprovider;
-          }
-        }
       } catch (err) {
         console.error('Error initializing WalletConnect provider:', err);
         ErrorToast('Failed to initialize WalletConnect. Check console for details.');
@@ -726,7 +720,7 @@ export const Index = ({ children }) => {
         }
 
         // Also attempt to call generic provider disconnect/close
-        const provider = typeof window !== 'undefined' && (window.ethereum || window.wallet?.provider || window.__walletconnect__ || window.__wc_provider__);
+        const provider = typeof window !== 'undefined' && (wcProviderRef.current || window.ethereum || window.wallet?.provider || window.__walletconnect__);
         if (provider && typeof provider.disconnect === 'function') {
           try { 
             await provider.disconnect();
@@ -745,9 +739,7 @@ export const Index = ({ children }) => {
         }
 
         if (typeof window !== 'undefined') {
-          if (window.__wc_provider__) {
-            delete window.__wc_provider__;
-          }
+          wcProviderRef.current = null;
           if (window.__walletconnect__) {
             delete window.__walletconnect__;
           }
