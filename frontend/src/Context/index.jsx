@@ -484,55 +484,26 @@ export const Index = ({ children }) => {
       if (walletId === 'walletconnect' && provider) {
         console.log('[Context] WalletConnect provider detected');
         try {
-          // WalletConnect requires explicit connect call
-          if (typeof provider.connect === 'function') {
+          // Check if already connected — calling connect() on an active session causes
+          // "Connection request reset". Use existing accounts instead.
+          const alreadyConnected =
+            provider.session ||
+            (Array.isArray(provider.accounts) && provider.accounts.length > 0);
+
+          if (alreadyConnected) {
+            console.log('[Context] WalletConnect already connected, reusing session');
+            accounts = provider.accounts;
+          } else {
             console.log('[Context] Calling connect() for WalletConnect provider');
             await provider.connect();
+            accounts = provider.accounts;
           }
 
-          // After connecting, get accounts
-          if (provider.request) {
+          // Fallback: get accounts via RPC if the above didn't populate them
+          if (!accounts || accounts.length === 0) {
             try {
-              accounts = await provider.request({ method: 'eth_requestAccounts' });
-            } catch (requestError) {
-              console.warn('[Context] WalletConnect eth_requestAccounts failed, trying eth_accounts', requestError);
-              if (requestError.code === 4001) {
-                ErrorToast('WalletConnect connection rejected by user');
-                return null;
-              }
-              if (provider.request) {
-                accounts = await provider.request({ method: 'eth_accounts' });
-              }
-            }
-          }
-
-          if ((!accounts || accounts.length === 0) && typeof provider.enable === 'function') {
-            try {
-              accounts = await provider.enable();
-            } catch (enableError) {
-              console.warn('[Context] WalletConnect enable failed:', enableError);
-            }
-          }
-
-          if ((!accounts || accounts.length === 0) && typeof provider.send === 'function') {
-            try {
-              accounts = await provider.send('eth_requestAccounts', []);
-            } catch (sendError) {
-              console.warn('[Context] WalletConnect send failed:', sendError);
-            }
-          }
-
-          if ((!accounts || accounts.length === 0) && typeof provider.sendAsync === 'function') {
-            try {
-              accounts = await new Promise((resolve, reject) => {
-                provider.sendAsync({ method: 'eth_requestAccounts', params: [] }, (err, result) => {
-                  if (err) return reject(err);
-                  resolve(result?.result || []);
-                });
-              });
-            } catch (sendAsyncError) {
-              console.warn('[Context] WalletConnect sendAsync failed:', sendAsyncError);
-            }
+              accounts = await provider.request({ method: 'eth_accounts' });
+            } catch (_) {}
           }
         } catch (wcError) {
           console.error('[Context] WalletConnect connection error:', wcError);
