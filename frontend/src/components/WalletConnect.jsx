@@ -98,8 +98,8 @@ const WalletButton = ({ address, disconnectWallet }) => {
     // Load profile
     setIsLoadingProfile(true);
     userAPI
-      .getProfile(address)
-      .then((res) => setProfile(res.data))
+      .getUserProfile(address)
+      .then((res) => setProfile(res))
       .catch(() => setProfile(null))
       .finally(() => setIsLoadingProfile(false));
   }, [isOpen, address]);
