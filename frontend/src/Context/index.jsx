@@ -240,13 +240,23 @@ export const Index = ({ children }) => {
       ? 'WalletConnect timed out. Please scan the QR code within 5 minutes.'
       : 'Wallet connection timed out after 15 seconds. Please check that your wallet is installed and enabled.';
 
-    const connectionTimeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(timeoutMsg)), timeoutMs)
-    );
+    let timerId;
+    const connectionTimeout = new Promise((_, reject) => {
+      timerId = setTimeout(() => reject(new Error(timeoutMsg)), timeoutMs);
+    });
 
     try {
-      return await Promise.race([connectionTimeoutImpl(walletId), connectionTimeout]);
+      const result = await Promise.race([connectionTimeoutImpl(walletId), connectionTimeout]);
+      clearTimeout(timerId);
+      return result;
     } catch (err) {
+      clearTimeout(timerId);
+      // If WalletConnect proposal expired or connection failed, discard the stale
+      // provider so the next attempt creates a fresh one with a new QR code.
+      if (walletId === 'walletconnect') {
+        try { wcProviderRef.current?.disconnect?.(); } catch (_) {}
+        wcProviderRef.current = null;
+      }
       console.error('[Context] Connection timeout or error:', err.message);
       ErrorToast(err.message);
       return null;
