@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { userAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -16,12 +16,14 @@ export const UserProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
+  const loadAttemptedForRef = useRef(null);
 
   // Load user profile when wallet address changes
   const loadUserProfile = async (walletAddress) => {
     if (!walletAddress) {
       setUserProfile(null);
       setIsProfileLoaded(true);
+      loadAttemptedForRef.current = null;
       return;
     }
 
@@ -133,28 +135,24 @@ export const UserProvider = ({ children }) => {
 
   // Initialize profile if it doesn't exist - but don't auto-create
   // Only load existing profile, don't create new ones automatically
-  const initializeProfile = async (walletAddress) => {
-    if (!walletAddress) {
-      console.warn('Cannot initialize profile without wallet address');
-      return;
-    }
+  const initializeProfile = useCallback(async (walletAddress) => {
+    if (!walletAddress) return;
 
-    // Validate wallet address format
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       console.warn('Invalid wallet address format:', walletAddress);
       return;
     }
 
-    // Only load existing profile, don't create new one
-    if (!userProfile) {
-      try {
-        await loadUserProfile(walletAddress);
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        // Don't create profile automatically - user must explicitly save
-      }
+    // Prevent re-fetching for the same address (including after a 404)
+    if (loadAttemptedForRef.current === walletAddress) return;
+    loadAttemptedForRef.current = walletAddress;
+
+    try {
+      await loadUserProfile(walletAddress);
+    } catch (error) {
+      console.error('Failed to load profile:', error);
     }
-  };
+  }, []);
 
   const value = {
     userProfile,
