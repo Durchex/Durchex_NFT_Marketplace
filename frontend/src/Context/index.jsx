@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ethers } from "ethers";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { ErrorToast } from "../app/Toast/Error.jsx";
 import EthereumProvider from '@walletconnect/ethereum-provider';
 import VendorNFT from "./VendorNFT.json";
@@ -48,7 +48,7 @@ export const Index = ({ children }) => {
   const [currency, setCurrency] = useState("MATIC");
   const [selectedChain, setSelectedChain] = useState("polygon");
   const [cartItems, setCartItems] = useState([]);
-  const [wcProvider, setWcProvider] = useState(null);
+  const wcProviderRef = useRef(null);
 
   //FUNCTION
   const checkIfWalletConnected = async () => {
@@ -79,8 +79,8 @@ export const Index = ({ children }) => {
         }
       }
 
-      if (!provider && wcProvider) {
-        provider = wcProvider;
+      if (!provider && wcProviderRef.current) {
+        provider = wcProviderRef.current;
       }
 
       if (!provider) {
@@ -153,7 +153,7 @@ export const Index = ({ children }) => {
 
   useEffect(() => {
     // Get the wallet provider
-    let provider = wcProvider || null;
+    let provider = wcProviderRef.current || null;
     if (!provider && typeof window !== "undefined") {
       if (window.ethereum) {
         provider = window.ethereum;
@@ -221,7 +221,7 @@ export const Index = ({ children }) => {
         }
       };
     }
-  }, [wcProvider]);
+  }, []);
 
   useEffect(() => {
     // Only probe once on mount. Re-running on every `address` change re-enters
@@ -233,9 +233,15 @@ export const Index = ({ children }) => {
   }, []);
 
   const connectWallet = async (walletId = null) => {
-    // Wrap entire operation with a timeout to prevent infinite hanging
+    // WalletConnect needs time for the user to scan the QR code — give it 5 minutes.
+    // Other wallets (browser extensions) are expected to respond quickly.
+    const timeoutMs = walletId === 'walletconnect' ? 5 * 60 * 1000 : 15000;
+    const timeoutMsg = walletId === 'walletconnect'
+      ? 'WalletConnect timed out. Please scan the QR code within 5 minutes.'
+      : 'Wallet connection timed out after 15 seconds. Please check that your wallet is installed and enabled.';
+
     const connectionTimeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Wallet connection timed out after 15 seconds. Please check that your wallet is installed and enabled.')), 15000)
+      setTimeout(() => reject(new Error(timeoutMsg)), timeoutMs)
     );
 
     try {
@@ -396,14 +402,14 @@ export const Index = ({ children }) => {
           return null;
         }
 
-        let wprovider = wcProvider;
+        let wprovider = wcProviderRef.current;
         if (!wprovider) {
           wprovider = await EthereumProvider.init({
             projectId,
             chains: [1, 137, 56, 42161, 43114],
             showQrModal: true,
           });
-          setWcProvider(wprovider);
+          wcProviderRef.current = wprovider;
 
           // wire events
           if (wprovider.on) {
@@ -700,12 +706,12 @@ export const Index = ({ children }) => {
       // Attempt to gracefully disconnect WalletConnect style providers
       try {
         // First try WalletConnect provider instance
-        if (wcProvider && typeof wcProvider.disconnect === 'function') {
-          try { 
-            await wcProvider.disconnect(); 
+        if (wcProviderRef.current && typeof wcProviderRef.current.disconnect === 'function') {
+          try {
+            await wcProviderRef.current.disconnect();
             console.log('[Context] wcProvider.disconnect succeeded');
-          } catch (e) { 
-            console.warn('[Context] wcProvider.disconnect failed:', e); 
+          } catch (e) {
+            console.warn('[Context] wcProvider.disconnect failed:', e);
           }
         }
 
@@ -735,7 +741,7 @@ export const Index = ({ children }) => {
           if (window.__walletconnect__) {
             delete window.__walletconnect__;
           }
-          if (window.ethereum && window.ethereum === wcProvider) {
+          if (window.ethereum && window.ethereum === wcProviderRef.current) {
             delete window.ethereum;
           }
         }
