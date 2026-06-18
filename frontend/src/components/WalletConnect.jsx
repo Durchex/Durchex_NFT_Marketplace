@@ -1,319 +1,145 @@
-/**
- * WalletConnect — Orbital design. Single entry point for wallet connection.
- * Handles MetaMask, Coinbase, Trust, and WalletConnect protocols.
- */
 import { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ICOContent } from '../Context';
 import {
-  Wallet, Copy, ExternalLink, LogOut, RefreshCw, X, ChevronDown,
-  Loader, Check, AlertCircle, Download,
+  Wallet, Copy, ExternalLink, LogOut, X, ChevronDown,
+  Loader, AlertCircle, Zap, Shield,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { userAPI } from '../services/api';
 
-const WALLET_TYPES = {
-  METAMASK: 'metamask',
-  COINBASE: 'coinbase',
-  TRUST: 'trust',
-  WALLETCONNECT: 'walletconnect',
-};
+// Wallet provider detection
+const detectWallet = async () => {
+  if (typeof window === 'undefined') return null;
 
-const WALLETS = [
-  {
-    id: WALLET_TYPES.METAMASK,
-    name: 'MetaMask',
-    icon: '🦊',
-    description: 'Browser extension wallet',
-    detect: (() => {
-      // Cache result so we don't repeatedly log
-      let cached = null;
-      let cacheTime = 0;
-      const CACHE_DURATION = 2000; // Cache for 2 seconds
-
-      return () => {
-        const now = Date.now();
-        if (cached !== null && now - cacheTime < CACHE_DURATION) {
-          return cached;
-        }
-
-        if (typeof window === 'undefined' || !window.ethereum) {
-          console.log('[MetaMask] window.ethereum not available');
-          cached = false;
-          cacheTime = now;
-          return false;
-        }
-
-        const isRealMetaMask = (p) => {
-          if (!p) return false;
-
-          // MetaMask-specific properties that Trust Wallet doesn't have
-          const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
-                                      p._events?.hasOwnProperty('accountsChanged') ||
-                                      p.constructor?.name === 'MetaMaskInpageProvider';
-
-          // Basic checks
-          const isMetaMask = p?.isMetaMask === true;
-          const notOther = !p?.isCoinbaseWallet &&
-                          !p?.isTrust &&
-                          !p?.isTrustWallet &&
-                          !p?.isBraveWallet &&
-                          !p?.isPhantom;
-
-          // If has MetaMask-specific methods, trust it
-          if (hasMetaMaskMethods) {
-            console.log('[MetaMask] Found MetaMask-specific properties:', {
-              _metamask_isUnlocked: p._metamask_isUnlocked,
-              className: p.constructor?.name
-            });
-            return true;
-          }
-
-          // Otherwise use heuristic check
-          return isMetaMask && notOther;
-        };
-
-        // Check window.ethereum directly first
-        if (isRealMetaMask(window.ethereum)) {
-          console.log('[MetaMask] Found as window.ethereum');
-          cached = true;
-          cacheTime = now;
-          return true;
-        }
-
-        // Check providers array
-        if (Array.isArray(window.ethereum.providers)) {
-          const found = window.ethereum.providers.find(isRealMetaMask);
-          if (found) {
-            console.log('[MetaMask] Found in providers array');
-            cached = true;
-            cacheTime = now;
-            return true;
-          }
-        }
-
-        console.log('[MetaMask] Detection failed. window.ethereum inspection:', {
-          isMetaMask: window.ethereum?.isMetaMask,
-          isTrust: window.ethereum?.isTrust,
-          isTrustWallet: window.ethereum?.isTrustWallet,
-          isCoinbaseWallet: window.ethereum?.isCoinbaseWallet,
-          _metamask_isUnlocked: window.ethereum?._metamask_isUnlocked,
-          className: window.ethereum?.constructor?.name,
-          hasEvents: !!window.ethereum?._events,
-          providersCount: Array.isArray(window.ethereum?.providers) ? window.ethereum.providers.length : 0
-        });
-        cached = false;
-        cacheTime = now;
-        return false;
-      };
-    })(),
-    getProvider: () => {
-      const isRealMetaMask = (p) => {
-        if (!p) return false;
-
-        // MetaMask-specific properties
-        const hasMetaMaskMethods = typeof p._metamask_isUnlocked === 'boolean' ||
-                                    p._events?.hasOwnProperty('accountsChanged') ||
-                                    p.constructor?.name === 'MetaMaskInpageProvider';
-
-        // Basic checks
-        const isMetaMask = p?.isMetaMask === true;
-        const notOther = !p?.isCoinbaseWallet &&
-                        !p?.isTrust &&
-                        !p?.isTrustWallet &&
-                        !p?.isBraveWallet &&
-                        !p?.isPhantom;
-
-        if (hasMetaMaskMethods) return true;
-        return isMetaMask && notOther;
-      };
-
-      if (!window.ethereum) {
-        console.log('[MetaMask] getProvider: window.ethereum not available');
-        return null;
-      }
-
-      // Check window.ethereum directly
-      if (isRealMetaMask(window.ethereum)) {
-        console.log('[MetaMask] getProvider: returning window.ethereum');
-        return window.ethereum;
-      }
-
-      // Check providers array
-      if (Array.isArray(window.ethereum.providers)) {
-        const provider = window.ethereum.providers.find(isRealMetaMask);
-        if (provider) {
-          console.log('[MetaMask] getProvider: found in providers array');
-          return provider;
-        }
-      }
-
-      console.log('[MetaMask] getProvider: not found');
-      return null;
-    },
-    install: 'https://metamask.io/download/',
-  },
-  {
-    id: WALLET_TYPES.COINBASE,
-    name: 'Coinbase Wallet',
-    icon: '🔷',
-    description: 'Official Coinbase wallet',
-    detect: () => {
-      if (typeof window === 'undefined' || !window.ethereum) return false;
-      if (window.ethereum.isCoinbaseWallet) return true;
-      return Array.isArray(window.ethereum.providers)
-        ? window.ethereum.providers.some((p) => p.isCoinbaseWallet)
-        : false;
-    },
-    getProvider: () => {
-      if (!window.ethereum) return null;
-      if (window.ethereum.isCoinbaseWallet) return window.ethereum;
-      if (Array.isArray(window.ethereum.providers)) {
-        return window.ethereum.providers.find((p) => p.isCoinbaseWallet) || null;
-      }
-      return null;
-    },
-    install: 'https://www.coinbase.com/wallet',
-  },
-  {
-    id: WALLET_TYPES.TRUST,
-    name: 'Trust Wallet',
-    icon: '🛡️',
-    description: 'Mobile-first wallet',
-    detect: () => {
-      if (typeof window === 'undefined' || !window.ethereum) return false;
-      if (window.ethereum.isTrust || window.ethereum.isTrustWallet) return true;
-      return Array.isArray(window.ethereum.providers)
-        ? window.ethereum.providers.some((p) => p.isTrust || p.isTrustWallet)
-        : false;
-    },
-    getProvider: () => {
-      if (!window.ethereum) return null;
-      if (window.ethereum.isTrust || window.ethereum.isTrustWallet)
-        return window.ethereum;
-      if (Array.isArray(window.ethereum.providers)) {
-        return (
-          window.ethereum.providers.find(
-            (p) => p.isTrust || p.isTrustWallet
-          ) || null
-        );
-      }
-      return null;
-    },
-    install: 'https://trustwallet.com/',
-  },
-  {
-    id: WALLET_TYPES.WALLETCONNECT,
-    name: 'WalletConnect',
-    icon: '🔗',
-    description: 'Any mobile wallet via QR',
-    detect: () => true, // Always available
-    getProvider: null, // Will use protocol in context
-    install: 'https://walletconnect.com/',
-  },
-];
-
-function WalletButton({ compact = false }) {
-  const { address, accountBalance, shortenAddress, disconnectWallet } = useContext(ICOContent) || {};
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [profile, setProfile] = useState(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!address) return;
-    const load = async () => {
-      try {
-        setIsLoadingProfile(true);
-        const p = await userAPI.getUserProfile(address);
-        setProfile(p || null);
-      } catch (_) {
-        setProfile(null);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-    load();
-  }, [address]);
-
-  // Calculate dropdown position when opened
-  useEffect(() => {
-    if (!isOpen || !buttonRef.current) return;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    setDropdownPos({
-      top: rect.bottom + 8, // 8px gap below button
-      right: window.innerWidth - rect.right, // Align with right edge of button
-    });
-  }, [isOpen]);
-
-  if (!address) {
-    return null; // ConnectModal handles display
+  // Wait for providers to inject (up to 2 seconds)
+  let retries = 0;
+  while (!window.ethereum && retries < 10) {
+    await new Promise(r => setTimeout(r, 200));
+    retries++;
   }
 
-  const formatBal = accountBalance ? parseFloat(accountBalance).toFixed(4) : '0.0000';
+  if (!window.ethereum) return null;
+
+  // Normalize providers array
+  const providers = Array.isArray(window.ethereum.providers)
+    ? window.ethereum.providers
+    : [window.ethereum];
+
+  return { ethereum: window.ethereum, providers };
+};
+
+// Get the real MetaMask provider
+const getMetaMaskProvider = (ethereum, providers) => {
+  if (!ethereum) return null;
+
+  // Check for MetaMask-specific properties first (most reliable)
+  const isMetaMask = (p) => {
+    if (!p) return false;
+    // MetaMask-specific indicators
+    return (p.isMetaMask === true && !p.isTrust && !p.isPhantom && !p.isCoinbaseWallet) ||
+           p.constructor?.name === 'MetaMaskInpageProvider' ||
+           p._metamask_isUnlocked !== undefined;
+  };
+
+  // Check direct provider
+  if (isMetaMask(ethereum)) return ethereum;
+
+  // Check providers array
+  if (providers && Array.isArray(providers)) {
+    const mm = providers.find(isMetaMask);
+    if (mm) return mm;
+  }
+
+  return null;
+};
+
+// Get Trust Wallet provider
+const getTrustWalletProvider = (ethereum, providers) => {
+  if (!ethereum) return null;
+
+  const isTrust = (p) => p && (p.isTrust === true || p.isTrustWallet === true);
+
+  if (isTrust(ethereum)) return ethereum;
+  if (providers && Array.isArray(providers)) {
+    return providers.find(isTrust) || null;
+  }
+  return null;
+};
+
+// Get Coinbase Wallet provider
+const getCoinbaseProvider = (ethereum, providers) => {
+  if (!ethereum) return null;
+
+  const isCoinbase = (p) => p && p.isCoinbaseWallet === true;
+
+  if (isCoinbase(ethereum)) return ethereum;
+  if (providers && Array.isArray(providers)) {
+    return providers.find(isCoinbase) || null;
+  }
+  return null;
+};
+
+const WalletButton = ({ address, disconnectWallet }) => {
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const dropdownRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+
+  const shortenAddress = (addr) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const formatBal = parseFloat(address?.balance || 0).toFixed(4);
+
+  useEffect(() => {
+    if (!isOpen || !address) return;
+
+    // Load profile
+    setIsLoadingProfile(true);
+    userAPI
+      .getProfile(address)
+      .then((res) => setProfile(res.data))
+      .catch(() => setProfile(null))
+      .finally(() => setIsLoadingProfile(false));
+  }, [isOpen, address]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isOpen]);
+
+  if (!address) return null;
 
   return (
     <>
       <button
-        ref={buttonRef}
-        onClick={() => setIsOpen((p) => !p)}
-        className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-border
-          text-ink-100 hover:text-ink-100 hover:bg-raised transition-all duration-200
-          font-medium text-sm
-          ${compact ? '' : 'hidden sm:flex'}`}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border
+          bg-surface hover:bg-raised transition-colors duration-150 text-sm font-medium"
       >
-        {/* Avatar */}
-        {isLoadingProfile ? (
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 animate-pulse" />
-        ) : profile?.image ? (
-          <img
-            src={profile.image}
-            alt="avatar"
-            className="w-6 h-6 rounded-full object-cover border border-violet-400"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              navigate(`/profile`);
-            }}
-          />
-        ) : (
-          <div
-            className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
-              flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              navigate(`/profile`);
-            }}
-            title="View Profile"
-          >
-            {profile?.username?.slice(0, 1).toUpperCase() || shortenAddress(address).slice(0, 1).toUpperCase()}
-          </div>
-        )}
-
-        <div className="hidden md:block">
-          <div className="text-xs text-ink-100 font-semibold">{profile?.username || shortenAddress(address)}</div>
-          <div className="text-xs text-ink-500">{formatBal} ETH</div>
-        </div>
+        <Wallet size={16} />
+        {shortenAddress(address)}
         <ChevronDown
           size={14}
           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen &&
         createPortal(
           <>
+            <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
             <div
-              className="fixed inset-0 z-[100]"
-              onClick={() => setIsOpen(false)}
-            />
-            <div
+              ref={dropdownRef}
               className="fixed z-[101] rounded-2xl card p-4 min-w-[320px] max-h-[80vh] overflow-y-auto"
               style={{
                 top: `${dropdownPos.top}px`,
@@ -324,14 +150,12 @@ function WalletButton({ compact = false }) {
               {/* Profile */}
               <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-surface">
                 {isLoadingProfile ? (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
-                    flex items-center justify-center text-white text-xs font-bold animate-pulse">
-                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold animate-pulse" />
                 ) : profile?.image ? (
                   <img
                     src={profile.image}
                     alt="avatar"
-                    className="w-8 h-8 rounded-full object-cover border border-violet-400 cursor-pointer hover:border-violet-300"
+                    className="w-8 h-8 rounded-full object-cover border border-violet-400"
                     onClick={() => {
                       setIsOpen(false);
                       navigate('/profile');
@@ -339,14 +163,14 @@ function WalletButton({ compact = false }) {
                   />
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500
-                      flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer"
                     onClick={() => {
                       setIsOpen(false);
                       navigate('/profile');
                     }}
                   >
-                    {profile?.username?.slice(0, 1).toUpperCase() || shortenAddress(address).slice(0, 1).toUpperCase()}
+                    {profile?.username?.slice(0, 1).toUpperCase() ||
+                      shortenAddress(address).slice(0, 1).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -355,11 +179,6 @@ function WalletButton({ compact = false }) {
                   </p>
                   <p className="text-xs text-ink-500 truncate">{shortenAddress(address)}</p>
                 </div>
-              </div>
-
-              {/* Balance */}
-              <div className="text-xs text-ink-400 mb-3 px-3">
-                Balance: <span className="text-ink-100 font-semibold">{formatBal} ETH</span>
               </div>
 
               <div className="border-t border-border my-2" />
@@ -422,136 +241,106 @@ function WalletButton({ compact = false }) {
         )}
     </>
   );
-}
+};
 
-function ConnectModal({ isOpen, onClose }) {
+const ConnectModal = ({ isOpen, onClose }) => {
   const { connectWallet, address } = useContext(ICOContent) || {};
-  const [connecting, setConnecting] = useState(null);
+  const [step, setStep] = useState('select'); // select | connecting
+  const [selectedWallet, setSelectedWallet] = useState(null);
   const [error, setError] = useState(null);
+  const [availableWallets, setAvailableWallets] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Prevent scrollbar from appearing/disappearing
+  // Detect available wallets
   useEffect(() => {
-    if (isOpen) {
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
+    const loadWallets = async () => {
+      const detected = await detectWallet();
+      if (!detected) {
+        setAvailableWallets([
+          { id: 'walletconnect', name: 'WalletConnect', icon: '📱', description: 'Scan QR code' },
+        ]);
+        return;
+      }
+
+      const { ethereum, providers } = detected;
+      const wallets = [];
+
+      // Check for MetaMask
+      if (getMetaMaskProvider(ethereum, providers)) {
+        wallets.push({
+          id: 'metamask',
+          name: 'MetaMask',
+          icon: '🦊',
+          description: 'Browser extension',
+        });
+      }
+
+      // Check for Trust Wallet
+      if (getTrustWalletProvider(ethereum, providers)) {
+        wallets.push({
+          id: 'trust',
+          name: 'Trust Wallet',
+          icon: '🛡️',
+          description: 'Mobile & Browser',
+        });
+      }
+
+      // Check for Coinbase
+      if (getCoinbaseProvider(ethereum, providers)) {
+        wallets.push({
+          id: 'coinbase',
+          name: 'Coinbase Wallet',
+          icon: '🔷',
+          description: 'Official Coinbase',
+        });
+      }
+
+      // Always offer WalletConnect
+      wallets.push({
+        id: 'walletconnect',
+        name: 'WalletConnect',
+        icon: '📱',
+        description: 'Scan QR code',
+      });
+
+      setAvailableWallets(wallets);
     };
+
+    if (isOpen) loadWallets();
   }, [isOpen]);
 
-  if (address) return null;
-  if (!isOpen) return null;
-
   const handleConnect = async (wallet) => {
-    console.log(`[ConnectModal] Button clicked for ${wallet.name}`);
+    setSelectedWallet(wallet.id);
+    setStep('connecting');
     setError(null);
-    setConnecting(wallet.id);
+    setIsLoading(true);
 
     try {
-      console.log(`[ConnectModal] Connecting to ${wallet.name}...`);
-      console.log(`[ConnectModal] connectWallet available: ${!!connectWallet}`);
-
-      // Check if wallet is installed (except WalletConnect)
-      // On Chrome, wallets inject slowly — wait up to 2 seconds before giving up
-      if (wallet.id !== WALLET_TYPES.WALLETCONNECT && typeof wallet.detect === 'function') {
-        let isDetected = wallet.detect();
-        let retries = 0;
-        const maxRetries = 10; // 10 × 200ms = 2 seconds total
-
-        while (!isDetected && retries < maxRetries) {
-          console.log(`[ConnectModal] Waiting for ${wallet.name} (${(retries + 1) * 200}ms / 2000ms)...`);
-          await new Promise(r => setTimeout(r, 200));
-          isDetected = wallet.detect();
-          retries++;
-        }
-
-        if (!isDetected) {
-          console.warn(`[ConnectModal] ${wallet.name} not detected after 2 seconds. Attempting connection anyway...`);
-        }
+      if (!connectWallet) {
+        throw new Error('Wallet context not available');
       }
 
-      // Use context connectWallet function
-      if (connectWallet) {
-        console.log(`[ConnectModal] Calling connectWallet from context with ${wallet.id}...`);
-        const result = await connectWallet(wallet.id);
-        console.log(`[ConnectModal] connectWallet returned:`, result);
-        if (result) {
-          toast.success(`Connected to ${wallet.name}`);
-          onClose();
-          return;
-        }
-      } else {
-        console.warn(`[ConnectModal] connectWallet not available in context!`);
+      const result = await connectWallet(wallet.id);
+
+      if (result) {
+        toast.success(`Connected to ${wallet.name}`);
+        setIsLoading(false);
+        setStep('select');
+        onClose();
+        return;
       }
 
-      // Fallback: direct provider connection
-      if (wallet.id !== WALLET_TYPES.WALLETCONNECT && wallet.getProvider) {
-        console.log(`[ConnectModal] Using fallback direct provider connection...`);
-        const provider = wallet.getProvider();
-        console.log(`[ConnectModal] Provider found:`, !!provider);
-
-        if (!provider) {
-          // If MetaMask fails, suggest checking if it's enabled
-          if (wallet.id === WALLET_TYPES.METAMASK) {
-            const trustWallet = WALLETS.find(w => w.id === WALLET_TYPES.TRUST);
-            const trustAvailable = trustWallet && trustWallet.detect?.();
-            if (trustAvailable) {
-              setError(`MetaMask not found. Trust Wallet is available - try that instead.`);
-            } else {
-              setError(`MetaMask not found. Enable it in chrome://extensions/ and refresh.`);
-            }
-          } else {
-            setError(`Could not find ${wallet.name}`);
-          }
-          setConnecting(null);
-          return;
-        }
-
-        try {
-          console.log(`[ConnectModal] Calling provider.request(eth_requestAccounts)...`);
-          const accounts = await provider.request({
-            method: 'eth_requestAccounts',
-          });
-          console.log(`[ConnectModal] Got accounts:`, accounts);
-
-          if (accounts?.length > 0) {
-            // Store in localStorage for persistence
-            localStorage.setItem('lastConnectedWallet', wallet.id);
-            toast.success(`Connected to ${wallet.name}`);
-            onClose();
-            return;
-          }
-        } catch (err) {
-          console.error(`[ConnectModal] provider.request failed:`, err);
-          if (err.code === 4001) {
-            setError('Connection rejected');
-          } else if (err.message?.includes('No active wallet')) {
-            setError(`${wallet.name} is not available. Try enabling it in chrome://extensions or refresh the page.`);
-          } else {
-            setError(err.message || `Failed to connect to ${wallet.name}`);
-          }
-        }
-      }
+      throw new Error(`Failed to connect to ${wallet.name}`);
     } catch (err) {
-      console.error(`[ConnectModal] Unexpected error:`, err);
-      setError(err.message || 'Connection failed');
-    } finally {
-      setConnecting(null);
+      console.error('[WalletConnect] Error:', err);
+      setError(err.message || 'Connection failed. Try again.');
+      setIsLoading(false);
+      setStep('select');
     }
   };
 
-  // Always show MetaMask + WalletConnect, plus any other detected wallets
-  const installed = WALLETS.filter((w) => {
-    if (w.id === WALLET_TYPES.METAMASK || w.id === WALLET_TYPES.WALLETCONNECT) {
-      return true; // Always show MetaMask and WalletConnect
-    }
-    return w.detect?.();
-  });
-  const notInstalled = WALLETS.filter(
-    (w) => w.id !== WALLET_TYPES.METAMASK && w.id !== WALLET_TYPES.WALLETCONNECT && !w.detect?.()
-  );
+  if (address) return null;
+  if (!isOpen) return null;
 
   return createPortal(
     <>
@@ -574,13 +363,11 @@ function ConnectModal({ isOpen, onClose }) {
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
             <h2 className="text-lg font-bold text-ink-100">Connect Wallet</h2>
-            <p className="text-xs text-ink-400 mt-1">
-              Choose your wallet to get started
-            </p>
+            <p className="text-xs text-ink-400 mt-1">Choose your wallet to get started</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg"
+            className="p-1 rounded-lg hover:bg-raised transition-colors"
           >
             <X size={20} />
           </button>
@@ -594,90 +381,74 @@ function ConnectModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Wallet List */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
-          {/* Installed */}
-          {installed.length > 0 && (
-            <>
-              <p className="text-xs font-semibold text-ink-500 uppercase">Installed</p>
-              {installed.map((wallet) => (
-                <button
-                  key={wallet.id}
-                  onClick={() => handleConnect(wallet)}
-                  disabled={connecting !== null}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border
-                    hover:bg-raised transition-colors duration-150 disabled:opacity-50"
-                >
-                  <span className="text-2xl">{wallet.icon}</span>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-ink-100">{wallet.name}</p>
-                    <p className="text-xs text-ink-500">{wallet.description}</p>
-                  </div>
-                  {connecting === wallet.id && (
-                    <Loader size={16} className="animate-spin text-violet-400" />
-                  )}
-                  {connecting !== wallet.id && (
-                    <Check size={16} className="text-emerald-400" />
-                  )}
-                </button>
-              ))}
-            </>
-          )}
-
-          {/* Not Installed */}
-          {notInstalled.length > 0 && (
-            <>
-              <p className="text-xs font-semibold text-ink-500 uppercase mt-6">
-                Not Installed
+          {availableWallets.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-ink-400">No wallets detected</p>
+              <p className="text-xs text-ink-500 mt-2">
+                Install MetaMask or another Web3 wallet extension
               </p>
-              {notInstalled.map((wallet) => (
-                <button
-                  key={wallet.id}
-                  onClick={() => window.open(wallet.install, '_blank')}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border
-                    text-ink-400 hover:text-ink-300 hover:bg-raised transition-colors duration-150"
-                >
-                  <span className="text-2xl opacity-50">{wallet.icon}</span>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold">{wallet.name}</p>
-                    <p className="text-xs text-ink-600">{wallet.description}</p>
-                  </div>
-                  <Download size={16} />
-                </button>
-              ))}
-            </>
+            </div>
+          ) : (
+            availableWallets.map((wallet) => (
+              <button
+                key={wallet.id}
+                onClick={() => handleConnect(wallet)}
+                disabled={isLoading}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border border-border
+                  hover:bg-raised hover:border-violet-400/50 transition-all duration-150
+                  disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <span className="text-2xl">{wallet.icon}</span>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-semibold text-ink-100">{wallet.name}</p>
+                  <p className="text-xs text-ink-500">{wallet.description}</p>
+                </div>
+                {isLoading && selectedWallet === wallet.id && (
+                  <Loader size={16} className="animate-spin text-violet-400" />
+                )}
+                {!isLoading && (
+                  <Zap size={16} className="text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </button>
+            ))
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border text-center text-xs text-ink-500">
-          By connecting, you agree to our Terms of Service
+        <div className="px-6 py-4 border-t border-border text-xs text-ink-500 flex items-center gap-2">
+          <Shield size={14} />
+          <span>Your wallet never exposes your private key</span>
         </div>
       </div>
     </>,
     document.body
   );
-}
+};
 
-export default function WalletConnect({ compact = false }) {
-  const { address } = useContext(ICOContent) || {};
-  const [showModal, setShowModal] = useState(false);
+export default function WalletConnect() {
+  const { address, disconnectWallet } = useContext(ICOContent) || {};
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <>
-      {!address && (
+      {address ? (
+        <WalletButton address={address} disconnectWallet={disconnectWallet} />
+      ) : (
         <button
-          onClick={() => setShowModal(true)}
-          className="btn-primary gap-2 text-sm"
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl
+            bg-gradient-to-r from-violet-500 to-cyan-500
+            hover:from-violet-600 hover:to-cyan-600
+            transition-all duration-150 text-white text-sm font-semibold"
         >
           <Wallet size={16} />
-          <span>Connect Wallet</span>
+          Connect Wallet
         </button>
       )}
 
-      {address && <WalletButton compact={compact} />}
-
-      <ConnectModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      <ConnectModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 }
