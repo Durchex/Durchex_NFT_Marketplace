@@ -201,8 +201,10 @@ api.interceptors.response.use(
       }
     }
 
-    // Log error details
-    if (response?.status === 502) {
+    // Log error details (skip 404s — expected for unregistered resources)
+    if (response?.status === 404) {
+      // silent
+    } else if (response?.status === 502) {
       console.error('API Response Error (502 Bad Gateway):', {
         url: config?.url,
         baseURL: config?.baseURL,

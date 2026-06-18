@@ -81,56 +81,89 @@ const getCoinbaseProvider = (ethereum, providers) => {
   return null;
 };
 
-const WalletButton = ({ address, disconnectWallet }) => {
+const WalletButton = ({ address, balance, disconnectWallet }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
 
   const shortenAddress = (addr) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  const formatBal = parseFloat(address?.balance || 0).toFixed(4);
+  const formatBal = parseFloat(balance || 0).toFixed(4);
+  const displayName = profile?.username || shortenAddress(address);
 
+  // Load profile eagerly so the button can show name/avatar
   useEffect(() => {
-    if (!isOpen || !address) return;
-
-    // Load profile
+    if (!address) return;
     setIsLoadingProfile(true);
     userAPI
       .getUserProfile(address)
       .then((res) => setProfile(res))
       .catch(() => setProfile(null))
       .finally(() => setIsLoadingProfile(false));
-  }, [isOpen, address]);
+  }, [address]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
+        buttonRef.current && !buttonRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   if (!address) return null;
 
+  // Calculate dropdown position from button
+  const getDropdownStyle = () => {
+    if (!buttonRef.current) return { top: 60, right: 16 };
+    const rect = buttonRef.current.getBoundingClientRect();
+    return {
+      top: rect.bottom + 8,
+      right: window.innerWidth - rect.right,
+    };
+  };
+
   return (
     <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border
-          bg-surface hover:bg-raised transition-colors duration-150 text-sm font-medium"
+        ref={buttonRef}
+        onClick={() => setIsOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border
+          bg-surface hover:bg-raised transition-colors duration-150"
       >
-        <Wallet size={16} />
-        {shortenAddress(address)}
+        {/* Avatar */}
+        {isLoadingProfile ? (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 animate-pulse shrink-0" />
+        ) : profile?.image ? (
+          <img
+            src={profile.image}
+            alt="avatar"
+            className="w-7 h-7 rounded-full object-cover border border-violet-400/50 shrink-0"
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {displayName.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+
+        {/* Name + balance */}
+        <div className="hidden sm:flex flex-col items-start leading-tight">
+          <span className="text-xs font-semibold text-ink-100 max-w-[100px] truncate">{displayName}</span>
+          <span className="text-[10px] text-ink-400">{formatBal} ETH</span>
+        </div>
+
         <ChevronDown
-          size={14}
-          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          size={13}
+          className={`text-ink-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -140,50 +173,44 @@ const WalletButton = ({ address, disconnectWallet }) => {
             <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
             <div
               ref={dropdownRef}
-              className="fixed z-[101] rounded-2xl card p-4 min-w-[320px] max-h-[80vh] overflow-y-auto"
-              style={{
-                top: `${dropdownPos.top}px`,
-                right: `${dropdownPos.right}px`,
-              }}
+              className="fixed z-[101] rounded-2xl card p-4 min-w-[280px]"
+              style={getDropdownStyle()}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Profile */}
-              <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-surface">
-                {isLoadingProfile ? (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold animate-pulse" />
-                ) : profile?.image ? (
+              {/* Profile header */}
+              <div
+                className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-surface cursor-pointer hover:bg-raised transition-colors"
+                onClick={() => { setIsOpen(false); navigate('/profile'); }}
+              >
+                {profile?.image ? (
                   <img
                     src={profile.image}
                     alt="avatar"
-                    className="w-8 h-8 rounded-full object-cover border border-violet-400"
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate('/profile');
-                    }}
+                    className="w-10 h-10 rounded-full object-cover border border-violet-400"
                   />
                 ) : (
-                  <div
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate('/profile');
-                    }}
-                  >
-                    {profile?.username?.slice(0, 1).toUpperCase() ||
-                      shortenAddress(address).slice(0, 1).toUpperCase()}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold">
+                    {displayName.slice(0, 1).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-ink-100 truncate">
-                    {profile?.username || shortenAddress(address)}
-                  </p>
+                  <p className="text-sm font-semibold text-ink-100 truncate">{displayName}</p>
                   <p className="text-xs text-ink-500 truncate">{shortenAddress(address)}</p>
+                  <p className="text-xs text-violet-400 font-medium">{formatBal} ETH</p>
                 </div>
               </div>
 
               <div className="border-t border-border my-2" />
 
-              {/* Actions */}
+              <button
+                onClick={() => { setIsOpen(false); navigate('/profile'); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-ink-300
+                  hover:bg-raised rounded-lg transition-colors duration-150"
+              >
+                <Wallet size={14} />
+                My Profile
+              </button>
+
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(address);
@@ -207,18 +234,6 @@ const WalletButton = ({ address, disconnectWallet }) => {
               >
                 <ExternalLink size={14} />
                 View on Explorer
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/profile');
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-ink-300
-                  hover:bg-raised rounded-lg transition-colors duration-150"
-              >
-                <Wallet size={14} />
-                My Profile
               </button>
 
               <div className="border-t border-border my-2" />
@@ -428,13 +443,13 @@ const ConnectModal = ({ isOpen, onClose }) => {
 };
 
 export default function WalletConnect() {
-  const { address, disconnectWallet } = useContext(ICOContent) || {};
+  const { address, disconnectWallet, accountBalance } = useContext(ICOContent) || {};
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <>
       {address ? (
-        <WalletButton address={address} disconnectWallet={disconnectWallet} />
+        <WalletButton address={address} balance={accountBalance} disconnectWallet={disconnectWallet} />
       ) : (
         <button
           onClick={() => setModalOpen(true)}
